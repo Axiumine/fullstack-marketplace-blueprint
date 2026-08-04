@@ -1,0 +1,274 @@
+# Marketplace — workspace root
+
+Multi-tenant marketplace — many independent shops, one platform. This is **not** a pizza platform: the
+13 food collections that made it look like one, plus `costiConsegna`, were deleted on 2026-08-04 along
+with their migrations, models, resolvers and tests. What remains is the tenant skeleton — `admin`,
+`imprenditore`, `azienda`, `puntoVendita`, `categoria` — and it is domain-neutral. This directory is the
+parent workspace of all Marketplace repos (polyrepo — see `CLAUDE.md` for architecture, terminology and
+repo layout).
+
+## Backend datasource matrix
+
+Which datasource each backend service actually connects to and uses at runtime. The two columns are
+the datasource adapters `@axiumine/koa-utils` ships and this platform wires
+(`dataSources/MongoDB`, `dataSources/Redis`).
+
+Legend: ✅ connected and used · ❌ not used.
+
+|Service|Port|Tier|MongoDB|Redis|
+|---|---|---|---|---|
+|`marketplace-dev-public-authorization`|4028|public|✅|✅|
+|`marketplace-dev-public-resource`|4027|public|✅|✅|
+|`marketplace-dev-authenticated-authorization`|4029|Imprenditore|✅|✅|
+|`marketplace-dev-authenticated-resource`|4026|Imprenditore|✅|✅|
+|`marketplace-dev-authenticated-logout`|4030|Imprenditore|❌|✅|
+|`marketplace-dev-admin-authenticated-authorization`|4025|Admin|✅|✅|
+|`marketplace-dev-admin-authenticated-resource`|4024|Admin|✅|✅|
+
+The **Port** column is reproducible: `grep -m1 '^PORT=' <repo>/env` in each service returns the
+number above. It did not used to be — all seven committed `env` templates carried the same
+copy-paste `PORT=4064`, a port none of them listens on, so a fresh clone that copied `env` to `.env`
+would have started all seven on one wrong port and six would have failed to bind. Corrected from the
+real `.env` on the dev machine; the column itself was right all along.
+
+⚠️ The services do **not** bind `127.0.0.1` — they bind every interface (`::`), on purpose; see the
+*Backend services* section of `CLAUDE.md`.
+
+Support packages (not servers):
+
+|Package|MongoDB|Redis|
+|---|---|---|
+|`marketplace-common`|✅ (mongoose models)|❌|
+|`marketplace-db-setup`|✅ (migrate-mongo)|❌|
+
+### `marketplace-dev-authenticated-logout` — the Redis-only service
+
+It is the one service with **no MongoDB dependency at all**: logout only reads and deletes the two
+Redis session hashes (`<REDIS_KEY>refresh:<token>` and `<REDIS_KEY>access:<token>`). Consequences:
+
+- `start()` connects `RedisConnect()` only; `disconnectAllDatabases()` calls `RedisDisconnect()` only.
+- `MONGODB_URI` is **not** in `REQUIRED_ENV_VARS` and is absent from the `env` template.
+- Its integration project (`test/integration/*.itest.mts`) boots the real server against the real
+  Redis cluster and needs **no Mongo instance** to run.
+- `mongoose` is still a **devDependency**, and must stay one: `src/lib/authorizationLogoutHandler.mts`
+  imports `IContextRefresh` from koa-utils, whose `.d.mts` does `import { Types } from 'mongoose'`.
+  That is a type-only import erased at emit — nothing loads mongoose at runtime — but the repo sets
+  `skipLibCheck: false`, so removing the package makes `tsc` (hence `yarn dev` and `yarn build`) fail
+  with `TS2307: Cannot find module 'mongoose'`.
+
+### Known inconsistency in the env gates
+
+`checkRequiredEnv()` does not agree with actual Mongo usage in two services:
+
+|Service|Connects to Mongo|`MONGODB_URI` in `REQUIRED_ENV_VARS`|
+|---|---|---|
+|`marketplace-dev-authenticated-authorization`|✅|❌ missing|
+|`marketplace-dev-admin-authenticated-authorization`|✅|❌ missing|
+
+Both boot without the variable and fail later inside `MongoDBConnect()` instead of fast-failing with a
+named message. Not fixed yet — logged here so it is not mistaken for intent.
+
+### How this table was verified
+
+Per service, over `src/` (not docs, not `package.json`):
+
+```bash
+cd BEs/dev
+for d in marketplace-dev-*/; do
+	echo "### ${d%/}"
+	grep -rhoE '(RedisConnect|MongoDBConnect)\(' "$d/src" | sort -u
+	grep -rhoE 'koa-utils/dataSources/[A-Za-z]+' "$d/src" | sort -u
+done
+```
+
+A `package.json` dependency is **not** evidence of use — the seven services share a copy-pasted
+dependency block, so unused adapters and clients are listed everywhere. Read the connect calls.
+
+Last verified: 2026-07-25.
+
+## Test quality gates
+
+Two different questions are gated, and they are not the same question:
+
+|Gate|Question it answers|Tool|
+|---|---|---|
+|coverage|did a test **execute** this line?|vitest, v8 provider|
+|mutation|would a test **fail** if this line were wrong?|Stryker|
+
+100% coverage with weak assertions is the normal failure mode, and the coverage number cannot see
+it. Mutation testing is what falsifies it: Stryker rewrites `src/` one small change at a time
+(`true` → `false`, a string literal → `""`, a block → `{}`) and re-runs the suite. A mutant that
+*survives* is an edit to the source that no test noticed.
+
+### "Three times over" — the coverage layers
+
+The 100%-on-every-metric coverage rule is not written down once. It is written down in **three
+independent places**, each able to block on its own, so bypassing one still leaves two:
+
+|Layer|Where|Blocks what|
+|---|---|---|
+|test run|`vitest.config.mts` → `test.coverage.thresholds`|`yarn test:cov` exits non-zero|
+|static scan|`qodana.yaml` → `failureConditions.testCoverageThresholds` (`total`/`fresh` = 100)|`./qodana.sh` fails the scan|
+|git hook|`.githooks/pre-push`|the push is refused|
+
+All three read the same run — vitest, v8 provider, `all: true` over `src/**/*.mts`, lcov into
+`coverage/lcov.info`. Redundancy is the point: skip the hook and Qodana still fails; never run
+Qodana and the hook still fails.
+
+Verified present in all seven services on 2026-07-26: `thresholds` in every `vitest.config.mts`,
+`total: 100` / `fresh: 100` in every `qodana.yaml`, and an **executable** `.githooks/pre-push` in
+every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
+gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
+
+### Where the gates fire — push and commit, in all ten
+
+Every repo gates on **both**. `.githooks/pre-commit` runs the secret guard, then `yarn lint:check`, then
+`yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
+`./qodana.sh` (~1 min), and only when the staged paths can move a verdict — a docs-only commit skips all
+of it. Mutation is the one gate that stays push-only; it is far too slow to pay for per commit.
+
+`marketplace-db-setup` runs a shorter chain, and every omission is a decision rather than a gap. Its
+`pre-commit` is the secret guard plus Qodana; its `pre-push` is the migration suite plus Qodana. No lint,
+because it is the one repo on the platform with no `eslint.config.js` and no `.prettierrc` — its content
+is applied migrations, which are immutable, so a formatter that rewrites them is the wrong tool. Qodana
+still *inspects* those files, which is the part worth having. No mutation gate and no coverage threshold
+either: its only suite drives real `up()`/`down()` against a real database, so 100% there would measure
+whether every migration got added to a list, not whether any schema is right. And the suite stays
+push-only because it needs that database up.
+
+Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
+linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict
+nothing enforced — while `eslint.config.js`, `.prettierrc` and `.prettierignore` were also missing from the
+backend `RELEVANT_PATHS`, so a commit touching only them skipped every other gate too. Both holes are
+closed: `yarn lint:check` is the first gate of both hooks in all nine, and the three configs are in the
+filter. It is the cheapest gate and the only one that can fail on a file the others are perfectly happy
+with — the next `yarn lint` rewrites it regardless.
+
+Qodana deliberately runs in **both** hooks. `git merge --no-ff` never fires `pre-commit` — git runs that
+hook for `git commit` only — so in the branch → commit → merge → push flow the merge commit, the one
+revision that actually reaches `origin`, is the single commit no pre-commit scan ever sees, and two
+individually clean branches can merge into a tree that is not. And Qodana Cloud files every report under
+the branch it was produced on (the CLI has no `--branch` flag, it reads git HEAD), while pre-commit always
+runs on the feature branch *before* the commit exists — so a repo gated only there never produces a
+`main`-tagged report and the "new problems" baseline has nothing stable to compare against. In the nine
+repos that gate coverage, both scans pass `SKIP_TESTS=1`, reusing the `coverage/lcov.info` the preceding
+gate just wrote; `marketplace-db-setup` passes neither, because its `qodana.yaml` declares no coverage
+threshold and so there is no report to reuse and nothing for the flag to switch off. `SKIP_QODANA=1`
+bypasses the scan alone.
+
+Two details that make the difference between a gate and the appearance of one:
+
+- **`severityThresholds` is what binds the inspection results.** Without it Qodana prints
+  `✗ Found N new problems` and still exits 0, so `testCoverageThresholds` is the only condition that
+  can fail a run — and vitest already enforces that, leaving the scan with nothing of its own to block
+  on. Verified on `marketplace-common`: a run reporting a **High** `JSVoidFunctionReturnValueUsed` exited 0,
+  and 255 once the two keys were added. `critical: 0` / `high: 0` is now in all ten `qodana.yaml`
+  (`marketplace-db-setup` gets severity only — its coverage stays ungated for the reason in its own file,
+  which also makes severity the only thing its scan can fail on). `@axiumine/koa-utils` already had it.
+- **A missing prerequisite blocks, it does not warn and continue.** Docker down, no `qodana` CLI, linter
+  image absent, no `QODANA_TOKEN`, wrong Node — each exits 1 with the one command that fixes it. A gate
+  that steps aside when it cannot run is the hole it exists to close, reopened one condition lower.
+
+What the severity gate found the moment it existed: **14 High findings across all seven services**, every
+one of them `ES6PreferShortImport` on the integration tests' `from '../../src/index.mts'`. The advice is
+wrong here — the shortened form was applied and the suite run, and it fails with
+`Cannot find module '/src'` — and every service already carried an exclusion saying exactly that. It was
+scoped to `test/integration/index.itest.mts` alone, so `startFailure`, `shutdown` and `cibi` kept
+reporting into a scan that exited 0 regardless. The scope is now the `test/integration` directory, and
+the rescan that followed put all seven back at **exit 0** with nothing above Moderate left (1–4 each,
+`DuplicatedCode` and `JSDeprecatedSymbols`, deliberately advisory).
+
+`marketplace-db-setup` was the last repo never scanned — its `qodana.sh` exited at the empty-token check
+(`QODANA_TOKEN missing or empty in .env`) with no output at all, a 0-byte log and exit 1 that reads like a
+crash rather than a missing credential. The token now exists and the first real scan has run, against
+Cloud project `9kVqd` (`db-setup`), which is its own project like every other repo's.
+
+It failed, and the failure is worth recording because the shape recurs. **51 problems, 15 of them High,
+and 45 of the 51 in one file: `setup/mongodb.js`** — `CommaExpressionJS` ×8, `UnnecessaryLabelJS` ×6,
+`ThisExpressionReferencesGlobalObjectJS` ×1, `BadExpressionStatementJS` ×30. Every one is a false positive
+of the same kind: that file is a **mongosh runbook**, not JavaScript. `use dbMarketplaceDev` is a shell
+command; a JS parser reads it as a label plus a bare expression and reports both halves. Its sibling
+`setup/redis.txt` is the same kind of file and escapes the whole thing only by being named `.txt`.
+
+The fix was four `exclude` entries in `qodana.yaml`, each **scoped to that one path** and each carrying its
+reason — deliberately not a blanket exclusion of the file, because `HardcodedPasswords` must keep firing
+there: that runbook really does carry live credentials. The rescan came back **exit 0**, 6 problems, all
+Moderate `DuplicatedCode` (four migrations, which duplicate on purpose, and the migration test).
+
+⚠️ That is a symptom fix and the config says so. The root cause is the extension, and the next JS
+inspection added to the profile will need a fifth entry. Renaming to `setup/mongodb.txt` kills the class
+outright, and is the better move whenever the doc references and the `-name '*.js'` glob in that repo's
+semgrep script can move with it.
+
+### Linter version, CLI version, and one Cloud project per repo
+
+Three settings that are invisible until they disagree, and none of them fails loudly when they do.
+
+|Thing|Where it is pinned|Current|
+|---|---|---|
+|linter image|`qodana.yaml` (`image:` here, `linter:` in koa-utils)|`jetbrains/qodana-js:2026.2`|
+|CLI|the machine, a hand-installed `.deb` (dpkg only, no apt repo)|`2026.2.0`|
+|GitHub action|`.github/workflows/qodana.yml` — koa-utils only, no marketplace repo has CI|`JetBrains/qodana-action@v2026.2`|
+
+The linter decides which inspections run, so two repos on different tags are not being held to the
+same rules. A CLI *older* than its linter still scans, but prints `You are using a non-compatible
+Qodana linter …` and keeps going. Bump the action tag alongside the image: `v2026.1` ships the 2026.1
+CLI, which reintroduces that mismatch in CI after you have fixed it locally.
+
+⚠️ **One Qodana Cloud project per repo, and nothing enforces it but the token.** The project a report
+lands in is decided entirely by `QODANA_TOKEN` — not by the repo name, not by `qodana.yaml`. Paste one
+repo's token into another and both upload into the same project, where their baselines and report
+histories interleave and neither is trustworthy. That happened here: `marketplace-common` carried
+`marketplace-dev-public-resource`'s token and had been uploading into `oDKeo` while its own project sat
+empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
+and confirm the id is that repo's own — ten repos, ten distinct ids.
+
+Every sub-repo carries a `qodana.yaml` — all ten of them — so "all repos are gated" now means what it
+says. Keep it true: a new repo without a config is silently outside every layer described above.
+
+### The mutation layers
+
+|Layer|Where|Blocks what|
+|---|---|---|
+|mutation run|`stryker.config.mjs` → `thresholds.break: 100`|`yarn test:mutation` exits non-zero|
+|git hook|`.githooks/pre-push`, the mutation step|the push is refused|
+
+Only two layers, not three: **Qodana has no mutation gate**, so `pre-push` is the only thing
+standing between a weakened assertion and `origin`. The hook runs lint, then coverage, then
+mutation, and blocks on any of them.
+
+Neither number may be lowered. When mutation goes red the fix is a stronger assertion, a deleted
+dead branch, or — only for a mutant provably unable to behave differently on any reachable input —
+a `// Stryker disable next-line <Mutator>: <why>` in the source with the reachability argument
+written above it.
+
+Rolled out first in `marketplace-dev-authenticated-logout`, whose `COVERAGE.md` is the reference write-up
+(scope decisions, equivalent mutants, and why `rejects.toThrow()` is the assertion that hides the
+most bugs). **Rollout is complete as of 2026-07-26**: all seven services and `marketplace-common` are at
+mutation score 100 with `thresholds.break: 100` and a blocking `pre-push`.
+
+### What the rollout actually found
+
+Every package was already at 100% coverage. None was at 100% mutation score:
+
+|Package|Mutation score before|
+|---|---|
+|`marketplace-common`|45.95%|
+|`marketplace-dev-authenticated-resource`|85.09%|
+|`marketplace-dev-admin-authenticated-authorization`|90.32%|
+|`marketplace-dev-public-authorization`|96.47%|
+
+`marketplace-common` reached 100 with **zero changes to `src/`** and zero Stryker disables — every one of
+its survivors was a weak assertion, not a defensible piece of code. The gaps behind them were real:
+`PuntoVendita.azienda` had no type or required checks at all, and the `LoginSubDocSchema` pre-save
+hook never asserted the field name it passes to `isModified()`.
+
+⚠️ **Do not add `ignoreStatic` to a Stryker config.** A mutant in module-load-time code throws during
+Vitest's file-collection phase, before any test runs; Stryker cannot attribute the failure to a test
+and reports **Survived** even though the suite did fail. That artifact is indistinguishable from a
+real survivor and invites `ignoreStatic` as the fix, which then deletes whole classes of mutant from
+the run — here it masked a wipe of `RESET_PWD_PATHS` to `{}`. The flag was briefly set in all seven
+services on exactly that misdiagnosis and has since been removed from all of them. The real fix is a
+dynamic `await import()` inside a `beforeEach`, so the throw lands inside a test that can fail.
+`beforeEach`, not `beforeAll`: a throw in `beforeAll` marks dependent tests *skipped* rather than
+failed, and the vitest-runner does not count a skipped test as a kill either.

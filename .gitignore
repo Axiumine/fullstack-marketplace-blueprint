@@ -1,0 +1,24 @@
+# Each sub-project is its own independent git repo and is versioned there, not
+# here. This root repo tracks only the parent-workspace files (CLAUDE.md, etc.)
+# — see "This directory is the parent workspace" in CLAUDE.md.
+
+/BEs/
+/marketplace-admin/
+/.idea/
+
+# Secrets never enter this repo. Every sub-repo already ignores these; the parent
+# did not, which was the one gap. `env` (no dot) is the committed placeholder
+# template and stays tracked.
+.env
+.env.*
+.envrc
+.npmrc
+.yarnrc
+.yarnrc.yml
+.netrc
+*.pem
+*.p12
+id_rsa
+id_ed25519
+
+TODO
