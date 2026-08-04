@@ -4,6 +4,7 @@
 
 /BEs/
 /marketplace-admin/
+/marketplace-shopowner/
 /.idea/
 
 # Secrets never enter this repo. Every sub-repo already ignores these; the parent
@@ -22,3 +23,5 @@ id_rsa
 id_ed25519
 
 TODO
+# GitNexus index storage. The committed part is .gitnexusrc at the repo root.
+.gitnexus/
