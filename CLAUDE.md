@@ -2,13 +2,13 @@
 
 Multi-tenant marketplace. Customers order from many independent shops; each shop is run by its owner; the platform vendor (thedoctorweb) operates it.
 
-⚠️ **It is not a pizza platform, and there is no longer a catalogue at all.** The pizza framing came from the old collection names, and on 2026-08-04 those names were deleted outright: 13 food collections plus `costiConsegna` went, with every migration, mongoose model, `Cibo` base shape, resolver and test that served them (see *Data model*). What is left is the multi-tenant skeleton — operators, shop owners, companies, shops, categories — and it is domain-neutral. **Do not reintroduce food vocabulary when adding a product type**; nothing in the surviving code presumes it.
-
-The one exception, deliberately kept: `puntoVendita.opzPizze` and `opzPaninoteca` — per-shop flour options. They are the last dough-specific fields on the platform, they live on a collection that survived, and removing them was not part of the deletion. Treat them as legacy, not as evidence of what the product is.
+⚠️ **It is not a pizza platform, and there is no longer a catalogue or a shop collection at all.** The pizza framing came from the old collection names, and on 2026-08-04 those names were deleted outright: 13 food collections plus `costiConsegna`, then `puntoVendita` and `categoria`, went with every migration, mongoose model, `Cibo` base shape, resolver and test that served them (see *Data model*). `opzPizze` / `opzPaninoteca` — the last dough-specific fields on the platform — went with the collection that carried them. What is left is the multi-tenant skeleton: operators, shop owners, companies. It is domain-neutral. **Do not reintroduce food vocabulary when adding a product type**; nothing in the surviving code presumes it.
 
 **Work in progress.** The target product has four surfaces: public pages, customer area, shop-owner area, platform-operator area. Only part of that is built. Every section below marks **built** vs **planned** — do not assume a missing piece is an oversight, and do not describe the platform to the user as if the unbuilt parts exist.
 
-**Language: all domain names, UI text, and comments are Italian. Keep them Italian — do not "translate" identifiers.**
+⚠️ **Language: everything is English — domain names, UI text, routes, comments.** This reverses the rule this file carried until 2026-08-04, when the whole platform was renamed on the user's explicit instruction. The mapping: `imprenditore` → `shopOwner`, `azienda` → `company`, `anagrafica` → `personalData`, `indirizzo` → `address`, `iscrizione` → `registeredAt`, `nome`/`cognome` → `firstName`/`lastName`, `comune` → `city`, `cap` → `postalCode`, `cellulare`/`fisso` → `mobile`/`landline`. Collections were renamed too, which invalidated the `changelog` — see *Data model*.
+
+**Do not "translate back", and do not add a new Italian identifier.** Italian survives in exactly two places, both deliberate: **domain terms with no English equivalent** in prose and comments (*partita IVA* = `vatNumber`, *codice fiscale* = `taxCode`, *PEC* = `certifiedEmail`, *visura* = `registryExtract`, *ragione sociale* = `legalName` — these name Italian legal instruments and the English gloss would be wrong), and the **`it-IT` locale** the operator SPA formats dates with, which is a market choice and not a name.
 
 ## Target architecture
 
@@ -16,10 +16,10 @@ The one exception, deliberately kept: `puntoVendita.opzPizze` and `opzPaninoteca
 |---|---|---|
 | Public pages | anonymous | services built, no frontend |
 | Customer area | end customer, places orders | **not started** — no collection, no service, no UI |
-| Shop-owner area | `Imprenditore` | backend built, no frontend |
+| Shop-owner area | `ShopOwner` | backend built, no frontend |
 | Operator area | `Admin` | backend + `marketplace-admin` frontend built (React + Vite) |
 
-The unbuilt pieces have a known shape, because the built tiers already establish the pattern (see *Terminology* and *Backend services*). Adding the customer tier means: a `utente` collection + migration → an auth tier (public-authorization already hosts `login`) → a `utente`-authenticated service pair → order/cart collections → a customer frontend. Order state, delivery flow, and payment have **no** existing model to copy — they are genuinely new design, so ask before inventing them.
+The unbuilt pieces have a known shape, because the built tiers already establish the pattern (see *Terminology* and *Backend services*). Adding the customer tier means: a `user` collection + migration → an auth tier (public-authorization already hosts `login`) → a `user`-authenticated service pair → order/cart collections → a customer frontend. Name it in English like everything else — the legacy scripts called it `utente`, and that spelling does not come back. Order state, delivery flow, and payment have **no** existing model to copy — they are genuinely new design, so ask before inventing them.
 
 ## Terminology — read this first
 
@@ -27,16 +27,17 @@ The code does NOT use the words customer/admin/superadmin. Mapping:
 
 | Business role | Code name | Where |
 |---|---|---|
-| Shop owner ("the admin") | `Imprenditore` | `imprenditore` collection, `authenticated-*` services |
+| Shop owner ("the admin") | `ShopOwner` | `shopOwner` collection, `authenticated-*` services |
 | Platform operator ("the super admin", the developer) | `Admin` | `admin` collection, `admin-authenticated-*` services |
-| End customer (places orders) | `Utente` (planned) | **not implemented** — no collection, no service, no UI |
-| Shop / point of sale | `PuntoVendita` | `puntoVendita`, FK `idImprenditore` |
-| Menu section | `Categoria` | `categoria`, FK `idPuntoVendita` |
-| Product | — | **removed 2026-08-04** — no collection, no model, no resolver |
+| End customer (places orders) | `User` (planned) | **not implemented** — no collection, no service, no UI |
+| Company (the legal entity a shop owner registers) | `Company` | `company` collection, FK `idShopOwner` |
+| Shop / point of sale | — | **removed 2026-08-04** — no collection, no model, no resolver |
+| Menu section | — | **removed 2026-08-04** — same |
+| Product | — | **removed 2026-08-04** — same |
 
 There is no `role` field and no permission enum anywhere, and this is deliberate — **role = which collection you authenticate against.** Each role gets its own service pair and its own Redis session namespace. Follow this when adding the customer tier: a new collection + a new service pair, *not* a role check bolted onto the existing ones.
 
-Current build state: shop management only — no catalog either, since the product collections were deleted. **No order, cart, or customer collection exists** — a `utente` collection existed in the legacy mongosh scripts and was dropped during the migrate-mongo port (`migration/MongoDB/scripts/utente.js`). ⚠️ That history is **gone locally** — it lived only in `marketplace-db-setup`'s Mercurial history, which was discarded in the hg→git conversion, and this workspace has no git history at all (see *Repo layout*). To recover it, clone the old hg repo from `repo.tdweb.it`. The `img/` folder that held the customer mobile app design (screen layouts, product photos, button icons) has been **deleted** — it was never tracked by any repo, so there is no copy to restore.
+Current build state: tenant management only — shop owners and their companies. No shop, no catalog, no orders. **No order, cart, or customer collection exists** — a `utente` collection existed in the legacy mongosh scripts and was dropped during the migrate-mongo port (`migration/MongoDB/scripts/utente.js`). ⚠️ That history is **gone locally** — it lived only in `marketplace-db-setup`'s Mercurial history, which was discarded in the hg→git conversion, and this workspace has no git history at all (see *Repo layout*). To recover it, clone the old hg repo from `repo.tdweb.it`. The `img/` folder that held the customer mobile app design (screen layouts, product photos, button icons) has been **deleted** — it was never tracked by any repo, so there is no copy to restore.
 
 ## This directory is the parent workspace
 
@@ -90,9 +91,9 @@ Split on two axes: **tier** (who) × **concern** (what).
 |---|---|---|---|
 | `marketplace-dev-public-authorization` | 4028 | public | login, `loginAdmin` |
 | `marketplace-dev-public-resource` | 4027 | public | public catalog |
-| `marketplace-dev-authenticated-authorization` | 4029 | Imprenditore | token lifecycle |
-| `marketplace-dev-authenticated-resource` | 4026 | Imprenditore | domain data, uploads |
-| `marketplace-dev-authenticated-logout` | 4030 | Imprenditore | logout |
+| `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | token lifecycle |
+| `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | domain data, uploads |
+| `marketplace-dev-authenticated-logout` | 4030 | ShopOwner | logout |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | token lifecycle |
 | `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | domain data |
 
@@ -116,7 +117,7 @@ Opaque tokens + Redis sessions. **Not JWT**, despite a stale `JWT` type in `sche
 - Refresh token: Koa signed cookie (Keygrip SHA-512, `KEYGRIP_KEY_1/2`), httpOnly.
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
 - `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service calls. Treat as a secret; never log it, never expose it to a browser client.
-- `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `imprenditore` also has `waitApprov` (manual approval gate) and `onboardingStep`/`onboardingDone`.
+- `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `shopOwner` also has `waitApprov` (manual approval gate) and `onboardingStep`/`onboardingDone`.
 - Passwords: bcrypt via `@node-rs/bcrypt`, `SALT_ROUNDS=14`.
 
 ### Resolver layout (per resource service)
@@ -130,67 +131,56 @@ src/graphQLApi/schema/
 
 `mutations/cibi/` is gone — it held the per-food-type `*Add.mts`/`*Update.mts` pairs and went with the
 catalogue. A new product type gets its own files directly under `mutations/`, following
-`puntoVenditaAdd.mts` and `aziendaUpdate.mts`.
+`companyAdd.mts` and `companyUpdate.mts`.
 
 ## Data model
 
-MongoDB, **5 collections** — `admin`, `imprenditore`, `azienda`, `puntoVendita`, `categoria` — with strict `$jsonSchema` validators and `additionalProperties: false`. Ownership chain:
+MongoDB, **3 collections** — `admin`, `shopOwner`, `company` — with strict `$jsonSchema` validators and `additionalProperties: false`. Ownership chain:
 
 ```
-imprenditore ─┬─idImprenditore──> azienda
-              └─idImprenditore──> puntoVendita ─┬─idAzienda──> azienda
-                                                └─idPuntoVendita──> categoria
+shopOwner ──idShopOwner──> company
 ```
 
-⚠️ **There is no product collection, and that is deliberate.** The platform used to carry 14 more —
+`admin` stands outside it: an operator owns nothing and is owned by nothing.
+
+⚠️ **There is no product collection and no shop collection, and that is deliberate.** The platform used to carry 16 more —
 13 food types (`pizza`, `bevanda`, `caffetteria`, `caramella`, `contorno`, `dolce`, `fritto`, `frutta`,
-`gelato`, `insalata`, `paninoteca`, `piatto`, `snack`) plus `costiConsegna` — and all 14 were removed on
+`gelato`, `insalata`, `paninoteca`, `piatto`, `snack`) plus `costiConsegna`, `puntoVendita` and `categoria` — and all 16 were removed on
 2026-08-04, together with their migrations, their mongoose models and shared `Cibo` base shapes in
 marketplace-common, their `exports` entries, their resolvers in the three resource services and their
-tests. What is left is the tenant skeleton: operators, shop owners, companies, shops and categories.
-`categoria` survives and now has nothing hanging off it — a deliberate anchor point for whatever
-catalogue gets built next. **This is the extension seam**: a new product type is a new collection plus a
-migration plus a model plus resolvers, exactly as the 14 were, and nothing in the surviving code
+tests. `categoria` was briefly kept as the anchor a future catalogue would hang off, then removed with the shop it belonged to. What is left is the tenant skeleton: operators, shop owners, companies.
+**This is the extension seam**: a new product type is a new collection plus a
+migration plus a model plus resolvers, exactly as the 16 were, and nothing in the surviving code
 presumes food.
 
-⚠️ **The company is a reference named `puntoVendita.idAzienda`, not the embedded object it used to be.**
-Migration `20260803000000-create-azienda` lifted that subdocument into a collection of its own, added
-`idImprenditore` (required) plus the new `cf` and the `indirizzo` block, moved the `piva` and `pec`
-unique indexes onto it, and **deleted every document in `puntoVendita`** — the `down` cannot bring
-them back. `20260803000100` then renames the field itself, and `20260803142526` re-seeds the demo
-company and shop.
+⚠️ **The company used to be an embedded object on the shop, and is now a collection.**
+Migration `20260803000000-create-company` lifted that subdocument out, added
+`idShopOwner` (required) plus the new `taxCode` and the `address` block, and moved the `vatNumber` and `certifiedEmail`
+unique indexes onto it. `20260803142526` re-seeds the demo company. The extraction is what makes the real cardinality expressible: one shop owner owns N companies, where the embedded form forced one copy of the company per shop and then refused the second as a duplicate partita IVA.
 
-⚠️ **`idAzienda` was `azienda` until 2026-08-04, and the two migrations were rewritten in place** —
-the one time the immutability rule was set aside, on the user's explicit instruction, so the field
-reads as if it had never been called anything else. Every database that had run them was rebuilt in
-the same piece of work: `dbMarketplaceDev` dropped and replayed with `SEED_DEMO=true`, and each repo's
-integration database is dropped by its own `globalSetup` anyway. The demo seed pins fixed `_id`s, so
-`categoria` comes back pointing at the shop that was re-created — no dangling `idPuntoVendita` on dev.
+⚠️ **Every collection, field and identifier was renamed to English on 2026-08-04, and the applied migrations were rewritten in place.** The one time the immutability rule was set aside, on the user's explicit instruction, so a migration reads as if its collection had never been called anything else. `imprenditore` → `shopOwner` and `azienda` → `company` are the two collection renames; the field renames are listed under *Language* at the top. It was paid for the way the `lib/schemas/` rule says to pay for it: **every database that had run these migrations was rebuilt in the same piece of work** — `dbMarketplaceDev` dropped and replayed with `SEED_DEMO=true`, and each repo's integration database is dropped by its own `globalSetup` anyway.
 
-**`azienda` carries an optional `deleted` (date), and `aziendaDel` stamps it instead of removing the
-row.** `piva_unique` and `pec_unique` stay plain global uniques with no `partialFilterExpression`, so
+**`company` carries an optional `deleted` (date), and `companyDel` stamps it instead of removing the
+row.** `vatNumber_unique` and `certifiedEmail_unique` stay plain global uniques with no `partialFilterExpression`, so
 a retired company keeps its partita IVA occupied — deliberate: one partita IVA is one company,
 whoever registered it and whenever they stopped trading. The two tiers answer differently on a
-company that is already retired, and both are correct: the Admin tier's `aziendaDel` says 200,
-because the guard it uses does not filter `deleted`; the Imprenditore tier says 403, because
-`throwIfImprenditoreDontOwnAzienda` does. Liveness filters belong on read paths and on
+company that is already retired, and both are correct: the Admin tier's `companyDel` says 200,
+because the guard it uses does not filter `deleted`; the ShopOwner tier says 403, because
+`throwIfShopOwnerDontOwnCompany` does. Liveness filters belong on read paths and on
 existence/ownership guards — never on the delete write itself.
 
-One company owns N shops: an imprenditore may hold several `azienda` rows, and each `puntoVendita`
-names exactly one of them. A shop therefore cannot be created before a company exists — which is the
-order the operator SPA's detail page renders its sections in.
+A shop owner may hold several `company` rows. There is nothing below `company` any more — the shops that used to hang off it went with the 2026-08-04 cut.
 
 Adding a product type touches, in this order: model in marketplace-common → its `exports` entry (there
 is no barrel, so an unlisted file is unreachable) → publish → migration in marketplace-db-setup, with
-its `$jsonSchema` builder under `lib/schemi/` → resolvers in the resource services → schema slice and
-codegen in `marketplace-admin`. `CibiModels.mts` and the `Cibo*` base shapes it exported are **gone** —
-they were deleted with the 14 collections, so a new type starts from `PuntoVenditaModel` /
-`CategoriaModel` as its reference, not from a surviving base class.
+its `$jsonSchema` builder under `lib/schemas/` → resolvers in the resource services → schema slice and
+codegen in `marketplace-admin`. `CibiModels.mts`, the `Cibo*` base shapes it exported, `PuntoVenditaModel` and
+`CategoriaModel` are all **gone** — a new type starts from `CompanyModel` as its reference, not from a surviving base class.
 
 ## Frontend — marketplace-admin (React, current)
 
 Vite 8 + React 19 + TypeScript strict, SPA (no SSR). The **operator app**: `loginAdmin`, then manage
-*imprenditori*. It has its own `CLAUDE.md`, `README.md` and `COVERAGE.md` — read them before editing.
+*shopOwners*. It has its own `CLAUDE.md`, `README.md` and `COVERAGE.md` — read them before editing.
 
 TanStack Router (route tree in code, not generated) · urql + `cacheExchange` + `@urql/exchange-auth` ·
 graphql-codegen `client-preset`, one project per access level · TanStack Table · react-hook-form + zod ·
@@ -246,8 +236,8 @@ yarn test  test:cov  test:mutation   # gated at 100 / 100
 - **All seven services run vitest**, same two-project layout everywhere: `unit` (`test/*.test.mts`, Redis mocked, `REDIS_KEY=test:`) and `integration` (`test/integration/*.itest.mts`, `PORT=0`, `fileParallelism: false`, 30 s timeouts, and the **real** Redis cluster + MongoDB from `.env` under the isolated `REDIS_KEY=marketplaceDev:itest:` namespace). Scripts: `yarn test` · `test:unit` · `test:integration` · `test:cov`. Coverage is gated at **100% on every metric** in all seven, four times over — `thresholds` in `vitest.config.mts`, `testCoverageThresholds` in `qodana.yaml`, and a `yarn test:cov` step in both `.githooks/pre-commit` and `.githooks/pre-push`. The `qodana.yaml` line was inert in the services until the Qodana scan was wired into those two hooks: the file has always declared the threshold, but nothing local ever ran the linter, so the only scans that existed were manual. **Never lower a threshold**; add the missing test. `marketplace-dev-authenticated-logout` carries a `COVERAGE.md` explaining the pattern. Outside `dev/`, coverage lives in marketplace-common (vitest + stryker) and marketplace-db-setup (vitest against a real Mongo — it ran on the built-in `node:test` runner once, and this line said so long after that stopped being true; the assertions never moved off `node:assert/strict`, which is what made the drift easy to miss).
 - **Mutation testing is gated too, at 100, in all seven services and in `marketplace-common`.** Stryker (`stryker.config.mjs`, `thresholds.break: 100`) runs as the second step of every `.githooks/pre-push`, after coverage. Coverage asks whether a line *ran*; mutation asks whether a test would have *failed* had that line been wrong — and the two answers diverge badly. Every package here sat at 100% coverage while mutants survived; `marketplace-common` scored 45.95%. See `README.md` for the gate layers and `marketplace-common/CLAUDE.md` for the catalogue of assertions that pass while the code is wrong. **Do not add `ignoreStatic`** to a Stryker config to silence a survivor — it masks real gaps, and the survivor it appears to fix is usually a load-time mutant that needs a dynamic `await import()` inside `beforeEach` instead.
 - **Every repo's integration suite owns its own MongoDB database, and three variables have to name it.** `MONGO_TEST_DB`, `MONGO_TEST_AUTH_ADMIN` and the database path of `MONGO_TEST_CONN_STRING` must all carry the same string, and that string must be **unique to the repo** — each `globalSetup` drops its own database, so a shared name means one suite wiping another's data mid-run. `vitest.mongo.mts` enforces the agreement (`assertTestMongoDbNames`) and refuses to build a URL otherwise; it used to rebuild the path from `MONGO_TEST_DB` silently, which turned a mismatch into a working URL pointed at a database the connection string never named. Because the authSource *is* the test database, the two `MONGO_TEST_*` users must exist in every one of them — provision with the loop in `marketplace-db-setup/setup/mongodb.js`. Dropping a database does not delete them; MongoDB keeps all users in `admin.system.users`. Current names: `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`, `…PublicRes`, `…ImprAuthz`, `…ImprRes`, `…AdminAuthz`, `…AdminRes`; `marketplace-dev-authenticated-logout` has no block because its suite never touches Mongo.
-- **Integration tests run against real infrastructure** and must clean up after themselves. The convention: seed through the **raw driver** (`mongoose.connection.db!.collection(…)`), not the Mongoose model — several models disagree with their collection's `$jsonSchema` (`Imprenditore` declares `anagrafica.nascita.date` and no `contatti`, the validator wants `nascita.data` plus `contatti`) — push every `_id` and every Redis key into a module-level array **at creation time**, and drain both in `afterAll`. Registering the key at creation rather than relying on a per-test `finally` matters: a seed that throws before its `try` block leaks the session key. Watch the unique indexes when seeding (`imprenditore.login.email`, `azienda.piva` **and** `azienda.pec`) — a fixed literal collides on the second seed of the same run. Redis is a **cluster**, so delete one key per `del` call; a multi-key `del` throws CROSSSLOT.
-- **Migrations are immutable; they are no longer self-contained.** Never edit an applied migration — add a new one. But the `$jsonSchema` shapes themselves live in `marketplace-db-setup/lib/schemi/`, shared by every migration that restates them: 13 identical product validators and 5 restatements of `puntoVendita` were about 3 500 of 5 100 lines, and no edit inside `migrations/` could clear the resulting `DuplicatedCode` findings. The 13 product builders are gone with their collections — `lib/schemi/` is down to `account.js`, `collezione.js`, `geo.js`, `imprenditore.js`, `puntoVendita.js` — but the rule stands for the survivors, and a new product type gets a builder there rather than an inline validator. The old "inline everything" rule assumed a database that cannot be rebuilt, and there is none here — one `Dev` plus a throwaway test DB, both replayable. **The replacement rule: a change under `lib/schemi/` is followed by a full rebuild of every database that has run these migrations, in the same piece of work.** Each builder carries *every* historical shape of its collection, so deleting an unused branch breaks some older migration's `down`. Read `lib/schemi/README.md` before editing it.
+- **Integration tests run against real infrastructure** and must clean up after themselves. The convention: seed through the **raw driver** (`mongoose.connection.db!.collection(…)`), not the Mongoose model — several models disagree with their collection's `$jsonSchema` (`ShopOwner` declares `personalData.birth.date` and no `contacts`, the validator wants `birth.date` plus `contacts`) — push every `_id` and every Redis key into a module-level array **at creation time**, and drain both in `afterAll`. Registering the key at creation rather than relying on a per-test `finally` matters: a seed that throws before its `try` block leaks the session key. Watch the unique indexes when seeding (`shopOwner.login.email`, `company.vatNumber` **and** `company.certifiedEmail`) — a fixed literal collides on the second seed of the same run. Redis is a **cluster**, so delete one key per `del` call; a multi-key `del` throws CROSSSLOT.
+- **Migrations are immutable; they are no longer self-contained.** Never edit an applied migration — add a new one. But the `$jsonSchema` shapes themselves live in `marketplace-db-setup/lib/schemas/` (renamed from `lib/schemi/` in the same sweep), shared by every migration that restates them: 13 identical product validators and 5 restatements of the shop collection were about 3 500 of 5 100 lines, and no edit inside `migrations/` could clear the resulting `DuplicatedCode` findings. The product and shop builders are gone with their collections — `lib/schemas/` is down to `account.js`, `collection.js`, `geo.js`, `shopOwner.js` — but the rule stands for the survivors, and a new product type gets a builder there rather than an inline validator. The old "inline everything" rule assumed a database that cannot be rebuilt, and there is none here — one `Dev` plus a throwaway test DB, both replayable. **The replacement rule: a change under `lib/schemas/` is followed by a full rebuild of every database that has run these migrations, in the same piece of work.** Each builder carries *every* historical shape of its collection, so deleting an unused branch breaks some older migration's `down`. Read `lib/schemas/README.md` before editing it. ⚠️ The 2026-08-04 English rename went further than this rule allows and rewrote the applied migrations themselves, on the user's explicit instruction — see *Data model*. That was a one-off, and it was paid for with the same full rebuild.
 - **`.orig` files are merge leftovers**, not sources — three survive: `yarn.lock.orig` in the two `*-resource` services under `dev/`, and `marketplace-dev-public-resource/src/index.ts.orig`. Ignore them; do not sync edits into them.
 - Cross-service shell scripts are near-duplicates — `prod-build-local.sh` is byte-identical across all 7. A fix to one usually belongs in all seven.
 - **Never read, echo, copy or commit a secret-bearing file.** That means `.env`, `.env.*`, `.npmrc`,
@@ -292,9 +282,9 @@ deletion.
 | `lib/db-setup` | `marketplace-db-setup` |
 | `be/public/authorization` | `marketplace-dev-public-authorization` |
 | `be/public/resource` | `marketplace-dev-public-resource` |
-| `be/imprenditore/authorization` | `marketplace-dev-authenticated-authorization` |
-| `be/imprenditore/resource` | `marketplace-dev-authenticated-resource` |
-| `be/imprenditore/logout` | `marketplace-dev-authenticated-logout` |
+| `be/shopOwner/authorization` | `marketplace-dev-authenticated-authorization` |
+| `be/shopOwner/resource` | `marketplace-dev-authenticated-resource` |
+| `be/shopOwner/logout` | `marketplace-dev-authenticated-logout` |
 | `be/admin/authorization` | `marketplace-dev-admin-authenticated-authorization` |
 | `be/admin/resource` | `marketplace-dev-admin-authenticated-resource` |
 | `fe/admin` | `marketplace-admin` |
@@ -306,7 +296,7 @@ Cross-repo impact/search is **CLI only** — no MCP tool exists for it:
 
 ```bash
 gitnexus group impact marketplace-platform --target <sym> --repo be/admin/resource --direction downstream
-gitnexus group query  marketplace-platform "onboarding imprenditore"
+gitnexus group query  marketplace-platform "onboarding shopOwner"
 ```
 
 Here `--repo` takes the **group path**, unlike the MCP tools above.
@@ -321,7 +311,7 @@ the tool has no GraphQL model at all.
 Re-verified 2026-08-04 on a from-scratch index of all ten repos: `group sync` wrote **3 contracts, 0
 cross-links**. Two are providers from `be/public/resource` — `GET /` and
 `GET /verify-email/{param}/{param}`, the one place a real Koa router is used. The third is a *consumer*,
-`GET /{param}` from `fe/admin`'s `cercaIndirizzi` — that is the SPA's outbound call to the external
+`GET /{param}` from `fe/admin`'s `searchAddresses` — that is the SPA's outbound call to the external
 geocoding API, not a link to anything in this platform, and it can never match a provider here.
 
 Consequence: **do not reach for `route_map`, contract cross-links, or `group impact` across the HTTP

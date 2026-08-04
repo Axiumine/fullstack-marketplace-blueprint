@@ -1,11 +1,17 @@
 # Marketplace — workspace root
 
 Multi-tenant marketplace — many independent shops, one platform. This is **not** a pizza platform: the
-13 food collections that made it look like one, plus `costiConsegna`, were deleted on 2026-08-04 along
-with their migrations, models, resolvers and tests. What remains is the tenant skeleton — `admin`,
-`imprenditore`, `azienda`, `puntoVendita`, `categoria` — and it is domain-neutral. This directory is the
-parent workspace of all Marketplace repos (polyrepo — see `CLAUDE.md` for architecture, terminology and
-repo layout).
+13 food collections that made it look like one, plus `costiConsegna`, `puntoVendita` and `categoria`,
+were deleted on 2026-08-04 along with their migrations, models, resolvers and tests. What remains is
+the tenant skeleton — `admin`, `shopOwner`, `company` — and it is domain-neutral.
+
+⚠️ **Everything is named in English since the same date**, reversing the "keep it Italian" rule this
+workspace carried until then. The rename covered identifiers, collections, routes, UI text and
+comments, and it rewrote the applied migrations in place — see `CLAUDE.md` under *Language* and
+*Data model*.
+
+This directory is the parent workspace of all Marketplace repos (polyrepo — see `CLAUDE.md` for
+architecture, terminology and repo layout).
 
 ## Backend datasource matrix
 
@@ -19,9 +25,9 @@ Legend: ✅ connected and used · ❌ not used.
 |---|---|---|---|---|
 |`marketplace-dev-public-authorization`|4028|public|✅|✅|
 |`marketplace-dev-public-resource`|4027|public|✅|✅|
-|`marketplace-dev-authenticated-authorization`|4029|Imprenditore|✅|✅|
-|`marketplace-dev-authenticated-resource`|4026|Imprenditore|✅|✅|
-|`marketplace-dev-authenticated-logout`|4030|Imprenditore|❌|✅|
+|`marketplace-dev-authenticated-authorization`|4029|ShopOwner|✅|✅|
+|`marketplace-dev-authenticated-resource`|4026|ShopOwner|✅|✅|
+|`marketplace-dev-authenticated-logout`|4030|ShopOwner|❌|✅|
 |`marketplace-dev-admin-authenticated-authorization`|4025|Admin|✅|✅|
 |`marketplace-dev-admin-authenticated-resource`|4024|Admin|✅|✅|
 
@@ -260,8 +266,8 @@ Every package was already at 100% coverage. None was at 100% mutation score:
 
 `marketplace-common` reached 100 with **zero changes to `src/`** and zero Stryker disables — every one of
 its survivors was a weak assertion, not a defensible piece of code. The gaps behind them were real:
-`PuntoVendita.azienda` had no type or required checks at all, and the `LoginSubDocSchema` pre-save
-hook never asserted the field name it passes to `isModified()`.
+the embedded company sub-document had no type or required checks at all, and the `LoginSubDocSchema`
+pre-save hook never asserted the field name it passes to `isModified()`.
 
 ⚠️ **Do not add `ignoreStatic` to a Stryker config.** A mutant in module-load-time code throws during
 Vitest's file-collection phase, before any test runs; Stryker cannot attribute the failure to a test
