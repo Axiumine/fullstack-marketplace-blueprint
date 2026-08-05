@@ -5,6 +5,7 @@
 /BEs/
 /marketplace-admin/
 /marketplace-shopowner/
+/marketplace-user/
 /.idea/
 
 # Secrets never enter this repo. Every sub-repo already ignores these; the parent
