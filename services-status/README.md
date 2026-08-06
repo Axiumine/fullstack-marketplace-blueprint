@@ -129,13 +129,14 @@ in either file.
 | `BIND_ALL` | `false` | Opt in to binding beyond loopback — requires a non-empty `AUTH_TOKEN` too |
 | `BEHIND_PROXY` | `false` | Set true when nginx terminates TLS in front of this |
 | `PROXY_PROTOCOL` | `http` | Protocol used to build absolute URLs when behind a proxy |
-| `DOMAIN` | `127.0.0.1` | Public hostname used when `BEHIND_PROXY=true`; also accepted, unconditionally, as an extra valid `Origin`/`Referer` host by the CSRF same-origin check below (needed because the `Host` header this process sees can differ from the hostname the browser used once nginx is in front of it) |
+| `DOMAIN` | `127.0.0.1` | Public hostname used when `BEHIND_PROXY=true`; also joins the trusted-host allowlist below (needed because the `Host` header this process sees can differ from the hostname the browser used once nginx is in front of it) |
 | `SYSTEMCTL_SCOPE` | `user` | `systemctl`/`journalctl` scope; this project only manages user units |
 | `POLL_INTERVAL_MS` | `2000` | Shared poller tick interval |
 | `PROBE_TIMEOUT_MS` | `500` | Timeout for each TCP port-open probe |
 | `LOG_LINES` | `200` | Default line count for a Logs request with no `?lines=` |
 | `WORKSPACE_ROOT` | *(unset → parent of this dir)* | Override for resolving `services.json`'s repo paths |
 | `AUTH_TOKEN` | *(empty)* | Bearer token; required once this is reachable beyond loopback |
+| `ALLOWED_HOSTS` | *(empty)* | Extra `Host` values to trust, comma separated, on top of `127.0.0.1` / `localhost` / `::1` / `DOMAIN` / `HOST`. Only needed for a name this process cannot derive — a LAN IP under `BIND_ALL=true`, or a second nginx vhost. Bare hostnames or IPs, no scheme, no port |
 
 `SERVICES_CONFIG` from the old version is gone — the process list moved to `services.json` at the
 project root, which is read directly rather than passed through the environment.
@@ -149,17 +150,40 @@ This page starts and stops processes, so its threat model is stricter than a rea
 - **`AUTH_TOKEN` when set** is required on every HTTP request and the WS handshake, as `Authorization:
   Bearer <token>` or `?token=<token>`, compared with `crypto.timingSafeEqual` after a length check.
   Unauthorized requests get 401; an unauthorized WS handshake is destroyed.
+- **Trusted-host allowlist on every request, before any route runs.** The `Host` header must name
+  `127.0.0.1`, `localhost`, `::1`, `DOMAIN`, `HOST`, or an entry in `ALLOWED_HOSTS`; anything else is 403.
+  This is the DNS-rebinding defense, and it is the reason `Host` is checked against config rather than
+  merely compared with `Origin`: an attacker controls *both* of those headers at once. Point
+  `evil.example` at `127.0.0.1`, get the browser to load `http://evil.example:2901/`, and it sends
+  `Host: evil.example:2901` with `Origin: http://evil.example:2901` — a perfect match, from a page the
+  attacker wrote. It applies to reads too, not only to the `POST` routes: `GET /api/services` returns the
+  full topology and `GET /api/services/:id/logs` returns journal output, so a read-only rebind is still a
+  breach.
 - **Same-origin required on every state-changing route.** All three `POST /api/...` routes check the
   request's `Origin` header (falling back to the origin embedded in `Referer` when `Origin` is absent)
-  against the request's own `Host` *or* the configured `DOMAIN`; a mismatch — or neither header present —
-  is rejected with 403. A request that instead carries a valid `AUTH_TOKEN` is exempt, since that covers
-  non-browser callers (`curl`, a script) that never send `Origin` at all. This matters even though the
-  default bind is loopback: same-origin is about which page issued the request, not about who can reach
-  the port. Any tab already open in the developer's browser can `fetch('http://127.0.0.1:2901/api/all/stop',
-  {method: 'POST'})` — a same-origin-less `POST` needs no CORS preflight to be *sent*, only to have its
-  response read — so without this check a page with nothing to do with this project could stop the whole
-  platform just by being open in another tab. Verified with `curl -H 'Origin: http://evil.example'` → 403
-  and `curl -H 'Origin: http://<this host>'` → passes the gate.
+  against that same trusted-host allowlist; a mismatch — or neither header present — is rejected with 403.
+  A request that instead carries a valid `AUTH_TOKEN` is exempt, since that covers non-browser callers
+  (`curl`, a script) that never send `Origin` at all. This matters even though the default bind is
+  loopback: same-origin is about which page issued the request, not about who can reach the port. Any tab
+  already open in the developer's browser can `fetch('http://127.0.0.1:2901/api/all/stop', {method:
+  'POST'})` — a same-origin-less `POST` needs no CORS preflight to be *sent*, only to have its response
+  read — so without this check a page with nothing to do with this project could stop the whole platform
+  just by being open in another tab.
+- **The WebSocket upgrade carries the same two checks, and needs them independently.** A WS handshake is
+  exempt from the same-origin policy and triggers no CORS preflight, so any page can open
+  `new WebSocket('ws://127.0.0.1:2901/ws')` cross-origin and the browser will complete it. That socket
+  reaches the same `start`/`stop`/`restart` dispatch as the `POST` routes, so guarding only the HTTP side
+  left the entire control plane reachable from any tab in the default token-less config. This was a real
+  hole in an earlier revision of this project, found by review and confirmed by PoC before it was fixed:
+  the handshake was accepted from `Origin: https://evil.example`, the full topology snapshot was
+  delivered, and an action executed. Origin-mismatch on a handshake answers `403`, not `401` — the caller
+  may have authenticated perfectly well; it is the origin that is refused, and re-authenticating cannot
+  fix that. Browsers always attach `Origin` to a WS handshake and never attach `Referer`, so only `Origin`
+  is consulted there.
+
+  The full matrix is exercised by `test/security.test.ts` against a live server — evil cross-origin,
+  DNS-rebind with matching `Host`+`Origin`, tokenless non-browser, and the two legitimate cases — over
+  both WS and HTTP.
 - **`Referrer-Policy: no-referrer`** on the page, so a `?token=` passed in the URL is never forwarded in
   a `Referer` header to the Font Awesome CDN (`cdnjs.cloudflare.com`) or any other cross-origin resource
   the page loads.

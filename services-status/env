@@ -51,3 +51,19 @@ WORKSPACE_ROOT=
 # once this is reachable from anything other than localhost, since this page can
 # start and stop every backend and frontend process on the platform.
 AUTH_TOKEN=
+
+# Extra Host header values this server will answer to, comma separated.
+#
+# Every request is checked against an allowlist of hostnames before any route runs, and one that
+# is not on it gets 403. The list always contains 127.0.0.1, localhost, ::1, plus DOMAIN and HOST
+# from above, so the defaults need nothing here. This exists for the names that cannot be derived
+# from the settings above — reaching the page at a LAN IP under BIND_ALL=true, or a second nginx
+# vhost pointing at it.
+#
+# The check is what stops DNS rebinding: without it, an attacker points their own hostname at
+# 127.0.0.1, gets your browser to load the page from that name, and the browser then sends a Host
+# and an Origin that agree with each other — so comparing the two proves nothing. Pinning the Host
+# to names configured here is what breaks it.
+#
+# Bare hostnames or IPs only — no scheme, no port. Example: ALLOWED_HOSTS=status.lan,192.168.1.10
+ALLOWED_HOSTS=

@@ -26,3 +26,6 @@ id_ed25519
 TODO
 # GitNexus index storage. The committed part is .gitnexusrc at the repo root.
 .gitnexus/
+
+# Playwright MCP scratch output (page snapshots, console logs) — never source
+.playwright-mcp/

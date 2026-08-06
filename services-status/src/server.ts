@@ -70,7 +70,7 @@ const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
 // Host header may be "hostname" or "hostname:port"; IPv6 literals arrive bracketed
 // ("[::1]:2901"). Strips down to a bare hostname so it compares 1:1 with URL#hostname, which
 // never includes brackets or a port.
-function hostnameOnly(hostHeader: string): string {
+export function hostnameOnly(hostHeader: string): string {
   const bracketed = hostHeader.match(/^\[(.+)\](?::\d+)?$/);
   if (bracketed) return bracketed[1].toLowerCase();
   const colonIndex = hostHeader.lastIndexOf(':');
@@ -78,21 +78,59 @@ function hostnameOnly(hostHeader: string): string {
   return hostHeader.toLowerCase();
 }
 
-// Pure — no ctx, unit-test-friendly. True when originOrReferer names a host that matches either
-// this request's own Host header (the common case) or the configured public DOMAIN (needed
-// because behind nginx the Host header this process sees can differ from the hostname the
-// browser actually used — see PROXY_PROTOCOL/DOMAIN in config.ts).
-export function isSameOriginAs(originOrReferer: string, hostHeader: string | undefined, domain: string): boolean {
-  let candidateHost: string;
+// The set of Host header values this server answers to. Everything else is refused before any
+// route runs — see assertTrustedHost() for why this exists at all.
+//
+// Loopback names are unconditional: the default bind is 127.0.0.1 and that is how the page is
+// normally reached. DOMAIN and HOST are added because they are the names the operator configured.
+// ALLOWED_HOSTS extends it for the cases this process cannot derive (a LAN IP under BIND_ALL, a
+// second vhost). '0.0.0.0' and '::' are wildcards, not names a browser ever sends, so they are
+// never added — otherwise BIND_ALL=true would trust a literal Host: 0.0.0.0.
+export function buildTrustedHosts(config: Pick<AppConfig, 'domain' | 'host' | 'allowedHosts'>): ReadonlySet<string> {
+  const hosts = new Set<string>(['127.0.0.1', 'localhost', '::1']);
+  if (config.domain) hosts.add(config.domain.toLowerCase());
+  if (config.host && config.host !== '0.0.0.0' && config.host !== '::') hosts.add(config.host.toLowerCase());
+  for (const extra of config.allowedHosts) hosts.add(extra);
+  return hosts;
+}
+
+/**
+ * DNS-rebinding guard, and the reason the Host header is validated instead of merely being
+ * compared against Origin.
+ *
+ * The earlier version of this file trusted `Host` as the authority for "what this server is
+ * called" and only asked whether Origin agreed with it. Those two headers agreeing proves
+ * nothing, because an attacker controls both at once: point evil.example at 127.0.0.1, get the
+ * victim's browser to load http://evil.example:2901/, and it sends Host: evil.example:2901 and
+ * Origin: http://evil.example:2901 — a perfect match, from a page the attacker wrote. Verified
+ * with a PoC against the previous code: the handshake was accepted and an action executed.
+ *
+ * Pinning Host to a configured allowlist breaks that: the browser will happily send the
+ * attacker's name, and this server simply does not answer to it. Applied to *every* request, not
+ * just state-changing ones — GET /api/services leaks the whole topology and
+ * GET /api/services/:id/logs leaks journal output, so a read-only rebind is still a breach.
+ */
+export function assertTrustedHost(hostHeader: string | undefined, trustedHosts: ReadonlySet<string>): { allowed: boolean; reason: string } {
+  // No Host at all is HTTP/1.0 or a raw socket — never a browser, and nothing here needs to
+  // serve it. Refusing costs nothing and removes a branch an attacker could aim for.
+  if (!hostHeader) return { allowed: false, reason: 'missing Host header' };
+  const name = hostnameOnly(hostHeader);
+  return trustedHosts.has(name)
+    ? { allowed: true, reason: 'host is trusted' }
+    : { allowed: false, reason: `Host "${name}" is not served here (add it to ALLOWED_HOSTS if that is wrong)` };
+}
+
+// True when originOrReferer names a host in the trusted set. Compared against the *allowlist*,
+// never against the request's own Host header — see assertTrustedHost() above for why that
+// distinction is the whole fix. Port is deliberately not compared: the page is reached at
+// :PORT directly but at :443 through nginx, and the trusted-host check is what carries the
+// weight here.
+export function isTrustedOrigin(originOrReferer: string, trustedHosts: ReadonlySet<string>): boolean {
   try {
-    candidateHost = new URL(originOrReferer).hostname.toLowerCase();
+    return trustedHosts.has(new URL(originOrReferer).hostname.toLowerCase());
   } catch {
     return false; // unparsable Origin/Referer is never trusted
   }
-  const expected = new Set<string>();
-  if (hostHeader) expected.add(hostnameOnly(hostHeader));
-  if (domain) expected.add(domain.toLowerCase());
-  return expected.has(candidateHost);
 }
 
 // Decides whether a state-changing request may proceed. Not pure (it encodes the fallback
@@ -100,15 +138,14 @@ export function isSameOriginAs(originOrReferer: string, hostHeader: string | und
 export function assertSameOrigin(
   originHeader: string | undefined,
   refererHeader: string | undefined,
-  hostHeader: string | undefined,
-  domain: string,
+  trustedHosts: ReadonlySet<string>,
   hasValidToken: boolean
 ): { allowed: boolean; reason: string } {
   const candidate = originHeader || refererHeader;
   if (candidate) {
-    return isSameOriginAs(candidate, hostHeader, domain)
+    return isTrustedOrigin(candidate, trustedHosts)
       ? { allowed: true, reason: 'same-origin' }
-      : { allowed: false, reason: 'Origin/Referer host does not match this server' };
+      : { allowed: false, reason: 'Origin/Referer host is not served here' };
   }
   // Neither header is present. A real cross-site form POST or same-origin fetch() always carries
   // at least Origin, so an absence of both means a non-browser client (curl, a script) rather than
@@ -214,10 +251,23 @@ async function main(): Promise<void> {
   const app = new Koa();
   const router = new Router();
 
+  // Computed once at startup, not per request: config is immutable after loadConfig().
+  const trustedHosts = buildTrustedHosts(config);
+
   // Guards every HTTP request, including static assets — the page renders topology (unit
   // names, ports, repo paths) that is only harmless because reaching this server at all
   // already implies a degree of trust; once AUTH_TOKEN is set that trust is enforced here.
   app.use(async (ctx, next) => {
+    // Host allowlist first, before auth and before any route — a DNS-rebound request must not
+    // reach even a read-only endpoint, because /api/services leaks the topology and
+    // /api/services/:id/logs leaks journal output. See assertTrustedHost() for the attack.
+    const hostDecision = assertTrustedHost(ctx.get('host') || undefined, trustedHosts);
+    if (!hostDecision.allowed) {
+      ctx.status = 403;
+      ctx.body = { ok: false, message: `request refused: ${hostDecision.reason}` };
+      return;
+    }
+
     // AUTH_TOKEN check — unchanged from before except that "was it valid" is now kept around
     // (hasValidToken) instead of discarded, because the CSRF guard below needs it as its one
     // escape hatch for tokenless, non-browser clients (curl, scripts).
@@ -237,13 +287,7 @@ async function main(): Promise<void> {
     // (an auto-submitting <form> POST from an unrelated tab) works precisely in the default,
     // token-less config, so gating this on config.authToken would leave the default open.
     if (!SAFE_METHODS.has(ctx.method)) {
-      const decision = assertSameOrigin(
-        ctx.get('origin') || undefined,
-        ctx.get('referer') || undefined,
-        ctx.get('host') || undefined,
-        config.domain,
-        hasValidToken
-      );
+      const decision = assertSameOrigin(ctx.get('origin') || undefined, ctx.get('referer') || undefined, trustedHosts, hasValidToken);
       if (!decision.allowed) {
         ctx.status = 403;
         ctx.body = { ok: false, message: `cross-site request blocked: ${decision.reason}` };
@@ -460,14 +504,51 @@ async function main(): Promise<void> {
       socket.destroy();
       return;
     }
+
+    // Same Host allowlist as the HTTP middleware — the upgrade path bypasses that middleware
+    // entirely, so it has to repeat the check rather than inherit it.
+    const wsHostDecision = assertTrustedHost(normalizeHeader(req.headers.host), trustedHosts);
+    if (!wsHostDecision.allowed) {
+      socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    let hasValidToken = false;
     if (config.authToken) {
       const provided = extractToken(normalizeHeader(req.headers.authorization), requestUrl.searchParams.get('token') ?? undefined);
-      if (!provided || !timingSafeTokenEquals(provided, config.authToken)) {
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      hasValidToken = !!provided && timingSafeTokenEquals(provided, config.authToken);
+      if (!hasValidToken) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
         socket.destroy();
         return;
       }
     }
+
+    // The same CSRF guard the POST routes get, and it is NOT redundant here — it closes a hole
+    // that the HTTP-side guard cannot see. A WebSocket handshake is exempt from the same-origin
+    // policy and triggers no CORS preflight: any page in the developer's browser can open
+    // `new WebSocket('ws://127.0.0.1:2901/ws')` cross-origin and the browser will complete it.
+    // That socket then reaches handleClientMessage(), which dispatches the very same
+    // start/stop/restart actions as POST /api/... — so guarding only the POST routes left the
+    // whole control plane reachable by any tab, in the default token-less config. Verified with a
+    // PoC before this block existed: handshake accepted from Origin https://evil.example, full
+    // topology snapshot delivered, and an action executed successfully.
+    //
+    // Browsers always attach Origin to a WS handshake (unlike Referer, which they never send on
+    // one) and a page cannot forge it, so the check is the same policy as assertSameOrigin's:
+    // Origin present -> must name this host; Origin absent -> non-browser client, allowed only
+    // with a valid AUTH_TOKEN. Passing `undefined` for the Referer argument is deliberate, not an
+    // oversight — treating a missing Referer as evidence of anything here would be wrong.
+    const originDecision = assertSameOrigin(normalizeHeader(req.headers.origin), undefined, trustedHosts, hasValidToken);
+    if (!originDecision.allowed) {
+      // 403, not 401: the caller may well have authenticated correctly — it is the *origin* that
+      // is refused, and no amount of re-authenticating fixes that.
+      socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
     });
@@ -543,7 +624,12 @@ function printBanner(config: AppConfig): void {
   console.log(`  auth:       ${config.authToken ? 'AUTH_TOKEN required' : 'disabled (no AUTH_TOKEN set)'}`);
 }
 
-main().catch((err) => {
-  console.error('[server] fatal startup error:', err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+// Only boot when run as the entry point. Importing this module — which the test suite does, to
+// reach the exported guards — must not start a listener or, when startup fails, take the
+// importing process down with process.exit(1).
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('[server] fatal startup error:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

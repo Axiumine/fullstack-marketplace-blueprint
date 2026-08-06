@@ -16,7 +16,11 @@
     "clean": "rm -rf dist",
     "systemd:generate": "node systemd/generate.mjs",
     "systemd:install": "./systemd/install.sh",
-    "systemd:uninstall": "./systemd/uninstall.sh"
+    "systemd:uninstall": "./systemd/uninstall.sh",
+    "test": "yarn build && vitest run",
+    "test:unit": "vitest run test/security.test.ts -t \"hostnameOnly|buildTrustedHosts|assertTrustedHost|isTrustedOrigin|assertSameOrigin\"",
+    "test:cov": "yarn build && vitest run --coverage",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "dotenv": "^17.0.1",
@@ -29,10 +33,12 @@
     "@types/koa": "^2.13.8",
     "@types/koa-router": "^7.4.4",
     "@types/koa-static": "^4.0.2",
-    "@types/node": "^20.6.0",
+    "@types/node": "^24",
     "@types/ws": "^8.5.5",
+    "@vitest/coverage-v8": "^4.1.10",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^4.1.10"
   },
   "keywords": [
     "marketplace",

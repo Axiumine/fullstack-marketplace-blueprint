@@ -237,6 +237,19 @@ interface EnvConfig {
   probeTimeoutMs: number;
   logLines: number;
   authToken: string | null;
+  allowedHosts: string[];
+}
+
+// Extra Host header values to trust, beyond the loopback names + DOMAIN + HOST that are always
+// accepted. Only needed when the page is reached under a name this process cannot derive on its
+// own — most often BIND_ALL=true reached at a LAN IP, or a second vhost in front of it. Comma
+// separated; a bare hostname or an IP, never a scheme or a port ("status.lan", "192.168.1.10").
+function parseAllowedHostsEnv(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter((h) => h.length > 0);
 }
 
 function loadEnv(): EnvConfig {
@@ -269,7 +282,8 @@ function loadEnv(): EnvConfig {
     pollIntervalMs: parseIntEnv('POLL_INTERVAL_MS', process.env.POLL_INTERVAL_MS, 2000),
     probeTimeoutMs: parseIntEnv('PROBE_TIMEOUT_MS', process.env.PROBE_TIMEOUT_MS, 500),
     logLines: parseIntEnv('LOG_LINES', process.env.LOG_LINES, 200),
-    authToken
+    authToken,
+    allowedHosts: parseAllowedHostsEnv(process.env.ALLOWED_HOSTS)
   };
 }
 

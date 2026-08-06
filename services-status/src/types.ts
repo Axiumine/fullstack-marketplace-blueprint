@@ -98,6 +98,10 @@ export interface AppConfig {
   probeTimeoutMs: number;
   logLines: number;
   authToken: string | null;
+  // Extra Host header values to trust (ALLOWED_HOSTS), on top of the loopback names, DOMAIN and
+  // HOST that are always accepted. See the Host allowlist in server.ts for why Host is checked
+  // at all rather than merely compared against Origin.
+  allowedHosts: string[];
 
   workspaceRoot: string;
   servicesJsonPath: string;
