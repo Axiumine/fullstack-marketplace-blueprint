@@ -1,0 +1,83 @@
+/* Health and connection state. Every dot below is paired with a text word in the
+   markup (see app.js buildServiceCard / setConnectionStatus) — colour is never
+   the only signal, so this file only ever adds emphasis, not meaning. */
+
+.health {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--health-missing);
+}
+
+.health-word {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.health-dot.health-up { background: var(--health-up); box-shadow: 0 0 0 3px var(--health-up-bg); }
+.health-dot.health-starting { background: var(--health-starting); box-shadow: 0 0 0 3px var(--health-starting-bg); animation: pulse 1.6s ease-in-out infinite; }
+.health-dot.health-down { background: var(--health-down); box-shadow: 0 0 0 3px var(--health-down-bg); }
+.health-dot.health-failed { background: var(--health-failed); box-shadow: 0 0 0 3px var(--health-failed-bg); }
+.health-dot.health-missing { background: var(--health-missing); box-shadow: 0 0 0 3px var(--health-missing-bg); }
+
+.service-card.health-up .health-word { color: var(--health-up); }
+.service-card.health-starting .health-word { color: var(--health-starting); }
+.service-card.health-down .health-word { color: var(--health-down); }
+.service-card.health-failed .health-word { color: var(--health-failed); }
+.service-card.health-missing .health-word { color: var(--health-missing); }
+
+.port-probe {
+  font-size: 0.7rem;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.port-probe.port-open {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.port-probe.port-closed {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-dot-connected { background: var(--success); }
+.connection-dot-disconnected { background: var(--danger); }
+.connection-dot-reconnecting { background: var(--warning); animation: pulse 1.2s ease-in-out infinite; }
+
+.connection-status.connection-connected { color: var(--success); }
+.connection-status.connection-disconnected { color: var(--danger); }
+.connection-status.connection-reconnecting { color: var(--warning); }

@@ -1,0 +1,31 @@
+/* New concern (per CONTRACT.md frontend requirements): the global toolbar —
+   connection indicator, last-update/poll-interval readout, start/stop/restart-all.
+   Separate from layout.css because layout.css is page structure and this is one
+   specific widget's presentation. */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.app-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar.is-pending .toolbar-actions .btn {
+  opacity: 0.6;
+}

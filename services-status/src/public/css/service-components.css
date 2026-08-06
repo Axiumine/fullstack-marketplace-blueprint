@@ -1,0 +1,59 @@
+/* Buttons shared by the toolbar, group headers and service cards, plus the
+   small icon-only buttons used in the logs drawer header. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn i {
+  font-size: 0.9em;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-start { border-color: var(--success); color: var(--success); }
+.btn-start:hover:not(:disabled) { background: var(--success-bg); }
+
+.btn-stop { border-color: var(--danger); color: var(--danger); }
+.btn-stop:hover:not(:disabled) { background: var(--danger-bg); }
+
+.btn-restart { border-color: var(--warning); color: var(--warning); }
+.btn-restart:hover:not(:disabled) { background: var(--warning-bg); }
+
+.btn-logs { border-color: var(--border-strong); color: var(--text-muted); }
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}

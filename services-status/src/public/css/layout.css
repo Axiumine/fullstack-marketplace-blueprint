@@ -1,0 +1,105 @@
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-muted);
+}
+
+.loading-indicator i {
+  font-size: 1.8rem;
+  animation: spin 1s linear infinite;
+}
+
+.services-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Specificity has to beat .services-grid { display: flex } above — the [hidden]
+   attribute alone loses that tie against an author rule of equal specificity. */
+.services-grid[hidden] {
+  display: none;
+}
+
+.group-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: opacity 0.2s ease;
+}
+
+.group-section.is-pending {
+  opacity: 0.85;
+}
+
+.group-header {
+  margin-bottom: 16px;
+}
+
+.group-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.group-title-row h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.group-counter {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.group-description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+  max-width: 70ch;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
