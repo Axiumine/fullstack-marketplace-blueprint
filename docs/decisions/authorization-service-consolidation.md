@@ -244,6 +244,33 @@ sounded procedural. And **an environment file copied from another project fails 
 every one of these values is read at runtime by a service that has no test asserting it matches its
 counterpart in a *different* repo, because no suite here spans two services.
 
+### The same fix unblocked the resource service, which was worse off and paid for it immediately
+
+`marketplace-dev-user-authenticated-resource` — not one of the three this decision is about, but the other
+half of the customer tier — was in the same state for the same reason, and further along it: its
+`integration` project had a `globalSetup.mts` and **zero `*.itest.mts`**, so it collected nothing and
+reported success rather than aborting. 100% coverage and a 100 mutation score, over a suite that never
+touched a database.
+
+Five files and 60 tests were written on 2026-08-07, and their first run found **two production bugs in one
+function** — every address delete on the customer tier answered 500. `funUserAddressDel` has to be an
+aggregation-pipeline update, because the collection validator's `$expr` half refuses a document whose
+`defaultAddress` names nothing, so the element and the pointer must go in a single write. Both bugs are
+specific to that shape:
+
+- **Mongoose 9 refuses an array update** unless `{ updatePipeline: true }` is passed —
+  `Cannot pass an array to query updates unless the 'updatePipeline' option is set.`, thrown in `Query`
+  before the driver is reached.
+- **Mongoose casts a query filter against the schema and casts nothing inside a pipeline.** `GraphQLID`
+  resolves to a string, so `{ $ne: ['$$this._id', '68b1…'] }` compared an ObjectId to a string, matched the
+  document and modified nothing — `matchedCount: 1, modifiedCount: 0`.
+
+Neither was reachable from the unit suite, which mocks `User.updateOne`; a mock accepts an array and a
+string without an opinion. This is the concrete answer to "what is an integration suite for" on this
+platform, and it is the same lesson as the Keygrip mismatch one paragraph up: **the gaps here are all in
+the places where nothing local has an opinion** — another repo's environment file, or a real database's
+validator. That repo now runs 16 files / 309 tests, 100% on all four metrics, 100.00 mutation.
+
 While the three were open, the dependency skew from option (d) was closed in the same commits:
 `@thedoctorweb_agency/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
 each `qodana.yaml` `dependencyOverrides` entry was bumped to `4.4.0` alongside — that key is an exact match,
