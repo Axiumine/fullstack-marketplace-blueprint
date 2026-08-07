@@ -1,8 +1,9 @@
 # Consolidating the three `*-authenticated-authorization` services
 
-**Status: decided — option (c).** Decided 2026-08-07 by the platform owner, after the survey below.
-Options (a) and (b) are recorded here so nobody re-opens them from scratch; (a) is blocked on grounds
-that have not changed.
+**Status: decided and implemented — option (c).** Decided 2026-08-07 by the platform owner, after the
+survey below; shipped the same day as `marketplace-common@4.4.0` plus one commit per service — see
+*As implemented*. Options (a) and (b) are recorded here so nobody re-opens them from scratch; (a) is
+blocked on grounds that have not changed.
 
 ## The question
 
@@ -171,12 +172,82 @@ in `CLAUDE.md` changed first, which is a separate decision.
   the answer. Worth knowing separately: because that cookie carries no `domain` and its `path` is dead,
   two tiers served from the same hostname would overwrite each other's refresh cookie today.
 
+## As implemented (2026-08-07)
+
+Shipped as `marketplace-common@4.4.0` plus one commit in each of the three services. Three helpers under
+`src/others/`, one interface under `src/models/MongoDBInterfaces/`:
+
+|Helper|Replaces|Kept per service|
+|---|---|---|
+|`resolveAuthorizationSession`|the `hGetAll` → `assertTier` → read → build-session body of each `*AuthorizationHandler`|the Koa middleware wrapper, the `TIER.*` constant, the `readSessionData` callback|
+|`findAccountForSession`|`tokenInfoShopOwner` / `tokenInfoAdmin` / `tokenInfoUser`|the model and the projection|
+|`refreshSessionTokens`|the whole body of `refresh.mts`|nothing — the resolver is four arguments now|
+|`IAdminEmail`|the inline `interface IAdminEmail` in `tokenInfoAdmin.mts`|—|
+
+Line counts: `authenticatedAuthorizationHandler.mts` 93 → 57, `refresh.mts` 94 → 26, each `tokenInfo*.mts`
+down to a single `return findAccountForSession(...)`. Three hand-written local session interfaces
+(`IRedisData*ForNode`-shaped) were deleted in favour of `TAuthorizationSession<TAccountData>`, which is now
+the declared type of `ctx.state.user` in all three — so the context type and the helper's return type
+cannot drift.
+
+Every security property named above survives verbatim: each service still hardcodes its own `TIER.*`, the
+tier is still asserted before the `_id` is looked up, a missing tier is still refused, and the
+introspection bypass still requires a signature-verified cookie first. `resolveAuthorizationSession`
+returns `null` on that bypass rather than a stub session, which is what keeps `ctx.state.user` unset.
+
+Two things the survey did not predict:
+
+- **`Model<T>` is invariant in `T`**, so a single generic reader typed against it takes none of the three
+  document types without a cast per call site. `findAccountForSession` therefore declares a structural
+  `ISessionAccountModel<TAccount>` with `findById(...): { lean(): PromiseLike<TAccount | null> }` —
+  `PromiseLike` because mongoose returns a `Query`, a thenable with no `[Symbol.toStringTag]`.
+- **Moving code into a package moves it out of vitest's mock registry.** `vi.mock('@axiumine/koa-utils/lib/tokens')`
+  stops intercepting once the import that needs faking happens inside `marketplace-common`'s dist rather than
+  the service's `src/`, and it fails as a Stryker *dry-run* failure with no mutant in sight. Both packages had
+  to be added to `inlineDeps` in each `vitest.mutation.config.mts`; `vitest.config.mts` already had them, and
+  the two had drifted despite a comment saying to keep them in sync.
+
+No service test file needed editing — all 73 / 42 / 56 existing unit tests passed unchanged against the
+delegating implementations, which is the strongest available evidence that the extraction is behaviour-preserving.
+
+Gates, all run locally:
+
+|Repo|lint|coverage|mutation|Qodana|
+|---|---|---|---|---|
+|`marketplace-common`|green|100% — unit 140, contract 97, integration 12, types 27|100.00, 309 mutants, 0 survived|—|
+|`marketplace-dev-authenticated-authorization`|green|100% (94/18/27/89), 11 files / 73 tests|100.00, 47 killed|0 problems, `40lBb/xDoVXD`|
+|`marketplace-dev-admin-authenticated-authorization`|green|100% (90/16/27/86), 42 tests|100.00, 39 killed|0 problems, `Ggo4Y/r7Dm9X`|
+|`marketplace-dev-user-authenticated-authorization`|green|100% **unit only** — see below|100.00, 44 killed|0 problems, `B5NEV/eaGe4D`|
+
+⚠️ **`marketplace-dev-user-authenticated-authorization` cannot run the full `yarn test:cov`**, and this is
+unrelated to the extraction: its `.env` is missing `MONGO_TEST_CONN_STRING`, `MONGO_TEST_UDBOWNER`,
+`MONGO_TEST_PWDDBOWNER`, `MONGO_TEST_UDBRW` and `MONGO_TEST_PWDDBRW`, so `assertTestMongoEnv` aborts the
+integration project in `globalSetup` before it collects a test. `npx vitest run --project unit --coverage`
+reports 100% on all four metrics. Filling those five in means provisioning two database users, which is the
+user's call. Its commit needs `--no-verify` for that reason and no other.
+
+While the three were open, the dependency skew from option (d) was closed in the same commits:
+`@thedoctorweb_agency/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
+each `qodana.yaml` `dependencyOverrides` entry was bumped to `4.4.0` alongside — that key is an exact match,
+not a range, so a stale entry silently stops applying. The bump to `^4.4.0` is not cosmetic: the new imports
+do not exist in `4.0.0` or `4.3.0`. ⚠️ **The three `yarn.lock` files remain stale for that package** — all
+three pin `@thedoctorweb_agency/marketplace-common@^1.21.0` → `1.21.0` from registry.npmjs.org, a range no
+`package.json` here has declared for a long time. They were already stale before this work and a `yarn install`
+resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
+edit visible. Regenerating them needs the package published first.
+
 ## Follow-ups the survey surfaced, independent of this decision
 
-- Promote `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type. A uniform reader
-  contract in `marketplace-common` needs it either way.
-- Resolve the dependency skew listed under option (d).
-- Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them.
+- ~~Promote `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type.~~ **Done** —
+  `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@4.4.0`.
+- ~~Resolve the dependency skew listed under option (d).~~ **Done** for the two runtime ranges and the
+  `qodana.yaml` override; the stale `yarn.lock` entries remain and need the package published first.
+- Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly
+  overtaken**: the mismatch branch itself now lives in `marketplace-common` and is tested there, at 100%
+  coverage and a 100 mutation score, so it can no longer be wrong in one service and right in the other two.
+  What the two repos still lack is the *wire* test the user repo has — a signed refresh carrying a foreign
+  tier driven through the real server, asserting the 403 **and** that the tier-specific model was never
+  queried. That is what pins the ordering of the two steps, which no unit test of either piece can.
 - The admin-authorization upstream is **absent** from `marketplace-user/docs/nginx/`. Either it lives on
   a vhost outside this workspace or it was never written; confirm which.
 
