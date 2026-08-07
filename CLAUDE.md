@@ -357,10 +357,21 @@ gate rather than a gate. The parent's `pre-commit` now runs `yarn test:cov` and 
 staged paths under `services-status/` that are not `*.md` (this repo's ordinary commit is a docs edit, and
 building a Node server for a prose change is how a hook gets bypassed out of habit), and the parent grew a
 `pre-push` — its first — running `test:cov` → `test:mutation` → Qodana unscoped, because a push carries
-`--no-verify` commits and merge commits that `pre-commit` never saw. ⚠️ The Qodana step **blocks today**: that
-app has no `QODANA_TOKEN` and no cloud project of its own, so it needs `SKIP_QODANA=1` until the user creates
-one. The `env` template lists the key with the reason next to it. Do not point it at another repo's token —
-the reports would land in that project and corrupt its baseline.
+`--no-verify` commits and merge commits that `pre-commit` never saw. **The Qodana step runs clean as of
+2026-08-07** — the app has its own token and its own cloud project (`xPKXD`), so `SKIP_QODANA=1` is no longer
+needed. Do not point it at another repo's token: the reports would land in that project and corrupt its
+baseline.
+
+⚠️ **It had never produced a single report before that date, and the reason is worth knowing because the gate
+lied about it.** `services-status/qodana.sh` was committed at mode `100644` while all eleven other packages'
+copies are `100755`, so the invocation died with `Permesso negato` before reaching Qodana — and since it exits
+non-zero having written no results directory, both hooks reported `Qodana failed on services-status` and
+pointed at a SARIF that was never created. A chmod, rendered as a finding. The mode is fixed and **both hooks
+now test executability separately from existence**, printing the two fixing commands (`chmod +x` *and*
+`git update-index --chmod=+x`, since the mode is tracked): existence alone was never enough, because the two
+failures are indistinguishable downstream. The first real scan then found one genuine problem — an escaped
+`]` in `hostnameOnly`'s regex, `RegExpRedundantEscape` at HIGH against a 0 threshold — which is what a gate
+is for.
 
 Reaching 100 on it took **changing the code, never a threshold**: eight guards across `server.ts` and
 `systemd.ts` turned out to be conditions no input could falsify (`typeof value === 'string'` in front of a
