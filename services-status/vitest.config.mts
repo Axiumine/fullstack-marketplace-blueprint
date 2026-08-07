@@ -17,7 +17,15 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       // public/ is browser code loaded by a <script> tag, not imported by any module here — it
       // cannot be instrumented by a node-side run and would report a permanent 0%.
-      exclude: ['src/public/**']
+      exclude: ['src/public/**'],
+      // The same gate every other package in this workspace carries. Never lower one of these to
+      // make a run pass — add the missing test, or delete the branch nothing can reach.
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100
+      }
     }
   }
 });

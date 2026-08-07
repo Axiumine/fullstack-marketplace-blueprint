@@ -18,7 +18,7 @@
     "systemd:install": "./systemd/install.sh",
     "systemd:uninstall": "./systemd/uninstall.sh",
     "test": "yarn build && vitest run",
-    "test:unit": "vitest run test/security.test.ts -t \"hostnameOnly|buildTrustedHosts|assertTrustedHost|isTrustedOrigin|assertSameOrigin\"",
+    "test:unit": "vitest run test/config.test.ts test/monitor.test.ts test/probe.test.ts test/server.test.ts test/systemd.test.ts",
     "test:cov": "yarn build && vitest run --coverage",
     "test:watch": "vitest"
   },

@@ -62,11 +62,15 @@ function scopeFlag(scope: SystemctlScope): string[] {
 // systemctl/journalctl absence (ENOENT) and "ran but exited non-zero" need different messages;
 // centralizing the translation keeps every exported function reporting failures the same way.
 function describeExecError(err: unknown, binary: string): string {
+  // `err` is never null here and the guards below do not pretend otherwise: every call site is the
+  // catch of an `await execFileAsync(...)`, and promisify only rejects with the value the callback
+  // was handed as its error — which it treats as "no error" when falsy. It can still be a
+  // non-Error (a plain string, say), which is why the last line does not assume `.message`.
   const e = err as NodeJS.ErrnoException & { stderr?: string; stdout?: string };
-  if (e && e.code === 'ENOENT') {
+  if (e.code === 'ENOENT') {
     return `${binary} not found on PATH — is this a systemd host?`;
   }
-  const stderr = typeof e?.stderr === 'string' ? e.stderr.trim() : '';
+  const stderr = typeof e.stderr === 'string' ? e.stderr.trim() : '';
   if (stderr) return stderr;
   return e instanceof Error ? e.message : String(err);
 }
@@ -118,7 +122,8 @@ function parseShowBlock(block: string): Record<string, string> {
 function toUnitShowResult(record: Record<string, string>): UnitShowResult {
   const mainPidRaw = parseNumericProperty(record.MainPID);
   return {
-    id: record.Id ?? '',
+    // parseShowBlocks() drops any block without an Id before it gets here, so this is never empty.
+    id: record.Id,
     loadState: record.LoadState ?? 'error',
     activeState: record.ActiveState ?? 'unknown',
     subState: record.SubState ?? 'unknown',
@@ -213,7 +218,9 @@ export async function unitLogs(unit: string, requestedLines: number, scope: Syst
   try {
     const r = await execFileAsync('journalctl', args, { timeout: LOGS_TIMEOUT_MS, maxBuffer: LOGS_MAX_BUFFER });
     const raw = r.stdout.split('\n');
-    if (raw.length > 0 && raw[raw.length - 1] === '') raw.pop(); // trailing newline from journalctl's own output
+    // No length guard: String#split always yields at least one element, so `raw.length > 0` was a
+    // condition no input could falsify — dead weight that no test can cover and no mutant can kill.
+    if (raw[raw.length - 1] === '') raw.pop(); // trailing newline from journalctl's own output
     return raw;
   } catch (err) {
     // Logs are a read-only convenience feature — surface the failure as a single log-shaped
@@ -243,7 +250,7 @@ export async function isEnabled(unit: string, scope: SystemctlScope): Promise<st
     // of treating every non-zero exit as a hard failure.
     const e = err as NodeJS.ErrnoException & { stdout?: string };
     if (typeof e.stdout === 'string' && e.stdout.trim()) return e.stdout.trim();
-    if (e && e.code === 'ENOENT') return 'unknown (systemctl not found)';
+    if (e.code === 'ENOENT') return 'unknown (systemctl not found)';
     return 'unknown';
   }
 }

@@ -1,12 +1,18 @@
 import Koa from 'koa';
 import Router from 'koa-router';
 import serve from 'koa-static';
-import WebSocket from 'ws';
+// ⚠️ Named imports, not `import WebSocket from 'ws'`. The default import resolves differently in
+// the two module systems this file is loaded under: the CJS build gets index.js, whose export
+// carries `.Server` as a static, while a test runner loading the TypeScript as ESM gets
+// wrapper.mjs, whose default is the bare WebSocket class with no statics at all — so
+// `new WebSocket.Server(...)` throws "default.Server is not a constructor" there and nowhere else.
+// Both names below exist in both faces of the package.
+import { WebSocket, WebSocketServer } from 'ws';
 import http from 'http';
 import path from 'path';
 import { timingSafeEqual } from 'crypto';
 import { loadConfig } from './config';
-import { createMonitor } from './monitor';
+import { createMonitor, Monitor } from './monitor';
 import { controlUnit, unitLogs } from './systemd';
 import { Action, AppConfig, ClientMessage, ServerMessage, ServiceState } from './types';
 
@@ -37,7 +43,10 @@ function timingSafeTokenEquals(provided: string, expected: string): boolean {
   return timingSafeEqual(providedBuf, expectedBuf);
 }
 
-function extractToken(authorizationHeader: string | undefined, tokenQueryParam: string | undefined): string | null {
+// Exported for the same reason as the guards below it: the empty-Bearer fall-through cannot be
+// reached over a real socket — HTTP strips the trailing whitespace that would produce it — so the
+// contract is asserted here rather than through a transport that quietly rewrites the input.
+export function extractToken(authorizationHeader: string | undefined, tokenQueryParam: string | undefined): string | null {
   if (authorizationHeader && authorizationHeader.toLowerCase().startsWith('bearer ')) {
     const token = authorizationHeader.slice('bearer '.length).trim();
     if (token) return token;
@@ -46,11 +55,11 @@ function extractToken(authorizationHeader: string | undefined, tokenQueryParam: 
   return null;
 }
 
+// Koa hands a repeated query parameter over as an array (`?token=a&token=b`), so this one is real.
+// Its header-side twin was deleted: Node discards duplicate `host`, `authorization` and `origin`
+// headers rather than joining them, so `req.headers.*` is only ever a string there and the array
+// arm was a branch no request could take.
 function firstQueryValue(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function normalizeHeader(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
@@ -240,18 +249,21 @@ function renderHtml(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Startup
+// The HTTP app — guards, routes, static assets. No listener of its own.
+//
+// Split out of main() so a test can drive it over a real socket inside the test process instead
+// of spawning `dist/server.js` as a child. A child process is a black box to the coverage
+// reporter: the security suite exercised most of the middleware below and the report still said
+// 10%, which is the number a suite that tested nothing would have printed too.
 // ---------------------------------------------------------------------------
 
-async function main(): Promise<void> {
-  const config = loadConfig(); // throws with a precise message on bad services.json / bad env
-  const monitor = createMonitor(config);
-  await monitor.refreshNow(); // populate state once before accepting connections
-
+export function createHttpApp(config: AppConfig, monitor: Monitor): Koa {
   const app = new Koa();
   const router = new Router();
 
   // Computed once at startup, not per request: config is immutable after loadConfig().
+  // attachWebSocket() derives its own copy from the same config rather than being handed this
+  // one — the upgrade path must not depend on the HTTP app having been built first.
   const trustedHosts = buildTrustedHosts(config);
 
   // Guards every HTTP request, including static assets — the page renders topology (unit
@@ -398,14 +410,25 @@ async function main(): Promise<void> {
   app.use(router.routes());
   app.use(router.allowedMethods());
 
-  const httpServer = http.createServer(app.callback());
+  return app;
+}
 
-  // ---------------------------------------------------------------------
-  // WebSocket — noServer + manual 'upgrade' handling so the auth check runs (and can destroy
-  // the socket) before a single WS frame is exchanged, matching the HTTP middleware above.
-  // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// WebSocket — noServer + manual 'upgrade' handling so the auth check runs (and can destroy
+// the socket) before a single WS frame is exchanged, matching the HTTP middleware above.
+// ---------------------------------------------------------------------------
 
-  const wss = new WebSocket.Server({ noServer: true, maxPayload: 8 * 1024 });
+export interface WebSocketParts {
+  wss: WebSocketServer;
+  /** Live sockets, for broadcast and for terminate-on-shutdown. */
+  wsClients: Set<WebSocket>;
+  /** The monitor listener this attaches — kept so shutdown can unsubscribe it. */
+  broadcastStates: (states: ServiceState[]) => void;
+}
+
+export function attachWebSocket(httpServer: http.Server, config: AppConfig, monitor: Monitor): WebSocketParts {
+  const trustedHosts = buildTrustedHosts(config);
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 });
   const wsClients = new Set<WebSocket>();
 
   function broadcastStates(states: ServiceState[]): void {
@@ -495,7 +518,10 @@ async function main(): Promise<void> {
   httpServer.on('upgrade', (req, socket, head) => {
     let requestUrl: URL;
     try {
-      requestUrl = new URL(req.url ?? '/', 'http://internal.invalid');
+      // String(), not `req.url ?? '/'`: Node always sets `url` on a request it parsed, and the
+      // type is optional only because IncomingMessage is shared with the client side where it is
+      // not. A fallback would be a branch no request can reach.
+      requestUrl = new URL(String(req.url), 'http://internal.invalid');
     } catch {
       socket.destroy();
       return;
@@ -507,7 +533,7 @@ async function main(): Promise<void> {
 
     // Same Host allowlist as the HTTP middleware — the upgrade path bypasses that middleware
     // entirely, so it has to repeat the check rather than inherit it.
-    const wsHostDecision = assertTrustedHost(normalizeHeader(req.headers.host), trustedHosts);
+    const wsHostDecision = assertTrustedHost(req.headers.host, trustedHosts);
     if (!wsHostDecision.allowed) {
       socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
       socket.destroy();
@@ -516,7 +542,7 @@ async function main(): Promise<void> {
 
     let hasValidToken = false;
     if (config.authToken) {
-      const provided = extractToken(normalizeHeader(req.headers.authorization), requestUrl.searchParams.get('token') ?? undefined);
+      const provided = extractToken(req.headers.authorization, requestUrl.searchParams.get('token') ?? undefined);
       hasValidToken = !!provided && timingSafeTokenEquals(provided, config.authToken);
       if (!hasValidToken) {
         socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
@@ -540,7 +566,7 @@ async function main(): Promise<void> {
     // Origin present -> must name this host; Origin absent -> non-browser client, allowed only
     // with a valid AUTH_TOKEN. Passing `undefined` for the Referer argument is deliberate, not an
     // oversight — treating a missing Referer as evidence of anything here would be wrong.
-    const originDecision = assertSameOrigin(normalizeHeader(req.headers.origin), undefined, trustedHosts, hasValidToken);
+    const originDecision = assertSameOrigin(req.headers.origin, undefined, trustedHosts, hasValidToken);
     if (!originDecision.allowed) {
       // 403, not 401: the caller may well have authenticated correctly — it is the *origin* that
       // is refused, and no amount of re-authenticating fixes that.
@@ -586,35 +612,85 @@ async function main(): Promise<void> {
     ws.on('error', () => wsClients.delete(ws));
   });
 
-  // ---------------------------------------------------------------------
-  // Listen + graceful shutdown
-  // ---------------------------------------------------------------------
+  return { wss, wsClients, broadcastStates };
+}
 
-  await new Promise<void>((resolve) => httpServer.listen(config.port, config.host, resolve));
-  printBanner(config);
+// ---------------------------------------------------------------------------
+// Assembly
+// ---------------------------------------------------------------------------
 
+export interface ServerParts extends WebSocketParts {
+  app: Koa;
+  httpServer: http.Server;
+}
+
+/** The whole server, wired but not listening. `main()` and the tests share this one path. */
+export function createServer(config: AppConfig, monitor: Monitor): ServerParts {
+  const app = createHttpApp(config, monitor);
+  const httpServer = http.createServer(app.callback());
+  return { app, httpServer, ...attachWebSocket(httpServer, config, monitor) };
+}
+
+/**
+ * Graceful shutdown, as a factory rather than a closure inside main() so its two branches are
+ * reachable from a test — the second signal arriving during a shutdown already in progress must
+ * be a no-op, and a suite that can only ever send the first signal cannot show that.
+ */
+export function createShutdown(monitor: Monitor, parts: ServerParts): (signal: string) => void {
   let shuttingDown = false;
-  function shutdown(signal: string): void {
+
+  return function shutdown(signal: string): void {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`[server] ${signal} received, shutting down`);
 
-    monitor.unsubscribe(broadcastStates);
+    monitor.unsubscribe(parts.broadcastStates);
     monitor.stop();
-    for (const client of wsClients) client.terminate();
+    for (const client of parts.wsClients) client.terminate();
 
-    httpServer.close(() => {
+    parts.httpServer.close(() => {
       console.log('[server] closed');
       process.exit(0);
     });
     // Belt-and-suspenders: don't let a stuck connection hold the process open forever.
     setTimeout(() => process.exit(0), 5000).unref();
-  }
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  };
 }
 
-function printBanner(config: AppConfig): void {
+// ---------------------------------------------------------------------------
+// Startup
+// ---------------------------------------------------------------------------
+
+export interface RunningServer {
+  config: AppConfig;
+  monitor: Monitor;
+  parts: ServerParts;
+  shutdown: (signal: string) => void;
+}
+
+/**
+ * Boot: config, monitor, server, listener, signal handlers. Returns the pieces rather than
+ * `void` so a test can shut down what it started — the process-level handlers below are the
+ * only other way to reach `shutdown`, and calling those would end the test runner.
+ */
+export async function main(): Promise<RunningServer> {
+  const config = loadConfig(); // throws with a precise message on bad services.json / bad env
+  const monitor = createMonitor(config);
+  await monitor.refreshNow(); // populate state once before accepting connections
+
+  const parts = createServer(config, monitor);
+
+  await new Promise<void>((resolve) => parts.httpServer.listen(config.port, config.host, resolve));
+  printBanner(config);
+
+  const shutdown = createShutdown(monitor, parts);
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  return { config, monitor, parts, shutdown };
+}
+
+export function printBanner(config: AppConfig): void {
   console.log('services-status monitor listening');
   console.log(`  bind:       http://${config.host}:${config.port}`);
   console.log(`  scope:      systemctl --${config.systemctlScope}`);
@@ -624,12 +700,16 @@ function printBanner(config: AppConfig): void {
   console.log(`  auth:       ${config.authToken ? 'AUTH_TOKEN required' : 'disabled (no AUTH_TOKEN set)'}`);
 }
 
-// Only boot when run as the entry point. Importing this module — which the test suite does, to
-// reach the exported guards — must not start a listener or, when startup fails, take the
-// importing process down with process.exit(1).
-if (require.main === module) {
+/* v8 ignore start -- entrypoint wiring: runs only as the real process, never under vitest.
+   Only boot when run as the entry point. Importing this module — which the test suite does, to
+   reach the exported guards and to drive the server in-process — must not start a listener or,
+   when startup fails, take the importing process down with process.exit(1). The NODE_ENV clause
+   matches the nine backend services: `require.main` alone is not enough, because a test runner
+   that happens to load this file as its own entry would satisfy it. */
+if (require.main === module && process.env.NODE_ENV !== 'test') {
   main().catch((err) => {
     console.error('[server] fatal startup error:', err instanceof Error ? err.message : err);
     process.exit(1);
   });
 }
+/* v8 ignore stop */
