@@ -332,9 +332,34 @@ long list of traps; the four that matter from out here:
 - **`yarn start` runs `serve.mjs`, not the build output.** `vite build` emits `dist/server/server.js`, a `{ fetch }` handler with no listener; `.output/` belongs to the Nitro preset, which is not installed. nginx serves `dist/client`, the Node process serves SSR only.
 - **Route files are one-line `createFileRoute(id)(options)` calls**, with the behaviour in `src/routeOptions/` as router-free constants so loaders, `head` and `validateSearch` are testable without mounting a router. Measured cost, accepted: the framework's splitter reads literal properties and cannot see into an imported identifier, so no route is split out of the entry chunk. The one chunk worth splitting — MapLibre, ~950 KB — is split anyway by the island's dynamic import.
 
-⚠️ **Neither `marketplace-shopowner` nor `marketplace-user` carries a `test/` directory**, per the user's standing
-"skip all tests" instruction — the harness is in place, the tests are not, so their coverage gates report 0% and a
-commit in either needs `--no-verify`. Do not lower a threshold or remove a gate to work around it.
+⚠️ **The "skip all tests" instruction was revoked on 2026-08-06, and every frontend now carries a suite.** It had
+left `marketplace-shopowner` and `marketplace-user` with a harness and no `test/` directory at all, coverage gates
+reporting 0% and every commit needing `--no-verify`. All three are now where the backend has always been —
+**100% on all four coverage metrics and a 100 mutation score**, each verified by a full local run:
+
+| App | Test files | Tests | Mutants killed / timed out / survived |
+|---|---|---|---|
+| `marketplace-admin` | 49 | 729 | 1783 / 6 / 0 |
+| `marketplace-shopowner` | 38 | 497 | 1083 / 5 / 0 |
+| `marketplace-user` | 66 | 1165 | 2028 / 6 / 0 |
+| `services-status` | 7 | 379 | 1102 / 1 / 0 |
+
+`services-status` came with them, and it is the odd one out in three ways worth knowing before editing it: it
+is tracked by **this parent repo** rather than being a repo of its own, it has **no `lint` script** (it is not
+one of the thirteen eslint/prettier repos — `npx tsc --noEmit` is its type gate), and it had neither a mutation
+gate nor a `stryker.config.mjs` until 2026-08-07.
+
+Reaching 100 on it took **changing the code, never a threshold**: eight guards across `server.ts` and
+`systemd.ts` turned out to be conditions no input could falsify (`typeof value === 'string'` in front of a
+`Set#has`, a `.toLowerCase()` the WHATWG URL parser had already applied, `mainPidRaw !== null` in front of
+`> 0`), and each was deleted with the argument recorded at the site. Three genuinely equivalent mutants were
+silenced with `// Stryker disable <Mutator>` and a reason — never `ignoreStatic`. ⚠️ **A `disable next-line`
+directive must be the *leading* comment of the mutant's own line**: written as the last line of a multi-line
+comment it lands on the wrong line, and placed inside a `try` it never reaches the `catch` at all — use the
+`disable` … `restore` range form there.
+
+The rule that outlived the instruction: **do not lower a threshold or remove a gate.** It now has teeth
+everywhere, so a commit that needs one lowered is a commit that needs a test.
 
 ## Commands
 

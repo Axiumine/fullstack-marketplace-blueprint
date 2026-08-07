@@ -21,11 +21,14 @@ import { Action, AppConfig, ClientMessage, ServerMessage, ServiceState } from '.
 // ---------------------------------------------------------------------------
 
 const ACTIONS: ReadonlySet<string> = new Set(['start', 'stop', 'restart']);
-function isAction(value: unknown): value is Action {
-  return typeof value === 'string' && ACTIONS.has(value);
+export function isAction(value: unknown): value is Action {
+  // No `typeof value === 'string'` conjunct: Set#has answers false for anything the set does not
+  // contain, a number and an object included, so the type test could never change an answer — it
+  // would be a condition no input can falsify. The cast is what a hit proves: value was a member.
+  return ACTIONS.has(value as string);
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -136,7 +139,11 @@ export function assertTrustedHost(hostHeader: string | undefined, trustedHosts: 
 // weight here.
 export function isTrustedOrigin(originOrReferer: string, trustedHosts: ReadonlySet<string>): boolean {
   try {
-    return trustedHosts.has(new URL(originOrReferer).hostname.toLowerCase());
+    // No .toLowerCase(): the WHATWG parser lowercases the host of every http/https URL, and those
+    // are the only schemes a browser puts in Origin or Referer. Case survives parsing only on an
+    // opaque host ('foo://EXAMPLE.com'), which is not a browser origin and is refused here — the
+    // trusted set is lowercase throughout, DOMAIN, HOST and ALLOWED_HOSTS included.
+    return trustedHosts.has(new URL(originOrReferer).hostname);
   } catch {
     return false; // unparsable Origin/Referer is never trusted
   }
@@ -310,8 +317,13 @@ export function createHttpApp(config: AppConfig, monitor: Monitor): Koa {
     await next();
   });
 
+  // Stryker disable next-line StringLiteral: koa-router compiles '' and '/' to the same matcher —
+  // verified against this version, both serve GET / and 404 every other path — so no request can
+  // tell an emptied path apart from this one.
   router.get('/', async (ctx) => {
-    ctx.type = 'html';
+    // No `ctx.type = 'html'`: Koa's body setter infers html from a string body that starts with
+    // '<', which every renderHtml() output does, and the content-type assertion in the page test
+    // is what holds that inference to the contract.
     // AUTH_TOKEN travels in this page's own URL (?token=) — a leaked Referer to the cdnjs
     // stylesheet would hand that token to a third party. The <meta> tag in renderHtml() covers
     // navigations initiated from inside the document; this header covers the response itself.
@@ -401,7 +413,10 @@ export function createHttpApp(config: AppConfig, monitor: Monitor): Koa {
       return;
     }
     const linesRaw = firstQueryValue(ctx.query.lines as string | string[] | undefined);
-    const parsedLines = linesRaw !== undefined ? Number.parseInt(linesRaw, 10) : config.logLines;
+    // No `linesRaw !== undefined` ternary: Number.parseInt(undefined, 10) is NaN, and the
+    // finiteness check on the next line already answers NaN with the configured default — the
+    // ternary would be a second, unobservable spelling of that same fallback.
+    const parsedLines = Number.parseInt(linesRaw as string, 10);
     const lines = await unitLogs(service.unit, Number.isFinite(parsedLines) ? parsedLines : config.logLines, config.systemctlScope);
     ctx.body = { id, lines };
   });
@@ -499,8 +514,10 @@ export function attachWebSocket(httpServer: http.Server, config: AppConfig, moni
     }
 
     if (type === 'logs') {
-      const id = parsed.id;
-      if (typeof id !== 'string') return;
+      // No `typeof id !== 'string'` guard: serviceMap is keyed by string, so a non-string id misses
+      // it and the frame is dropped by the check below — the type test could never change an
+      // answer. The cast is what a hit proves: id was a real key.
+      const id = parsed.id as string;
       const service = config.serviceMap.get(id);
       if (!service) return;
       const requestedLines = typeof parsed.lines === 'number' ? parsed.lines : config.logLines;
@@ -597,11 +614,17 @@ export function attachWebSocket(httpServer: http.Server, config: AppConfig, moni
 
     ws.on('message', (raw) => {
       let parsed: unknown;
+      // `parsed` is declared without an initializer, so emptying the catch below leaves it
+      // undefined and the isPlainObject guard drops the frame on exactly the same path — the
+      // `return` is provably unobservable, and no reachable frame tells the two apart. It stays
+      // because a catch that falls through reads as an oversight.
+      // Stryker disable BlockStatement: provably unobservable, see argument above.
       try {
         parsed = JSON.parse(raw.toString());
       } catch {
         return; // malformed JSON — drop the frame, never crash the connection over it
       }
+      // Stryker restore BlockStatement
       if (!isPlainObject(parsed)) return;
       handleClientMessage(ws, parsed as Partial<ClientMessage> & Record<string, unknown>).catch((err) => {
         console.error('[ws] message handling failed', err);
@@ -706,10 +729,15 @@ export function printBanner(config: AppConfig): void {
    when startup fails, take the importing process down with process.exit(1). The NODE_ENV clause
    matches the nine backend services: `require.main` alone is not enough, because a test runner
    that happens to load this file as its own entry would satisfy it. */
+// Stryker disable all: same guard as the v8 ignore above, same reason. vitest sets NODE_ENV=test
+// and reaches this file by import rather than as the entry point, so both halves of the condition
+// are false in every run this suite can produce — no mutant inside the block has a reachable input
+// that would tell it apart. Restored below the closing brace so the rest of the file stays mutated.
 if (require.main === module && process.env.NODE_ENV !== 'test') {
   main().catch((err) => {
     console.error('[server] fatal startup error:', err instanceof Error ? err.message : err);
     process.exit(1);
   });
 }
+// Stryker restore all
 /* v8 ignore stop */

@@ -26,8 +26,14 @@ const { files, readFailure } = vi.hoisted(() => ({
 
 vi.mock('fs', () => ({
   existsSync: (p: string) => files.has(p),
-  readFileSync: (p: string) => {
+  readFileSync: (p: string, encoding?: unknown) => {
     if (readFailure.value !== null) throw readFailure.value;
+    // Faithful to node, and load-bearing: an unknown encoding is a TypeError before the file is
+    // even opened, and omitting it answers a Buffer rather than a string. A mock that ignored the
+    // argument would let `readFileSync(path)` and `readFileSync(path, 'utf8')` test the same.
+    if (typeof encoding !== 'string' || !Buffer.isEncoding(encoding)) {
+      throw new TypeError(`The "options.encoding" property must be a valid string encoding. Received ${JSON.stringify(encoding)}`);
+    }
     const content = files.get(p);
     if (content === undefined) throw new Error(`ENOENT: no such file or directory, open '${p}'`);
     return content;
@@ -137,10 +143,12 @@ describe('loadConfig: finding services.json', () => {
     expect(loadConfig().servicesJsonPath).toBe(FALLBACK);
   });
 
-  it('names both candidates when neither exists', () => {
+  it('names both candidates when neither exists, one per line', () => {
     files.clear();
 
-    expect(() => loadConfig()).toThrow(new RegExp(`could not find services.json[\\s\\S]*${PRIMARY}[\\s\\S]*${FALLBACK}`));
+    // The separator is asserted, not just the two paths: joined with nothing they run together
+    // into one unreadable path-that-is-not-a-path, which is exactly what the message is for.
+    expect(() => loadConfig()).toThrow(`could not find services.json — looked in:\n  ${PRIMARY}\n  ${FALLBACK}`);
   });
 
   it("reports unparsable JSON with the path and the parser's own reason", () => {
@@ -166,6 +174,9 @@ describe('loadConfig: services.json shape', () => {
   // in 4 groups is not a file anyone wants to bisect by hand.
   it.each([
     ['a root that is not an object', [], '#: must be an object, got array(length 0)'],
+    // `typeof null` is 'object', so null is the one value that reaches this check looking like a
+    // match for it. Left through, it fails later as "Cannot read properties of null" instead.
+    ['a root that is null', null, '#: must be an object, got null'],
     ['a missing workspaceRoot', root({ workspaceRoot: undefined }), '#workspaceRoot: must be a non-empty string, got undefined'],
     ['an empty workspaceRoot', root({ workspaceRoot: '' }), '#workspaceRoot: must be a non-empty string, got string ""'],
     ['a missing nodeVersion', root({ nodeVersion: undefined }), '#nodeVersion: must be a non-empty string, got undefined'],
@@ -233,7 +244,7 @@ describe('loadConfig: services.json shape', () => {
   it('refuses a port the JSON parser read as Infinity', () => {
     files.set(PRIMARY, JSON.stringify(withServices(service({ port: 0 }))).replace('"port":0', '"port":1e999'));
 
-    expect(() => loadConfig()).toThrow('#groups[0].services[0].port: must be a number or null, got number Infinity');
+    expect(() => loadConfig()).toThrow('#groups[0].services[0].port: must be a finite number, got number Infinity');
   });
 
   it('refuses two groups with the same id', () => {
@@ -299,6 +310,15 @@ describe('loadConfig: what it builds', () => {
 
     expect(config.services[0].port).toBeNull();
     expect(config.services[0].url).toBeNull();
+  });
+
+  // 'frontend' is the other half of the kind union and nothing else asserts it: with only
+  // 'backend' exercised, a validator that accepted *no* kind but 'backend' would pass every test
+  // here while refusing every frontend row of the real services.json.
+  it('accepts a frontend service as readily as a backend one', () => {
+    write(withServices(service({ kind: 'frontend', id: 'marketplace-user', port: 3045 })));
+
+    expect(loadConfig().services[0].kind).toBe('frontend');
   });
 
   it('accepts an optional healthPath without putting it on the wire', () => {
@@ -390,11 +410,16 @@ describe('loadConfig: environment', () => {
     expect(loadConfig().port).toBe(2901);
   });
 
-  it('refuses an integer variable that is not an integer', () => {
-    process.env.POLL_INTERVAL_MS = 'often';
+  // Each variable names *itself* in its own failure. One shared message would send whoever set
+  // LOG_LINES=all off to check PORT.
+  it.each([['PORT' as const], ['POLL_INTERVAL_MS' as const], ['PROBE_TIMEOUT_MS' as const], ['LOG_LINES' as const]])(
+    'refuses %s when it is not an integer, and says which variable it was',
+    (name) => {
+      process.env[name] = 'often';
 
-    expect(() => loadConfig()).toThrow('[config] env POLL_INTERVAL_MS="often" is not a valid integer');
-  });
+      expect(() => loadConfig()).toThrow(`[config] env ${name}="often" is not a valid integer`);
+    }
+  );
 
   it.each([
     ['true', true],
@@ -411,14 +436,24 @@ describe('loadConfig: environment', () => {
     expect(loadConfig().behindProxy).toBe(expected);
   });
 
-  it('refuses a boolean variable that is neither', () => {
-    process.env.BEHIND_PROXY = 'maybe';
+  it.each([
+    ['BEHIND_PROXY' as const],
+    // BIND_ALL is read through the same parser and is the one whose failure matters most: it
+    // decides whether the process leaves loopback at all.
+    ['BIND_ALL' as const]
+  ])('refuses %s when it is neither, and says which variable it was', (name) => {
+    process.env[name] = 'maybe';
 
-    expect(() => loadConfig()).toThrow('[config] env BEHIND_PROXY="maybe" is not a valid boolean (use true/false)');
+    expect(() => loadConfig()).toThrow(`[config] env ${name}="maybe" is not a valid boolean (use true/false)`);
   });
 
-  it('reads an empty boolean as the default rather than as false', () => {
-    process.env.BEHIND_PROXY = '';
+  it.each([
+    ['an empty string', ''],
+    // Whitespace is what a hand-edited env file leaves behind ("BEHIND_PROXY= "), and it is not
+    // the string 'false' — untrimmed it would reach the boolean table and fail the whole startup.
+    ['whitespace', '  ']
+  ])('reads %s as the default rather than as false', (_label, raw) => {
+    process.env.BEHIND_PROXY = raw;
 
     expect(loadConfig().behindProxy).toBe(false);
   });
@@ -430,6 +465,12 @@ describe('loadConfig: environment', () => {
     process.env.SYSTEMCTL_SCOPE = scope;
 
     expect(loadConfig().systemctlScope).toBe(scope);
+  });
+
+  it('trims SYSTEMCTL_SCOPE before matching it', () => {
+    process.env.SYSTEMCTL_SCOPE = ' system ';
+
+    expect(loadConfig().systemctlScope).toBe('system');
   });
 
   it('refuses any other scope', () => {

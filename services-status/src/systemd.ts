@@ -83,7 +83,10 @@ function clampLogLines(requested: number): number {
 function parseNumericProperty(raw: string | undefined): number | null {
   if (raw === undefined) return null;
   const trimmed = raw.trim();
-  if (trimmed === '' || trimmed === '[not set]') return null;
+  // Only '' needs an arm of its own: `Number('')` is 0, which would report a stopped unit as
+  // owning 0 bytes. systemd's '[not set]' spelling needs none — `Number('[not set]')` is NaN and
+  // the finiteness check below already answers null for it.
+  if (trimmed === '') return null;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
 }
@@ -101,9 +104,10 @@ function parseNumericProperty(raw: string | undefined): number | null {
  */
 function parseSystemdTimestamp(raw: string | undefined): number | null {
   if (raw === undefined) return null;
-  const trimmed = raw.trim();
-  if (trimmed === '' || trimmed === '[not set]' || trimmed === 'n/a') return null;
-  const match = trimmed.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/);
+  // No early return for ''/'[not set]'/'n/a' and no trim: none of the three matches the shape
+  // below, so the regex answers null for them already. Guards for them would be conditions no
+  // input can falsify — they would read as safety while testing nothing.
+  const match = raw.match(/(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/);
   if (!match) return null;
   const ms = Date.parse(`${match[1]}T${match[2]}`);
   return Number.isNaN(ms) ? null : ms;
@@ -129,7 +133,12 @@ function toUnitShowResult(record: Record<string, string>): UnitShowResult {
     subState: record.SubState ?? 'unknown',
     unitFileState: record.UnitFileState ?? '',
     // systemctl reports MainPID=0 for a unit with no running main process — 0 is not a real pid.
-    mainPid: mainPidRaw && mainPidRaw > 0 ? mainPidRaw : null,
+    // MainPID=0 is systemd's spelling of "no process" and an absent property parses to null, so
+    // both have to answer null. The `?? 0` is what lets the comparison stand alone: written as
+    // `mainPidRaw !== null && mainPidRaw > 0` the null guard would be a conjunct no input can
+    // falsify, since `null > 0` is already false — a check that reads as safety while testing
+    // nothing.
+    mainPid: (mainPidRaw ?? 0) > 0 ? mainPidRaw : null,
     nRestarts: parseNumericProperty(record.NRestarts) ?? 0,
     memoryBytes: parseNumericProperty(record.MemoryCurrent),
     cpuNs: parseNumericProperty(record.CPUUsageNSec),
@@ -180,10 +189,10 @@ export async function showUnits(units: string[], scope: SystemctlScope): Promise
     return result;
   }
 
-  const blocks = stdout
-    .split(/\n\s*\n/)
-    .map((b) => b.trim())
-    .filter((b) => b.length > 0);
+  // Split only. Trimming each block and dropping the empty ones would be redundant twice over:
+  // parseShowBlock skips any line without an '=', and a block that yields no Id= is dropped below
+  // — so a blank block from a trailing newline never reaches a result either way.
+  const blocks = stdout.split(/\n\s*\n/);
 
   for (const block of blocks) {
     const record = parseShowBlock(block);

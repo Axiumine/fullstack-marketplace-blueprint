@@ -207,6 +207,19 @@ describe('health derivation', () => {
   });
 
   /*
+   * ⚠️ 'has no port' is not 'is up'. The portless rule below reads 'active' as up without probing,
+   * and the only thing keeping it from reading *every* portless unit as up is the activeState
+   * check in front of it — a stopped target has nothing to connect to either.
+   */
+  it('reads a stopped portless unit as down, not up', async () => {
+    showing({ id: 'worker.service', activeState: 'inactive' });
+
+    const [state] = await monitorFor(configOf([descriptor({ id: 'worker', unit: 'worker.service', port: null, url: null })])).refreshNow();
+
+    expect(state.health).toBe('down');
+  });
+
+  /*
    * ⚠️ A service with no port is not a service that failed its probe. There is nothing to connect
    * to — a `marketplace.target` or a unit that only writes files — so 'active' alone is the whole
    * answer, and the probe is never run at all.
@@ -231,6 +244,20 @@ describe('health derivation', () => {
     expect(probeTcpMock).toHaveBeenNthCalledWith(1, '10.0.0.5', 4027, 250);
     // 'b' has no entry in serviceHosts — loopback, not a crash and not a skipped probe.
     expect(probeTcpMock).toHaveBeenNthCalledWith(2, '127.0.0.1', 4028, 250);
+  });
+
+  // One `systemctl show` for the whole batch, asked for by unit name and in the configured scope.
+  // Asserting the argument and not just the call count is what keeps the batch from degenerating
+  // into a query for nothing at all — showUnits keys its answer by unit, so a wrong list reads as
+  // 'systemd said nothing about this unit' on every card rather than as an error.
+  it('asks systemd for every configured unit, once, in the configured scope', async () => {
+    const services = [descriptor({ id: 'a', unit: 'a.service' }), descriptor({ id: 'b', unit: 'b.service' })];
+    showing({ id: 'a.service' }, { id: 'b.service' });
+
+    await monitorFor(configOf(services, { systemctlScope: 'system' })).refreshNow();
+
+    expect(showUnitsMock).toHaveBeenCalledTimes(1);
+    expect(showUnitsMock).toHaveBeenCalledWith(['a.service', 'b.service'], 'system');
   });
 });
 

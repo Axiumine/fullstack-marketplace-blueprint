@@ -57,6 +57,11 @@ const LOADED_ACTIVE = {
 
 const args = (call = 0): string[] => execFileMock.mock.calls[call][1] as string[];
 const binary = (call = 0): string => execFileMock.mock.calls[call][0] as string;
+// The options object is the third argument, and asserting it is not pedantry: without a timeout
+// every one of these calls inherits execFile's default of "wait forever", which is how one hung
+// systemctl becomes a poll tick that never completes and a page that stops updating.
+const opts = (call = 0): { timeout?: number; maxBuffer?: number } =>
+  execFileMock.mock.calls[call][2] as { timeout?: number; maxBuffer?: number };
 
 beforeEach(() => {
   execFileMock.mockReset();
@@ -84,9 +89,15 @@ describe('showUnits', () => {
     expect(execFileMock).toHaveBeenCalledTimes(1);
     expect(binary()).toBe('systemctl');
     expect(args().slice(0, 4)).toEqual(['--user', 'show', 'a.service', 'b.service']);
+    // Each property arrives as its own `-p <name>` pair. Asserting the flag and not just the name
+    // is what keeps the list from degenerating into eleven bare words systemctl would read as
+    // eleven more unit names.
     for (const property of ['Id', 'LoadState', 'ActiveState', 'SubState', 'UnitFileState', 'MemoryCurrent', 'CPUUsageNSec', 'MainPID', 'NRestarts', 'ActiveEnterTimestamp', 'ExecMainStartTimestamp']) {
-      expect(args()).toContain(property);
+      const at = args().indexOf(property);
+      expect(at).toBeGreaterThan(3);
+      expect(args()[at - 1]).toBe('-p');
     }
+    expect(opts().timeout).toBe(10_000);
   });
 
   it('drops the --user flag for the system scope', async () => {
@@ -188,6 +199,19 @@ describe('showUnits', () => {
     expect(await showUnits(['a.service'], 'user')).toMatchObject(new Map([['a.service', { activeState: 'active' }]]));
   });
 
+  /*
+   * ⚠️ A line with no '=' is *dropped*, not sliced. The stray line below is deliberately a real
+   * property name with one character appended, because that is the only shape in which the
+   * difference is observable: split at `indexOf('=')` regardless — which is what the guard exists
+   * to prevent — it becomes the key `MainPID` with the whole line as its value, and a truncated
+   * write from systemd would silently overwrite the pid of a running unit with nonsense.
+   */
+  it('never turns a line with no "=" into a key by slicing it', async () => {
+    succeedsWith([showBlock({ Id: 'a.service', MainPID: '4242' }), 'MainPIDX'].join('\n'));
+
+    expect((await showUnits(['a.service'], 'user')).get('a.service')?.mainPid).toBe(4242);
+  });
+
   it('keeps an "=" that appears inside a value', async () => {
     succeedsWith(showBlock({ Id: 'a.service', SubState: 'running=maybe' }));
 
@@ -200,7 +224,10 @@ describe('showUnits', () => {
     ['0', null],
     ['4242', 4242],
     ['', null],
-    ['[not set]', null]
+    ['[not set]', null],
+    // Not a shape systemd produces, and the point: `mainPidRaw > 0` is the only thing standing
+    // between a garbled property and a card claiming the unit runs as PID -1.
+    ['-1', null]
   ])('reads MainPID=%s as %s', async (raw, expected) => {
     succeedsWith(showBlock({ Id: 'a.service', MainPID: raw }));
 
@@ -214,7 +241,9 @@ describe('showUnits', () => {
     ['whitespace', '   ', null],
     ['something not numeric at all', 'infinity-ish', null]
   ])('reads MemoryCurrent from %s', async (_label, raw, expected) => {
-    succeedsWith(showBlock({ Id: 'a.service', MemoryCurrent: raw }));
+    // NRestarts trails it so the whitespace row is a value in the middle of a block rather than at
+    // the very end of stdout, where it would be indistinguishable from an empty one.
+    succeedsWith(showBlock({ Id: 'a.service', MemoryCurrent: raw, NRestarts: '0' }));
 
     expect((await showUnits(['a.service'], 'user')).get('a.service')?.memoryBytes).toBe(expected);
   });
@@ -234,6 +263,14 @@ describe('showUnits', () => {
      */
     it('reads the parseable core of a systemd timestamp as local time', async () => {
       succeedsWith(showBlock({ Id: 'a.service', ActiveEnterTimestamp: 'Thu 2026-08-06 08:09:21 CEST' }));
+
+      expect((await showUnits(['a.service'], 'user')).get('a.service')?.since).toBe(Date.parse('2026-08-06T08:09:21'));
+    });
+
+    // Column-aligned output pads the gap between the date and the time. One space and several have
+    // to read the same, or a unit's uptime disappears on whichever hosts pad it.
+    it('reads a timestamp whose date and time are separated by more than one space', async () => {
+      succeedsWith(showBlock({ Id: 'a.service', ActiveEnterTimestamp: 'Thu 2026-08-06   08:09:21 CEST' }));
 
       expect((await showUnits(['a.service'], 'user')).get('a.service')?.since).toBe(Date.parse('2026-08-06T08:09:21'));
     });
@@ -327,7 +364,9 @@ describe('controlUnit', () => {
 
     const result = await controlUnit('a.service', action, 'user');
 
+    expect(binary()).toBe('systemctl');
     expect(args()).toEqual(['--user', action, 'a.service']);
+    expect(opts().timeout).toBe(10_000);
     expect(result).toEqual({ ok: true, message: `a.service: ${action} succeeded` });
   });
 
@@ -349,6 +388,17 @@ describe('controlUnit', () => {
 
     expect(await controlUnit('a.service', 'start', 'user')).toEqual({ ok: false, message: 'Unit a.service not found.' });
   });
+
+  // The failure names the binary that is missing. 'not found on PATH' alone would be reported for
+  // journalctl too, and the two are installed — or absent — independently.
+  it('names systemctl itself when systemctl is the thing that is missing', async () => {
+    failsWith(enoent());
+
+    expect(await controlUnit('a.service', 'start', 'user')).toEqual({
+      ok: false,
+      message: 'systemctl not found on PATH — is this a systemd host?'
+    });
+  });
 });
 
 describe('daemonReload', () => {
@@ -356,7 +406,9 @@ describe('daemonReload', () => {
     succeedsWith('');
 
     expect(await daemonReload('user')).toEqual({ ok: true, message: 'daemon-reload succeeded' });
+    expect(binary()).toBe('systemctl');
     expect(args()).toEqual(['--user', 'daemon-reload']);
+    expect(opts().timeout).toBe(10_000);
   });
 
   it('reports a failure instead of throwing it', async () => {
@@ -375,6 +427,10 @@ describe('unitLogs', () => {
 
     expect(binary()).toBe('journalctl');
     expect(args()).toEqual(['--user', '-u', 'a.service', '-n', '200', '--no-pager', '--output=short-iso']);
+    // 16 MiB, not node's ~1 MiB exec default: 2000 lines of --output=short-iso with the occasional
+    // stack trace in them overruns the default, and an overrun is a MAXBUFFER error rather than a
+    // truncated tail. The timeout is longer than the control one for the same reason.
+    expect(opts()).toEqual({ timeout: 15_000, maxBuffer: 16 * 1024 * 1024 });
     expect(lines).toEqual(['line one', 'line two']);
   });
 
@@ -444,7 +500,9 @@ describe('isEnabled', () => {
     succeedsWith('enabled\n');
 
     expect(await isEnabled('a.service', 'user')).toBe('enabled');
+    expect(binary()).toBe('systemctl');
     expect(args()).toEqual(['--user', 'is-enabled', 'a.service']);
+    expect(opts().timeout).toBe(10_000);
   });
 
   /*

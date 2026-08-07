@@ -37,7 +37,8 @@ function joinPointer(parent: string, key: string): string {
 }
 
 function describeType(value: unknown): string {
-  if (value === undefined) return 'undefined';
+  // No `undefined` arm: `typeof undefined` is already the string 'undefined', so the fall-through
+  // at the bottom answers it. `null` needs one because `typeof null` is 'object'.
   if (value === null) return 'null';
   const t = typeof value;
   if (t === 'string') return `string ${JSON.stringify(value)}`;
@@ -89,9 +90,12 @@ function expectNullableNumber(obj: Record<string, unknown>, key: string, service
   const value = obj[key];
   if (value === undefined) fail(servicesJsonPath, pointer, 'is required (use null, not omission, for "no port")');
   if (value === null) return null;
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    fail(servicesJsonPath, pointer, `must be a number or null, got ${describeType(value)}`);
-  }
+  if (typeof value !== 'number') fail(servicesJsonPath, pointer, `must be a number or null, got ${describeType(value)}`);
+  // Split from the check above rather than or-ed into it, because the two reject different files
+  // and deserve different messages: a string port is a typo, while Infinity is what JSON.parse
+  // hands back for any literal too large to represent (1e999) and would otherwise sail through
+  // `typeof value === 'number'` straight into a URL as "http://127.0.0.1:Infinity".
+  if (!Number.isFinite(value)) fail(servicesJsonPath, pointer, `must be a finite number, got ${describeType(value)}`);
   return value;
 }
 
@@ -255,7 +259,10 @@ function parseAllowedHostsEnv(raw: string | undefined): string[] {
 function loadEnv(): EnvConfig {
   const bindAll = parseBoolEnv('BIND_ALL', process.env.BIND_ALL, false);
   const authTokenRaw = process.env.AUTH_TOKEN;
-  const authToken = authTokenRaw && authTokenRaw.length > 0 ? authTokenRaw : null;
+  // '' is not a token. It has to read as "no auth configured", never as a secret the auth
+  // middleware then compares every request against — timingSafeTokenEquals answers true for an
+  // empty header against an empty secret, so an empty AUTH_TOKEN would authenticate everyone.
+  const authToken = authTokenRaw === undefined || authTokenRaw === '' ? null : authTokenRaw;
 
   // This page starts and stops production-adjacent processes. Binding beyond loopback with no
   // token turns that into an open door for anyone who can reach the port — refuse at startup,

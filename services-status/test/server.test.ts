@@ -4,11 +4,18 @@ import net from 'net';
 import WebSocket from 'ws';
 
 import {
+  assertSameOrigin,
+  assertTrustedHost,
   attachWebSocket,
+  buildTrustedHosts,
   createHttpApp,
   createServer,
   createShutdown,
   extractToken,
+  hostnameOnly,
+  isAction,
+  isPlainObject,
+  isTrustedOrigin,
   main,
   printBanner,
   ServerParts
@@ -234,6 +241,219 @@ beforeEach(() => {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// The guards on their own. Every one of them is exported for this: a request can only ever
+// carry the shapes an HTTP client and a browser agree to send, and half of what these have to
+// refuse is not among them.
+// ---------------------------------------------------------------------------
+
+describe('isAction', () => {
+  it.each([
+    ['start', true],
+    ['stop', true],
+    ['restart', true],
+    // :action goes straight into systemctl's argv, so the allowlist is the whole defence.
+    ['mask', false],
+    ['kill', false],
+    ['--user=root', false],
+    // Case-sensitively: 'START' is not the verb, and systemctl would not take it either.
+    ['START', false],
+    ['', false]
+  ])('answers %s with %s', (value, expected) => {
+    expect(isAction(value)).toBe(expected);
+  });
+
+  // A WS frame is parsed JSON, so `action` arrives as whatever the sender put there.
+  it.each([
+    ['a number', 7],
+    ['null', null],
+    ['undefined', undefined],
+    ['an array holding the verb', ['start']],
+    ['an object that stringifies to the verb', { toString: () => 'start' }]
+  ])('refuses %s', (_label, value) => {
+    expect(isAction(value)).toBe(false);
+  });
+});
+
+describe('isPlainObject', () => {
+  it.each([
+    ['an empty object', {}, true],
+    ['an object with keys', { type: 'logs' }, true],
+    // ⚠️ typeof null is 'object'. This is the arm that keeps a literal `null` frame out of the
+    // handler, where destructuring it would throw on every scanner that sends one.
+    ['null', null, false],
+    // An array is an object too, and `[].type` is undefined rather than an error — it would be
+    // accepted and then silently ignored, which is a worse answer than refusing it here.
+    ['an array', [], false],
+    ['a number', 42, false],
+    ['a string', 'logs', false],
+    ['a boolean', true, false],
+    ['undefined', undefined, false]
+  ])('answers %s with %s', (_label, value, expected) => {
+    expect(isPlainObject(value)).toBe(expected);
+  });
+});
+
+describe('hostnameOnly', () => {
+  it.each([
+    ['a bare name', 'status.lan', 'status.lan'],
+    ['a name with a port', 'status.lan:2901', 'status.lan'],
+    ['mixed case', 'Status.LAN:2901', 'status.lan'],
+    // A one-character name still has its port stripped: the guard is "is there a colon at all",
+    // not "is there a colon far enough in".
+    ['a one-character name with a port', 'a:80', 'a'],
+    ['a bracketed IPv6 literal with a port', '[::1]:2901', '::1'],
+    ['a bracketed IPv6 literal without one', '[fe80::1]', 'fe80::1'],
+    ['a bracketed IPv6 literal in mixed case', '[FE80::1]:2901', 'fe80::1'],
+    // No colon at all, and every character a digit: there is no port here to strip, and cutting
+    // the last character off would answer with a name nothing is served under.
+    ['an all-digit name', '2901', '2901'],
+    // The port is digits and nothing else. Anything else after the last colon belongs to the
+    // name — truncating it would make two different hosts compare equal.
+    ['a colon followed by non-digits', 'host:ab12', 'host:ab12'],
+    ['a colon followed by digits and then letters', 'host:12ab', 'host:12ab'],
+    // The bracket form is anchored at both ends, so neither of these is a bracketed literal —
+    // reading them as one would hand back a hostname the client never named.
+    ['a bracket that does not start the value', 'x[abc]', 'x[abc]'],
+    ['trailing junk after the closing bracket', '[::1]junk', '[::1]junk']
+  ])('reads %s', (_label, header, expected) => {
+    expect(hostnameOnly(header)).toBe(expected);
+  });
+});
+
+describe('buildTrustedHosts', () => {
+  const hostsOf = (patch: Partial<Pick<AppConfig, 'domain' | 'host' | 'allowedHosts'>> = {}): ReadonlySet<string> =>
+    buildTrustedHosts({ domain: '', host: '127.0.0.1', allowedHosts: [], ...patch });
+
+  it('always trusts the loopback names, whatever else the config says', () => {
+    expect([...hostsOf({ host: '' })].sort()).toEqual(['127.0.0.1', '::1', 'localhost']);
+  });
+
+  it.each([
+    ['DOMAIN', { domain: 'Status.Example' }, 'status.example'],
+    ['HOST', { host: 'LAN-Box.local' }, 'lan-box.local']
+  ])('adds %s, lowercased to match the Host header', (_label, patch, expected) => {
+    expect(hostsOf(patch).has(expected)).toBe(true);
+  });
+
+  /*
+   * ⚠️ The wildcards are bind addresses, not names. Adding them would mean BIND_ALL=true also
+   * trusted a literal `Host: 0.0.0.0` — a value no browser sends and an attacker can.
+   */
+  it.each(['0.0.0.0', '::'])('never adds the wildcard bind %s', (host) => {
+    expect(hostsOf({ host }).has(host)).toBe(false);
+  });
+
+  it('adds every ALLOWED_HOSTS entry', () => {
+    const hosts = hostsOf({ allowedHosts: ['status.lan', '192.168.1.10'] });
+
+    expect(hosts.has('status.lan')).toBe(true);
+    expect(hosts.has('192.168.1.10')).toBe(true);
+  });
+
+  // Unset is the default for both, and '' must never end up in the set: assertTrustedHost refuses
+  // a missing Host header before it compares anything, but a set carrying '' is one edit from a hole.
+  it('adds nothing at all for an unset DOMAIN or HOST', () => {
+    expect(hostsOf({ domain: '', host: '' }).has('')).toBe(false);
+  });
+});
+
+describe('assertTrustedHost', () => {
+  const hosts = buildTrustedHosts({ domain: 'status.example', host: '127.0.0.1', allowedHosts: [] });
+
+  it('accepts a trusted host, and says why', () => {
+    expect(assertTrustedHost('status.example:2901', hosts)).toEqual({ allowed: true, reason: 'host is trusted' });
+  });
+
+  // The reason names the host and the way to fix it: this is the message an operator meets when
+  // they first put the page behind a name of their own.
+  it('refuses a host that is not in the set, naming it', () => {
+    expect(assertTrustedHost('evil.example', hosts)).toEqual({
+      allowed: false,
+      reason: 'Host "evil.example" is not served here (add it to ALLOWED_HOSTS if that is wrong)'
+    });
+  });
+
+  it.each([
+    ['a missing Host header', undefined],
+    // ctx.get() answers '' for an absent header, so both spellings have to reach the same arm.
+    ['an empty Host header', '']
+  ])('refuses %s', (_label, header) => {
+    expect(assertTrustedHost(header, hosts)).toEqual({ allowed: false, reason: 'missing Host header' });
+  });
+});
+
+describe('isTrustedOrigin', () => {
+  const hosts = buildTrustedHosts({ domain: 'status.example', host: '127.0.0.1', allowedHosts: [] });
+
+  it.each([
+    ['a trusted origin', 'http://status.example', true],
+    // The port is deliberately not compared: the page is reached at :2901 directly and at :443
+    // through nginx, and the Host allowlist is what carries the weight.
+    ['a trusted origin on another port', 'http://status.example:2901', true],
+    ['a trusted origin over https', 'https://status.example', true],
+    ['a trusted origin spelled in capitals', 'http://STATUS.EXAMPLE', true],
+    ['a foreign origin', 'https://evil.example', false],
+    ['a bare hostname, which is not a URL', 'evil.example', false],
+    // What a sandboxed iframe and a file:// page send. It parses as nothing and is trusted by nothing.
+    ['the null origin', 'null', false],
+    ['an empty string', '', false]
+  ])('reads %s as %s', (_label, origin, expected) => {
+    expect(isTrustedOrigin(origin, hosts)).toBe(expected);
+  });
+});
+
+describe('assertSameOrigin', () => {
+  const hosts = buildTrustedHosts({ domain: 'status.example', host: '127.0.0.1', allowedHosts: [] });
+
+  it('accepts a trusted Origin', () => {
+    expect(assertSameOrigin('http://status.example', undefined, hosts, false)).toEqual({ allowed: true, reason: 'same-origin' });
+  });
+
+  // Referer is the fallback, not an alternative: a fetch() carries Origin, an old browser's form
+  // POST may carry only Referer, and both are attached by the browser rather than by the page.
+  it('falls back to Referer when Origin is absent', () => {
+    expect(assertSameOrigin(undefined, 'http://status.example/page', hosts, false)).toEqual({
+      allowed: true,
+      reason: 'same-origin'
+    });
+  });
+
+  /*
+   * ⚠️ Origin wins outright when both are present. Trusting whichever of the two happens to be in
+   * the set would let an attacking page send a forged-looking pair and pass on the weaker one.
+   */
+  it('refuses a foreign Origin even when the Referer is trusted', () => {
+    expect(assertSameOrigin('https://evil.example', 'http://status.example/page', hosts, true)).toEqual({
+      allowed: false,
+      reason: 'Origin/Referer host is not served here'
+    });
+  });
+
+  it('accepts a header-less caller that presented a valid token', () => {
+    expect(assertSameOrigin(undefined, undefined, hosts, true)).toEqual({
+      allowed: true,
+      reason: 'no Origin/Referer, but a valid AUTH_TOKEN was presented'
+    });
+  });
+
+  it('refuses a header-less caller with no token', () => {
+    expect(assertSameOrigin(undefined, undefined, hosts, false)).toEqual({
+      allowed: false,
+      reason: 'missing Origin/Referer and no valid AUTH_TOKEN'
+    });
+  });
+
+  // ctx.get() answers '' for an absent header, so '' has to read as absent — not as an origin
+  // that failed to parse, which would refuse every tokened curl call.
+  it('treats empty headers as absent ones', () => {
+    expect(assertSameOrigin('', '', hosts, true)).toEqual({
+      allowed: true,
+      reason: 'no Origin/Referer, but a valid AUTH_TOKEN was presented'
+    });
+  });
+});
+
 describe('the page', () => {
   it('serves the shell with the mount points app.js expects, and the hardening headers', async () => {
     const { port } = await startServer();
@@ -249,6 +469,14 @@ describe('the page', () => {
     for (const id of ['servicesGrid', 'notificationContainer', 'logsDrawer', 'connectionStatus', 'toolbar']) {
       expect(res.body).toContain(`id="${id}"`);
     }
+  });
+
+  // The shell is served at exactly one path. A matcher that answered more would put the topology
+  // — and the action buttons — under every URL the static middleware does not claim.
+  it('404s a path the page does not own', async () => {
+    const { port } = await startServer();
+
+    expect((await get(port, '/dashboard')).status).toBe(404);
   });
 
   it('serves the static assets that shell links to', async () => {
@@ -327,7 +555,9 @@ describe('POST /api/services/:id/:action', () => {
     const res = await post(port, '/api/services/nope/start');
 
     expect(res.status).toBe(404);
-    expect(res.json<{ message: string }>().message).toContain('nope');
+    // The whole body, not just the status: public/app.js renders `message` into a notification
+    // and reads `ok` to decide whether it is a red one, so both are the contract.
+    expect(res.json()).toEqual({ ok: false, message: 'unknown service id "nope"' });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 
@@ -342,6 +572,7 @@ describe('POST /api/services/:id/:action', () => {
     const res = await post(port, `/api/services/api/${action}`);
 
     expect(res.status).toBe(400);
+    expect(res.json()).toEqual({ ok: false, message: `invalid action "${action}"` });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 });
@@ -379,6 +610,7 @@ describe('POST /api/groups/:groupId/:action', () => {
     const res = await post(port, '/api/groups/nope/start');
 
     expect(res.status).toBe(404);
+    expect(res.json()).toEqual({ ok: false, message: 'unknown group id "nope"' });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 
@@ -388,6 +620,7 @@ describe('POST /api/groups/:groupId/:action', () => {
     const res = await post(port, '/api/groups/core/mask');
 
     expect(res.status).toBe(400);
+    expect(res.json()).toEqual({ ok: false, message: 'invalid action "mask"' });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 });
@@ -410,6 +643,7 @@ describe('POST /api/all/:action', () => {
     const res = await post(port, '/api/all/obliterate');
 
     expect(res.status).toBe(400);
+    expect(res.json()).toEqual({ ok: false, message: 'invalid action "obliterate"' });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 });
@@ -460,6 +694,7 @@ describe('GET /api/services/:id/logs', () => {
     const res = await get(port, '/api/services/nope/logs');
 
     expect(res.status).toBe(404);
+    expect(res.json()).toEqual({ ok: false, message: 'unknown service id "nope"' });
     expect(unitLogsMock).not.toHaveBeenCalled();
   });
 });
@@ -471,7 +706,10 @@ describe('the Host allowlist, over a real request', () => {
     const res = await get(port, '/api/services', { Host: `evil.example:${port}` });
 
     expect(res.status).toBe(403);
-    expect(res.json<{ message: string }>().message).toContain('not served here');
+    expect(res.json()).toEqual({
+      ok: false,
+      message: 'request refused: Host "evil.example" is not served here (add it to ALLOWED_HOSTS if that is wrong)'
+    });
   });
 
   /*
@@ -536,7 +774,9 @@ describe('AUTH_TOKEN', () => {
     const res = await get(port, '/api/services');
 
     expect(res.status).toBe(401);
-    expect(res.json<{ message: string }>().message).toBe('unauthorized');
+    // Generic on purpose, and asserted so it stays that way: naming what was wrong with the
+    // credentials would tell a caller whether AUTH_TOKEN is set at all.
+    expect(res.json()).toEqual({ ok: false, message: 'unauthorized' });
   });
 
   it('401s a wrong token of the same length, and a wrong token of a different length', async () => {
@@ -597,6 +837,10 @@ describe('the CSRF guard, over a real request', () => {
 
     expect((await request(port, 'GET', '/api/services', {})).status).toBe(200);
     expect((await request(port, 'HEAD', '/api/services', {})).status).toBe(200);
+    // OPTIONS mutates nothing either, and it is the one a browser sends on its own initiative —
+    // refusing it as a cross-site POST would answer a preflight with 403 and break the fetch
+    // that follows.
+    expect((await request(port, 'OPTIONS', '/api/services', {})).status).toBe(200);
   });
 
   it('refuses a tokenless, Origin-less POST', async () => {
@@ -605,7 +849,7 @@ describe('the CSRF guard, over a real request', () => {
     const res = await request(port, 'POST', '/api/all/stop', {});
 
     expect(res.status).toBe(403);
-    expect(res.json<{ message: string }>().message).toContain('missing Origin/Referer');
+    expect(res.json()).toEqual({ ok: false, message: 'cross-site request blocked: missing Origin/Referer and no valid AUTH_TOKEN' });
     expect(controlUnitMock).not.toHaveBeenCalled();
   });
 
@@ -696,6 +940,19 @@ describe('the WebSocket handshake', () => {
     const { port } = await startServer();
 
     expect(await handshakeStatus(port, options)).toBe(expected);
+  });
+
+  /*
+   * ⚠️ A rebound Host *with a Origin the allowlist accepts* — the shape the Origin check alone
+   * cannot see. evil.example resolving to 127.0.0.1 is the whole DNS-rebinding attack, and a page
+   * on it can send whatever Origin it likes; only the Host allowlist refuses the connection.
+   */
+  it('refuses a rebound Host even when the Origin is a trusted one', async () => {
+    const { port } = await startServer();
+
+    const status = await handshakeStatus(port, { headers: { Host: 'evil.example', Origin: `http://127.0.0.1:${port}` } });
+
+    expect(status).toBe(403);
   });
 
   it('401s a handshake with a wrong token, and accepts the right one from the query string', async () => {
@@ -893,6 +1150,9 @@ describe('WebSocket frames that go nowhere', () => {
     ['null', 'null'],
     ['a frame with no type', '{"scope":"all"}'],
     ['an unrecognized type', '{"type":"ping"}'],
+    // ⚠️ A ping carrying a real service id. Every field a logs frame needs is present and only
+    // `type` says otherwise — which is the one thing that must decide whether journalctl runs.
+    ['an unrecognized type carrying a valid id', '{"type":"ping","id":"api"}'],
     ['an action with an unknown scope', '{"type":"action","scope":"universe","targetId":"api","action":"start"}'],
     ['an action with a non-string targetId', '{"type":"action","scope":"service","targetId":7,"action":"start"}'],
     ['an action with a verb outside the allowlist', '{"type":"action","scope":"service","targetId":"api","action":"mask"}'],
@@ -906,6 +1166,44 @@ describe('WebSocket frames that go nowhere', () => {
     expect(replies).toHaveLength(1);
     expect(replies[0].type).toBe('logs');
     expect(controlUnitMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * ⚠️ Dropped before the handler, not inside it. A frame that reached handleClientMessage and
+   * threw there would be caught by its .catch() and look identical from the outside — ignored,
+   * connection alive — while writing a stack trace to the journal for every malformed frame a
+   * port scanner sends. console.error is the only place that difference shows.
+   */
+  it.each([
+    ['malformed JSON', 'not json at all'],
+    ['a JSON scalar', '42'],
+    ['null', 'null'],
+    ['a logs frame for an unknown service', '{"type":"logs","id":"nope"}']
+  ])('drops %s without letting the handler throw', async (_label, frame) => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { port } = await startServer();
+
+    expect(await ignoredThenAnswered(port, frame)).toHaveLength(1);
+
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  /*
+   * ⚠️ 8 KiB is the ceiling on what one frame can make this process buffer, and every frame the
+   * contract defines is a few hundred bytes. Without the cap `ws` accepts its own 100 MB default,
+   * so a socket that has completed the handshake can hold that much heap, over and over.
+   */
+  it('closes a connection that sends a frame past the payload cap', async () => {
+    const { port } = await startServer();
+    const client = await connect(port);
+    await client.waitFor('snapshot');
+
+    const closed = new Promise<number>((resolve) => client.ws.once('close', resolve));
+    client.ws.send(JSON.stringify({ type: 'logs', id: 'a'.repeat(9 * 1024) }));
+
+    expect(await closed).toBe(1009);
+    expect(unitLogsMock).not.toHaveBeenCalled();
   });
 });
 
@@ -1114,20 +1412,26 @@ describe('printBanner', () => {
 
     printBanner(configOf({ authToken }));
 
-    const printed = log.mock.calls.map((call) => String(call[0])).join('\n');
-    expect(printed).toContain(`auth:       ${expected}`);
-    expect(printed).toContain('bind:       http://127.0.0.1:2901');
-    expect(printed).toContain('scope:      systemctl --user');
-    expect(printed).toContain('units:      2 monitored across 1 groups');
+    // Every line, in order. The banner is what an operator reads out of `systemctl status` when
+    // the page will not load, so a line that silently stopped being printed is a real loss.
+    expect(log.mock.calls.map((call) => String(call[0]))).toEqual([
+      'services-status monitor listening',
+      '  bind:       http://127.0.0.1:2901',
+      '  scope:      systemctl --user',
+      '  target:     marketplace.target',
+      '  units:      2 monitored across 1 groups',
+      '  poll every: 60000ms',
+      `  auth:       ${expected}`
+    ]);
     // ⚠️ Never the token itself: this banner goes to the journal, which is world-readable on
     // plenty of systems.
-    expect(printed).not.toContain('super-secret-token');
+    expect(log.mock.calls.map((call) => String(call[0])).join('\n')).not.toContain('super-secret-token');
     log.mockRestore();
   });
 });
 
 describe('main', () => {
-  it('boots a listening server from the loaded config and hands back the pieces', async () => {
+  it.each(['SIGTERM', 'SIGINT'] as const)('boots a listening server and shuts it down on %s', async (signal) => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     // Port 0 lets the OS pick, and the listening server reports the real one back.
@@ -1150,17 +1454,19 @@ describe('main', () => {
 
     // ⚠️ Invoked, not just counted: a handler registered on the wrong signal, or one that forgets
     // to pass the signal name through, is exactly the bug a listener-count assertion cannot see.
-    // Calling them here also removes any need to signal the runner's own process.
-    for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-      for (const listener of process.listeners(signal)) {
-        if (!signalsBefore[signal].includes(listener)) {
-          (listener as (signal: NodeJS.Signals) => void)(signal);
-          // Leaving them attached would make the runner's own signal handling answer to this test.
-          process.off(signal, listener);
-        }
+    // Calling it here also removes any need to signal the runner's own process. One signal per
+    // run, because createShutdown ignores everything after the first — a second one in the same
+    // test would exercise nothing but the re-entrancy guard.
+    for (const listener of process.listeners(signal)) {
+      if (!signalsBefore[signal].includes(listener)) (listener as (signal: NodeJS.Signals) => void)(signal);
+    }
+    // Leaving them attached would make the runner's own signal handling answer to this test.
+    for (const registered of ['SIGTERM', 'SIGINT'] as const) {
+      for (const listener of process.listeners(registered)) {
+        if (!signalsBefore[registered].includes(listener)) process.off(registered, listener);
       }
     }
-    expect(log).toHaveBeenCalledWith('[server] SIGTERM received, shutting down');
+    expect(log).toHaveBeenCalledWith(`[server] ${signal} received, shutting down`);
     await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(0));
     running.monitor.stop();
     log.mockRestore();

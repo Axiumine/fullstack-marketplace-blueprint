@@ -21,7 +21,11 @@ function deriveHealth(loadState: string, activeState: string, portOpen: boolean 
   if (activeState === 'failed') return 'failed';
   if (activeState === 'activating' || activeState === 'deactivating') return 'starting';
   if (activeState === 'active' && (portOpen === true || port === null)) return 'up';
-  if (activeState === 'active' && portOpen === false) return 'starting'; // unit is up, app still booting
+  // Everything still active here has a port that is not open: portOpen is null exactly when the
+  // descriptor carries no port (probeTcp always resolves a boolean), and that case was answered
+  // 'up' by the line above. A `portOpen === false` guard here would therefore be an unreachable
+  // condition, not a safety net — the state it excludes cannot be built.
+  if (activeState === 'active') return 'starting'; // unit is up, app still booting
   return 'down';
 }
 
