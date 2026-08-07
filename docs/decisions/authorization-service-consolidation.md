@@ -217,14 +217,32 @@ Gates, all run locally:
 |`marketplace-common`|green|100% — unit 140, contract 97, integration 12, types 27|100.00, 309 mutants, 0 survived|—|
 |`marketplace-dev-authenticated-authorization`|green|100% (94/18/27/89), 11 files / 73 tests|100.00, 47 killed|0 problems, `40lBb/xDoVXD`|
 |`marketplace-dev-admin-authenticated-authorization`|green|100% (90/16/27/86), 42 tests|100.00, 39 killed|0 problems, `Ggo4Y/r7Dm9X`|
-|`marketplace-dev-user-authenticated-authorization`|green|100% **unit only** — see below|100.00, 44 killed|0 problems, `B5NEV/eaGe4D`|
+|`marketplace-dev-user-authenticated-authorization`|green|100% (90/16/27/86), 8 files / 71 tests|100.00, 44 killed|0 problems, `B5NEV/eaGe4D`|
 
-⚠️ **`marketplace-dev-user-authenticated-authorization` cannot run the full `yarn test:cov`**, and this is
-unrelated to the extraction: its `.env` is missing `MONGO_TEST_CONN_STRING`, `MONGO_TEST_UDBOWNER`,
-`MONGO_TEST_PWDDBOWNER`, `MONGO_TEST_UDBRW` and `MONGO_TEST_PWDDBRW`, so `assertTestMongoEnv` aborts the
-integration project in `globalSetup` before it collects a test. `npx vitest run --project unit --coverage`
-reports 100% on all four metrics. Filling those five in means provisioning two database users, which is the
-user's call. Its commit needs `--no-verify` for that reason and no other.
+⚠️ **That last row was `unit only` when this document was written, and the reason turned out not to be a
+missing decision.** The full `yarn test:cov` aborted in the integration project's `globalSetup` because five
+`MONGO_TEST_*` keys were empty in that machine's environment file, and the note here said filling them in
+meant provisioning two database users and was the user's call. The user authorised it, and doing so exposed
+what had actually happened: **both user-tier services' environment files were copies of an unrelated older
+project's**, so three further keys were not missing but *wrong* — `MONGODB_URI` pointed at a database called
+`testRnApollo` with no `authSource`, `INTROSPECTION_CODE` did not match the seven other services', and
+`KEYGRIP_KEY_1` / `KEYGRIP_KEY_2` did not match `marketplace-dev-public-authorization`'s.
+
+That last one was a live defect the extraction had no part in and no test could have caught: `loginUser`
+signs the customer's refresh cookie on 4028 and this service verifies the signature, so with a different
+Keygrip every customer refresh returns 401 — and each service signs and verifies with *itself* in its own
+suite, so both suites are green either way. Aligning all eight keys took the run to 8 files / 71 tests, all
+four coverage metrics at 100% and a 100.00 mutation score, and the integration project executed its 15 tests
+for the first time. One of them had never run and was wrong: it asserted 401 for a session minted by another
+tier, where `assertTier` answers **403** by design — the caller authenticated correctly, it simply
+authenticated somewhere else, and 401 would tell it to refresh its way out of the very call that *is* the
+refresh. The unit suite had asserted 403 for the same scenario all along.
+
+Two things follow for anyone reading this later. **A `--no-verify` commit is a debt with no ledger** — the
+gate that would have caught the Keygrip mismatch existed, was configured, and was skipped for a reason that
+sounded procedural. And **an environment file copied from another project fails where nothing is looking**:
+every one of these values is read at runtime by a service that has no test asserting it matches its
+counterpart in a *different* repo, because no suite here spans two services.
 
 While the three were open, the dependency skew from option (d) was closed in the same commits:
 `@thedoctorweb_agency/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
