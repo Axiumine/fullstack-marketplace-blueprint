@@ -82,8 +82,12 @@ const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
 // Host header may be "hostname" or "hostname:port"; IPv6 literals arrive bracketed
 // ("[::1]:2901"). Strips down to a bare hostname so it compares 1:1 with URL#hostname, which
 // never includes brackets or a port.
+//
+// The closing bracket is unescaped on purpose: outside a character class `]` is an ordinary
+// literal in JS regex, so `\]` is a redundant escape and Qodana's RegExpRedundantEscape flags it
+// at HIGH, which is a hard 0-threshold failure here. The opening `\[` genuinely needs its escape.
 export function hostnameOnly(hostHeader: string): string {
-  const bracketed = hostHeader.match(/^\[(.+)\](?::\d+)?$/);
+  const bracketed = hostHeader.match(/^\[(.+)](?::\d+)?$/);
   if (bracketed) return bracketed[1].toLowerCase();
   const colonIndex = hostHeader.lastIndexOf(':');
   if (colonIndex > -1 && /^\d+$/.test(hostHeader.slice(colonIndex + 1))) return hostHeader.slice(0, colonIndex).toLowerCase();

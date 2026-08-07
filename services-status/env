@@ -8,6 +8,15 @@
 # Port this monitor's own HTTP/WS server listens on.
 PORT=2901
 
+# Read once, in the entrypoint guard at the bottom of src/server.ts: the module starts listening
+# only when it is the main module AND this is not exactly the string `test`. The test runner sets
+# it itself, so the value that belongs here is the one every OTHER environment wants — anything but
+# `test`. Writing NODE_ENV=test into .env makes `yarn start` load the module, build nothing and exit
+# 0 with no server and no error, which reads as a silent crash. The nine backend services all carry
+# this key with the same value; it is listed here for that reason and because an unset value happens
+# to behave correctly, which is not the same as being intended.
+NODE_ENV=development
+
 # Interface the server binds to. Loopback-only by default — see BIND_ALL below.
 HOST=127.0.0.1
 

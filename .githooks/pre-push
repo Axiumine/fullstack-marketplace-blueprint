@@ -244,6 +244,18 @@ for required in qodana.yaml qodana.sh; do
 	fi
 done
 
+# Checked separately from existence, because the failure it catches is indistinguishable
+# from a real finding once it happens: a non-executable qodana.sh makes the invocation
+# below exit non-zero having produced no results directory at all, and the block below
+# reports that as "Qodana failed on services-status" with a link to a report that was
+# never written. This app's copy was committed at mode 100644 while all eleven other
+# repos' are 100755 — the mode is tracked by git, so it is restored on every clone.
+if [ ! -x "$APP_DIR/qodana.sh" ]; then
+	gate_block "$APP/qodana.sh is not executable — the scan would fail as a permission error and be reported as a finding." \
+		"chmod +x $APP/qodana.sh" \
+		"git update-index --chmod=+x $APP/qodana.sh"
+fi
+
 # Track the image declared in qodana.yaml rather than hard-coding a tag here, so
 # bumping the version in one place cannot leave the hook scanning with an older
 # linter than the manual runs use.
