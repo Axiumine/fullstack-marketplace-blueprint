@@ -1,0 +1,16 @@
+syntax: glob
+
+node_modules/**
+*.iml
+.idea/**
+*.log*
+.DS_STORE
+coverage/**
+.env
+dist/**
+.yarnrc
+.npmrc
+uploads/**
+TODO
+nohup.out
+*.orig

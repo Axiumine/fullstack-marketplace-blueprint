@@ -1,0 +1,80 @@
+# Project-specific Semgrep rules for marketplace-services-status.
+#
+# Registry packs are vendored under `vendor/` and loaded together with this file
+# by the `semgrep` / `semgrep:ci` yarn scripts (`--config semgrep/`). This file
+# holds only the invariants that are specific to this panel.
+#
+# Two of the three rules below exist because this process is the one thing on the
+# platform that can stop a service: it shells out to `systemctl` and it answers a
+# WebSocket. The third is the platform-wide "secrets never reach a log" rule.
+rules:
+  # ⚠️ The whole reason `systemd.ts` is safe to expose over HTTP is that it calls
+  # `execFile('systemctl', args)` with an argv array — a unit name is an argument,
+  # never a token the shell re-reads. `exec`/`execSync`, or `shell: true`, hand the
+  # string back to `/bin/sh`, and every unit id in this app arrives from a browser.
+  - id: services-status-no-shell-command
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Do not run a shell here. This process executes systemctl/journalctl with unit names that arrive from a WebSocket client; `exec`, `execSync` and `shell: true` re-interpret the string, which turns a unit id into command injection. Use `execFile`/`spawn` with an argv array, as src/systemd.ts does.
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe:
+        - 'CWE-78: Improper Neutralization of Special Elements used in an OS Command'
+      references:
+        - src/systemd.ts
+    patterns:
+      - pattern-either:
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+          - pattern: $CP.exec($CMD, ...)
+          - pattern: $CP.execSync($CMD, ...)
+          - pattern: '$F(..., { ..., shell: true, ... }, ...)'
+
+  # The control token authenticates every start/stop/restart. It arrives as a
+  # `Bearer` header or a `?token=` query parameter, and a log line carrying either
+  # hands out the ability to restart the platform.
+  - id: services-status-no-log-control-token
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Do not log the control token. It is the only thing standing between a request and `systemctl stop`, and it travels in a query parameter as well as a header, so a logged URL leaks it too.
+    metadata:
+      category: security
+      confidence: MEDIUM
+      references:
+        - src/server.ts
+    patterns:
+      - pattern-either:
+          - pattern: console.$M(..., $ARG, ...)
+          - patterns:
+              - pattern: $L.$M(..., $ARG, ...)
+              - metavariable-regex:
+                  metavariable: $L
+                  regex: (?i)^(logger|log)$
+      - metavariable-regex:
+          metavariable: $ARG
+          regex: (?i)(authtoken|auth_token|controltoken|control_token|accesstoken|access_token|bearer|req\.url|requesturl)
+
+  # `wss.handleUpgrade` is reached only after the Origin and Host checks in
+  # `server.ts`. A `WebSocketServer` built with `server:` instead of
+  # `noServer: true` attaches its own upgrade listener and answers the handshake
+  # before either check runs — which is the DNS-rebinding hole those checks close.
+  - id: services-status-ws-must-not-self-attach
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Build the WebSocket server with `noServer: true` and call `handleUpgrade` yourself. Passing `server`/`port` makes ws answer the handshake on its own, bypassing the Origin and Host validation that protects this panel from a rebound DNS name.
+    metadata:
+      category: security
+      confidence: HIGH
+      references:
+        - src/server.ts
+        - src/security.ts
+    patterns:
+      - pattern-either:
+          - pattern: 'new WebSocketServer({ ..., server: ..., ... })'
+          - pattern: 'new WebSocketServer({ ..., port: ..., ... })'
+          - pattern: 'new $WS.Server({ ..., server: ..., ... })'
+          - pattern: 'new $WS.Server({ ..., port: ..., ... })'

@@ -1,0 +1,195 @@
+{
+  "$comment": [
+    "SINGLE SOURCE OF TRUTH for the platform monitor.",
+    "",
+    "Two consumers read this file and must never disagree:",
+    "  1. src/config.ts     — the monitor server, for what to poll and what to render",
+    "  2. systemd/generate.mjs — the unit generator, for what to write into ~/.config/systemd/user",
+    "",
+    "Adding a service means adding one entry here and re-running `yarn systemd:install`.",
+    "Editing a generated .service file by hand is pointless: the generator overwrites it.",
+    "",
+    "`unit` is deliberately the repo directory name plus `.service`. A friendlier name would",
+    "make `systemctl --user status <x>` and `grep -r <x>` stop agreeing with each other, and the",
+    "tier labels (`authenticated-*` is the ShopOwner tier, not a generic one) are exactly the",
+    "kind of thing that would then need translating in someone's head at 2am.",
+    "",
+    "`port` is the port from that repo's `env` template. No backend service supplies a default",
+    "in code, so a service whose `.env` is missing does not start at all — install.sh checks."
+  ],
+
+  "workspaceRoot": "..",
+  "nodeVersion": "24.18.0",
+  "nvmDir": "~/.nvm",
+  "unitTarget": "marketplace.target",
+  "monitorUnit": "marketplace-status.service",
+
+  "groups": [
+    {
+      "id": "public",
+      "title": "Public tier",
+      "description": "Anonymous traffic: login for every tier, public catalogue reads, customer registration",
+      "services": [
+        {
+          "id": "marketplace-dev-public-authorization",
+          "label": "Public Authorization",
+          "repo": "BEs/dev/marketplace-dev-public-authorization",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4028,
+          "path": "/public-authorization",
+          "description": "login, loginAdmin, loginUser"
+        },
+        {
+          "id": "marketplace-dev-public-resource",
+          "label": "Public Resource",
+          "repo": "BEs/dev/marketplace-dev-public-resource",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4027,
+          "path": "/public-resource",
+          "healthPath": "/check/",
+          "description": "public catalogue reads, customer registration, verify-email (the only REST endpoints)"
+        }
+      ]
+    },
+    {
+      "id": "shopowner",
+      "title": "Shop Owner tier",
+      "description": "ShopOwner sessions — repos are named `authenticated-*` with no tier prefix, which is historical",
+      "services": [
+        {
+          "id": "marketplace-dev-authenticated-authorization",
+          "label": "ShopOwner Authorization",
+          "repo": "BEs/dev/marketplace-dev-authenticated-authorization",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4029,
+          "path": "/authenticated-authorization",
+          "description": "ShopOwner token lifecycle"
+        },
+        {
+          "id": "marketplace-dev-authenticated-resource",
+          "label": "ShopOwner Resource",
+          "repo": "BEs/dev/marketplace-dev-authenticated-resource",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4026,
+          "path": "/authenticated-resource",
+          "description": "domain data, item CRUD, uploads"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "title": "Admin tier",
+      "description": "Platform operator sessions",
+      "services": [
+        {
+          "id": "marketplace-dev-admin-authenticated-authorization",
+          "label": "Admin Authorization",
+          "repo": "BEs/dev/marketplace-dev-admin-authenticated-authorization",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4025,
+          "path": "/admin-authenticated-authorization",
+          "description": "Admin token lifecycle"
+        },
+        {
+          "id": "marketplace-dev-admin-authenticated-resource",
+          "label": "Admin Resource",
+          "repo": "BEs/dev/marketplace-dev-admin-authenticated-resource",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4024,
+          "path": "/admin-authenticated-resource",
+          "description": "domain data, itemCategory CRUD, moderation"
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "title": "Customer tier",
+      "description": "End-customer sessions — identity and account only, no orders exist yet",
+      "services": [
+        {
+          "id": "marketplace-dev-user-authenticated-authorization",
+          "label": "Customer Authorization",
+          "repo": "BEs/dev/marketplace-dev-user-authenticated-authorization",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4031,
+          "path": "/user-authenticated-authorization",
+          "description": "User token lifecycle"
+        },
+        {
+          "id": "marketplace-dev-user-authenticated-resource",
+          "label": "Customer Resource",
+          "repo": "BEs/dev/marketplace-dev-user-authenticated-resource",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4032,
+          "path": "/user-authenticated-resource",
+          "description": "account, personal data, addresses"
+        }
+      ]
+    },
+    {
+      "id": "shared",
+      "title": "Shared",
+      "description": "One service for every tier — its resolver deletes Redis keys by token content and never asks which collection minted them",
+      "services": [
+        {
+          "id": "marketplace-dev-authenticated-logout",
+          "label": "Logout (all tiers)",
+          "repo": "BEs/dev/marketplace-dev-authenticated-logout",
+          "kind": "backend",
+          "script": "dev",
+          "port": 4030,
+          "path": "/logout",
+          "description": "logout for Admin, ShopOwner and User alike"
+        }
+      ]
+    },
+    {
+      "id": "frontends",
+      "title": "Frontends",
+      "description": "Vite dev servers — these bind 127.0.0.1, unlike the backend services, which bind the wildcard",
+      "services": [
+        {
+          "id": "marketplace-admin",
+          "label": "Admin SPA",
+          "repo": "marketplace-admin",
+          "kind": "frontend",
+          "script": "dev",
+          "port": 3043,
+          "path": "/",
+          "host": "127.0.0.1",
+          "description": "React + Vite operator SPA"
+        },
+        {
+          "id": "marketplace-shopowner",
+          "label": "ShopOwner SPA",
+          "repo": "marketplace-shopowner",
+          "kind": "frontend",
+          "script": "dev",
+          "port": 3044,
+          "path": "/",
+          "host": "127.0.0.1",
+          "description": "React + Vite shop-owner SPA"
+        },
+        {
+          "id": "marketplace-user",
+          "label": "Customer app (SSR)",
+          "repo": "marketplace-user",
+          "kind": "frontend",
+          "script": "dev",
+          "port": 3045,
+          "path": "/",
+          "host": "127.0.0.1",
+          "description": "TanStack Start — public site + customer area"
+        }
+      ]
+    }
+  ]
+}

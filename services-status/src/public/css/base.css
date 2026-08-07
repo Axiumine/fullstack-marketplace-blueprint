@@ -1,0 +1,114 @@
+/* Design tokens. Dark is the default palette (no build step, so this has to be
+   plain CSS custom properties); prefers-color-scheme: light overrides them. */
+:root {
+  color-scheme: dark;
+
+  --bg: #0f1420;
+  --bg-elevated: #161d2e;
+  --bg-card: #1b2438;
+  --bg-hover: #212c45;
+  --border: #2a3550;
+  --border-strong: #3b4870;
+  --text: #e7ebf5;
+  --text-muted: #9aa5c0;
+  --text-dim: #6b7593;
+  --accent: #5b8cff;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  --success: #2fbf71;
+  --success-bg: rgba(47, 191, 113, 0.15);
+  --warning: #e8b339;
+  --warning-bg: rgba(232, 179, 57, 0.15);
+  --danger: #ef5966;
+  --danger-bg: rgba(239, 89, 102, 0.15);
+  --info: #5b8cff;
+  --info-bg: rgba(91, 140, 255, 0.15);
+  --muted: #7c869e;
+  --muted-bg: rgba(124, 134, 158, 0.15);
+
+  /* Health states always pair a colour with a text word (see status-indicators.css) —
+     colour alone must never be the only signal. */
+  --health-up: var(--success);
+  --health-up-bg: var(--success-bg);
+  --health-starting: var(--warning);
+  --health-starting-bg: var(--warning-bg);
+  --health-down: var(--muted);
+  --health-down-bg: var(--muted-bg);
+  --health-failed: var(--danger);
+  --health-failed-bg: var(--danger-bg);
+  --health-missing: var(--text-dim);
+  --health-missing-bg: rgba(107, 117, 147, 0.15);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --bg: #f4f6fb;
+    --bg-elevated: #ffffff;
+    --bg-card: #ffffff;
+    --bg-hover: #eef1f8;
+    --border: #dde3ef;
+    --border-strong: #c7cfe2;
+    --text: #1c2333;
+    --text-muted: #5b6480;
+    --text-dim: #8891a8;
+    --accent: #3563e9;
+    --shadow: 0 10px 30px rgba(20, 30, 60, 0.08);
+    --shadow-sm: 0 2px 8px rgba(20, 30, 60, 0.06);
+
+    --success: #1f9d5c;
+    --success-bg: rgba(31, 157, 92, 0.12);
+    --warning: #b9790a;
+    --warning-bg: rgba(185, 121, 10, 0.12);
+    --danger: #d13c48;
+    --danger-bg: rgba(209, 60, 72, 0.12);
+    --info: #3563e9;
+    --info-bg: rgba(53, 99, 233, 0.12);
+    --muted: #6b7488;
+    --muted-bg: rgba(107, 116, 136, 0.12);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+a {
+  color: var(--accent);
+}
+
+button {
+  font: inherit;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}

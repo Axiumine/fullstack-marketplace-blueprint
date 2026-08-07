@@ -1,0 +1,91 @@
+#-------------------------------------------------------------------------------#
+#               Qodana analysis is configured by qodana.yaml file               #
+#             https://www.jetbrains.com/help/qodana/qodana-yaml.html            #
+#-------------------------------------------------------------------------------#
+version: '1.0'
+
+# Full Ultimate inspection set: code quality + SAST / taint dataflow.
+# Ultimate & Ultimate Plus features unlock via QODANA_TOKEN (run via ./qodana.sh).
+profile:
+  name: qodana.recommended
+
+# Qodana for JS/TS — Ultimate-tier linter (no community JS variant exists).
+# Docker images go under `image:`; `linter:` is for the linter *name* and makes the
+# CLI warn "has image value, please use --image param".
+# Tag must be a real image tag: only 2026.2, 2026.1, 2025.3, 2025.2 and latest are published.
+# 2026.1.x / 2026.2.x are *CLI* versions (the CLI advertises them in its own update banner)
+# and do NOT exist as image tags — pinning one makes the pull fail and the scan never run.
+image: jetbrains/qodana-js:2026.2
+
+# ── SCA: third-party license audit (Ultimate Plus) ────────────────────────────
+# Scans Yarn deps and surfaces license conflicts as problems. The project is
+# proprietary (package.json "UNLICENSED"), so Qodana's default compatibility
+# matrix already flags copyleft dependencies.
+raiseLicenseProblems: true
+
+# `keys` is THIS project's license, `allowed` the dependency licenses accepted
+# against it. `keys` must carry the key Qodana derives, NOT the package.json
+# string: it maps "UNLICENSED" to PROPRIETARY-LICENSE, and the finding text says
+# so verbatim. Putting "UNLICENSED" here matches no project and the rule silently
+# does nothing.
+#
+# This panel is never distributed: it runs as a systemd user unit on the hosts it
+# monitors, and the only thing that leaves the machine is HTML over a private
+# nginx vhost. The GPL's distribution trigger is never pulled. Accepted by the
+# project owner, on the same reasoning as the three frontends.
+licenseRules:
+  - keys: ['PROPRIETARY-LICENSE']
+    allowed:
+      ['PROPRIETARY-LICENSE', 'GPL-3.0-or-later', 'GPL-3.0-only', 'LGPL-3.0-or-later', 'LGPL-3.0-only', 'MPL-2.0', 'CC0-1.0']
+
+# Vulnerable-dependency check (SCA) and taint/SAST run automatically as part of
+# the recommended profile on the Ultimate linter — no extra key required.
+#
+# ⚠️ Taint analysis is the inspection that earns its keep here more than anywhere
+# else on the platform. This is the one process that can stop a service: unit
+# names arrive from a browser over a WebSocket and end up as arguments to
+# `systemctl`. `src/systemd.ts` keeps them safe by using `execFile` with an argv
+# array — see semgrep/custom.yml, which asserts the same invariant syntactically.
+
+# ── Quality gate: 100% test coverage required on every metric ─────────────────
+# If coverage is below 100%, the fix is to add tests or delete dead code until it
+# returns to 100% — never lower these numbers.
+#
+# severityThresholds is what makes the *inspection* results binding. Without it the
+# scan prints "✗ Found N new problems" and still exits 0, so the coverage condition
+# below would be the only thing that could fail a run — and vitest already enforces
+# that, leaving the scan with nothing of its own to block on.
+#
+# critical/high only. Moderate stays advisory, as in the other thirteen repos.
+failureConditions:
+  severityThresholds:
+    critical: 0
+    high: 0
+  testCoverageThresholds:
+    total: 100 # whole project
+    fresh: 100 # new / changed code
+
+# ── Disabled inspections ──────────────────────────────────────────────────────
+# `dist/` is `tsc` output plus a copy of `src/public`, rewritten wholesale by every
+# build. Every finding in it is unfixable by hand — the only way to change the file
+# is to change the source it was generated from — and inspecting it would report
+# each of those findings twice.
+#
+# ⚠️ `src/public/` is deliberately **not** excluded, even though coverage skips it: a
+# node-side run cannot instrument a file loaded by a <script> tag, but a linter reads
+# it perfectly well, and it is the half of this app that builds DOM from data arriving
+# over the WebSocket. It is in scope for semgrep for the same reason.
+#
+# semgrep/vendor/ is the frozen Semgrep registry snapshot, refreshed by its own script and
+# never edited here. Qodana reads the rule *patterns* as code and reports two Criticals —
+# "PGP private key block" and "slack-webhook-url" — for the literals a secret-scanning rule
+# has to contain in order to match one. They are the detector, not a leak, and the gate
+# blocks at critical: 0, so a scan of this directory fails every run and can never be fixed
+# in this repo: the only way to change those lines is to stop vendoring the pack.
+#
+# Scoped to those paths, NOT disabled globally.
+exclude:
+  - name: All
+    paths:
+      - dist
+      - semgrep/vendor

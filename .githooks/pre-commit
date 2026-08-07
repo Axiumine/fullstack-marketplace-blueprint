@@ -77,4 +77,234 @@ if [ "$fail" -ne 0 ]; then
 	echo 'pre-commit: if this is genuinely a placeholder, re-run with: git commit --no-verify' >&2
 	exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# services-status — the one piece of application code this repo tracks.
+#
+# It is the odd one out on the platform: every other package lives in a git repo
+# of its own and carries its own .githooks/, so its gates fire on its own
+# commits. services-status has no repo — it is a subdirectory of this workspace —
+# which left it with a qodana.yaml, a stryker.config.mjs, a 100% coverage
+# threshold and NOTHING THAT RAN ANY OF THEM. The configs were the appearance of
+# a gate, not a gate. This block is what makes them real, and pre-push carries
+# the mutation half.
+#
+# Scoped by path on purpose: this repo's normal commit is a docs edit
+# (CLAUDE.md, README.md, .claude/), and building + testing a Node server for a
+# prose change is how a hook gets bypassed out of habit.
+# ---------------------------------------------------------------------------
+
+APP='services-status'
+
+# Same reasoning as the secret guard above: unguarded, a failed `git diff` is
+# indistinguishable from an empty one, and the empty one is the branch that exits
+# 0 having run no gate at all.
+if ! staged_all="$(git diff --cached --name-only --diff-filter=ACMRD)"; then
+	echo 'pre-commit: `git diff --cached` failed — refusing to commit rather than skip the services-status gates.' >&2
+	exit 1
+fi
+
+# Everything under the app EXCEPT its own docs. `systemd/` is in scope — its
+# generator is JS the linter reads — and so is `semgrep/`, whose rules Qodana
+# never sees but whose vendored ruleset the secret guard skips above.
+# Two greps rather than one PCRE negative lookahead: `grep -P` is a GNU extension
+# and the rest of this file is -E only, so the cheap portability is worth a pipe.
+if ! printf '%s\n' "$staged_all" | grep -E "^$APP/" | grep -qvE '\.md$'; then
+	exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+APP_DIR="$ROOT/$APP"
+
+# $1 = what is wrong, $2… = the command(s) that fix it.
+#
+# A missing prerequisite blocks; it never warns and continues. A gate that steps
+# aside when it cannot run is not a gate, it is the hole this hook exists to
+# close, reopened one condition lower.
+gate_block() {
+	local reason="$1"
+	shift
+	{
+		echo
+		echo "pre-commit: BLOCKED — $reason"
+		echo
+		echo 'Fix it with:'
+		echo
+		printf '    %s\n' "$@"
+		echo
+		echo 'Bypass once (pre-push still gates): git commit --no-verify'
+		echo
+	} >&2
+	exit 1
+}
+
+# `engines.node` is a HARD gate under yarn classic — a mismatch exits 1 with
+# `The engine "node" is incompatible with this module`, not a warning. Read it
+# from the app's package.json rather than from this repo, which has none.
+REQUIRED_NODE="$(node -p "require('$APP_DIR/package.json').engines.node" 2> /dev/null | tr -d '^~>= ')"
+
+if [ -z "$REQUIRED_NODE" ]; then
+	gate_block "node not found in PATH — engines.node could not be read from $APP/package.json." \
+		'nvm install --lts && nvm use --lts'
+fi
+
+node_satisfies() {
+	local current
+	current="$(node -v 2> /dev/null | tr -d 'v')"
+	[ -n "$current" ] && [ -n "$REQUIRED_NODE" ] || return 1
+	# caret semantics: same major, and not older than the pin.
+	[ "${current%%.*}" = "${REQUIRED_NODE%%.*}" ] || return 1
+	[ "$(printf '%s\n%s\n' "$REQUIRED_NODE" "$current" | sort -V | head -n 1)" = "$REQUIRED_NODE" ]
+}
+
+if ! node_satisfies; then
+	# nvm.sh trips over unbound variables, so -u comes off around the source.
+	NVM_SH="${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+	if [ -s "$NVM_SH" ]; then
+		echo "pre-commit: node $(node -v 2> /dev/null) does not satisfy engines.node — switching via nvm."
+		set +u
+		# shellcheck disable=SC1090
+		. "$NVM_SH" > /dev/null 2>&1 || true
+		nvm use "$REQUIRED_NODE" > /dev/null 2>&1 || true
+		set -u
+	fi
+fi
+
+if ! node_satisfies; then
+	gate_block "node $(node -v 2> /dev/null || echo '(not found)') does not satisfy engines.node ^$REQUIRED_NODE — yarn refuses to run at all." \
+		"nvm install $REQUIRED_NODE && nvm use $REQUIRED_NODE"
+fi
+
+if ! command -v yarn > /dev/null 2>&1; then
+	gate_block 'yarn not found in PATH — cannot run the coverage gate.' \
+		'npm i -g yarn@1.22.22'
+fi
+
+cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
+
+# No lint gate, and that is not an oversight: services-status is the one package
+# here with no eslint.config.js and no .prettierrc. Its type check is not
+# separate either — `test:cov` is `yarn build && vitest run --coverage`, so tsc
+# runs first and a type error fails this gate before a single test does.
+echo "pre-commit: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
+
+if ! yarn test:cov; then
+	cat >&2 << 'EOF'
+
+pre-commit: BLOCKED — services-status failed to build, failed its tests, or fell
+below 100% coverage.
+
+`test:cov` is `yarn build && vitest run --coverage`, so read the first error
+above rather than the last: a tsc failure stops the run before any test executes.
+
+vitest.config.mts gates every metric at 100. Nothing here needs live
+infrastructure — systemctl and every probe target are stubbed — so a red run is a
+real gap, never a missing service. The one suite that does reach out,
+test/security.live.test.ts, boots the server on a loopback port and talks to
+itself. Add the missing test; never lower the threshold.
+
+Full report: services-status/coverage/index.html
+
+Bypass once (pre-push still gates): git commit --no-verify
+EOF
+	exit 1
+fi
+
+echo "pre-commit: $APP — 100% coverage held."
+
+if [ -n "${SKIP_QODANA:-}" ]; then
+	echo 'pre-commit: Qodana gate skipped — SKIP_QODANA is set.' >&2
+	exit 0
+fi
+
+if ! command -v qodana > /dev/null 2>&1; then
+	gate_block 'the qodana CLI is not in PATH.' \
+		'# install it, then re-run the commit:' \
+		'https://github.com/JetBrains/qodana-cli#installation'
+fi
+
+if ! command -v docker > /dev/null 2>&1; then
+	gate_block 'docker not found in PATH — the CLI runs the linter in a container.' \
+		'# install Docker Engine, then re-run the commit:' \
+		'https://docs.docker.com/engine/install/'
+fi
+
+if ! docker info > /dev/null 2>&1; then
+	gate_block 'docker daemon not reachable.' \
+		'sudo systemctl start docker'
+fi
+
+for required in qodana.yaml qodana.sh; do
+	if [ ! -f "$APP_DIR/$required" ]; then
+		gate_block "$APP/$required missing." \
+			"git checkout $APP/$required"
+	fi
+done
+
+# Checked separately from existence, because the failure it catches is indistinguishable
+# from a real finding once it happens: a non-executable qodana.sh makes the invocation
+# below exit non-zero having produced no results directory at all, and the block below
+# reports that as "Qodana failed on services-status" with a link to a report that was
+# never written. This app's copy was committed at mode 100644 while all eleven other
+# repos' are 100755 — the mode is tracked by git, so it is restored on every clone.
+if [ ! -x "$APP_DIR/qodana.sh" ]; then
+	gate_block "$APP/qodana.sh is not executable — the scan would fail as a permission error and be reported as a finding." \
+		"chmod +x $APP/qodana.sh" \
+		"git update-index --chmod=+x $APP/qodana.sh"
+fi
+
+# Track the image declared in qodana.yaml rather than hard-coding a tag here, so
+# bumping the version in one place cannot leave the hook scanning with an older
+# linter than the manual runs use.
+LINTER="$(grep -oE 'jetbrains/qodana-js:[0-9][0-9.]*' "$APP_DIR/qodana.yaml" | head -n 1 || true)"
+
+if [ -z "$LINTER" ]; then
+	gate_block "no 'jetbrains/qodana-js:<version>' image line found in $APP/qodana.yaml." \
+		'# restore the `image:` key, then re-run the commit:' \
+		"git checkout $APP/qodana.yaml"
+fi
+
+# The CLI would pull this itself. Blocking instead keeps a slow or unreachable
+# Docker Hub from turning into a failed commit: one explicit pull per image bump,
+# versus a network flake on any commit.
+if ! docker image inspect "$LINTER" > /dev/null 2>&1; then
+	gate_block "linter image $LINTER not present locally." \
+		"docker pull $LINTER"
+fi
+
+# Metadata check only — no value is ever read here. qodana.sh loads the token into
+# the process env without printing it, and accepts one that is already exported,
+# which is why an exported token satisfies this check with no .env present.
+if [ -z "${QODANA_TOKEN:-}" ] && { [ ! -f "$APP_DIR/.env" ] || ! grep -q '^[[:space:]]*QODANA_TOKEN=' "$APP_DIR/.env"; }; then
+	gate_block "no QODANA_TOKEN, in the environment or in $APP/.env — Qodana 2023.2+ refuses to start without one." \
+		'# create this app'"'"'s own project on https://qodana.cloud (never reuse another' \
+		'# repo'"'"'s token — reports would land in that project and corrupt its baseline), then:' \
+		"echo 'QODANA_TOKEN=<token>' >> $APP/.env"
+fi
+
+echo "pre-commit: $APP — running Qodana ($LINTER)…"
+
+# SKIP_TESTS=1 reuses the coverage/lcov.info just written above instead of
+# re-running the suite inside qodana.sh, which does it as `yarn test:cov || true`
+# with the exit code swallowed.
+if ! SKIP_TESTS=1 "$APP_DIR/qodana.sh" --results-dir "$APP_DIR/.qodana/results"; then
+	cat >&2 << 'EOF'
+
+pre-commit: BLOCKED — Qodana failed on services-status.
+
+The gate lives in services-status/qodana.yaml: severityThresholds critical 0 /
+high 0, plus testCoverageThresholds 100 total / 100 fresh. Findings are listed
+above, with a report link on qodana.cloud.
+
+Local SARIF: services-status/.qodana/results/qodana.sarif.json
+
+This exit code also covers infrastructure failures (daemon died mid-scan, out of
+disk). If the report shows no findings, it was not a finding.
+
+Bypass once (coverage and pre-push still gate): SKIP_QODANA=1 git commit
+EOF
+	exit 1
+fi
+
+echo "pre-commit: $APP — Qodana clean. Proceeding with commit."
 exit 0

@@ -1,0 +1,64 @@
+@media (max-width: 860px) {
+  .container {
+    padding: 16px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar {
+    width: 100%;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 1.3rem;
+  }
+
+  .group-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .notification-container {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+
+  .logs-panel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .service-card {
+    padding: 12px;
+  }
+
+  .meta-row dd {
+    max-width: 55%;
+  }
+
+  .card-actions .btn,
+  .group-actions .btn {
+    padding: 6px 9px;
+  }
+}

@@ -1,0 +1,93 @@
+# services-status configuration template — committed, no secrets.
+# Copy to `.env` and edit locally; `.env` is gitignored.
+#
+# The list of monitored processes is NOT here anymore — it moved to services.json
+# at the project root, which is the single source of truth for both this server
+# and systemd/generate.mjs. Add a service there, then `yarn systemd:install`.
+
+# Port this monitor's own HTTP/WS server listens on.
+PORT=2901
+
+# Read once, in the entrypoint guard at the bottom of src/server.ts: the module starts listening
+# only when it is the main module AND this is not exactly the string `test`. The test runner sets
+# it itself, so the value that belongs here is the one every OTHER environment wants — anything but
+# `test`. Writing NODE_ENV=test into .env makes `yarn start` load the module, build nothing and exit
+# 0 with no server and no error, which reads as a silent crash. The nine backend services all carry
+# this key with the same value; it is listed here for that reason and because an unset value happens
+# to behave correctly, which is not the same as being intended.
+NODE_ENV=development
+
+# Interface the server binds to. Loopback-only by default — see BIND_ALL below.
+HOST=127.0.0.1
+
+# Must be explicitly opted into to bind beyond loopback, and only takes effect
+# together with a non-empty AUTH_TOKEN below. BIND_ALL=true with an empty
+# AUTH_TOKEN refuses to start rather than serving the control panel unauthenticated.
+BIND_ALL=false
+
+# Set true when this sits behind a reverse proxy (nginx) that terminates TLS.
+BEHIND_PROXY=false
+
+# Protocol the proxy in front of this server terminates, for building absolute URLs.
+PROXY_PROTOCOL=http
+
+# Public hostname to use when BEHIND_PROXY=true; ignored otherwise.
+DOMAIN=127.0.0.1
+
+# systemctl/journalctl scope to query. This project only ever installs and
+# manages user units — do not point it at "system" without also changing
+# how the units are installed.
+SYSTEMCTL_SCOPE=user
+
+# How often the shared poller re-reads all unit states and broadcasts to
+# every connected WebSocket client, in milliseconds.
+POLL_INTERVAL_MS=2000
+
+# Timeout for each TCP port-open probe, in milliseconds.
+PROBE_TIMEOUT_MS=500
+
+# Number of journal lines returned by a Logs request when the client does
+# not ask for a specific count.
+LOG_LINES=200
+
+# Override for the workspace root services.json paths are resolved against.
+# Leave unset to use the parent of this project directory (the default and
+# the value every repo path in services.json assumes).
+WORKSPACE_ROOT=
+
+# Optional bearer token. Empty by default, which leaves the panel unauthenticated —
+# acceptable only because the default bind is loopback. Required (see BIND_ALL)
+# once this is reachable from anything other than localhost, since this page can
+# start and stop every backend and frontend process on the platform.
+AUTH_TOKEN=
+
+# Extra Host header values this server will answer to, comma separated.
+#
+# Every request is checked against an allowlist of hostnames before any route runs, and one that
+# is not on it gets 403. The list always contains 127.0.0.1, localhost, ::1, plus DOMAIN and HOST
+# from above, so the defaults need nothing here. This exists for the names that cannot be derived
+# from the settings above — reaching the page at a LAN IP under BIND_ALL=true, or a second nginx
+# vhost pointing at it.
+#
+# The check is what stops DNS rebinding: without it, an attacker points their own hostname at
+# 127.0.0.1, gets your browser to load the page from that name, and the browser then sends a Host
+# and an Origin that agree with each other — so comparing the two proves nothing. Pinning the Host
+# to names configured here is what breaks it.
+#
+# Bare hostnames or IPs only — no scheme, no port. Example: ALLOWED_HOSTS=status.lan,192.168.1.10
+ALLOWED_HOSTS=
+
+# ── Quality gates ──────────────────────────────────────────────────────────────
+
+# Qodana Cloud token, read by qodana.sh and required by both of the parent
+# workspace's git hooks — this app has no repo of its own, so its gates live in
+# ../.githooks/. Qodana 2023.2+ refuses to start without a token, so an empty
+# value here means the scan step blocks rather than being skipped.
+#
+# Per project: create a `services-status` project of its own on qodana.cloud.
+# Reusing another repo's token files this app's reports under that project and
+# corrupts its baseline.
+#
+# Never commit a real value here — this file is the committed placeholder
+# template; the real token lives only in the gitignored .env.
+QODANA_TOKEN=

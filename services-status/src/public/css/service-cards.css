@@ -1,0 +1,124 @@
+.service-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--health-missing);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.service-card.health-up { border-left-color: var(--health-up); }
+.service-card.health-starting { border-left-color: var(--health-starting); }
+.service-card.health-down { border-left-color: var(--health-down); }
+.service-card.health-failed { border-left-color: var(--health-failed); }
+.service-card.health-missing { border-left-color: var(--health-missing); }
+
+.service-card.is-pending {
+  opacity: 0.7;
+}
+
+.service-card.is-pending::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(127, 140, 180, 0.08) 8px, rgba(127, 140, 180, 0.08) 16px);
+  pointer-events: none;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.service-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.service-unit {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.service-description {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.service-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.meta-row:last-child {
+  border-bottom: none;
+}
+
+.meta-row dt {
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.meta-row dd {
+  color: var(--text);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 65%;
+}
+
+.service-url {
+  text-decoration: none;
+}
+
+.service-url:hover {
+  text-decoration: underline;
+}
+
+.service-url:not([href]) {
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.service-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}

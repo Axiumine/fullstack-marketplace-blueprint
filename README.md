@@ -126,21 +126,64 @@ Verified present in all seven services on 2026-07-26: `thresholds` in every `vit
 every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
 gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
 
-### Where the gates fire — push and commit, in all ten
+### Where the gates fire — push and commit, in all fifteen
 
 Every repo gates on **both**. `.githooks/pre-commit` runs the secret guard, then `yarn lint:check`, then
 `yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
 `./qodana.sh` (~1 min), and only when the staged paths can move a verdict — a docs-only commit skips all
 of it. Mutation is the one gate that stays push-only; it is far too slow to pay for per commit.
 
-`marketplace-db-setup` runs a shorter chain, and every omission is a decision rather than a gap. Its
-`pre-commit` is the secret guard plus Qodana; its `pre-push` is the migration suite plus Qodana. No lint,
-because it is the one repo on the platform with no `eslint.config.js` and no `.prettierrc` — its content
-is applied migrations, which are immutable, so a formatter that rewrites them is the wrong tool. Qodana
-still *inspects* those files, which is the part worth having. No mutation gate and no coverage threshold
-either: its only suite drives real `up()`/`down()` against a real database, so 100% there would measure
-whether every migration got added to a list, not whether any schema is right. And the suite stays
-push-only because it needs that database up.
+`marketplace-db-setup` runs a shorter chain, and the one omission left is a decision rather than a gap.
+Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push` is
+`test:cov` → `test:mutation` → Qodana. **No lint**, because it is the one repo on the platform with no
+`eslint.config.js` and no `.prettierrc` — its content is applied migrations, which are immutable, so a
+formatter that rewrites them is the wrong tool. Qodana still *inspects* those files, which is the part
+worth having.
+
+⚠️ **The coverage and mutation gates there are new, and this file argued at length that neither could
+exist.** The argument was that the repo's only suite drives real `up()`/`down()` against a real database,
+so 100% would measure whether every migration got added to a list rather than whether any schema is
+right. That was true of *one* suite and stopped being true when there were five: `test/mongoUrl.test.mjs`
+and `test/migrateMongoConfig.test.mjs` cover the URL and config builders as plain units,
+`test/migrationGuards.test.mjs` drives the error paths a healthy database never reaches, and
+`test/migrationCalls.test.mjs` freezes the ordered driver-call log of every migration in both directions
+— which is the piece that made mutation testing worth anything here, because it is the only suite that
+can tell two migrations apart when they leave the same database behind. Baseline was **52.92%** at 100%
+coverage; it is 100 now, over 848 mutants. The replay suite is still push-only in spirit — it needs the
+database up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
+
+**The fifteenth is this workspace itself, and it gates `services-status`.** The parent dir is a git repo
+like the other fourteen, but it is the only one that is not a package: it has no `package.json`, and until
+2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `services-status` — a
+subdirectory here rather than a repo of its own — carrying a `qodana.yaml`, a `stryker.config.mjs` and a
+100% coverage threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the
+appearance of a gated project. Both parent hooks now close it:
+
+|Hook|Gates|Scope|
+|---|---|---|
+|`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `services-status/`|
+|`.githooks/pre-push`|`yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+
+The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
+commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
+no filter on the way out. Note the missing gate: **no lint**, for the same reason as `marketplace-db-setup`
+— `services-status` has no `lint` script. Its type check is not missing though, it is just not its own
+step: `test:cov` is `yarn build && vitest run --coverage`, so `tsc` runs first and a type error fails the
+coverage gate before a single test executes. Read the **first** error in that output, not the last.
+
+First live run of the mutation gate: **1102 killed / 1 timeout / 0 survived, score 100.00 in 52 s**
+(`config.ts` 305 mutants, `server.ts` 434, `systemd.ts` 199, `monitor.ts` 148, `probe.ts` 16). Reaching it
+meant deleting eight guards no input could reach — a `typeof value === 'string'` in front of a `Set#has`, a
+`.toLowerCase()` the WHATWG URL parser had already applied — which is the same "delete the dead code"
+verdict `marketplace-db-setup` reached, one repo over.
+
+⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step
+**blocks today**, because `services-status` has no Cloud project and therefore no `QODANA_TOKEN` — it
+prints the fixing command and exits 1, exactly as designed, so a commit here needs `SKIP_QODANA=1` until
+the user creates one (the placeholder key is in `services-status/env`). And this repo has **no
+`package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
+fourteen sub-repos restore that setting on every `yarn install`, and this one restores it never. After a
+fresh clone of this directory, run the line by hand or all three gates and the secret guard are simply off.
 
 Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
 linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict
@@ -156,11 +199,11 @@ revision that actually reaches `origin`, is the single commit no pre-commit scan
 individually clean branches can merge into a tree that is not. And Qodana Cloud files every report under
 the branch it was produced on (the CLI has no `--branch` flag, it reads git HEAD), while pre-commit always
 runs on the feature branch *before* the commit exists — so a repo gated only there never produces a
-`main`-tagged report and the "new problems" baseline has nothing stable to compare against. In the nine
-repos that gate coverage, both scans pass `SKIP_TESTS=1`, reusing the `coverage/lcov.info` the preceding
-gate just wrote; `marketplace-db-setup` passes neither, because its `qodana.yaml` declares no coverage
-threshold and so there is no report to reuse and nothing for the flag to switch off. `SKIP_QODANA=1`
-bypasses the scan alone.
+`main`-tagged report and the "new problems" baseline has nothing stable to compare against. Every repo
+that gates coverage passes `SKIP_TESTS=1` in both scans, reusing the `coverage/lcov.info` the preceding
+gate just wrote — `marketplace-db-setup` included, since its `qodana.yaml` grew
+`testCoverageThresholds` and there is now a report to reuse. `SKIP_QODANA=1` bypasses the scan alone;
+the coverage and mutation gates still run.
 
 Two details that make the difference between a gate and the appearance of one:
 
@@ -168,9 +211,9 @@ Two details that make the difference between a gate and the appearance of one:
   `✗ Found N new problems` and still exits 0, so `testCoverageThresholds` is the only condition that
   can fail a run — and vitest already enforces that, leaving the scan with nothing of its own to block
   on. Verified on `marketplace-common`: a run reporting a **High** `JSVoidFunctionReturnValueUsed` exited 0,
-  and 255 once the two keys were added. `critical: 0` / `high: 0` is now in all ten `qodana.yaml`
-  (`marketplace-db-setup` gets severity only — its coverage stays ungated for the reason in its own file,
-  which also makes severity the only thing its scan can fail on). `@axiumine/koa-utils` already had it.
+  and 255 once the two keys were added. `critical: 0` / `high: 0` is now in every `qodana.yaml`,
+  `marketplace-db-setup`'s included — and that file now carries `testCoverageThresholds` as well, so
+  severity is no longer the only condition its scan can fail on. `@axiumine/koa-utils` already had it.
 - **A missing prerequisite blocks, it does not warn and continue.** Docker down, no `qodana` CLI, linter
   image absent, no `QODANA_TOKEN`, wrong Node — each exits 1 with the one command that fixes it. A gate
   that steps aside when it cannot run is the hole it exists to close, reopened one condition lower.
@@ -187,7 +230,10 @@ the rescan that followed put all seven back at **exit 0** with nothing above Mod
 `marketplace-db-setup` was the last repo never scanned — its `qodana.sh` exited at the empty-token check
 (`QODANA_TOKEN missing or empty in .env`) with no output at all, a 0-byte log and exit 1 that reads like a
 crash rather than a missing credential. The token now exists and the first real scan has run, against
-Cloud project `9kVqd` (`db-setup`), which is its own project like every other repo's.
+Cloud project `ObD0L` (`db-setup`), which is its own project like every other repo's. (This line read
+`9kVqd` until 2026-08-07; every report the repo has ever uploaded, from the first scan on 2026-08-04
+onwards, went to `ObD0L` — the id is printed by the CLI at the end of each run and in
+`.qodana/results/open-in-ide.json`, which is where to check it rather than trusting a doc.)
 
 It failed, and the failure is worth recording because the shape recurs. **51 problems, 15 of them High,
 and 45 of the 51 in one file: `setup/mongodb.js`** — `CommaExpressionJS` ×8, `UnnecessaryLabelJS` ×6,
@@ -227,10 +273,18 @@ repo's token into another and both upload into the same project, where their bas
 histories interleave and neither is trustworthy. That happened here: `marketplace-common` carried
 `marketplace-dev-public-resource`'s token and had been uploading into `oDKeo` while its own project sat
 empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
-and confirm the id is that repo's own — ten repos, ten distinct ids.
+and confirm the id is that repo's own — one project per repo, one distinct id each.
 
-Every sub-repo carries a `qodana.yaml` — all ten of them — so "all repos are gated" now means what it
-says. Keep it true: a new repo without a config is silently outside every layer described above.
+Every sub-repo carries a `qodana.yaml` — all fourteen — and so does `services-status`, scanned by this
+workspace's hooks rather than by one of its own. "All repos are gated" means what it says. Keep it true: a
+new repo without a config is silently outside every layer described above.
+
+⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
+missing `QODANA_TOKEN` rather than passing: `services-status`, `marketplace-user` and the two
+`*-user-authenticated-*` services, all built after the Cloud projects were created. Creating a project is
+the user's call; until then those four commit with `SKIP_QODANA=1`, and the coverage and mutation gates
+still run. **Do not point them at an existing repo's token** — that is exactly the interleaving described
+above.
 
 ### The mutation layers
 
@@ -250,8 +304,9 @@ written above it.
 
 Rolled out first in `marketplace-dev-authenticated-logout`, whose `COVERAGE.md` is the reference write-up
 (scope decisions, equivalent mutants, and why `rejects.toThrow()` is the assertion that hides the
-most bugs). **Rollout is complete as of 2026-07-26**: all seven services and `marketplace-common` are at
-mutation score 100 with `thresholds.break: 100` and a blocking `pre-push`.
+most bugs). **Rollout is complete as of 2026-08-07**: every package that ships code is at mutation score
+100 with `thresholds.break: 100` and a blocking `pre-push` — the nine services, `marketplace-common`,
+`marketplace-db-setup`, the three frontends and `services-status`.
 
 ### What the rollout actually found
 
@@ -260,6 +315,7 @@ Every package was already at 100% coverage. None was at 100% mutation score:
 |Package|Mutation score before|
 |---|---|
 |`marketplace-common`|45.95%|
+|`marketplace-db-setup`|52.92%|
 |`marketplace-dev-authenticated-resource`|85.09%|
 |`marketplace-dev-admin-authenticated-authorization`|90.32%|
 |`marketplace-dev-public-authorization`|96.47%|
@@ -278,3 +334,19 @@ services on exactly that misdiagnosis and has since been removed from all of the
 dynamic `await import()` inside a `beforeEach`, so the throw lands inside a test that can fail.
 `beforeEach`, not `beforeAll`: a throw in `beforeAll` marks dependent tests *skipped* rather than
 failed, and the vitest-runner does not count a skipped test as a kill either.
+
+⚠️ **The same root cause has a second face: a top-level `const` is evaluated once per process.**
+Stryker switches the active mutant **per test**, so a module that was loaded before the switch hands
+every test the *unmutated* value however thoroughly the test asserts it. That was 54 of
+`marketplace-db-setup`'s 62 survivors — the const bodies in `lib/schemas/`, one for one, while the
+shapes built inside a *function* body died on the first run because those re-execute per call. Read a
+`Survived` in a pure-data module as "my test never saw the mutant", not as "my assertion is too weak":
+the fix is to evict the module from the loader cache **inside** the test, with an `evictLib()` over
+`require.cache` under CommonJS or a dynamic `await import()` in `beforeEach` under ESM.
+
+And a survivor that no eviction can kill is usually telling you the code is dead. No test can
+distinguish `maximum: 180` from `maximum: -180` in a constant nothing imports, so an unkillable mutant
+in an exported-but-unreferenced value means the thing is orphaned and the fix is to delete it — that is
+how `COORDINATE_DECIMAL` was found in `lib/schemas/geo.js`, left behind when the migrations that
+restated it were deleted with the `puntoVendita` collection. Deleting code is a legitimate way to clear
+a mutant; lowering `thresholds.break` never is.
