@@ -126,7 +126,7 @@ Verified present in all seven services on 2026-07-26: `thresholds` in every `vit
 every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
 gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
 
-### Where the gates fire — push and commit, in all ten
+### Where the gates fire — push and commit, in all fifteen
 
 Every repo gates on **both**. `.githooks/pre-commit` runs the secret guard, then `yarn lint:check`, then
 `yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
@@ -151,6 +151,39 @@ and `test/migrateMongoConfig.test.mjs` cover the URL and config builders as plai
 can tell two migrations apart when they leave the same database behind. Baseline was **52.92%** at 100%
 coverage; it is 100 now, over 848 mutants. The replay suite is still push-only in spirit — it needs the
 database up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
+
+**The fifteenth is this workspace itself, and it gates `services-status`.** The parent dir is a git repo
+like the other fourteen, but it is the only one that is not a package: it has no `package.json`, and until
+2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `services-status` — a
+subdirectory here rather than a repo of its own — carrying a `qodana.yaml`, a `stryker.config.mjs` and a
+100% coverage threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the
+appearance of a gated project. Both parent hooks now close it:
+
+|Hook|Gates|Scope|
+|---|---|---|
+|`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `services-status/`|
+|`.githooks/pre-push`|`yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+
+The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
+commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
+no filter on the way out. Note the missing gate: **no lint**, for the same reason as `marketplace-db-setup`
+— `services-status` has no `lint` script. Its type check is not missing though, it is just not its own
+step: `test:cov` is `yarn build && vitest run --coverage`, so `tsc` runs first and a type error fails the
+coverage gate before a single test executes. Read the **first** error in that output, not the last.
+
+First live run of the mutation gate: **1102 killed / 1 timeout / 0 survived, score 100.00 in 52 s**
+(`config.ts` 305 mutants, `server.ts` 434, `systemd.ts` 199, `monitor.ts` 148, `probe.ts` 16). Reaching it
+meant deleting eight guards no input could reach — a `typeof value === 'string'` in front of a `Set#has`, a
+`.toLowerCase()` the WHATWG URL parser had already applied — which is the same "delete the dead code"
+verdict `marketplace-db-setup` reached, one repo over.
+
+⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step
+**blocks today**, because `services-status` has no Cloud project and therefore no `QODANA_TOKEN` — it
+prints the fixing command and exits 1, exactly as designed, so a commit here needs `SKIP_QODANA=1` until
+the user creates one (the placeholder key is in `services-status/env`). And this repo has **no
+`package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
+fourteen sub-repos restore that setting on every `yarn install`, and this one restores it never. After a
+fresh clone of this directory, run the line by hand or all three gates and the secret guard are simply off.
 
 Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
 linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict
@@ -240,10 +273,18 @@ repo's token into another and both upload into the same project, where their bas
 histories interleave and neither is trustworthy. That happened here: `marketplace-common` carried
 `marketplace-dev-public-resource`'s token and had been uploading into `oDKeo` while its own project sat
 empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
-and confirm the id is that repo's own — ten repos, ten distinct ids.
+and confirm the id is that repo's own — one project per repo, one distinct id each.
 
-Every sub-repo carries a `qodana.yaml` — all ten of them — so "all repos are gated" now means what it
-says. Keep it true: a new repo without a config is silently outside every layer described above.
+Every sub-repo carries a `qodana.yaml` — all fourteen — and so does `services-status`, scanned by this
+workspace's hooks rather than by one of its own. "All repos are gated" means what it says. Keep it true: a
+new repo without a config is silently outside every layer described above.
+
+⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
+missing `QODANA_TOKEN` rather than passing: `services-status`, `marketplace-user` and the two
+`*-user-authenticated-*` services, all built after the Cloud projects were created. Creating a project is
+the user's call; until then those four commit with `SKIP_QODANA=1`, and the coverage and mutation gates
+still run. **Do not point them at an existing repo's token** — that is exactly the interleaving described
+above.
 
 ### The mutation layers
 
