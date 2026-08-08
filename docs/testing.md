@@ -64,11 +64,11 @@ Because the authSource *is* the test database, the two `MONGO_TEST_*` users must
 them — provision with the loop in `marketplace-db-setup/setup/mongodb.js`. Dropping a database does not
 delete them; MongoDB keeps all users in `admin.system.users`.
 
-Names: `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`, `…PublicRes`, `…ImprAuthz`,
-`…ImprRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes`.
-`marketplace-dev-authenticated-logout` has no block — its suite never touches Mongo. The `Impr*` pair
-keeps an abbreviation of *imprenditore*: it is a database name, not an identifier, and renaming it means
-re-provisioning its two users.
+Names: `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`, `…PublicRes`, `…OwnerAuthz`,
+`…OwnerRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes`.
+`marketplace-dev-authenticated-logout` has no block — its suite never touches Mongo. ⚠️ Renaming one of
+these databases is never a one-file edit: the authSource *is* the database, so the two users have to be
+created in the new one before any `.env` points at it, and the old one dropped afterwards.
 
 ## Mutation testing traps
 

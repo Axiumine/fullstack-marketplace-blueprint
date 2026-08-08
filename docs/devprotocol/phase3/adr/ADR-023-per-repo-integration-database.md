@@ -28,8 +28,8 @@ alone, so a `MONGO_TEST_CONN_STRING` naming a different database still produced 
 (`BEs/marketplace-common/vitest.mongo.mts:59-61` comment).
 
 Cross-repo, the databases must all be distinct — `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`,
-`…PublicRes`, `…ImprAuthz`, `…ImprRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes` (`docs/testing.md` §Per-repo integration database) — confirmed on disk: `MONGO_TEST_AUTH_ADMIN=dbMarketplaceTestImprRes` and
-`MONGO_TEST_DB=dbMarketplaceTestImprRes` in
+`…PublicRes`, `…OwnerAuthz`, `…OwnerRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes` (`docs/testing.md` §Per-repo integration database) — confirmed on disk: `MONGO_TEST_AUTH_ADMIN=dbMarketplaceTestOwnerRes` and
+`MONGO_TEST_DB=dbMarketplaceTestOwnerRes` in
 `BEs/dev/marketplace-dev-authenticated-resource/env:51,61`. Users are provisioned per test-db name in a
 loop in `BEs/marketplace-db-setup/setup/mongodb.js:63-69`; dropping a database does not delete its users,
 Mongo keeps them in `admin.system.users` regardless of which db authenticated them.

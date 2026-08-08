@@ -368,8 +368,8 @@ MONGO_TEST_AUTH_ADMIN    the authSource, i.e. the database the two test users ar
 `assertTestMongoDbNames` refuses to build a connection URL unless all three name the **same** database,
 and that name must be **unique per repo** — each `globalSetup` drops its own database, so a shared name
 means one suite's run wipes another's mid-test. Current names (`docs/testing.md` §Per-repo integration database):
-`dbMarketplaceTest` (db-setup), and per-service `…Common`, `…PublicAuthz`, `…PublicRes`, `…ImprAuthz`,
-`…ImprRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes` (`marketplace-dev-authenticated-logout`
+`dbMarketplaceTest` (db-setup), and per-service `…Common`, `…PublicAuthz`, `…PublicRes`, `…OwnerAuthz`,
+`…OwnerRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes` (`marketplace-dev-authenticated-logout`
 has none — its suite never touches Mongo).
 
 ⚠️ **Because the authSource *is* the test database, two `MONGO_TEST_*` users must exist in *every* one of
