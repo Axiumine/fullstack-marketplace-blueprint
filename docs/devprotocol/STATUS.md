@@ -18,7 +18,7 @@ Read this file first (RULES.md §12), then `phase1/PDR.md`, then `phase2/UBIQUIT
 |---|---|---|---|---|
 | Phase 1 — Discovery | ✅ Complete | closed, no checker run | none — see §7 | `phase1/PDR.md`, `phase1/SYSTEM_CONTEXT.md`, `phase1/NFR.md` |
 | Phase 2 — Domain Modelling | ✅ Complete | closed, no checker run | none — see §7 | `phase2/EVENT_STORMING.md`, `phase2/UBIQUITOUS_LANGUAGE.md`, `phase2/BOUNDED_CONTEXT.md` |
-| Phase 3 — Architecture | ✅ Complete | **pass** | `phase3/CONFLICT_REPORT.md` v1.1 | `phase3/C4_CONTEXT.md`, `phase3/C4_CONTAINER.md`, `phase3/adr/` (28 ADRs + index + template), `phase3/SECURITY_AUTH.md`, `phase3/INFRA.md` |
+| Phase 3 — Architecture | ✅ Complete | **pass** | `phase3/CONFLICT_REPORT.md` v1.1 | `phase3/C4_CONTEXT.md`, `phase3/C4_CONTAINER.md`, `phase3/adr/` (29 ADRs + index + template), `phase3/SECURITY_AUTH.md`, `phase3/INFRA.md` |
 | Phase 4 — Design | ✅ Complete | **pass** | `phase4/CONFLICT_REPORT.md` v1.1 | `phase4/DDD_AGGREGATES.md`, `phase4/ERD.md`, `phase4/API_CONTRACTS.md`, `phase4/ERROR_HANDLING.md` |
 | Phase 5 — Behaviour | ✅ Complete | **pass** | `phase5/CONFLICT_REPORT.md` v1.2 | `phase5/SEQUENCE_DIAGRAMS.md`, `phase5/EPICS_STORIES.md`, `phase5/epics/E01..E11.md`, `phase5/RISK_REGISTER.md`, `phase5/DEFINITION_OF_DONE.md` |
 | Phase 6 — Code | ⬜ Open | — | — | pre-code phases are the gate; see §9 |

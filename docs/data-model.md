@@ -120,12 +120,57 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
 
 Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, never a `COLLSCAN`.
 
+## PII at rest — explicit CSFLE (ADR-029)
+
+Every personal field on the four collections that hold one is **`binData` subtype 6** in MongoDB. This
+is Community Edition, so there is no automatic encryption and no Queryable Encryption: the services
+encrypt and decrypt explicitly, through `fieldEncryptionPlugin` in `marketplace-common`, which hooks
+every Mongoose filter, update and result. A resolver sees plaintext and writes plaintext; the driver
+never does.
+
+Two algorithms, and the split is the whole design:
+
+| Algorithm | Fields | Why |
+|---|---|---|
+| `AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic` | `login.email` on `admin`, `shopOwner`, `user`; `emailVerify.newEmailTmp` on `shopOwner`, `user` | the same address always produces the same bytes, so `$eq` / `$in` on the ciphertext is a working lookup — which login, password reset and email verification all need |
+| `AEAD_AES_256_CBC_HMAC_SHA_512-Random` | everything else personal: names, birth dates, street/postalCode/province, GeoJSON `position`, phone numbers, contact emails, saved addresses, `shopOwner.notes`, `company.contactPerson` and `company.administrator` | no ciphertext repeats, so nothing leaks by comparison |
+
+⚠️ **Deterministic is the weaker of the two and is used on exactly five fields.** Equal plaintext gives
+equal ciphertext, which is an equality oracle for anyone holding a read on the collection. Every field
+that does not have to be *found* by its value is random, and moving one the other way is a security
+change, not a performance one.
+
+⚠️ **Neither algorithm survives a sort, a range or a `$regex`.** `shopOwner.personalData.firstName`,
+`lastName` and `address.city` are therefore **left in the clear**, deliberately: they are the sort keys
+of `tbl_active_lastName_firstName`, `tbl_active_firstName` and `tbl_active_city`, and the `/^term/i`
+targets of the operator's shop-owner table. Encrypting them would not slow that table down, it would
+make it silently wrong. The same three fields on `admin` and `user` *are* encrypted, because nothing
+sorts or prefix-searches those. `login.password` is not encrypted either — it is already a hash.
+
+⚠️ **A `$jsonSchema` cannot measure the length of a ciphertext.** Where the validator used to bound a
+personal string it now only checks the BSON type, so the application-level validators are the *only*
+thing enforcing those lengths. Relaxing one is no longer caught a layer down.
+
+One data encryption key per collection, alt-named `admin`, `shopOwner`, `user`, `company`, all wrapped
+by a single 96-byte local master key named by `CSFLE_MASTER_KEY_PATH`. **The same file on every service
+and on `marketplace-db-setup`** — a different master key makes every encrypted field on the platform an
+undecryptable blob, and there is no escrow and no reset. The key vault is
+`<the database MONGODB_URI points at>.__keyVault`, never a database of its own: every user on this
+cluster is scoped to one database, so a vault elsewhere answers `Unauthorized` on the first
+`createIndex`.
+
+Both variables are in `REQUIRED_ENV_VARS` on all eight Mongo-using services, and
+`await setupFieldEncryption()` runs immediately after `MongoDBConnect()`. A service that booted without
+them would write plaintext beside ciphertext, and nothing would show that up until someone read the
+data back — so it refuses to start.
+
 ## Migrations (ADR-014)
 
 **Migrations are immutable — never edit an applied migration, add a new one.** But they are not
 self-contained: the `$jsonSchema` shapes live in `marketplace-db-setup/lib/schemas/`, shared by every
-migration that restates them. Current builders: `account.js`, `collection.js`, `geo.js`,
-`shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`, plus its `README.md`.
+migration that restates them. Current builders: `account.js`, `collection.js`, `encrypted.js`,
+`geo.js`, `admin.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`, plus its
+`README.md`.
 
 A new product type gets a builder there rather than an inline validator.
 
