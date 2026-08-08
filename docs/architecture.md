@@ -55,13 +55,27 @@ front of it.
 
 ### nginx
 
-**No nginx config is installed in this workspace or on this machine** (no `/etc/nginx`, no binary in
-`PATH`). The live vhosts live on whatever host fronts the stack. Do not go looking for them here.
+**No nginx is installed on this machine** (no `/etc/nginx`, no binary in `PATH`), but the configuration
+it would run is checked in, at the **workspace root**: `nginx/`. Read `nginx/README.md` before touching
+it.
 
-`marketplace-user/docs/nginx/` carries real, deployable configs — `cache.conf`,
-`marketplace-user.conf`, `rate-limit.conf`, `security-headers.conf` — covering TLS, HSTS, CSP, the SSR
-upstream, the `proxy_cache` zone that bypasses on the session cookie, PMTiles range requests and the
-auth-path rate-limit zones. They are documentation until someone installs them.
+One instance, three hostnames, one vhost each — the apex for the public site and the customer account
+area, `shopowner.` and `admin.` for the two panels. TLS terminates there and only there; the twelve
+upstream processes speak plain HTTP on loopback ports. It lives above the repos rather than inside one
+because it is the only artefact that is not per-repo: the three vhosts share the upstream table and the
+rate-limit zones, and the same `logout` service answers on all three hosts.
+
+⚠️ **`proxy_cookie_flags ~ secure httponly samesite=strict;` in `nginx/snippets/proxy-backend.conf` is
+the only thing on the platform that sets `Secure` on the session cookie.** koa-utils ships
+`secure: false` with a comment saying to rewrite it at the edge. Nothing fails without nginx in front —
+the cookie simply goes out replayable over plain HTTP.
+
+`nginx/test/run.sh` runs the whole thing in a throwaway container: `nginx -t`, then ~150 assertions
+against a live nginx and stand-in backends. It is the only way to test any of this, since there is no
+nginx here.
+
+`marketplace-user/docs/nginx/` used to hold a customer-only copy of this. It is gone — that folder is
+now a pointer, and its README says what was wrong with the files it held.
 
 ## Auth model
 

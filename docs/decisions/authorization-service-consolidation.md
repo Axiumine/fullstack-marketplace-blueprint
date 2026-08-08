@@ -293,8 +293,12 @@ edit visible. Regenerating them needs the package published first.
   What the two repos still lack is the *wire* test the user repo has — a signed refresh carrying a foreign
   tier driven through the real server, asserting the 403 **and** that the tier-specific model was never
   queried. That is what pins the ordering of the two steps, which no unit test of either piece can.
-- The admin-authorization upstream is **absent** from `marketplace-user/docs/nginx/`. Either it lives on
-  a vhost outside this workspace or it was never written; confirm which.
+- ~~The admin-authorization upstream is **absent** from `marketplace-user/docs/nginx/`. Either it lives on
+  a vhost outside this workspace or it was never written; confirm which.~~ **Answered: it was never
+  written.** The edge now lives at the workspace root in `nginx/`, with a vhost per hostname;
+  `admin.marketplace-domain.com` proxies 4025 at `/admin-authenticated-authorization` and 4024 at
+  `/admin-authenticated-resource`. `marketplace-user/docs/nginx/` is retired — it only ever described the
+  customer surface, which is why the two panels' upstreams appeared to be missing rather than absent.
 
 ## Not verified
 
