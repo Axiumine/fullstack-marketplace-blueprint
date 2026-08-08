@@ -106,7 +106,7 @@ const TIER_BY_ENDPOINT: Record<string, Tier> = {
 
 **Pros** — removes the same duplication as (a); keeps the two-source comparison, so the security
 property of `assertTier` survives intact rather than degenerating into "trust the session"; preserves
-nginx's per-path `mkt_auth` rate-limit zones (`marketplace-user.conf:133-136`), which matter because
+nginx's per-path `mkt_auth` rate-limit zones (`nginx/sites-available/marketplace-domain.com.conf:132-133`, with `mkt_owner_auth` and `mkt_admin_auth` doing the same on the two panel vhosts), which matter because
 admin traffic is low-volume and trusted while customer traffic is internet-exposed; doctrine-compliant,
 since nothing dispatches on a role read out of the session.
 

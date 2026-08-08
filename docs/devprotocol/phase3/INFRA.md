@@ -140,8 +140,8 @@ is not a stand-in for a second topology that exists.
 | Setting | Topology A — dev workstation (built) | "Topology B — production" (§14, undesigned) |
 |---|---|---|
 | Process model | 12 bare Node processes, started by hand or `dev.sh` | open |
-| TLS termination | none — plain HTTP on every port | open — `marketplace-user/docs/nginx/marketplace-user.conf` is a documented, unbuilt candidate |
-| Reverse proxy | none — frontends call backend ports directly via Vite proxy | open — same nginx configs, undeployed |
+| TLS termination | none — plain HTTP on every port | **written, uninstalled** — `nginx/conf.d/40-tls.conf` plus three vhosts terminate TLS for all three hostnames; where that instance runs is still open |
+| Reverse proxy | none — frontends call backend ports directly via Vite proxy | **written, uninstalled** — same `nginx/` tree, container-tested by `nginx/test/run.sh`, deployed nowhere |
 | MongoDB topology | single `dbMarketplaceDev` instance, reachable via `MONGODB_URI` | open |
 | Redis topology | 3-node cluster (`REDIS_DB1/2/3_HOST/_PORT`), reachable directly | open |
 | Secrets source | untracked per-repo `.env`, never committed | open |
@@ -165,7 +165,7 @@ is not a stand-in for a second topology that exists.
 | 3043 | `marketplace-admin` | Admin (SPA) | operator UI | `marketplace-admin/vite.config.ts:39` — `port: Number(env.PORT ?? 3043)` |
 | 3044 | `marketplace-shopowner` | ShopOwner (SPA) | shop-owner UI | `marketplace-shopowner/vite.config.ts` (same pattern) |
 | 3045 | `marketplace-user` | User + anonymous (SSR) | public site + customer area | `marketplace-user/serve.mjs:47` |
-| 8080 | self-hosted Nominatim | infra, not a Marketplace repo | geocoding, proxied at `/geocode/` in prod nginx config | `marketplace-user/docs/nginx/cache.conf:36-42` (`upstream mkt_nominatim { server 127.0.0.1:8080; }`) |
+| 8080 | self-hosted Nominatim | infra, not a Marketplace repo | geocoding, proxied at `/geocode/` by the apex vhost | `nginx/conf.d/10-upstreams.conf:56` (`upstream mkt_nominatim { server 127.0.0.1:8080; keepalive 8; }`) |
 
 ⚠️ **The port table is reproducible today but was not always correct.** The 7 original committed `env`
 templates carried a copy-paste `PORT=4064` — a port none of the services listens on — until each was
@@ -409,9 +409,9 @@ Two layers exist. Nothing else is wired.
   `services-status/src/server.ts:710`.
 
 **Not present anywhere in the 15 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
-log aggregator (nginx `access_log`/`error_log` write to local files per
-`marketplace-user/docs/nginx/marketplace-user.conf:60-61`, with no shipping config —
-`SYSTEM_CONTEXT.md` §6), and distributed tracing beyond whatever Sentry's own SDK samples. Do not describe
+log aggregator (each vhost's `access_log`/`error_log` write to local files under
+`/var/log/nginx/`, one pair per hostname — `nginx/sites-available/marketplace-domain.com.conf:74-75`
+and the same lines in the two panel vhosts — with no shipping config — `SYSTEM_CONTEXT.md` §6), and distributed tracing beyond whatever Sentry's own SDK samples. Do not describe
 any of these as built.
 
 ---
@@ -442,42 +442,58 @@ explicitly out of scope for Phase 3 — the user's undecided call.
 
 ---
 
-## 11. nginx — documentation only, nothing installed
+## 11. nginx — the whole edge, written and container-tested, installed nowhere
 
-Four config files exist and are deployable, at
-`marketplace-user/docs/nginx/{cache.conf,marketplace-user.conf,rate-limit.conf,security-headers.conf}`.
-They are the source for the customer-surface production topology candidate: TLS termination, HSTS, CSP,
-the SSR upstream, a `proxy_cache` zone that bypasses on the session cookie, PMTiles range requests, and
-auth-path rate-limit zones (`docs/frontends.md` §marketplace-user).
+The edge lives in `nginx/` at the **workspace root**, not inside any repo: `conf.d/` (hardening,
+upstreams, rate limits, cache, TLS), `snippets/` (the shared proxy body and two header policies), and one
+vhost per hostname in `sites-available/` — `marketplace-domain.com`, `shopowner.`, `admin.`. It
+terminates TLS for all three, proxies eleven loopback upstreams, serves both SPAs and the SSR app's
+static output off disk, and rewrites both session cookies to `Secure`. `nginx/README.md` is the operator
+document; the four customer-only files this section used to cite,
+`marketplace-user/docs/nginx/*.conf`, are deleted.
 
-**Verify before citing further:** there is no `/etc/nginx` directory and no `nginx` binary in `PATH` on
-this machine, and no nginx config is installed anywhere in this workspace.
+**Verify before citing further:** there is still no `/etc/nginx` directory and no `nginx` binary in
+`PATH` on this machine. Nothing is installed — but "uninstalled" no longer means "unverified".
+`nginx/test/run.sh` starts a container (`nginx:1.29-alpine` by default), generates a self-signed cert for
+all four names, replaces every upstream with a stand-in that echoes which one answered, runs `nginx -t`,
+and then drives **150 behavioural assertions** over the real config: the path→service map, the `Secure`
+rewrite on all seven cookie-minting endpoints, CSP nonce equality across a cache MISS *and* a HIT,
+cache BYPASS with a session cookie, `gzip off` on the token endpoints, the redirect and ACME behaviour,
+panel hardening, and each rate-limit zone engaging out of its own budget.
 
-Upstream map inside the docs-only config, all loopback — `marketplace-user/docs/nginx/cache.conf:36-42`:
+Upstream map, all loopback — `nginx/conf.d/10-upstreams.conf:24-56`, comments elided:
 ```conf
 upstream mkt_user_ssr        { server 127.0.0.1:3045; keepalive 32; }
 upstream mkt_public_resource { server 127.0.0.1:4027; keepalive 16; }
 upstream mkt_public_authz    { server 127.0.0.1:4028; keepalive 16; }
-upstream mkt_user_authz      { server 127.0.0.1:4031; keepalive 16; }
 upstream mkt_user_resource   { server 127.0.0.1:4032; keepalive 16; }
+upstream mkt_user_authz      { server 127.0.0.1:4031; keepalive 16; }
+upstream mkt_owner_resource  { server 127.0.0.1:4026; keepalive 16; }
+upstream mkt_owner_authz     { server 127.0.0.1:4029; keepalive 16; }
+upstream mkt_admin_resource  { server 127.0.0.1:4024; keepalive 16; }
+upstream mkt_admin_authz     { server 127.0.0.1:4025; keepalive 16; }
 upstream mkt_logout          { server 127.0.0.1:4030; keepalive 8;  }
 upstream mkt_nominatim       { server 127.0.0.1:8080; keepalive 8;  }
 ```
 
 Cache-bypass mechanism, the other half of the SSR/CSR security boundary
-(`marketplace-user/docs/nginx/cache.conf:21-30`):
+(`nginx/conf.d/30-cache.conf:32-35`):
 ```conf
-map $http_cookie $mkt_user_has_session {
-	default 0;
-	"~*(^|;\s*)refresh_token(\.sig)?="  1;
+map $http_cookie $mkt_user_no_cache {
+	default                            0;
+	"~*(^|;\s*)refresh_token(\.sig)?=" 1;
 }
-map $mkt_user_has_session $mkt_user_no_cache { 0 0; 1 1; }
 ```
 
-⚠️ **This upstream map has no entry for `marketplace-admin` (3043) or `marketplace-shopowner` (3044) or
-the admin-authenticated-authorization port (4025)** — expected, since these configs belong to
-`marketplace-user` specifically. Whether an equivalent nginx vhost is intended for the two SPA frontends
-is unconfirmed by anything on disk (`SYSTEM_CONTEXT.md` §5.11).
+⚠️ **`$mkt_user_has_session` no longer exists.** It was the first of a pair of maps whose only job was to
+relay into `$mkt_user_no_cache`; `proxy_cache_bypass` and `proxy_no_cache` now read the one variable
+directly, because a request with a session must skip the lookup *and* never be stored and there is no
+case where one holds without the other.
+
+⚠️ **The `marketplace-admin` (3043) and `marketplace-shopowner` (3044) dev ports are still absent from the
+upstream map, and that is correct.** Both panels are SPAs: nginx serves their built `dist/` off disk and
+never proxies to a Node process, so only their four backend endpoints each appear above. Ports 3043/3044
+are Vite dev servers and have no production counterpart.
 
 Do not describe nginx as installed, running, or fronting any of the 12 dev processes in this workspace —
 every request in Topology A (§2) reaches a service directly on its own port.
@@ -521,7 +537,7 @@ in this tree separating tier traffic.
 
 **SSR/CSR split as a security boundary, not a perf choice.** Public routes render server-side; `/account/*`
 never does — `marketplace-user/src/routeOptions/account.tsx:59` sets `{ ssr: false as const, ... }`. This
-pairs with the nginx `proxy_cache` bypass-on-cookie mechanism (§11) — but since nginx is documentation-only
+pairs with the nginx `proxy_cache` bypass-on-cookie mechanism (§11) — but since nginx runs on no host
 here, in Topology A (§2) the actual protection is entirely the `ssr: false` half: no shared proxy cache
 exists in this workstation topology to leak through in the first place. Weakening `ssr: false` on the
 `/account/*` route the day this stack goes behind a real cache is the single highest-severity regression
@@ -534,11 +550,13 @@ per-request tier fence, gated instead on possession of a server-side-only value.
 
 **What is absent, and must not be assumed present:** no TLS anywhere in Topology A (plain HTTP, every
 port); no firewall/security-group configuration in any repo; no VPN or private-network requirement
-documented; no rate limiting at the network layer today — the 5 `limit_req_zone` rules
-(`marketplace-user/docs/nginx/rate-limit.conf:11-26`, `NFR-SC02`) exist only in the docs-only nginx
-config and are not enforced while nginx is uninstalled. `guardPublicWrite`'s Redis-backed counter
-(`BEs/dev/marketplace-dev-public-resource/src/lib/access/guardPublicWrite.mts:43-50`) is the one rate
-limit that **is** live in Topology A, because it runs in application code, not nginx.
+documented; no rate limiting at the network layer today — the 8 `limit_req_zone` rules and the one
+`limit_conn_zone` (`nginx/conf.d/20-rate-limit.conf`, `NFR-SC02`) are written and container-tested but
+enforce nothing while nginx is installed on no host. `guardPublicWrite`'s two Redis-backed counters
+(`BEs/dev/marketplace-dev-public-resource/src/lib/access/guardPublicWrite.mts`) are the rate limit that
+**is** live in Topology A, because they run in application code — and for registration they are also the
+stronger of the two, since one of them is keyed on the email address and no edge zone keyed on
+`$binary_remote_addr` can be.
 
 ---
 
@@ -552,14 +570,14 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 |---|---|---|
 | 1 | Where do the 15 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — `docs/workflow.md` §Repo layout, `PDR.md` §4 Out of scope. |
 | 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | No forge today means no pipeline can exist today — sequencing depends on question 1. |
-| 3 | Is nginx actually installed in front of any of these services, using the docs-only configs in `marketplace-user/docs/nginx/`, or does another reverse proxy get chosen? | §11 — configs exist and are deployable, nothing is installed; installing them is explicitly out of scope for Phase 3 doc work (`CONSTRAINTS.md` §5). |
-| 4 | Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost, or do they stay behind a different mechanism? | `SYSTEM_CONTEXT.md` §5.11 — unconfirmed by anything on disk; the only nginx docs that exist are `marketplace-user`-specific. |
+| 3 | Which host runs the nginx in `nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | §11 — the config exists, is container-tested and is installed nowhere; installing it is out of scope for Phase 3 doc work (`CONSTRAINTS.md` §5). `INTROSPECTION_CODE` is honoured wherever a service port is reachable, so port closure is the security-relevant half. |
+| 4 | ~~Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost?~~ | **Answered** — both do: `nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |
 | 5 | What is the production MongoDB topology — single instance, replica set, sharded? | Nothing in this tree specifies beyond "connect via `MONGODB_URI`"; dev topology (§2) is a single unreplicated instance. |
 | 6 | What is the production Redis cluster's node count, placement, and failover story? | Dev topology (§2) is 3 nodes reachable directly by hostname/port; production sizing/placement is unspecified. |
 | 7 | Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`? | `PDR.md` §4 Out of scope marks this a standing gap, not a future-phase item with a date; `CONSTRAINTS.md` §5 marks it out of scope for Phase 3. |
 | 8 | Where do `QODANA_TOKEN`, `MONGODB_URI`, `REDIS_PASSWORD`, `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE` and the other secrets get provisioned outside a developer's local `.env`? | No secrets manager, vault, or provisioning script for production values exists anywhere in this tree — only local `.env` templates and the `mongodb.js` test-user loop (§8). |
 | 9 | Does process supervision (systemd units, pm2, container orchestration) get added for the 9 backend services and 3 frontends themselves? | `services-status` (§9) monitors named systemd units but nothing in this tree defines those units for these 12 processes — it presumes they already exist. |
-| 10 | Is TLS terminated at nginx (per the docs-only config) or somewhere else (load balancer, CDN)? | §13 — no TLS exists in Topology A; the only TLS design on disk is inside the undeployed nginx config. |
+| 10 | Is TLS terminated at the nginx in `nginx/`, or somewhere else (load balancer, CDN) with nginx behind it? | §13 — no TLS exists in Topology A. `nginx/conf.d/40-tls.conf` is the only TLS design on disk and it assumes it is the termination point: it pins TLS 1.2/1.3, staples nothing (Let's Encrypt retired OCSP), and refuses unknown `Host` with `ssl_reject_handshake`. Putting a terminator in front changes the rate-limit keying too — every zone keys on `$binary_remote_addr`, which would become the proxy's. |
 
 **Do not treat any row above as answered by this document.** A future ADR or a Phase-1/2 change-control
 cycle (per `docs/devprotocol/phase3/CONSTRAINTS.md` §6 conflict resolution order) is the place to resolve

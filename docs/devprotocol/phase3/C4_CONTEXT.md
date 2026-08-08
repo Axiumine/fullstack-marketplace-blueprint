@@ -102,7 +102,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Nominatim — public OSM | yes | `marketplace-admin` / `marketplace-shopowner` browser → `nominatim.openstreetmap.org`, low-volume internal-panel use |
 | Cloudflare Turnstile | yes | anti-bot token, browser-issued, verified server-side by `marketplace-dev-public-resource` against `siteverify` |
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
-| nginx | — | TLS termination, HTML cache, rate limits — deployable configs live at `marketplace-user/docs/nginx/`, **no nginx is installed anywhere in this workspace** |
+| nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `nginx/` in the workspace root and are exercised by `nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
 | npm registry | no | resolves every dependency except `@thedoctorweb_agency/marketplace-common`, which 404s there — bridged by `deploy-local.sh` |
 

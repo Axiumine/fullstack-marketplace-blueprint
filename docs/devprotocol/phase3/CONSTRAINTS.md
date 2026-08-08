@@ -80,7 +80,7 @@ These 4 are BC-11 "Ordering & Fulfilment [PLANNED - NOT BUILT]" in `phase2/BOUND
 
 Also out of scope for Phase 3 doc work (not new domain gaps, just not this phase's job):
 
-- Installing nginx config (docs-only in `marketplace-user/docs/nginx/`, no nginx binary on this machine).
+- Installing nginx config (written and container-tested at `nginx/` in the workspace root, no nginx binary on this machine).
 - Publishing any repo to a forge / choosing an org — user's undecided call.
 - Publishing `marketplace-common` to a real npm registry.
 - Deciding GDPR applicability (NFR-CO02, open question, not yet a requirement).
