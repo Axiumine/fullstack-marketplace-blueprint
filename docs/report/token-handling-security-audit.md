@@ -301,7 +301,7 @@ Stated so the report is not read as more complete than it is.
   attacker racing for the rotation window.
 - **Multi-tab concurrent-refresh behaviour was not examined.** Relevant to designing §3.2's fix, not to
   the finding itself.
-- **Encryption at rest for the MongoDB collections holding PII and Italian legal-identity fields**
+- **Encryption at rest for the MongoDB collections holding PII and legal-identity fields**
   (`taxCode`, `vatNumber`, `certifiedEmail`) is out of scope for a token audit but is the adjacent
   question this review did not touch.
 - **No full dependency-tree audit** of `@axiumine/koa-utils` or `@sentry/node` beyond the specific
