@@ -1,17 +1,16 @@
 # Marketplace — workspace root
 
-Multi-tenant marketplace — many independent shops, one platform. This is **not** a pizza platform: the
-13 food collections that made it look like one, plus `costiConsegna`, `puntoVendita` and `categoria`,
-were deleted on 2026-08-04 along with their migrations, models, resolvers and tests. What remains is
-the tenant skeleton — `admin`, `shopOwner`, `company` — and it is domain-neutral.
+Multi-tenant marketplace — many independent shops, one platform. The catalogue is domain-neutral:
+nothing in `item` / `itemCategory` presumes what is sold, and no vocabulary that presumes a product
+type belongs in it. Everything is named in English — identifiers, collections, routes, UI text,
+comments.
 
-⚠️ **Everything is named in English since the same date**, reversing the "keep it Italian" rule this
-workspace carried until then. The rename covered identifiers, collections, routes, UI text and
-comments, and it rewrote the applied migrations in place — see `CLAUDE.md` under *Language* and
-*Data model*.
+This directory is the parent workspace of all Marketplace repos (polyrepo). Start from `CLAUDE.md`; it
+routes to `docs/architecture.md`, `docs/data-model.md`, `docs/frontends.md`, `docs/testing.md`,
+`docs/workflow.md`, `docs/conventions.md` and `docs/gitnexus.md`, and to
+`docs/devprotocol/phase3/adr/ADR-INDEX.md` for the rationale behind every decision below.
 
-This directory is the parent workspace of all Marketplace repos (polyrepo — see `CLAUDE.md` for
-architecture, terminology and repo layout).
+**This file is the gate policy** — which layer blocks what, and what the mutation rollout found.
 
 ## Backend datasource matrix
 
@@ -27,18 +26,17 @@ Legend: ✅ connected and used · ❌ not used.
 |`marketplace-dev-public-resource`|4027|public|✅|✅|
 |`marketplace-dev-authenticated-authorization`|4029|ShopOwner|✅|✅|
 |`marketplace-dev-authenticated-resource`|4026|ShopOwner|✅|✅|
-|`marketplace-dev-authenticated-logout`|4030|ShopOwner|❌|✅|
+|`marketplace-dev-authenticated-logout`|4030|all three|❌|✅|
 |`marketplace-dev-admin-authenticated-authorization`|4025|Admin|✅|✅|
 |`marketplace-dev-admin-authenticated-resource`|4024|Admin|✅|✅|
+|`marketplace-dev-user-authenticated-authorization`|4031|User|✅|✅|
+|`marketplace-dev-user-authenticated-resource`|4032|User|✅|✅|
 
 The **Port** column is reproducible: `grep -m1 '^PORT=' <repo>/env` in each service returns the
-number above. It did not used to be — all seven committed `env` templates carried the same
-copy-paste `PORT=4064`, a port none of them listens on, so a fresh clone that copied `env` to `.env`
-would have started all seven on one wrong port and six would have failed to bind. Corrected from the
-real `.env` on the dev machine; the column itself was right all along.
+number above.
 
-⚠️ The services do **not** bind `127.0.0.1` — they bind every interface (`::`), on purpose; see the
-*Backend services* section of `CLAUDE.md`.
+⚠️ The services do **not** bind `127.0.0.1` — they bind every interface (`::`), on purpose; see
+`docs/architecture.md`, *Ports and binding*.
 
 Support packages (not servers):
 
@@ -90,7 +88,7 @@ done
 A `package.json` dependency is **not** evidence of use — the seven services share a copy-pasted
 dependency block, so unused adapters and clients are listed everywhere. Read the connect calls.
 
-Last verified: 2026-07-25.
+Last verified: 2026-08-07 (all nine services).
 
 ## Test quality gates
 
@@ -222,7 +220,7 @@ What the severity gate found the moment it existed: **14 High findings across al
 one of them `ES6PreferShortImport` on the integration tests' `from '../../src/index.mts'`. The advice is
 wrong here — the shortened form was applied and the suite run, and it fails with
 `Cannot find module '/src'` — and every service already carried an exclusion saying exactly that. It was
-scoped to `test/integration/index.itest.mts` alone, so `startFailure`, `shutdown` and `cibi` kept
+scoped to `test/integration/index.itest.mts` alone, so `startFailure` and `shutdown` kept
 reporting into a scan that exited 0 regardless. The scope is now the `test/integration` directory, and
 the rescan that followed put all seven back at **exit 0** with nothing above Moderate left (1–4 each,
 `DuplicatedCode` and `JSDeprecatedSymbols`, deliberately advisory).
@@ -348,5 +346,5 @@ And a survivor that no eviction can kill is usually telling you the code is dead
 distinguish `maximum: 180` from `maximum: -180` in a constant nothing imports, so an unkillable mutant
 in an exported-but-unreferenced value means the thing is orphaned and the fix is to delete it — that is
 how `COORDINATE_DECIMAL` was found in `lib/schemas/geo.js`, left behind when the migrations that
-restated it were deleted with the `puntoVendita` collection. Deleting code is a legitimate way to clear
+restated it were deleted along with a since-removed collection. Deleting code is a legitimate way to clear
 a mutant; lowering `thresholds.break` never is.

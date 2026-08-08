@@ -26,7 +26,7 @@ the systemd unit generator both read it, and neither hand-encodes the list of se
 | `marketplace-user` | Customer app (SSR) | Frontends | frontend | 3045 | `/` |
 
 `marketplace-dev-public-resource` also exposes `GET /check/` as a health path — it is the one service
-with real REST endpoints alongside its GraphQL API (see the workspace `CLAUDE.md`, *Backend services*).
+with real REST endpoints alongside its GraphQL API (see the workspace `docs/architecture.md`, *Services*).
 The three frontends bind `127.0.0.1`; the nine backends bind the wildcard address but are still reached
 at `127.0.0.1` from this monitor, which only ever runs on the same host.
 

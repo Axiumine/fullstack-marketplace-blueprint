@@ -1,0 +1,155 @@
+# DEVPROTOCOL — Phase Status Dashboard
+# Marketplace
+**Status:** Phases 1-5 complete — all five gates closed `pass`
+**Version:** 1.0
+**Date:** 2026-08-07
+**Author:** retrofit-run
+**Changelog:** v1.0 — initial dashboard, written after the Phase 5 gate closed. Brownfield retrofit: every phase artefact was reverse-engineered from the 15-repo working tree, not written ahead of code.
+
+*Updated: 2026-08-07*
+
+Read this file first (RULES.md §12), then `phase1/PDR.md`, then `phase2/UBIQUITOUS_LANGUAGE.md`. Nothing else until you need it.
+
+---
+
+## 1. Phase status
+
+| Phase | Status | Gate | Conflict report | Artefacts |
+|---|---|---|---|---|
+| Phase 1 — Discovery | ✅ Complete | closed, no checker run | none — see §7 | `phase1/PDR.md`, `phase1/SYSTEM_CONTEXT.md`, `phase1/NFR.md` |
+| Phase 2 — Domain Modelling | ✅ Complete | closed, no checker run | none — see §7 | `phase2/EVENT_STORMING.md`, `phase2/UBIQUITOUS_LANGUAGE.md`, `phase2/BOUNDED_CONTEXT.md` |
+| Phase 3 — Architecture | ✅ Complete | **pass** | `phase3/CONFLICT_REPORT.md` v1.1 | `phase3/C4_CONTEXT.md`, `phase3/C4_CONTAINER.md`, `phase3/adr/` (28 ADRs + index + template), `phase3/SECURITY_AUTH.md`, `phase3/INFRA.md` |
+| Phase 4 — Design | ✅ Complete | **pass** | `phase4/CONFLICT_REPORT.md` v1.1 | `phase4/DDD_AGGREGATES.md`, `phase4/ERD.md`, `phase4/API_CONTRACTS.md`, `phase4/ERROR_HANDLING.md` |
+| Phase 5 — Behaviour | ✅ Complete | **pass** | `phase5/CONFLICT_REPORT.md` v1.2 | `phase5/SEQUENCE_DIAGRAMS.md`, `phase5/EPICS_STORIES.md`, `phase5/epics/E01..E11.md`, `phase5/RISK_REGISTER.md`, `phase5/DEFINITION_OF_DONE.md` |
+| Phase 6 — Code | ⬜ Open | — | — | pre-code phases are the gate; see §9 |
+
+**Pre-flight:** not run — no `PREFLIGHT_REPORT.md` exists, and that is deliberate. See §7.
+
+---
+
+## 2. Gate log
+
+RULES.md §4: a gate cannot close while its Conflict Checker Report is not `pass`. Three checkers ran. **Every finding was applied at source before its gate closed** — none deferred, none waived, no threshold moved.
+
+| Gate | Initial verdict | Findings | Applied | Final |
+|---|---|---|---|---|
+| Phase 3 | pass with warnings | CF-01 (warning) — `SECURITY_AUTH.md:257` opened "8 of 9 backend services bind the unspecified address" then contradicted its own count two lines later; ADR-022 and the tree say all 9. §5 nit — `ADR-019:51` cited `docs/nginx/cache.conf` without its `marketplace-user/` prefix. | `SECURITY_AUTH.md:257` → "All 9 backend services bind the **unspecified address**". ADR-019 path prefixed. | **pass** (v1.1) |
+| Phase 4 | **fail** | C-01 (HIGH, blocking) — `ERD.md` and `DDD_AGGREGATES.md` disagreed on whether `admin` carries `personalData`. C-02 (LOW) — `API_CONTRACTS.md` table columns drifted at the two-agent seam (§4-5 vs §6-9). | C-01 re-verified against `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:22-46` **and** `BEs/marketplace-common/src/models/MongoDB/Admin.mts:17-23` before touching anything — the checker was right, and `DDD_AGGREGATES.md` was wrong against both validator and model, so the fix went there and `ERD.md` was left alone. C-02 closed at the level of the rule: every §6-§8 table re-cut, and the convention written into §3 so the seam cannot silently reopen. | **pass** (v1.1) |
+| Phase 5 | pass with warnings | C01 (warning) — §1 cross-referenced "(§9)" for the out-of-scope table, which is §10. C02 (warning) — `CONSTRAINTS.md` §5 documented story ids as `BC-0N-01` while all 77 real stories use `ENN-SNN`. Traceability gap — **NFR-SE03 landed on zero stories**, the one orphan of 17 Critical NFRs. | §9→§10. `CONSTRAINTS.md:78` restated as `ENN-SNN`, naming the epic id as the prefix — no story renamed, none was wrong. NFR-SE03 given a third acceptance criterion on `E01-S04` after verifying the mechanism at `…admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:42,49,51`; placed on S04 rather than its own story because SE03 and SE05/SE06 are two halves of one middleware and splitting them would let one ship without the other. | **pass** (v1.2) |
+
+Each report keeps its own "what I did **not** read" caveat after the re-verdict rather than deleting it — a `pass` here means no conflict was found by a grep-first sweep, not that every ADR body was read cover to cover.
+
+---
+
+## 3. Shared constraints
+
+Injected into every parallel agent of the phase that owns them.
+
+| Phase | Document | Ids |
+|---|---|---|
+| Phase 3 | `phase3/CONSTRAINTS.md` | CON-01..CON-11 |
+| Phase 4 | `phase4/CONSTRAINTS.md` | DCON-01..DCON-09 |
+| Phase 5 | `phase5/CONSTRAINTS.md` | BCON-01..BCON-09 |
+
+Phases 1 and 2 carry none — see §7.
+
+---
+
+## 4. Agent output
+
+All attempts `1`. **0 retries, 0 errors, 0 empty results across every phase.**
+
+| Agent | Phase | Artefact | Lines | Attempt |
+|---|---|---|---|---|
+| `pdr-agent` | 1 | `phase1/PDR.md` | 195 | 1 |
+| `system-context-agent` | 1 | `phase1/SYSTEM_CONTEXT.md` | 468 | 1 |
+| `nfr-agent` | 1 | `phase1/NFR.md` | 164 | 1 |
+| `event-storming-agent` | 2 | `phase2/EVENT_STORMING.md` | 371 | 1 |
+| `ubiquitous-language-agent` | 2 | `phase2/UBIQUITOUS_LANGUAGE.md` | 673 | 1 |
+| `bounded-context-agent` | 2 | `phase2/BOUNDED_CONTEXT.md` | 332 | 1 |
+| `brainy-agent` | 3 | `phase3/CONSTRAINTS.md` | 102 | 1 |
+| `c4-agent` | 3 | `phase3/C4_CONTEXT.md` | 136 | 1 |
+| `c4-agent` | 3 | `phase3/C4_CONTAINER.md` | 320 | 1 |
+| `adr-agent` ×28 | 3 | `phase3/adr/ADR-001..028` | 3120 | 1 |
+| `adr-agent` | 3 | `phase3/adr/ADR-INDEX.md` | 87 | 1 |
+| `security-agent` | 3 | `phase3/SECURITY_AUTH.md` | 392 | 1 |
+| `infra-agent` | 3 | `phase3/INFRA.md` | 571 | 1 |
+| `conflict-checker-agent` | 3 | `phase3/CONFLICT_REPORT.md` | 62 | 1 |
+| `brainy-agent` | 4 | `phase4/CONSTRAINTS.md` | 127 | 1 |
+| `ddd-agent` | 4 | `phase4/DDD_AGGREGATES.md` | 407 | 1 |
+| `erd-agent` | 4 | `phase4/ERD.md` | 456 | 1 |
+| `api-contracts-agent` | 4 | `phase4/API_CONTRACTS.md` | 519 | 1 |
+| `error-handling-agent` | 4 | `phase4/ERROR_HANDLING.md` | 521 | 1 |
+| `conflict-checker-agent` | 4 | `phase4/CONFLICT_REPORT.md` | 70 | 1 |
+| `brainy-agent` | 5 | `phase5/CONSTRAINTS.md` | 120 | 1 |
+| `sequence-agent` | 5 | `phase5/SEQUENCE_DIAGRAMS.md` | 566 | 1 |
+| `epics-agent` | 5 | `phase5/EPICS_STORIES.md` | 115 | 1 |
+| `epics-agent` ×4 | 5 | `phase5/epics/E01..E11.md` | 1618 | 1 |
+| `risk-agent` | 5 | `phase5/RISK_REGISTER.md` | 141 | 1 |
+| `dod-agent` | 5 | `phase5/DEFINITION_OF_DONE.md` | 250 | 1 |
+| `conflict-checker-agent` | 5 | `phase5/CONFLICT_REPORT.md` | 107 | 1 |
+
+Epic ids were **hard-coded in the Phase 5 run script** (`E01`↔`BC-01` … `E11`↔`BC-11`), so the index agent and the four file agents could not disagree on a mapping. That is the fix for a class of drift, not a convenience.
+
+---
+
+## 5. Inventory
+
+| Thing | Count |
+|---|---|
+| Documents | 65 markdown files, 12 011 lines |
+| ADRs | 28 accepted (+ index + `ADR-000-template.md`) |
+| Bounded contexts | 11 (`BC-01`..`BC-11`) |
+| Epics | 11 (`E01`..`E11`) — 10 **built**, `E11` Ordering & Fulfilment **planned, not built** |
+| Stories | 77 unique `ENN-SNN` ids, sequential per epic, no gaps, no duplicates |
+| NFR ids | 48, of which 17 Critical — **all 17 now land on ≥1 story** |
+| Risks | 41 (`R01`..`R41`) |
+| Sequence diagrams | 7 full mermaid flows (§3-§9) + simple flows (§2) |
+
+---
+
+## 6. Stale artefacts / failures
+
+**Stale artefacts:** none recorded.
+**Failures:** none. No `retry_exhausted` event fired in any phase.
+
+These documents describe the working tree **as of 2026-08-07**. They go stale on their own — nothing here watches them. What invalidates what:
+
+| Change on disk | Stales |
+|---|---|
+| New collection, or a `$jsonSchema` edit under `BEs/marketplace-db-setup/lib/schemas/` | `phase4/ERD.md`, `phase4/DDD_AGGREGATES.md`, the migration section of `phase3/INFRA.md` |
+| New or changed resolver | `phase4/API_CONTRACTS.md`, `phase5/SEQUENCE_DIAGRAMS.md` |
+| New service, or a port change | `phase3/C4_CONTAINER.md`, `phase3/INFRA.md`, `phase4/API_CONTRACTS.md` |
+| Any auth-middleware edit | `phase3/SECURITY_AUTH.md`, `phase5/RISK_REGISTER.md` R01-R04, `E01` |
+| A decision reversed | a **superseding** ADR — never an edit to an accepted one (RULES.md §10) |
+| The first commerce collection (cart/order) | `E11`, `phase5/CONSTRAINTS.md` §6, and every "out of scope" claim in phases 3-5 |
+
+---
+
+## 7. What this retrofit did not produce, and why
+
+Honest gaps, so nobody hunts for a file that was never meant to exist here.
+
+- **`PREFLIGHT_REPORT.md`** — pre-flight validates a PDR against a Papa Agent preset at startup. This run *wrote* the PDR from the tree rather than consuming one, so there was nothing to validate before Phase 1 and nothing to report. Absent by design, not skipped.
+- **`phase1/CONSTRAINTS.md`, `phase2/CONSTRAINTS.md`, and conflict reports for Phases 1-2** — the shared-constraint document is written by `brainy-agent` for a *parallel* phase, and the conflict checker runs *after* one. Phases 1 and 2 ran sequentially (PDR→SYSTEM_CONTEXT→NFR, then EVENT_STORMING→UBIQUITOUS_LANGUAGE→BOUNDED_CONTEXT) because each artefact is the next one's input. No parallel phase, no injected constraints, no cross-agent seam to check. Phases 3, 4 and 5 all ran parallel and all three carry both.
+- **Postgres manifest store** — not provisioned. `devprotocol status` has nothing to read. Phase and artefact state live in this file and on disk, which is why this file is item 1 of the session-restore order.
+- **`work/`, `papaAgents/`, `agents.config.yaml`, `.env`** — DEVPROTOCOL's own runtime namespace. This retrofit produced the *documents*, not an installation of the framework into this workspace.
+
+---
+
+## 8. Working state
+
+Branch `docs/devprotocol-retrofit`. **Nothing is committed and nothing is pushed** — the whole tree above is uncommitted work. Pushing any repo here is the user's call, always (`docs/workflow.md` → *Git rules*), and no such call has been made.
+
+---
+
+## 9. Phase 6 entry condition
+
+Phases 1-5 are the pre-code protocol; Phase 6 is code. The entry condition is met — five gates closed `pass`, zero outstanding findings.
+
+Two things bind any code written from here:
+
+1. **`phase5/DEFINITION_OF_DONE.md` is the exit criterion for every story**, not a suggestion. It restates the platform's real gates — 100% coverage on all four metrics and a 100 mutation score, `lint:check`, `tsc --noEmit` and Qodana, in `.githooks/pre-commit` and `.githooks/pre-push`. Never lower a threshold; add the test.
+2. **`phase2/UBIQUITOUS_LANGUAGE.md` §19 is the banned-term list.** Any non-English identifier or string, every product-type term the domain-neutral catalogue must not reintroduce, and the four commerce concepts that have no design yet. Check a name against it before writing it.
+
+Ordering, cart, delivery and payment (`E11`) are **genuinely new design with no existing model to copy**. They do not enter Phase 6 by inference from these documents — they need their own ADRs first.
