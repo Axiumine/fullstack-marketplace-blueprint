@@ -50,7 +50,7 @@ Row-3 win over row 2 turns on forgeability: a `role` field, even correctly check
 
 ### Negative
 - 3x the service processes vs a single account+role design — 3 `*-authenticated-authorization` + 3 `*-authenticated-resource` (6 total) instead of 2.
-- Duplication risk across the 3 authorization service bodies existed until 2026-08-05, when `marketplace-common@4.4.0` factored the shared session/refresh/account-lookup logic out (`resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens`) — deployables stayed 3 on purpose, see `docs/decisions/authorization-service-consolidation.md`.
+- Duplication risk across the 3 authorization service bodies existed until 2026-08-05, when `marketplace-common@1.0.0` factored the shared session/refresh/account-lookup logic out (`resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens`) — deployables stayed 3 on purpose, see `docs/decisions/authorization-service-consolidation.md`.
 - One shared `REDIS_KEY` prefix across all 9 services (kept for the shared logout service, `marketplace-dev-authenticated-logout`) means a session key from any tier is technically findable by any service — `assertTier` is the only thing standing between an Admin token and the ShopOwner resource API, not collection separation alone.
 
 ### Risks

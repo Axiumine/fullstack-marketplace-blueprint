@@ -1,7 +1,7 @@
 # ADR-015 — marketplace-common is consumed by published package name, is not published, and deploy-local.sh bridges the gap
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, amended 2026-08-08
 **Date:** 2026-08-04
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
@@ -9,12 +9,40 @@
 
 ---
 
+## Amendment, 2026-08-08 — the publish is prepared and deliberately not executed
+
+⚠️ **Everything this ADR listed as "undecided" is now decided, and the package is still not published.**
+Read the amendment before the body: the decision below still holds, but three of the reasons it gave for
+holding have expired.
+
+| Was | Is |
+|---|---|
+| `@thedoctorweb_agency/marketplace-common`, version `4.4.0` | `@axiumine/marketplace-common`, version **`1.0.0`** — a rename and a renumber in one move. Every consumer declares `^1.0.0`. |
+| `"license": "UNLICENSED"` | **GPL-3.0-or-later**, with the full text in `BEs/marketplace-common/LICENSE`. The nine services stay `UNLICENSED`; their `qodana.yaml` already allowed copyleft dependencies on the grounds that they are never distributed, and that reasoning is what now carries the GPL dependency. |
+| "Registry choice/org undecided … nothing here points at them" | Org is **Axiumine**. `git@github.com:Axiumine/marketplace-common.git` exists, is public, and is this repo's `origin`. Nothing has been pushed to it. |
+| `package.json` has no publish configuration | It has `publishConfig: { access: "public", registry: "https://registry.npmjs.org/" }` — a scoped package defaults to `restricted`, so the key is what makes a public publish possible at all. |
+
+**The publish itself has not happened and is not to be run without the platform owner doing it.**
+`registry.npmjs.org/@axiumine/marketplace-common` still 404s, `deploy-local.sh` is still the only thing
+putting built code where node expects it, and the whole body of this ADR still describes the live
+mechanism.
+
+One compliance line below is superseded by this amendment: a `publishConfig` registry URL in
+`BEs/marketplace-common/package.json` is **no longer a violation**, it is the prepared state. An
+`.npmrc` auth token committed to any repo still is, and so is anyone running `npm publish` /
+`yarn upload` other than the platform owner.
+
+When the publish does happen, this ADR is superseded rather than amended again — that is the trigger
+CON-09 describes, and the day it fires the "Was" column above becomes history rather than context.
+
+---
+
 ## Context
 
 Nine backend services (`BEs/dev/*`) share one code library, `BEs/marketplace-common`. Its
-`package.json` names it `@thedoctorweb_agency/marketplace-common` (`BEs/marketplace-common/package.json:2`)
+`package.json` names it `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`)
 and every consumer's `package.json` depends on that exact string — a real npm-scoped package name. The
-package is not published to any registry. `registry.npmjs.org/@thedoctorweb_agency/marketplace-common`
+package is not published to any registry. `registry.npmjs.org/@axiumine/marketplace-common`
 404s.
 
 Polyrepo, no workspace tool (`yarn workspaces`, `pnpm`, Nx) links the repos — each of the fourteen repos
@@ -53,15 +81,20 @@ unchanged.
 Chosen: the fourth option — package name in `package.json` and in every consumer's dependency stays
 the real scoped name, no registry entry exists, and `BEs/marketplace-common/deploy-local.sh` builds
 `dist/` and rsyncs it plus `package.json` into every consumer's
-`node_modules/@thedoctorweb_agency/marketplace-common/` (`deploy-local.sh:78,99-100`).
+`node_modules/@axiumine/marketplace-common/` (`deploy-local.sh:78,99-100`).
 
 Reasoning: the alternative that removes the manual step (real publish) is explicitly deferred by
 CON-09, and the alternative that removes the polyrepo boundary (`yarn workspaces`) is rejected by the
 standing "Polyrepo, not a monorepo" decision — the fourth option is the only one left that touches
-neither. It also makes the eventual real publish a pure subtraction: `deploy-local.sh`'s own header
-says "It replaces neither `npm publish` nor `yarn install` … The day the package is published, delete
-it" (`deploy-local.sh:11`) — no consumer `package.json` needs to change on that day, because the
+neither. No consumer `package.json` needs to change on the day of a real publish, because the
 dependency string was always the real one.
+
+⚠️ **`deploy-local.sh` does not get deleted on that day, and its header no longer says it will.** It
+said "The day the package is published, delete it" until the 2026-08-08 amendment above; that was
+wrong about its own job. The script is what closes the gap *between* releases — an edit to `src/` is
+not on the registry until someone publishes it, so a workspace that deleted the script would silently
+run every consumer against the last published build. It goes only if the workspace stops consuming
+this package by name.
 
 Consumer discovery is by **declaration**, not by what happens to be installed:
 `deploy-local.sh` globs `find "$ROOT" -maxdepth 4 -name package.json … -exec grep -l "\"$PKG_NAME\""`
@@ -120,17 +153,19 @@ not fix a stale consumer, the range has to move too.
 Verify the bridge is in place and current:
 
 - `grep -n '"name"' BEs/marketplace-common/package.json` must read
-  `@thedoctorweb_agency/marketplace-common`, matching every consumer's dependency string in its own
+  `@axiumine/marketplace-common`, matching every consumer's dependency string in its own
   `package.json`.
 - After any edit under `BEs/marketplace-common/src/`, `./deploy-local.sh` must run before the change
   is considered live; `./deploy-local.sh --dry-run` lists every consumer it would touch without
   writing, useful to confirm the consumer set before a real run.
 - `yarn test:contract` (`BEs/marketplace-common/package.json:24`) must pass — it is what catches a
   file with no `exports` entry.
-- A violation looks like: a consumer's `node_modules/@thedoctorweb_agency/marketplace-common/dist/`
+- A violation looks like: a consumer's `node_modules/@axiumine/marketplace-common/dist/`
   mtime older than the last commit under `BEs/marketplace-common/src/`, or a consumer failing at a
   specific call site with a working `tsc`/import graph (stale build, not missing export), or
   `yarn test:contract` failing (missing export, not stale build).
-- A violation also looks like: any `package.json` in this workspace adding a registry URL, an
-  `.npmrc` auth token, or a real `npm publish` step for `@thedoctorweb_agency/marketplace-common` —
-  out of scope per CON-09 until the platform owner decides otherwise.
+- A violation also looks like: an `.npmrc` auth token committed to any repo, or anyone other than the
+  platform owner running `npm publish` / `yarn upload` for `@axiumine/marketplace-common` — out of
+  scope per CON-09 until they decide otherwise. **The `publishConfig` registry URL in
+  `BEs/marketplace-common/package.json` is not one** — see the amendment at the top; it is the
+  prepared state, and a scoped package without `access: "public"` cannot be published publicly at all.

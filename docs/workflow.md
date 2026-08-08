@@ -49,7 +49,7 @@ write uploads into. Do not count it, do not `git init` it.
 Where these fifteen repos get published, and under which org, is the platform owner's open call and has
 not been made.
 
-⚠️ **Note the npm/git split.** `@thedoctorweb_agency/marketplace-common` and `@axiumine/koa-utils` are
+⚠️ **Note the npm/git split.** `@axiumine/marketplace-common` and `@axiumine/koa-utils` are
 *npm package* names, unrelated to where the git repo lives. Renaming a git remote never implies renaming
 the package, and vice versa.
 

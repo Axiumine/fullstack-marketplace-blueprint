@@ -1,7 +1,7 @@
 # Consolidating the three `*-authenticated-authorization` services
 
 **Status: decided and implemented — option (c).** Decided 2026-08-07 by the platform owner, after the
-survey below; shipped the same day as `marketplace-common@4.4.0` plus one commit per service — see
+survey below; shipped the same day as `marketplace-common@1.0.0` plus one commit per service — see
 *As implemented*. Options (a) and (b) are recorded here so nobody re-opens them from scratch; (a) is
 blocked on grounds that have not changed.
 
@@ -174,7 +174,7 @@ in `CLAUDE.md` changed first, which is a separate decision.
 
 ## As implemented (2026-08-07)
 
-Shipped as `marketplace-common@4.4.0` plus one commit in each of the three services. Three helpers under
+Shipped as `marketplace-common@1.0.0` plus one commit in each of the three services. Three helpers under
 `src/others/`, one interface under `src/models/MongoDBInterfaces/`:
 
 |Helper|Replaces|Kept per service|
@@ -272,11 +272,11 @@ the places where nothing local has an opinion** — another repo's environment f
 validator. That repo now runs 16 files / 309 tests, 100% on all four metrics, 100.00 mutation.
 
 While the three were open, the dependency skew from option (d) was closed in the same commits:
-`@thedoctorweb_agency/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
+`@axiumine/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
 each `qodana.yaml` `dependencyOverrides` entry was bumped to `4.4.0` alongside — that key is an exact match,
 not a range, so a stale entry silently stops applying. The bump to `^4.4.0` is not cosmetic: the new imports
 do not exist in `4.0.0` or `4.3.0`. ⚠️ **The three `yarn.lock` files remain stale for that package** — all
-three pin `@thedoctorweb_agency/marketplace-common@^1.21.0` → `1.21.0` from registry.npmjs.org, a range no
+three pin `@axiumine/marketplace-common@^1.21.0` → `1.21.0` from registry.npmjs.org, a range no
 `package.json` here has declared for a long time. They were already stale before this work and a `yarn install`
 resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
 edit visible. Regenerating them needs the package published first.
@@ -284,7 +284,7 @@ edit visible. Regenerating them needs the package published first.
 ## Follow-ups the survey surfaced, independent of this decision
 
 - ~~Promote `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type.~~ **Done** —
-  `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@4.4.0`.
+  `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@1.0.0`.
 - ~~Resolve the dependency skew listed under option (d).~~ **Done** for the two runtime ranges and the
   `qodana.yaml` override; the stale `yarn.lock` entries remain and need the package published first.
 - Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly

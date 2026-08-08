@@ -131,7 +131,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Authorization service
 **Definition:** Refresh-token cookie → Redis session → mints/rotates access+refresh token pair. No business queries.
-**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common@4.4.0`, decision recorded in `docs/decisions/authorization-service-consolidation.md`.
+**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common@1.0.0`, decision recorded in `docs/decisions/authorization-service-consolidation.md`.
 
 ### checkUserAuthorizationDisDel
 **Definition:** Shared guard function, gates every authenticated resource call on `deleted`/`disabled` flags, all 3 tiers.
@@ -478,7 +478,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/workflow.md` §This directory is the parent workspace.
 
 ### deploy-local.sh
-**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@thedoctorweb_agency/marketplace-common/` by globbing the workspace. Bridges the gap between "consumed as a published package name" and "not actually on any registry" — `@thedoctorweb_agency/marketplace-common` 404s on `registry.npmjs.org`. Must be re-run after every edit to common or consumers keep resolving the previous build.
+**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between "consumed as a published package name" and "not actually on any registry" — `@axiumine/marketplace-common` 404s on `registry.npmjs.org`. Must be re-run after every edit to common or consumers keep resolving the previous build.
 **Used in:** `BEs/marketplace-common/deploy-local.sh`.
 
 ### Migration

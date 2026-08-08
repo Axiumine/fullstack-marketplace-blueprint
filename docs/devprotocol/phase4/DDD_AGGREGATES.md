@@ -367,7 +367,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 
 ## 8. Repositories
 
-**There is no repository layer, anywhere on this platform, and this is the current design — not a gap to silently correct.** Every resolver in every resource service imports a Mongoose model directly from `@thedoctorweb_agency/marketplace-common/models/MongoDB/*` (`BEs/marketplace-common/src/models/MongoDB/{Admin,Company,Item,ItemCategory,ShopOwner,User}.mts`) and calls `.findOne`/`.updateOne`/`.create`/`.aggregate` on it inline, inside the resolver's own `resolve` function. `itemAdd.mts`, `companyAdd.mts`, `funUserAddressDel.mts` — every write cited in §3 goes model → collection with nothing between them.
+**There is no repository layer, anywhere on this platform, and this is the current design — not a gap to silently correct.** Every resolver in every resource service imports a Mongoose model directly from `@axiumine/marketplace-common/models/MongoDB/*` (`BEs/marketplace-common/src/models/MongoDB/{Admin,Company,Item,ItemCategory,ShopOwner,User}.mts`) and calls `.findOne`/`.updateOne`/`.create`/`.aggregate` on it inline, inside the resolver's own `resolve` function. `itemAdd.mts`, `companyAdd.mts`, `funUserAddressDel.mts` — every write cited in §3 goes model → collection with nothing between them.
 
 Cost of this, stated plainly:
 - The aggregate boundary is enforced by convention (one resolver, one model, one collection) rather than by a repository type that could refuse to expose a second collection's model to the wrong resolver.

@@ -205,7 +205,7 @@ do not assume one script name means the same thing across types.
 `yarn build` (ESM only) is the supported path. `build:all`/`prepare:all` are **broken** — missing
 `tsconfig.cjs.json` — per `docs/workflow.md` §Commands; do not run them expecting a CJS build. After `yarn
 build`, `./deploy-local.sh` globs this workspace and syncs `dist/` + `package.json` into every consumer's
-`node_modules/@thedoctorweb_agency/marketplace-common/` — re-run it after every edit, or all 9 services
+`node_modules/@axiumine/marketplace-common/` — re-run it after every edit, or all 9 services
 keep resolving the previous build with no error at the call site (§CON-09 in
 `docs/devprotocol/phase3/CONSTRAINTS.md`).
 

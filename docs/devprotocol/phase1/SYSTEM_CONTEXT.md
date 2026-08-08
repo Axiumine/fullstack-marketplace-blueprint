@@ -69,7 +69,7 @@ against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a
 |Protomaps PMTiles archive|static basemap tile source|`marketplace-user` browser ↔ nginx `/tiles/` (self-hosted static file)|vector map tiles via HTTP range requests — not a live 3rd-party tile server|
 |nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|three vhosts at `nginx/` in the workspace root, exercised by `nginx/test/run.sh`; still installed on no host|
 |Qodana Cloud (JetBrains)|static-analysis SaaS|every repo's `pre-commit`/`pre-push` hook → Qodana Cloud|SARIF-shaped scan report, one project + token per repo|
-|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency **except** `@thedoctorweb_agency/marketplace-common`, which 404s there|
+|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency **except** `@axiumine/marketplace-common`, which 404s there|
 
 ---
 
@@ -458,18 +458,18 @@ project + one `QODANA_TOKEN` per repo, never shared — a shared token interleav
 
 ### 5.13 `yarn install` → npm registry, and the gap `deploy-local.sh` bridges
 
-`@thedoctorweb_agency/marketplace-common` is consumed as a package name by 9 services but is not
+`@axiumine/marketplace-common` is consumed as a package name by 9 services but is not
 published:
 
 ```json
 // BEs/marketplace-common/package.json:2
-"name": "@thedoctorweb_agency/marketplace-common",
+"name": "@axiumine/marketplace-common",
 ```
 
 `registry.npmjs.org` 404s on that name (`docs/workflow.md` §Repo layout). Every other dependency of every repo
 here resolves normally against the real registry — this is the one exception, and it is bridged locally,
 not fixed: `BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json`
-straight into each consumer's `node_modules/@thedoctorweb_agency/marketplace-common/`, discovered by
+straight into each consumer's `node_modules/@axiumine/marketplace-common/`, discovered by
 globbing this workspace. Skipping it after an edit leaves consumers compiling the previous build with no
 error at the call site.
 
@@ -515,5 +515,5 @@ error at the call site.
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|Who creates the 4 missing Qodana Cloud projects (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
-|5|Does `@thedoctorweb_agency/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, `PDR.md` §8 item 5|
+|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, `PDR.md` §8 item 5|
 |6|Where do the 15 repos get published, and under which forge org?|platform owner|open, `PDR.md` §8 item 1|

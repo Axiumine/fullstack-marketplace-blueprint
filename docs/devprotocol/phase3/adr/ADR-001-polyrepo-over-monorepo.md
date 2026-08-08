@@ -25,7 +25,7 @@ Forces:
   `.githooks/`, own Qodana project/token. Verified: `BEs/dev/marketplace-dev-public-authorization/.git`
   through the other 8 each a separate `.git` dir.
 - `marketplace-common` is consumed as an npm package name
-  (`@thedoctorweb_agency/marketplace-common`) that 404s on npmjs — bridged locally by
+  (`@axiumine/marketplace-common`) that 404s on npmjs — bridged locally by
   `BEs/marketplace-common/deploy-local.sh` syncing `dist/` into every consumer's `node_modules/`
   (`docs/workflow.md` §Repo layout, CON-09). Package-name coupling, not path coupling — already decoupled
   from source-tree shape before this ADR.
