@@ -51,7 +51,7 @@ Design note, not a current problem: the catalogue (`item` + `itemCategory`) is d
 | Persona | Description | Primary need |
 |---|---|---|
 | End customer (`User`) | registers, confirms email, fills personal data, manages addresses. Cannot buy anything yet — `BEs/marketplace-db-setup/lib/schemas/user.js` carries no order/cart reference | account + browse today; order tomorrow, no timeline |
-| Shop owner (`ShopOwner`) | runs 1+ `company` rows, each a real shop; manages own `item` catalogue under admin-curated `itemCategory` taxonomy | catalogue mgmt + discoverability, no commerce ops yet |
+| Shop owner (`ShopOwner`) | runs 1+ `company` documents, each a real shop; manages own `item` catalogue under admin-curated `itemCategory` taxonomy | catalogue mgmt + discoverability, no commerce ops yet |
 | Platform operator (`Admin`) | thedoctorweb staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
 | Anonymous visitor | unauthenticated, hits public SSR pages only | browse shops/items, no login required |
 | Platform vendor / developer (thedoctorweb) | operates the 15-repo polyrepo itself — deploys `marketplace-common` across 9 consumers, runs migrations, maintains quality gates | one coherent platform out of 15 independently-committed repos |
@@ -152,7 +152,7 @@ Complete when a developer or operator can:
 1. Clone all 15 repos, run `./deploy-local.sh` from `BEs/marketplace-common`, and have all 9 services build against it with no registry publish.
 2. Run any of the 9 backend services with `yarn dev` and reach it on its documented port (4024–4032) bound wide, verified against the `env` template in each repo.
 3. Register as `User` on `marketplace-user`, confirm email via `GET /check/verify-email-user/:email/:hash`, log in, fill personal data, add multiple addresses, and name exactly one default — never two, never a dangling pointer.
-4. Register a shop as `ShopOwner`, get approved (`waitApprov`) by an `Admin`, create a `company`, publish it, add `item` rows under `Admin`-curated `itemCategory` values.
+4. Register a shop as `ShopOwner`, get approved (`waitApprov`) by an `Admin`, create a `company`, publish it, add `item` documents under `Admin`-curated `itemCategory` values.
 5. Browse the public catalogue anonymously via SSR and hit a geo "shops near me" query that hits `IXSCAN`, never `COLLSCAN`.
 6. Push to any of the 15 repos and have `.githooks/pre-push` block on lint, 100% coverage, 100 mutation score, or a Qodana High/Critical finding — never silently pass.
 7. Add a 4th product type by following the seam: model in `marketplace-common` → `exports` entry → `deploy-local.sh` → migration in `marketplace-db-setup` under `lib/schemas/` → resolvers in the 3 resource services that need it → frontend schema slice — without touching `item`'s shape unless the new type genuinely isn't just an `item` with a different `idCategory`.

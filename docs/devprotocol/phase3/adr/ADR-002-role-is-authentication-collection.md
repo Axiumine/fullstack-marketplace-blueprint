@@ -17,7 +17,7 @@ Platform serves 3 actor kinds needing auth: platform operator (Admin), shop owne
 
 Forcing factor 2026-08-05: all 9 services share one Redis prefix `REDIS_KEY=marketplaceDev:` (needed structurally, see Consequences). Before that date `authorizationAuthenticatedResourceHandler.mts` did `hGetAll(${REDIS_KEY}${accessToken})` and trusted any non-empty hash. An `Admin` access token was accepted by the ShopOwner resource service, and the reverse — real hole, shared-prefix side effect, not a hypothetical.
 
-`user.js` schema comment states the constraint directly: `BEs/marketplace-db-setup/lib/schemas/user.js:3` — "role on this platform is which collection you log in against, not a field on a row."
+`user.js` schema comment states the constraint directly: `BEs/marketplace-db-setup/lib/schemas/user.js:3` — "role on this platform is which collection you log in against, not a field."
 
 ---
 
@@ -35,7 +35,7 @@ Forcing factor 2026-08-05: all 9 services share one Redis prefix `REDIS_KEY=mark
 
 Chose row 3: role is which collection a session authenticated against, encoded structurally via 3 tenant collections + 3 service pairs, never as a data field. `TIER` constant (`admin`\|`shopOwner`\|`user`) written at `BEs/marketplace-common/src/others/Tier.mts`, stamped into the Redis session hash at login, carried through every `refresh`, asserted by `assertTier(actual, expected)` (`BEs/marketplace-common/src/others/assertTier.mts`) in each resource service's auth middleware.
 
-Row-3 win over row 2 turns on forgeability: a `role` field, even correctly checked everywhere today, is one write bug away from privilege elevation because the value lives in mutable data. Collection identity cannot be forged the same way — a ShopOwner session simply has no path to become an Admin row. Row 1 loses on top of that for blast radius: one collection means one Mongo outage or one bad migration touches all 3 actor kinds simultaneously; kept separate, an Admin-tier incident does not touch User auth.
+Row-3 win over row 2 turns on forgeability: a `role` field, even correctly checked everywhere today, is one write bug away from privilege elevation because the value lives in mutable data. Collection identity cannot be forged the same way — a ShopOwner session simply has no path to become an Admin document. Row 1 loses on top of that for blast radius: one collection means one Mongo outage or one bad migration touches all 3 actor kinds simultaneously; kept separate, an Admin-tier incident does not touch User auth.
 
 `assertTier` fails closed on a missing `tier`: `actual !== expected` has no branch for `undefined`, so pre-2026-08-05 sessions (minted before the field existed) are rejected outright rather than trusted as a wildcard — costs one re-login, not a re-opened hole for the remaining `REFRESH_TOKEN_EXPIRY` (90 days). Mismatch answers 403, not 401: the caller authenticated correctly, just against the wrong tier, and a 401 would tell a client to refresh its way out, which it cannot.
 

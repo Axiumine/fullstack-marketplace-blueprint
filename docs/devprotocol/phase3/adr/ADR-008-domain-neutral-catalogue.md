@@ -66,7 +66,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
 ## Consequences
 
 ### Positive
-- New product *category* (most of the time what "new product type" turns out to mean) is a row insert
+- New product *category* (most of the time what "new product type" turns out to mean) is a document insert
   under `itemCategory`, not a migration — usually an item with a different idCategory, not a new
   collection.
 - One resolver set (`itemAdd.mts`, `itemUpdate.mts` in ShopOwner resource service, per
@@ -96,9 +96,9 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
   Revisit condition: any resolver under the ShopOwner or public resource services calls
   `ItemCategory`'s model with a write op (`create`/`updateOne`/`findOneAndUpdate` etc). That silently
   removes the two-level depth cap, since the cap lives in the resolver the new write path would bypass.
-- **Risk: `idCategory`/`idCompany` FK integrity drifts.** Mongo has no foreign keys; both are
-  application-enforced ("resolvers check both before writing" per `item.js` comment). Revisit condition:
-  an integration test or production incident finds an `item` row pointing at a deleted/nonexistent
+- **Risk: `idCategory`/`idCompany` FK integrity drifts.** Both are application-enforced ("resolvers
+  check both before writing" per `item.js` comment). Revisit condition: an integration test or
+  production incident finds an `item` document pointing at a deleted/nonexistent
   `company` or `itemCategory` — signals the check was skipped on some write path.
 - **Risk: pressure to add `price` "just as a field" before order/cart/payment exist.** Revisit condition:
   a Phase 3 or later ADR proposes adding `price` to `item` without a corresponding Order/Cart/Payment

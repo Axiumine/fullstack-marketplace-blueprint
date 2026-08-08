@@ -24,8 +24,8 @@ Real-world cardinality: one shop owner can register one company and run several 
 | Option | Pros | Cons |
 |---|---|---|
 | A. Keep company embedded on the shop, scope the two unique indexes per-shop instead of global | No migration, no new collection, smallest diff | Wrong semantics — a VAT number is a legal identifier, not a per-shop attribute; two different shops of the same company could each mint their own "copy," drifting apart; loses the platform-wide fraud-detection value of a truly global unique |
-| B. Keep company embedded, relax the "one company one row" rule with app-side dedupe/merge tooling | No schema change | Doesn't fix root cause — data still duplicated N times per company, drift risk (three stored copies can silently disagree), ongoing manual admin toil forever, no database-level guarantee |
-| C. Extract `company` into its own collection with required `idShopOwner` FK, keep `vatNumber_unique`/`certifiedEmail_unique` GLOBAL | Cardinality now expressible (1 shopOwner : N companies); one row is one legal entity, indexes finally mean what they say; new collection created empty, no backfill needed for the legal fields | Adds a hop — rendering a shop now means resolving `idCompany` rather than reading an embedded field; every consumer (resolvers, `marketplace-common` models, frontends) has to be updated to the new shape |
+| B. Keep company embedded, relax the "one company one document" rule with app-side dedupe/merge tooling | No schema change | Doesn't fix root cause — data still duplicated N times per company, drift risk (three stored copies can silently disagree), ongoing manual admin toil forever, no database-level guarantee |
+| C. Extract `company` into its own collection with required `idShopOwner` FK, keep `vatNumber_unique`/`certifiedEmail_unique` GLOBAL | Cardinality now expressible (1 shopOwner : N companies); one document is one legal entity, indexes finally mean what they say; new collection created empty, no backfill needed for the legal fields | Adds a hop — rendering a shop now means resolving `idCompany` rather than reading an embedded field; every consumer (resolvers, `marketplace-common` models, frontends) has to be updated to the new shape |
 | D. Also introduce a separate `Shop` collection referencing `Company`, modeling many physical points of sale per company | Would fully model "one company, several storefronts" | Rejected — no requirement for multiple physical locations per company exists on this platform; the catalogue (`item`) is scoped to `idCompany`, not to a location; doubles the entity model for a need nobody stated; the *Data model* bar for a new collection ("a shape `item` genuinely cannot hold") is not cleared |
 
 ---
@@ -39,7 +39,7 @@ Option C. Extract `company` into its own collection (row C above), required `idS
 ## Consequences
 
 ### Positive
-- Legal identity now normalized: one `company` row is one legal entity, whoever owns it, and the two global unique indexes (`vatNumber_unique`, `certifiedEmail_unique`) finally enforce what they claim to.
+- Legal identity now normalized: one `company` document is one legal entity, whoever owns it, and the two global unique indexes (`vatNumber_unique`, `certifiedEmail_unique`) finally enforce what they claim to.
 - `company.idShopOwner` (required) backs `shopOwnerCompanies`, the only list query the collection serves — a shop owner can hold N companies, verified against `BEs/marketplace-db-setup/migrations/20260803000000-create-company.js:91-98`.
 - Unblocked the two migrations that followed: `20260804010000-alter-company-public.js` (storefront fields) and the catalogue (`item`/`itemCategory`) hanging off `idCompany` rather than an embedded object.
 
@@ -50,7 +50,7 @@ Option C. Extract `company` into its own collection (row C above), required `idS
 ### Risks
 - **Multi-location need.** If a real requirement surfaces for one company running several physically distinct points of sale (the case option D was rejected for), this ADR's 1:1 company-shop assumption needs revisiting — do not pre-build it, per `CONSTRAINTS.md` §5 discipline on unbuilt scope.
 - **Occupied identifiers on soft delete.** `vatNumber_unique`/`certifiedEmail_unique` carry no `partialFilterExpression`, so a soft-deleted (`companyDel`-stamped) company keeps its `vatNumber` and `certifiedEmail` occupied forever — revisit only if a legitimate re-registration case appears (e.g. a closed company re-registering under new ownership), not proactively.
-- **Unenforced FK.** `idShopOwner` is a plain ObjectId, not a MongoDB-level FK — nothing stops a `company` pointing at a deleted or nonexistent `shopOwner`. Currently mitigated only in application code (`throwIfShopOwnerDontOwnCompany` on the ShopOwner tier before any write). Revisit if orphaned `company` rows are ever observed in `dbMarketplaceDev`.
+- **Unenforced FK.** `idShopOwner` is a plain ObjectId and nothing stops a `company` pointing at a deleted or nonexistent `shopOwner`. Currently mitigated only in application code (`throwIfShopOwnerDontOwnCompany` on the ShopOwner tier before any write). Revisit if orphaned `company` documents are ever observed in `dbMarketplaceDev`.
 
 ---
 

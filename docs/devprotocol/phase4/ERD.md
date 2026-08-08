@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-6 MongoDB collections back this platform. No more, no fewer — DCON in `docs/devprotocol/phase4/CONSTRAINTS.md` §6 pins the count at 6, forbids a 7th this phase. Doc below = field-by-field truth of every collection, sourced from the `$jsonSchema` validators in `BEs/marketplace-db-setup/lib/schemas/` — those builders ARE the schema, ahead of any mongoose model (DCON-01). Physical model, not abstract — MongoDB has no FK enforcement, so every relationship line below names which validator or which resolver-level guard function stands in for one. Prescriptive: state what platform requires, not narrate what code happens to do.
+6 MongoDB collections back this platform. No more, no fewer — DCON in `docs/devprotocol/phase4/CONSTRAINTS.md` §6 pins the count at 6, forbids a 7th this phase. Doc below = field-by-field truth of every collection, sourced from the `$jsonSchema` validators in `BEs/marketplace-db-setup/lib/schemas/` — those builders ARE the schema, ahead of any mongoose model (DCON-01). Physical model, not abstract — nothing at the database level enforces a relationship, so every line below names which validator or which resolver-level guard function stands in for one. Prescriptive: state what platform requires, not narrate what code happens to do.
 
 Ownership chain fixed, source `docs/devprotocol/phase4/CONSTRAINTS.md` §4 + parent `docs/data-model.md` — do not redraw differently.
 
@@ -46,15 +46,15 @@ erDiagram
         ObjectId defaultAddress "self-pointer, see section 5"
     }
 
-    SHOPOWNER ||--o{ COMPANY : "idShopOwner, unenforced by MongoDB"
-    COMPANY ||--o{ ITEM : "idCompany, unenforced by MongoDB"
-    ITEMCATEGORY ||--o{ ITEM : "idCategory, unenforced by MongoDB"
+    SHOPOWNER ||--o{ COMPANY : "idShopOwner, unenforced"
+    COMPANY ||--o{ ITEM : "idCompany, unenforced"
+    ITEMCATEGORY ||--o{ ITEM : "idCategory, unenforced"
     ITEMCATEGORY ||--o{ ITEMCATEGORY : "idParent, max 1 level, admin-write-only"
 ```
 
 `ADMIN` and `USER` carry no relationship line on purpose. `admin` owns nothing, is owned by nothing — an operator sits outside the chain entirely. `user` owns only the `addresses[]` embedded inside its own document — not a chain link, a value-object list on the `User` aggregate. Drawing either as parent/child of `shopOwner` / `company` / `item` is wrong per `docs/devprotocol/phase4/CONSTRAINTS.md` §4.
 
-`itemCategory ──idParent──> itemCategory` is capped at **one level** — a row whose `idParent` names a subcategory is the one shape the collection must never hold. The cap lives in a resolver guard (`throwIfParentNotTopLevel`, section 6), not in this diagram's relationship and not in the `$jsonSchema` — `$jsonSchema` reads one document at a time and cannot see whether a sibling document's own `idParent` is set.
+`itemCategory ──idParent──> itemCategory` is capped at **one level** — a document whose `idParent` names a subcategory is the one shape the collection must never hold. The cap lives in a resolver guard (`throwIfParentNotTopLevel`, section 6), not in this diagram's relationship and not in the `$jsonSchema` — `$jsonSchema` reads one document at a time and cannot see whether a sibling document's own `idParent` is set.
 
 ---
 
@@ -144,7 +144,7 @@ Source: `BEs/marketplace-db-setup/lib/schemas/company.js`. **A company IS the sh
 | Field | Type | Required | Constraints | Meaning |
 |---|---|---|---|---|
 | `_id` | ObjectId | yes | — | primary key |
-| `idShopOwner` | ObjectId | yes | — | FK to `shopOwner`, unenforced by MongoDB (section 6) |
+| `idShopOwner` | ObjectId | yes | — | FK to `shopOwner`, unenforced (section 6) |
 | `legalName` | string | yes | maxLength 100 | registered name including legal form, never shown to a customer |
 | `vatNumber` | string | yes | exactly 11 chars | VAT registration number, globally unique |
 | `taxCode` | string | no | exactly 11 chars | tax code of the legal entity — the 11-char company form, not the 16-char personal one |
@@ -218,13 +218,13 @@ Doc-level `required`: `login`, `registeredAt` only. **No `waitApprov`** anywhere
 
 ### 3.5 `item`
 
-Source: `BEs/marketplace-db-setup/lib/schemas/item.js`. Bottom of the ownership chain, what a shop sells. **The extension seam** — a new product type is an `itemCategory` row, not a new collection (`BEs/marketplace-db-setup/lib/schemas/item.js:4-10`).
+Source: `BEs/marketplace-db-setup/lib/schemas/item.js`. Bottom of the ownership chain, what a shop sells. **The extension seam** — a new product type is an `itemCategory` document, not a new collection (`BEs/marketplace-db-setup/lib/schemas/item.js:4-10`).
 
 | Field | Type | Required | Constraints | Meaning |
 |---|---|---|---|---|
 | `_id` | ObjectId | yes | — | primary key |
-| `idCompany` | ObjectId | yes | — | FK to `company` — the shop that sells this, unenforced by MongoDB |
-| `idCategory` | ObjectId | yes | — | FK to `itemCategory`, either level, unenforced by MongoDB |
+| `idCompany` | ObjectId | yes | — | FK to `company` — the shop that sells this, unenforced |
+| `idCategory` | ObjectId | yes | — | FK to `itemCategory`, either level, unenforced |
 | `name` | string | yes | maxLength 150 | — |
 | `description` | string | yes | maxLength 2000 | — |
 | `slug` | string | yes | minLength 2, maxLength 160, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | URL segment of `/shop/:slug/item/:itemSlug` — unique **per company**, not globally |
@@ -255,9 +255,9 @@ Source: `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`. Platform-wide ta
 | `_id` | ObjectId | yes | — | primary key |
 | `name` | string | yes | maxLength 100 | — |
 | `slug` | string | yes | minLength 2, maxLength 120, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | URL segment of `/category/:slug`, unique **across both levels** |
-| `idParent` | ObjectId | no | self-FK, unenforced by MongoDB | absent = top-level category; present = subcategory |
+| `idParent` | ObjectId | no | self-FK, unenforced | absent = top-level category; present = subcategory |
 | `position` | int | yes | minimum 0 | **sort ordinal** — not GeoJSON, shares a name with `geo.js`'s point and nothing else |
-| `deleted` | date | no | — | soft-delete stamp; a category is never hard-deleted because `item.idCategory` is required and MongoDB has no FK to stop a dangling reference |
+| `deleted` | date | no | — | soft-delete stamp; a category is never hard-deleted because `item.idCategory` is required and nothing stops a dangling reference |
 | `__v` | int | no | — | versionKey |
 
 Doc-level `required`: `name`, `slug`, `position`. **Writes exist only in the Admin resource service** (`BEs/dev/marketplace-dev-admin-authenticated-resource`) — ShopOwner, User and public tiers read this collection and never write it (DCON-05).
@@ -326,7 +326,7 @@ MongoDB has no foreign-key constraint of any kind. Every arrow in the section-2 
 |---|---|---|---|---|
 | `shopOwner` → `company` | `company.idShopOwner` | No | `throwIfShopOwnerDontOwnCompany` — refuses an `idCompany` the calling session does not hold | `BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts` |
 | `company` → `item` | `item.idCompany` | No | same `throwIfShopOwnerDontOwnCompany`, called from `itemAdd` before the write — an owner cannot stock a company the session does not own | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:5,40` |
-| `itemCategory` → `item` | `item.idCategory` | No | `throwIfItemCategoryMissing` — refuses a category id that does not resolve to a row | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:7,41` (imports `@lib/item/throwIfItemCategoryMissing.mjs`) |
+| `itemCategory` → `item` | `item.idCategory` | No | `throwIfItemCategoryMissing` — refuses a category id that does not resolve to a document | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:7,41` (imports `@lib/item/throwIfItemCategoryMissing.mjs`) |
 | `itemCategory` → `itemCategory` (`idParent`) | `itemCategory.idParent` | No — and a `$jsonSchema` structurally cannot check this: it reads a sibling document | `throwIfParentNotTopLevel` — called only when `idParent` is sent, refuses a parent that is itself a subcategory | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:2,24` (imports `@lib/itemCategory/throwIfParentNotTopLevel.mjs`) |
 | `user.defaultAddress` → `user.addresses[]._id` | intra-document | **Yes** — the one reference MongoDB itself checks | `$expr` `DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES` | `BEs/marketplace-db-setup/lib/schemas/user.js:70-82` |
 | `company.published` ⇒ `slug` + `publicName` present | not an FK, a cross-field invariant | **Yes** | `$expr` `PUBLISHED_IMPLIES_LINKABLE` | `BEs/marketplace-db-setup/lib/schemas/company.js:88-100` |
@@ -367,7 +367,7 @@ Not tuning — part of the design. The public catalogue is read by anonymous tra
 | `vatNumber_unique` | `{vatNumber:1}`, unique, **global, no `partialFilterExpression`** | one VAT number = one company, ever — a soft-deleted company keeps the slot occupied (DCON-04) | `20260803000000-create-company.js` |
 | `certifiedEmail_unique` | `{certifiedEmail:1}`, unique, global | same reasoning for *PEC* | same |
 | `idShopOwner_list` | `{idShopOwner:1}`, non-unique | "my companies" list | same |
-| `slug_unique` | `{slug:1}`, unique, **partial** on `{slug:{$type:'string'}}` | `/shop/:slug` — partial avoids treating every pre-migration slugless row as one colliding null key | `20260804010000-alter-company-public.js` |
+| `slug_unique` | `{slug:1}`, unique, **partial** on `{slug:{$type:'string'}}` | `/shop/:slug` — partial avoids treating every pre-migration slugless document as one colliding null key | `20260804010000-alter-company-public.js` |
 | `address.position_2dsphere` | 2dsphere on `address.position` | the map, "shops near me" — `companiesNearby` **is** this query | same |
 | `published_list` | `{published:1,deleted:1}` | the two equality predicates every public read carries | same |
 | `published_publicName` | `{published:1,deleted:1,publicName:1}` | `/shops` listing sorted by `publicName` | `20260804040000-index-company-public-read.js` |
@@ -445,4 +445,4 @@ All six live in one database, `dbMarketplaceDev` (dev) / `dbMarketplaceTest` (ea
 | 1 | `search` on `shopOwner` is unindexed by design at current cardinality — no threshold or alert exists for "collection reached six figures, revisit." | `BEs/marketplace-db-setup/migrations/20260801000100-index-shopOwner-tbl.js:57` | open, no owner |
 | 2 | `company.idShopOwner` has no existence guard at `companyAdd` time beyond trusting the authenticated session's own id — correct today because the id cannot be attacker-supplied, but the absence is implicit rather than a named guard the way `throwIfShopOwnerDontOwnCompany` is for reads. | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` | flagged, not a defect under current call pattern |
 | 3 | Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason. | `docs/devprotocol/phase4/CONSTRAINTS.md` §6 | explicitly out of scope this phase — ask before inventing |
-| 4 | Whether a "genuinely new product type" ever needs a 7th collection (vs. an `itemCategory` row) has no decision procedure beyond "check first" — the bar to clear is undocumented as a checklist. | parent `docs/data-model.md` | owned by whoever proposes the next product type, not this phase |
+| 4 | Whether a "genuinely new product type" ever needs a 7th collection (vs. an `itemCategory` document) has no decision procedure beyond "check first" — the bar to clear is undocumented as a checklist. | parent `docs/data-model.md` | owned by whoever proposes the next product type, not this phase |

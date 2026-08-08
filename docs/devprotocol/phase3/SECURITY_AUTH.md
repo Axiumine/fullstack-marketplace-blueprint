@@ -33,7 +33,7 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 | `user.personalData`, `user.addresses[]` (incl. GeoJSON `position`) | High | PII + physical location of a customer |
 | `shopOwner.personalData`, `company.taxCode` / `vatNumber` / `certifiedEmail` | High | PII + legal-identity data (tax code, VAT number, certified mailbox) |
 | `shopOwner.notes` (operator-only sub-document) | Medium | internal Admin commentary on a ShopOwner, never meant for the ShopOwner tier to read |
-| Draft / unpublished `company` and `item` rows (`published: false`) | Medium | business/competitive info before the owner chose to publish |
+| Draft / unpublished `company` and `item` documents (`published: false`) | Medium | business/competitive info before the owner chose to publish |
 | `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID` / `SOCKETLABS_SERVER_APIKEY` | Medium | Qodana Cloud quota/report corruption; spoofed transactional email |
 | Browser-held session cookie (refresh token) | High | session hijack for that one account |
 
@@ -184,7 +184,7 @@ export interface IRateLimitStore {
 }
 ```
 
-Guards registration, login, password reset and verification-mail resend — "each one either mints a row, sends an email or tests a password, so an unbounded caller turns them into a spam relay, an enumeration oracle and a bcrypt-powered CPU sink respectively" (comment at the same file). Login limits by **both** email and IP (two calls, two buckets); resend limits by email alone. Callers pass the identity themselves — never a raw password or token, since the key lands in Redis in plaintext. Fixed window, not sliding: accepts up to 2× the limit across a window boundary, traded deliberately for the O(1) cost of a single integer key instead of a sorted set.
+Guards registration, login, password reset and verification-mail resend — "each one either mints a document, sends an email or tests a password, so an unbounded caller turns them into a spam relay, an enumeration oracle and a bcrypt-powered CPU sink respectively" (comment at the same file). Login limits by **both** email and IP (two calls, two buckets); resend limits by email alone. Callers pass the identity themselves — never a raw password or token, since the key lands in Redis in plaintext. Fixed window, not sliding: accepts up to 2× the limit across a window boundary, traded deliberately for the O(1) cost of a single integer key instead of a sorted set.
 
 This is the platform's only application-level auth-path rate limiting. The nginx `limit_req_zone` directives in §5 are a second, independent layer at the edge — not a copy of this one, and not yet installed anywhere (§5).
 

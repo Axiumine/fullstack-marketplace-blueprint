@@ -157,7 +157,7 @@ Writes to `itemCategory` exist **only** in `marketplace-dev-admin-authenticated-
 ### 2.4 Company lifecycle
 Aggregate: `company` (`BEs/marketplace-db-setup/lib/schemas/company.js`)
 
-Two writers, by design, not overlap: `ShopOwner` on own rows only, `Admin` on any row (moderation power). Both tiers carry `companyAdd`/`companyUpdate`/`companyDel` — verified both dirs list all three: `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`.
+Two writers, by design, not overlap: `ShopOwner` on own companies only, `Admin` on any company (moderation power). Both tiers carry `companyAdd`/`companyUpdate`/`companyDel` — verified both dirs list all three: `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`.
 
 ```
 COMPANY LIFECYCLE
@@ -172,7 +172,7 @@ ShopOwner→ Publish Company (companyUpdate,      → Company Made Public (publi
 ShopOwner→ Delete Company (companyDel)          → Company Retired (soft delete, deleted stamped)
                                                   → Delete Refused — Already Retired (403, this tier only)
 Admin   →  Add/Update/Delete Company             → Company Registered/Updated/Retired (operator path)
-                                                  → Delete Accepted On Already-Retired Row (200, this tier only)
+                                                  → Delete Accepted On Already-Retired Company (200, this tier only)
 ```
 
 `companyAdd` answers `OnlyIdType`, not `Boolean`, on the ShopOwner tier — verified:
@@ -183,7 +183,7 @@ import { OnlyIdType } from '@axiumine/koa-utils/graphQL/schema/types/OnlyIdType'
 type: new GraphQLNonNull(OnlyIdType),
 ```
 
-The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired row — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description`, `published` were added by `20260804010000-alter-company-public` — `published` defaults false, nothing indexable until the owner opts in.
+The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired company — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description`, `published` were added by `20260804010000-alter-company-public` — `published` defaults false, nothing indexable until the owner opts in.
 
 ### 2.5 Catalogue writes: item
 Aggregate: `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`)
@@ -286,7 +286,7 @@ Anon Visitor →  sitemapEntries                             → slugs for SSR s
 // Both read the `address.position_2dsphere` index, added by `20260804010000-alter-company-public`
 ```
 
-Every query here answers only `published: true` rows — enforced by a shared pipeline stage, not repeated per query, per the `LIVE_PUBLIC_PIPELINE`/`livePublic` import at `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` (imported by `companiesNearby.mts:6`).
+Every query here answers only `published: true` documents — enforced by a shared pipeline stage, not repeated per query, per the `LIVE_PUBLIC_PIPELINE`/`livePublic` import at `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` (imported by `companiesNearby.mts:6`).
 
 ### 2.8 Cross-cutting policy: foreign-tier token rejection
 Aggregate: Redis session hash (`REDIS_KEY` prefix, shared across all 9 services)
@@ -327,7 +327,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | ShopOwner logs in while `waitApprov` is true | Login refused, generic error, same shape as every other login failure |
 | Any account (`Admin`/`ShopOwner`/`User`) is `deleted` or `disabled` | `checkUserAuthorizationDisDel` gates every authenticated resource call, all 3 tiers |
 | Logout mutation called, any tier's token | Same Redis keys (`REDIS_KEY` + token) deleted regardless of which service minted them — token-content lookup, not tier-scoped (`authorizationLogoutHandler.mts:60,74`) |
-| `itemAdd`/`itemUpdate` given an `idCategory` that does not exist | `throwIfItemCategoryMissing` rejects — no foreign keys in MongoDB, so this substitutes for one |
+| `itemAdd`/`itemUpdate` given an `idCategory` that does not exist | `throwIfItemCategoryMissing` rejects — nothing else enforces the reference |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects, checked **before** the category-existence check so a non-owner learns nothing about real category ids |
 | `x-introspectioncode` header present and matching `INTROSPECTION_CODE` | Bearer-token check bypassed — service-to-service call, never a browser client (`docs/architecture.md` §Auth model) |
 
@@ -338,7 +338,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | Read model | Used by | Contains |
 |---|---|---|
 | `me` (`GraphQLUserMe`) | Customer | personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, login/verify state — `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
-| `shopOwnerCompanies` / `companyItems` / `itemCategories` (ShopOwner tier) | ShopOwner | own `company` rows, own `item` rows per company, the admin-curated category tree (read-only on this tier) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
+| `shopOwnerCompanies` / `companyItems` / `itemCategories` (ShopOwner tier) | ShopOwner | own `company` documents, own `item` documents per company, the admin-curated category tree (read-only on this tier) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
 | `shopOwnerById` (Admin tier, `GraphQLShopOwnerById`) | Admin | full account incl. `waitApprov`, `disabled`, onboarding fields, note/preferences — the approval-screen read model — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries/shopOwnerById.mts` |
 | `companies` / `companiesNearby` / `companyBySlug` / `items` / `itemBySlug` / `itemCategories` / `search` / `sitemapEntries` (public-resource) | Anon Visitor, Customer | published-only projection of `company`/`item`/`itemCategory`, filtered through `livePublic`/`LIVE_PUBLIC_PIPELINE` — `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |
 | `RefreshType` (`refresh` mutation response) | all 3 authenticated tiers | new access/refresh token pair, expiry — read once per refresh cycle, never persisted client-side beyond the httpOnly cookie |
@@ -351,7 +351,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | # | Hotspot | Description |
 |---|---|---|
 | 1 | `waitApprov` field semantics | Schema comment reads "present and true: awaiting admin approval (flagged by telepromoter) or deleted" (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`) — conflates an approval-pending state with a deletion state in one boolean's own doc comment. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the only writer. Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver examined. |
-| 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` row) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
+| 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` document) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
 | 3 | No self-service shop-owner registration | Every `ShopOwner` account today is Admin-provisioned via `shopOwnerAdd`. A public self-registration flow, if ever wanted, is new scope — not a bug in an existing one. |
 | 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
 | 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | `docs/frontends.md` documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
@@ -368,4 +368,4 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 3 | Is `waitApprov`'s state at account creation "approved" or "pending" by default? | Platform dev | Open |
 | 4 | When order/cart/payment/delivery design work starts, who signs off the first schema? | Product + platform dev | Open |
 | 5 | Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item? | Platform dev | Open |
-| 6 | What `idShopOwner` does an Admin-created `company` row get, absent an owning ShopOwner having created it first? | Platform dev | Open |
+| 6 | What `idShopOwner` does an Admin-created `company` document get, absent an owning ShopOwner having created it first? | Platform dev | Open |

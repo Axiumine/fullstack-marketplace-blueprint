@@ -28,7 +28,7 @@ if UI hides it.
 Constraint from `docs/architecture.md` §Services: each tier's resource service exposes a genuinely different
 GraphQL surface — `marketplace-dev-admin-authenticated-resource` (4024) owns `itemCategory` CRUD and
 moderation, `marketplace-dev-authenticated-resource` (4026) owns `company`/`item` CRUD for the owner's own
-rows, `marketplace-dev-user-authenticated-resource` (4032) owns account/personalData/addresses. No overlap
+documents, `marketplace-dev-user-authenticated-resource` (4032) owns account/personalData/addresses. No overlap
 in mutation set. `marketplace-dev-authenticated-logout` (4030) is the one exception — it serves all 3
 tiers already, by design (deletes Redis key by token content, never asks which collection minted it), so
 its existence does not argue for merging the frontends either.

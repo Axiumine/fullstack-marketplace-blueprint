@@ -49,9 +49,9 @@ differ.
 ### 2.3 — `companyAdd` / `companyUpdate` / `companyDel` (ShopOwner and Admin tiers)
 Linear CRUD, no multi-actor coordination. ShopOwner tier answers `OnlyIdType`, Admin tier answers
 `Boolean`; `companyDel` differs by guard, not by branching worth a diagram — ShopOwner's write goes
-through `throwIfShopOwnerDontOwnCompany` (403 on an already-retired row, because the guard does not filter
+through `throwIfShopOwnerDontOwnCompany` (403 on an already-retired company, because the guard does not filter
 `deleted`... it does filter, giving 403); Admin's has no ownership guard at all and accepts a delete on an
-already-retired row (200). `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`,
+already-retired company (200). `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`,
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`.
 
 ### 2.4 — `itemCategoryAdd` / `itemCategoryUpdate` / `itemCategoryDel`
@@ -75,13 +75,13 @@ and `src/lib/catalogue/publicRead.mts`; §7 below diagrams the SSR wrapper aroun
 is the part that is not self-evident from the resolver alone.
 
 ### 2.7 — `userVerifyEmailResend`
-Re-sends the activation mail on an unverified `user` row without restarting registration — mints a fresh
+Re-sends the activation mail on an unverified `user` document without restarting registration — mints a fresh
 hash via the same `setEmailHashUser` helper §6 uses on the "restart" branch, resets `requestTimes`/
 `dateLastReq`. `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/userVerifyEmailResend.mts`,
 `BEs/dev/marketplace-dev-public-resource/src/lib/access/verifyEmailFlowUser.mts:74-82`.
 
 ### 2.8 — `shopOwnerUpdateStatus` / `shopOwnerUpdateNote` / `shopOwnerUpdatePreferences`
-Admin-only, linear writes on a `shopOwner` row Admin does not own. `shopOwnerUpdateStatus` produces
+Admin-only, linear writes on a `shopOwner` document Admin does not own. `shopOwnerUpdateStatus` produces
 `Shop Owner Approval Granted` / `Withheld` / `Shop Owner Disabled` — three outcomes of one field write, no
 actor coordination.
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts`.
@@ -127,7 +127,7 @@ sequenceDiagram
 **Narrative**
 
 1. `login` resolves inside one `mongoose.startSession()` transaction — `session.withTransaction`, so no
-   Redis session mints for a row that failed to load.
+   Redis session mints for a document that failed to load.
    `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts:41-71`
 2. `tryLoginShopOwner` (bcrypt compare, `checkUserAuthorizationDisDel` for `deleted`/`disabled`, plus
    ShopOwner-only `waitApprov` gate) throws on any failure; transaction aborts, `tryCatchRethrow` rethrows —
@@ -325,7 +325,7 @@ sequenceDiagram
 
 **Narrative**
 
-1. `userRegister` inserts the `user` row with `emailVerify.valid: false` and a hash, then emails the
+1. `userRegister` inserts the `user` document with `emailVerify.valid: false` and a hash, then emails the
    activation link — no session is minted at registration time, only after verification+login.
    `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/userRegister.mts:1-109`
 2. The only three REST endpoints on the platform live here, mounted by a real `@koa/router` at prefix
@@ -473,7 +473,7 @@ sequenceDiagram
 
 ---
 
-## 9. Sequence diagram 7 — ShopOwner publishes an item, Admin unpublishes it: two tiers, one row, different guards
+## 9. Sequence diagram 7 — ShopOwner publishes an item, Admin unpublishes it: two tiers, one item, different guards
 
 ```mermaid
 sequenceDiagram
@@ -499,14 +499,14 @@ sequenceDiagram
     alt not owner
         AR-->>SO: 403
     else owner
-        AR->>Mongo: $set published:true on item row
+        AR->>Mongo: $set published:true on item document
         AR-->>SO: {status: true}
     end
 
     Adm->>AAR: itemUpdatePublished({_id, published: false})
     AAR->>AAR: assertTier(session.tier, TIER.admin)
     Note over AAR,Mongo: no ownership guard at all — Admin owns nothing, moderates everything
-    AAR->>Mongo: $set published:false on same item row
+    AAR->>Mongo: $set published:false on same item document
     AAR-->>Adm: {status: true}
 ```
 
@@ -523,7 +523,7 @@ sequenceDiagram
 3. **Admin's `itemUpdatePublished` carries no ownership guard at all** — moderation is the point of the
    Admin tier, and an operator does not "own" any company to be checked against. The only gate is
    `assertTier(session.tier, TIER.admin)` at the transport layer; nothing downstream re-checks who created
-   the row.
+   the item.
    `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts:1-37`
 4. Both tiers write the same field (`item.published`) on the same document through two structurally
    different resolvers in two different services — there is no shared "can this caller touch this item"

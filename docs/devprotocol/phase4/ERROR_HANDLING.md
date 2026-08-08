@@ -158,7 +158,7 @@ another tier's Redis session.* `REDIS_KEY` stays one shared prefix across all ni
 (single logout service, ADR-005), so `assertTier` is the only thing standing between an Admin token and
 the ShopOwner API — see ADR-004 and platform `docs/architecture.md` §Auth model.
 
-**3b — Ownership guard.** A resource exists, caller is the right tier, but does not own the specific row.
+**3b — Ownership guard.** A resource exists, caller is the right tier, but does not own the specific document.
 
 ```ts
 export async function throwIfShopOwnerDontOwnCompany(shopOwnerId: Types.ObjectId, companyId: Types.ObjectId) {
@@ -183,7 +183,7 @@ the three address mutations against an id belonging to another customer.
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
 | Session tier ≠ service's expected tier (incl. missing tier) | `assertTier`, every resource service's auth middleware | 403, `Forbidden` | Client must not retry with the same token — needs a session from the correct tier's login resolver. |
-| Caller doesn't own the named row (`Company`, `Item` via `idCompany`, `User` address) | per-entity `throwIfXDontOwnY` guards | 403, `Forbidden` | Same id will never work for this caller; a UI bug, not a transient failure. |
+| Caller doesn't own the named document (`Company`, `Item` via `idCompany`, `User` address) | per-entity `throwIfXDontOwnY` guards | 403, `Forbidden` | Same id will never work for this caller; a UI bug, not a transient failure. |
 | `itemCategory` write attempted outside Admin tier | resolver never exists in ShopOwner/User/public tiers | N/A — no mutation to call | Not a runtime error at all; the write path is absent by construction (DCON-05). |
 
 ### Layer 4 — Validation errors (400)
@@ -225,7 +225,7 @@ undeclared field on a write is a 400 from the database, never a silently-dropped
 
 ### Layer 6 — Conflict errors (409)
 
-Unique-index violation. Global uniques stay global — DCON-04 — so a soft-deleted row still occupies its
+Unique-index violation. Global uniques stay global — DCON-04 — so a soft-deleted document still occupies its
 slot and a re-registration of the same `vatNumber`/`certifiedEmail`/`slug`/`login.email` answers 409, not
 "reactivate the old one."
 
