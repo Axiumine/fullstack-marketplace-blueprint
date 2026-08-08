@@ -50,12 +50,13 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-027 | One frontend app per tier, not one app that switches on role | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-028 | GraphQL is the whole API; three REST endpoints serve email verify only | accepted | 2026-08-05 | — | — | Infrastructure and delivery |
+| ADR-029 | PII at rest: explicit CSFLE, deterministic on the five lookup keys | accepted | 2026-08-08 | — | — | Data model |
 
 ## 3. By area
 
 **Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006
 
-**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014
+**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029
 
 **Catalogue** — ADR-008, ADR-009, ADR-012
 
@@ -77,6 +78,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
+| Encrypt `shopOwner.personalData.firstName` / `lastName` / `address.city` too | ADR-029 | they are the sort keys and `/^term/i` targets of the operator's shop-owner table, and neither CSFLE algorithm survives a sort or a prefix match; encrypting them makes that table silently wrong rather than slow |
+| Switch another field to deterministic so it can be queried | ADR-029 | equal plaintext gives equal ciphertext, which is an equality oracle for anyone holding a read; the five deterministic fields are the ones a login or a verification link must *find*, and the list does not grow for convenience |
 
 ## 5. Gaps
 

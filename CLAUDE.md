@@ -12,14 +12,14 @@ Load the file that matches the task. Do not guess from this page alone.
 |---|---|
 | services, ports, auth model, resolver layout | `docs/architecture.md` |
 | the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | `nginx/README.md` |
-| collections, validators, indexes, migrations | `docs/data-model.md` |
+| collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
 | the three apps + `services-status` | `docs/frontends.md` |
 | vitest layout, integration + mutation traps | `docs/testing.md` |
 | repos, git rules, secrets, `.env`, commands | `docs/workflow.md` |
 | lint, formatting, engines, package plumbing | `docs/conventions.md` |
 | GitNexus MCP + CLI | `docs/gitnexus.md` |
 | gate policy — which layer blocks what | `README.md` |
-| **why** any of this is the way it is (28 ADRs) | `docs/devprotocol/phase3/adr/ADR-INDEX.md` |
+| **why** any of this is the way it is (29 ADRs) | `docs/devprotocol/phase3/adr/ADR-INDEX.md` |
 | traps of one specific repo | that repo's own `CLAUDE.md` |
 
 `git log` answers almost nothing here — history is shallow. The ADR index is the

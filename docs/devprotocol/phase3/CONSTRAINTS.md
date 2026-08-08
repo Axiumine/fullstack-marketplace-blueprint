@@ -95,7 +95,7 @@ When two docs disagree, higher row wins:
 | 2 | `phase1/NFR.md` |
 | 3 | `phase2/UBIQUITOUS_LANGUAGE.md` |
 | 4 | `phase2/BOUNDED_CONTEXT.md` |
-| 5 (lowest) | Phase 3 docs (this file, the 4 document agents' output, the 28 ADRs) |
+| 5 (lowest) | Phase 3 docs (this file, the 4 document agents' output, the 29 ADRs) |
 
 Phase 3 docs never outrank Phase 1/2. A Phase 3 ADR that contradicts PDR/NFR is wrong, not a superseding decision — fix the ADR, don't reinterpret the PDR. If a genuine Phase 1/2 error is found, that goes back through `RULES.md` change-control (PDR §9, NFR §4), not silently overridden in a Phase 3 doc.
 
