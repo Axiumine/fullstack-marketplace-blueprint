@@ -77,7 +77,7 @@ logout topology; a fifth tier is one map entry.
 
 1. **Doctrine.** `TIER_STRATEGY[redData.tier]` is textually the pattern `CLAUDE.md` names and rejects:
    *"A fifth role means a fifth collection and a fifth service pair, **not a role check bolted onto the
-   existing ones**."* It also breaks the "each role gets its own service pair" invariant — authorization
+   existing ones**."* It also breaks the "each role has its own service pair" invariant — authorization
    would merge 3→1 while resource stays 1:3. And it thins the 2026-08-05 `REDIS_KEY` fix: that fix's
    safety currently exists as six independent, hardcoded, separately mutation-tested `assertTier` call
    sites, where a bug in one cannot corrupt the others. One dispatcher replaces six independent

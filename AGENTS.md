@@ -1,13 +1,13 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **`fullstack-marketplace-blueprint`** — this parent directory only. Its `.gitignore` hides `/BEs/` and `/marketplace-admin/`, so the index holds the workspace docs and no application code. The platform's code lives in ten separate sub-repo indexes tied together by the group `marketplace-platform`; see the GitNexus section of `CLAUDE.md` for the registry-name table and the `repo:` parameter rules. Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **`fullstack-marketplace-blueprint`** — this parent directory only. Its `.gitignore` hides `/BEs/` and the three frontend directories, so the index holds the workspace docs and no application code. The platform's code lives in **fourteen** separate sub-repo indexes tied together by the group `marketplace-platform`; see **`docs/gitnexus.md`** for the registry-name table, the `repo:` parameter rules and the contract-extraction gap. Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > ⚠️ **The parent registry name follows the folder, not the product.** It is `fullstack-marketplace-blueprint`, *not* `marketplace` — GitNexus names an index after the directory, and this directory was renamed. Nothing named `marketplace` exists in the registry.
 
-> ⚠️ **`pizzati*` entries are a different workspace.** `list_repos` still returns `pizzati`, `pizzati-admin`, `pizzati-common`, `pizzati-db-setup` and six `pizzati-dev-*`, all rooted at `/media/nvme/websites/pizzati` — the pre-rebrand original, still on disk and still indexed. They are near-identical in shape to the ten here and will answer a query without complaint, but they describe the *other* tree and predate the 2026-08-04 catalogue deletion. Always pass a `marketplace*` registry name.
+> ⚠️ **The registry also holds indexes from other workspaces on this machine.** `list_repos` returns entries rooted outside this tree; some are near-identical in shape to the fourteen here and will answer a query without complaint while describing another codebase entirely. Always pass a `marketplace*` registry name.
 
-> Indexed 2026-08-04: all eleven (ten sub-repos + this dir), group `marketplace-platform` created and synced. `group status` reports every member `STALE (-1 commits behind)` — an artifact, not a real staleness: **no repo in this workspace has a single commit yet**, so there is no HEAD to compare the index against.
+> `gitnexus group status marketplace-platform` reports staleness across the fourteen. Re-run `gitnexus analyze` in a repo after committing to it.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -37,10 +37,10 @@ This project is indexed by GitNexus as **`fullstack-marketplace-blueprint`** —
 | `gitnexus://repo/{name}/clusters` | All functional areas |
 | `gitnexus://repo/{name}/processes` | All execution flows |
 | `gitnexus://repo/{name}/process/{process}` | Step-by-step execution trace |
-| `gitnexus://group/marketplace-platform/status` | Staleness across all 10 |
-| `gitnexus://group/marketplace-platform/contracts` | Contract registry (3 entries, 0 cross-links — see `CLAUDE.md`) |
+| `gitnexus://group/marketplace-platform/status` | Staleness across all 14 |
+| `gitnexus://group/marketplace-platform/contracts` | Contract registry (6 entries, 0 cross-links — see `docs/gitnexus.md`) |
 
-`fullstack-marketplace-blueprint` is this parent workspace and holds docs only. For application code use a sub-repo registry name — `marketplace-common`, `marketplace-db-setup`, `marketplace-admin`, `marketplace-dev-*` — per the table in `CLAUDE.md`.
+`fullstack-marketplace-blueprint` is this parent workspace and holds docs only. For application code use a sub-repo registry name — `marketplace-common`, `marketplace-db-setup`, `marketplace-admin`, `marketplace-dev-*` — per the table in `docs/gitnexus.md`.
 
 ## CLI
 

@@ -1,0 +1,371 @@
+# Event Storming Output
+# Marketplace
+
+**Status:** baselined - brownfield retrofit
+**Version:** 1.0
+**Date:** 2026-08-07
+**Author:** event-storming-agent
+**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+**Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
+**Mutability:** living document — refine as domain understanding evolves
+
+---
+
+## 1. Purpose
+
+Maps every domain event, cmd, actor, policy, read model in Marketplace biz flow. Feeds `UBIQUITOUS_LANGUAGE.md`, next in Phase 2. No `role` field, no permission enum anywhere in this codebase (`CLAUDE.md` §Terminology) — actor identity = which MongoDB collection a session authenticated against. Doc groups flows by aggregate/collection, not by UI screen, for that reason.
+
+Vocab:
+- Commands: intentional trigger, imperative present tense — a GraphQL mutation name in almost every case, one REST verb where the router exists (`GET /check/...`).
+- Domain events: happened, past tense, always.
+- Actors: `Admin`, `ShopOwner`, `User`, Anonymous Visitor. Never "customer"/"admin"/"superadmin" in code.
+- Policies: auto reaction, "when X happens do Y" — enforced in resolver code or a MongoDB `$jsonSchema`/`$expr` validator. No workflow engine exists on this platform; every policy below is inline code or a DB constraint.
+- Read models: shape of a GraphQL query response an actor reads to decide the next command.
+
+| Business role | Code actor | Collection |
+|---|---|---|
+| End customer | `User` | `user` |
+| Shop owner | `ShopOwner` | `shopOwner` |
+| Platform operator | `Admin` | `admin` |
+| Anonymous visitor | none | none |
+
+Built vs planned, stated once because every flow below depends on it: identity, tenant, catalogue flows are BUILT, stormed in full below. Order/cart/delivery/payment are PLANNED — zero collection, zero resolver, zero migration, zero design — stormed separately in §2.9 as a naming exercise only, never as implementation fact. `item` deliberately carries no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js:12-17`).
+
+---
+
+## 2. The big picture flow
+
+### 2.1 Customer registration, verification, session lifecycle
+Aggregate: `user` (`BEs/marketplace-db-setup/lib/schemas/user.js`)
+
+```
+CUSTOMER REGISTRATION & LOGIN
+────────────────────────────────────────────────────────────────────────────────────────
+Actor              Command                                    Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+Anon Visitor   →   Register (userRegister)                →   Customer Registration Requested
+                                                            →   Verification Email Sent
+                                                            →   Duplicate Email Rejected (login.email unique idx)
+Customer       →   Confirm Email
+                   (GET /check/verify-email-user/:email/:hash) → Email Verified
+                                                            →   Verification Hash Rejected
+Customer       →   Log In (loginUser)                     →   Customer Logged In
+                                                            →   Login Refused — Unverified Email
+                                                            →   Login Refused — Disabled/Deleted
+Customer       →   Refresh Session (refresh)               →   Access Token Rotated
+                                                            →   Refresh Refused — Foreign Tier
+Customer       →   Log Out (logout, shared service)        →   Session Destroyed
+```
+
+Sources: `userRegister` mutation — `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/userRegister.mts`. Verify route — `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:25`, a **second route**, not a second handler bound to the same path as the shop-owner variant, because the platform docs itself notes email+hash alone cannot say which collection minted the pair. `loginUser` — `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`, backed by `BEs/dev/marketplace-dev-public-authorization/src/lib/db/login/tryLoginUser.mts`. Refresh — `BEs/dev/marketplace-dev-user-authenticated-authorization/src/graphQLApi/schema/mutations/refresh.mts`. Logout — one shared service for all 3 tiers, `BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts`, resolving through:
+
+```ts
+// BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:60,74
+const redRefreshSession = await redisClient.hGet(`${process.env.REDIS_KEY}${refreshToken}`, 'id')
+const redAccessSession = await redisClient.hGet(`${process.env.REDIS_KEY}${accessToken}`, '_id')
+```
+
+Deletes by token content, tier-blind, on purpose — `docs/architecture.md` §Services: "one service serves every tier, because its resolver deletes the Redis keys by token content and never asks which collection minted them." `loginUser` refuses an account whose `emailVerify.valid` is false with the same generic error every other failure gets, so login cannot be used as an email-enumeration oracle (`docs/architecture.md` §Auth model).
+
+### 2.2 Shop owner account provisioning, approval, onboarding, session lifecycle
+Aggregate: `shopOwner`
+
+Finding: no self-service `shopOwnerRegister` mutation exists on this platform — grepped every mutation directory across all 9 backend services, none named it. The only account-creation path is Admin-initiated.
+
+```
+SHOP OWNER PROVISIONING & APPROVAL
+────────────────────────────────────────────────────────────────────────────────────────
+Actor       Command                                     Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+Admin   →   Add Shop Owner (shopOwnerAdd)             →   Shop Owner Account Created
+                                                        →   Duplicate Login Email Rejected
+Admin   →   Set Status (shopOwnerUpdateStatus)        →   Shop Owner Approval Granted (waitApprov→false)
+                                                        →   Shop Owner Approval Withheld (waitApprov→true)
+                                                        →   Shop Owner Disabled
+ShopOwner → Log In (login)                             →   Shop Owner Logged In
+                                                        →   Login Refused — Awaiting Approval
+                                                        →   Login Refused — Disabled/Deleted
+ShopOwner → Refresh Session (refresh)                  →   Access Token Rotated
+ShopOwner → Log Out (logout, shared service)           →   Session Destroyed
+```
+
+`shopOwnerAdd` mints `_id` itself and stamps `registeredAt`, but sets no `waitApprov` at all:
+
+```ts
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts:35-44
+const doc: IShopOwnerSchema = {
+  _id: new Types.ObjectId(),
+  login: args.login,
+  personalData: validateShopOwnerPersonalData(args.personalData, new Date()),
+  registeredAt: new Date()
+}
+```
+
+`shopOwnerUpdateStatus` is the only mutation that ever writes `waitApprov`, and it always sends both toggles together as non-null booleans — a deliberate full-state save, not a partial patch, "because the one thing a partial update of these two cannot express is turning a flag off":
+
+```ts
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30
+interface IArgs { _id: Types.ObjectId; disabled: boolean; waitApprov: boolean }
+args: {
+  disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
+  waitApprov: { type: new GraphQLNonNull(GraphQLBoolean) }
+}
+```
+
+`onboardingStep` / `onboardingDone` are read, not written, at every auth-middleware site found: `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`. No mutation under any `mutations/` directory on the platform sets either field — flagged as a hotspot, §5.
+
+### 2.3 Admin session, moderation, itemCategory taxonomy
+Aggregate: `admin`, `itemCategory`, `shopOwner` (moderation target), `item` (moderation target)
+
+```
+ADMIN SESSION & MODERATION
+────────────────────────────────────────────────────────────────────────────────────────
+Actor    Command                                       Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+Admin →  Log In (loginAdmin)                        →   Admin Logged In
+Admin →  Refresh Session (refresh)                  →   Access Token Rotated
+Admin →  Log Out (logout, shared service)           →   Session Destroyed
+Admin →  Add Category (itemCategoryAdd)             →   Item Category Created
+                                                      →   Deep-Nesting Rejected (parent not top-level)
+                                                      →   Duplicate Slug Rejected
+Admin →  Update Category (itemCategoryUpdate)        →   Item Category Updated
+Admin →  Delete Category (itemCategoryDel)           →   Item Category Deleted
+Admin →  Set Item Published (itemUpdatePublished)    →   Item Published By Admin
+                                                      →   Item Unpublished By Admin
+Admin →  Delete Item (itemDel, Admin tier)           →   Item Deleted By Admin
+Admin →  Update Shop Owner Note/Preferences          →   Shop Owner Note Recorded
+         (shopOwnerUpdateNote, shopOwnerUpdatePreferences)
+```
+
+`loginAdmin` — `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginAdmin.mts`, backed by `.../src/lib/db/login/tryLoginAdmin.mts`. The depth cap on `itemCategory` lives in the resolver, not the validator — `$jsonSchema` cannot read a sibling document to check whether its parent is itself a subcategory:
+
+```ts
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
+export async function funItemCategoryAdd(data: IItemCategoryValidated) {
+  if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent)
+  try {
+    await ItemCategory.create({ _id: new Types.ObjectId(), ...data })
+  } catch (e) {
+    if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
+    throw e
+  }
+}
+```
+
+Writes to `itemCategory` exist **only** in `marketplace-dev-admin-authenticated-resource` — verified: no `itemCategoryAdd`/`Update`/`Del` file under `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/` or `marketplace-dev-public-resource`. ShopOwner and public tiers read the tree, never write it (`docs/data-model.md` §`item` and `itemCategory`). `itemUpdatePublished.mts` and `itemDel.mts` under the Admin resource service (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`) are a second writer of the same `item.published` flag the owning `ShopOwner` also writes via `itemUpdate` — flagged §5.
+
+### 2.4 Company lifecycle
+Aggregate: `company` (`BEs/marketplace-db-setup/lib/schemas/company.js`)
+
+Two writers, by design, not overlap: `ShopOwner` on own rows only, `Admin` on any row (moderation power). Both tiers carry `companyAdd`/`companyUpdate`/`companyDel` — verified both dirs list all three: `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`.
+
+```
+COMPANY LIFECYCLE
+────────────────────────────────────────────────────────────────────────────────────────
+Actor      Command                                Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+ShopOwner→ Add Company (companyAdd)             → Company Registered
+                                                  → Duplicate vatNumber/certifiedEmail/slug Rejected
+ShopOwner→ Update Company (companyUpdate)       → Company Updated
+ShopOwner→ Publish Company (companyUpdate,      → Company Made Public (published=true,
+             published field)                       publicName/slug/description populated)
+ShopOwner→ Delete Company (companyDel)          → Company Retired (soft delete, deleted stamped)
+                                                  → Delete Refused — Already Retired (403, this tier only)
+Admin   →  Add/Update/Delete Company             → Company Registered/Updated/Retired (operator path)
+                                                  → Delete Accepted On Already-Retired Row (200, this tier only)
+```
+
+`companyAdd` answers `OnlyIdType`, not `Boolean`, on the ShopOwner tier — verified:
+
+```ts
+// BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts:1,27
+import { OnlyIdType } from '@axiumine/koa-utils/graphQL/schema/types/OnlyIdType'
+type: new GraphQLNonNull(OnlyIdType),
+```
+
+The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired row — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description`, `published` were added by `20260804010000-alter-company-public` — `published` defaults false, nothing indexable until the owner opts in.
+
+### 2.5 Catalogue writes: item
+Aggregate: `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`)
+
+```
+CATALOGUE WRITES
+────────────────────────────────────────────────────────────────────────────────────────
+Actor      Command                        Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+ShopOwner→ Add Item (itemAdd)           → Item Added
+                                          → Add Refused — Company Not Owned
+                                          → Add Refused — Category Missing
+ShopOwner→ Update Item (itemUpdate)     → Item Updated
+                                          → Item Published / Item Unpublished (published flag)
+ShopOwner→ Delete Item (itemDel)        → Item Deleted
+```
+
+Two ordered guards, both load-bearing:
+
+```ts
+// BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:39-46
+async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResource) {
+  await throwIfShopOwnerDontOwnCompany(ctx.state.user._id, args.item.idCompany)
+  await throwIfItemCategoryMissing(args.item.idCategory)
+  const newItem: IItemSchema = { _id: new Types.ObjectId(), ...args.item }
+```
+
+Ownership checked before existence, deliberately: "a caller who does not own the shop learns nothing about which category ids are real" (comment at the same site). `itemAdd` answers `OnlyIdType` too, matching `companyAdd` and diverging from the Admin tier's plain `Boolean` returns.
+
+### 2.6 Customer account management: personal data, addresses, default address
+Aggregate: `user`
+
+```
+CUSTOMER ACCOUNT MANAGEMENT
+────────────────────────────────────────────────────────────────────────────────────────
+Actor      Command                                    Domain Event
+────────────────────────────────────────────────────────────────────────────────────────
+Customer → Update Personal Data (userPersonalDataUpdate) → Personal Data Filled In
+Customer → Add Address (userAddressAdd)                → Address Added
+Customer → Update Address (userAddressUpdate)           → Address Updated
+Customer → Set Default Address (userDefaultAddressSet)  → Default Address Set
+                                                          → Set Refused — Address Not Owned
+Customer → Delete Address (userAddressDel)              → Address Deleted
+                                                          → Default Address Pointer Cleared
+                                                              (same write, when the deleted one was default)
+Customer → Change Password (userUpdatePwd)              → Password Changed
+```
+
+`userDefaultAddressSet` is one atomic `$set` of a root-level pointer, never a two-step clear-then-set — "a customer with addresses who wants none of them preferred is not a state the ordering flow has any use for":
+
+```ts
+// BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/mutations/userDefaultAddressSet.mts:34-40
+async resolve(_: unknown, args: IArgs, ctx: IContextUserAuthenticatedResource) {
+  await throwIfUserDontOwnAddress(ctx.state.user._id, args._id)
+  try {
+    await funUserDefaultAddressSet(ctx.state.user._id, args._id)
+```
+
+Deleting the default address must `$unset` the pointer in the same write, or the collection's `$expr` validator rejects the write outright — `funUserAddressDel.mts` exists at `BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/user/funUserAddressDel.mts` (verified on disk) and is an aggregation-pipeline update, not a plain `$pull`:
+
+```ts
+// BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/user/funUserAddressDel.mts:50-62 (per PDR.md, cross-checked file exists)
+const ret = await User.updateOne(
+  { _id: _id, 'addresses._id': addressObjectId },
+  [
+    { $set: { addresses: { $filter: { input: '$addresses',
+        cond: { $ne: ['$$this._id', addressObjectId] } } } } },
+    { $set: { defaultAddress: { $cond: [
+        { $eq: ['$defaultAddress', addressObjectId] }, '$$REMOVE', '$defaultAddress'] } } }
+  ],
+  { updatePipeline: true }
+).exec()
+```
+
+### 2.7 Public discovery — read-only, no domain event
+Aggregate: `company`, `item`, `itemCategory` (read side)
+
+Nothing here mutates state, so nothing here fires a domain event in the strict sense — listed for actor completeness (System Context requires every actor to appear at least once) and because §4 Read Models depends on naming these queries.
+
+```
+PUBLIC DISCOVERY
+────────────────────────────────────────────────────────────────────────────────────────
+Actor            Query                                     Read Model Returned
+────────────────────────────────────────────────────────────────────────────────────────
+Anon Visitor →  companies / companyBySlug                → published-only company list/page
+Anon Visitor →  companiesNearby (bbox or near)            → companies sorted by distance, or bbox filter
+Anon Visitor →  items / itemBySlug                        → published-only item list/page
+Anon Visitor →  itemCategories                            → 2-level category tree
+Anon Visitor →  search                                    → text-search hits across company + item
+Anon Visitor →  sitemapEntries                             → slugs for SSR sitemap generation
+```
+
+`companiesNearby` runs exactly one of two disjoint code paths depending on the argument sent, never both:
+
+```ts
+// BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/companiesNearby.mts:1-4,44-48
+// No `centerSphereFilter` here, deliberately: the map's radius path wants distances back, so it uses
+// `$geoNear` — which sorts and reports `distanceMeters` — while `centerSphereFilter` exists for the
+// one caller that cannot sort by distance because it already sorts by relevance. See `search`.
+// Both read the `address.position_2dsphere` index, added by `20260804010000-alter-company-public`
+```
+
+Every query here answers only `published: true` rows — enforced by a shared pipeline stage, not repeated per query, per the `LIVE_PUBLIC_PIPELINE`/`livePublic` import at `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` (imported by `companiesNearby.mts:6`).
+
+### 2.8 Cross-cutting policy: foreign-tier token rejection
+Aggregate: Redis session hash (`REDIS_KEY` prefix, shared across all 9 services)
+
+Not a flow with its own actor — a guard every authenticated resolver in §2.1–2.6 passes through first. `assertTier(actual, expected)` throws 403, never 401, and treats a session with no `tier` field as invalid rather than a wildcard (`BEs/marketplace-common/src/others/assertTier.mts`, per `docs/architecture.md` §Auth model, pre-verified there). Modelled as a policy, §3, not a flow of its own.
+
+### 2.9 PLANNED — commerce, out of scope, no implementation
+Aggregate: none exist. Named here only so `UBIQUITOUS_LANGUAGE.md` has vocabulary ready if/when this scope is opened — **never** read the presence of these names as a design decision.
+
+```
+PLANNED — NOT BUILT, NO COLLECTION, NO RESOLVER
+────────────────────────────────────────────────────────────────────────────────────────
+Actor       Command (hypothetical)          Domain Event (hypothetical, unimplemented)
+────────────────────────────────────────────────────────────────────────────────────────
+Customer →  Add To Cart                  →  Cart Item Added         [NOT BUILT]
+Customer →  Place Order                  →  Order Placed            [NOT BUILT]
+Customer →  Pay                          →  Payment Authorised      [NOT BUILT]
+ShopOwner→  Dispatch                     →  Delivery Dispatched     [NOT BUILT]
+```
+
+Verified absence, not assumed: PDR.md's scope section lists all 6 collections that exist by migration filename (`admin`, `shopOwner`, `company`, `user`, `itemCategory`, `item`) and none is `order`/`cart`/`payment`/`delivery`; no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching those names (checked during §2.1–2.6 traversal above). `item` has no price field for exactly this reason — `BEs/marketplace-db-setup/lib/schemas/item.js:12-17` states outright a price would be "a guess at a design decision nobody has made." Inventing any part of this requires operator sign-off (`CLAUDE.md` §Build state: "ask before inventing them").
+
+---
+
+## 3. Key policies
+
+| When this event occurs | This policy fires |
+|---|---|
+| Customer Registration Requested | Verification email sent via SocketLabs; wrong-hash attempts counted toward disposing of the registration (`BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:18-24`) |
+| Email Verified | `emailVerify.valid` flips true, `loginUser` stops refusing login for that account |
+| Foreign-Tier Access Token Presented | `assertTier` throws 403, never 401 — caller authenticated correctly, just not for this service (`BEs/marketplace-common/src/others/assertTier.mts`) |
+| Session hash carries no `tier` field | Treated as invalid, never as a wildcard — fail closed, forces re-login rather than trusting a pre-2026-08-05 session |
+| Address Deleted, and it was the default | `defaultAddress` pointer `$unset` in the **same** update as the address removal (`funUserAddressDel.mts`, `updatePipeline: true`) |
+| A write would leave 2 addresses marked default | Structurally impossible — `defaultAddress` is a single root pointer, not a per-element boolean, so "second default" has no representation to reject |
+| `itemCategoryAdd`/`itemCategoryUpdate` given an `idParent` that is itself a subcategory | `throwIfParentNotTopLevel` rejects — depth cap enforced in the resolver, `$jsonSchema` cannot read a sibling document |
+| `companyDel` called on an already-retired company, ShopOwner tier | `throwIfShopOwnerDontOwnCompany` filters `deleted`, answers 403 |
+| `companyDel` called on an already-retired company, Admin tier | Guard does not filter `deleted`, answers 200 — liveness belongs on read/ownership paths, never on the delete write itself (`docs/data-model.md` §`company`) |
+| ShopOwner logs in while `waitApprov` is true | Login refused, generic error, same shape as every other login failure |
+| Any account (`Admin`/`ShopOwner`/`User`) is `deleted` or `disabled` | `checkUserAuthorizationDisDel` gates every authenticated resource call, all 3 tiers |
+| Logout mutation called, any tier's token | Same Redis keys (`REDIS_KEY` + token) deleted regardless of which service minted them — token-content lookup, not tier-scoped (`authorizationLogoutHandler.mts:60,74`) |
+| `itemAdd`/`itemUpdate` given an `idCategory` that does not exist | `throwIfItemCategoryMissing` rejects — no foreign keys in MongoDB, so this substitutes for one |
+| `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects, checked **before** the category-existence check so a non-owner learns nothing about real category ids |
+| `x-introspectioncode` header present and matching `INTROSPECTION_CODE` | Bearer-token check bypassed — service-to-service call, never a browser client (`docs/architecture.md` §Auth model) |
+
+---
+
+## 4. Read models
+
+| Read model | Used by | Contains |
+|---|---|---|
+| `me` (`GraphQLUserMe`) | Customer | personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, login/verify state — `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
+| `shopOwnerCompanies` / `companyItems` / `itemCategories` (ShopOwner tier) | ShopOwner | own `company` rows, own `item` rows per company, the admin-curated category tree (read-only on this tier) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
+| `shopOwnerById` (Admin tier, `GraphQLShopOwnerById`) | Admin | full account incl. `waitApprov`, `disabled`, onboarding fields, note/preferences — the approval-screen read model — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries/shopOwnerById.mts` |
+| `companies` / `companiesNearby` / `companyBySlug` / `items` / `itemBySlug` / `itemCategories` / `search` / `sitemapEntries` (public-resource) | Anon Visitor, Customer | published-only projection of `company`/`item`/`itemCategory`, filtered through `livePublic`/`LIVE_PUBLIC_PIPELINE` — `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |
+| `RefreshType` (`refresh` mutation response) | all 3 authenticated tiers | new access/refresh token pair, expiry — read once per refresh cycle, never persisted client-side beyond the httpOnly cookie |
+| `helloRefresh` / `Hello2Type` | every authenticated + authorization service | liveness/introspection probe, not a business read model — listed because it is the only query some of these services expose |
+
+---
+
+## 5. Hotspots (unresolved complexity)
+
+| # | Hotspot | Description |
+|---|---|---|
+| 1 | `waitApprov` field semantics | Schema comment reads "present and true: awaiting admin approval (flagged by telepromoter) or deleted" (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`) — conflates an approval-pending state with a deletion state in one boolean's own doc comment. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the only writer. Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver examined. |
+| 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` row) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
+| 3 | No self-service shop-owner registration | Every `ShopOwner` account today is Admin-provisioned via `shopOwnerAdd`. A public self-registration flow, if ever wanted, is new scope — not a bug in an existing one. |
+| 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
+| 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | `docs/frontends.md` documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
+| 6 | Commerce vocabulary (§2.9) | Named for glossary readiness only. Zero collection, zero resolver, zero migration exists. Do not treat presence in this document as scope. |
+
+---
+
+## 6. Open questions
+
+| # | Question | Owner | Status |
+|---|---|---|---|
+| 1 | Does self-service shop-owner registration ever get built, or does Admin-provisioning stay permanent? | Product | Open |
+| 2 | What advances `onboardingStep`, and where does that write live? | Platform dev | Open |
+| 3 | Is `waitApprov`'s state at account creation "approved" or "pending" by default? | Platform dev | Open |
+| 4 | When order/cart/payment/delivery design work starts, who signs off the first schema? | Product + platform dev | Open |
+| 5 | Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item? | Platform dev | Open |
+| 6 | What `idShopOwner` does an Admin-created `company` row get, absent an owning ShopOwner having created it first? | Platform dev | Open |

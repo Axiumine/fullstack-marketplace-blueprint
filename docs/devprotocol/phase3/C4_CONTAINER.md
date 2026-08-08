@@ -1,0 +1,320 @@
+# C4 — Container Diagram
+# Marketplace
+
+**Status:** baselined - brownfield retrofit
+**Version:** 1.0
+**Date:** 2026-08-07
+**Author:** c4-agent
+**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+**Depends on:** `docs/devprotocol/phase1/PDR.md` ✅ · `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` ✅ · `docs/devprotocol/phase2/BOUNDED_CONTEXT.md` ✅ · `docs/devprotocol/phase3/C4_CONTEXT.md` ✅
+**Mutability:** keep in sync — update on each architectural change
+
+---
+
+## 1. Purpose
+
+Zooms inside the Marketplace box drawn in `docs/devprotocol/phase3/C4_CONTEXT.md`. Every runnable unit on
+the platform, split on two axes — **tier** (who: public / ShopOwner / Admin / User) × **concern** (what:
+authorization = token lifecycle, resource = domain data) — plus the two data stores, plus the three
+packages that ship code but are never themselves deployed (`marketplace-common`,
+`BEs/marketplace-db-setup`, and the documentation-only nginx layer). Prescriptive, not descriptive: this
+is what the shape of the platform **requires**, backed by real on-disk paths, not a narration of
+incidental code.
+
+Ground truth for every fact below: `CLAUDE.md` and `docs/` at the workspace root, `docs/devprotocol/phase3/adr/`, and
+per-repo `env` templates read directly this session (`grep -m1 '^PORT=' <repo>/env`).
+
+---
+
+## 2. Container diagram
+
+```mermaid
+graph TB
+    subgraph FE["Frontends"]
+        FEA["marketplace-admin :3043\nSPA — Admin tier"]
+        FES["marketplace-shopowner :3044\nSPA — ShopOwner tier"]
+        FEU["marketplace-user :3045\nSSR public routes / SPA /account/*"]
+    end
+
+    subgraph PublicT["public tier"]
+        PA["public-authorization :4028\nlogin, loginAdmin, loginUser"]
+        PR["public-resource :4027\ncatalogue reads, registration,\nverify-email, /check REST"]
+    end
+
+    subgraph ShopOwnerT["ShopOwner tier"]
+        SA["authenticated-authorization :4029\ntoken lifecycle"]
+        SR["authenticated-resource :4026\ncompany + item CRUD, uploads"]
+    end
+
+    subgraph AdminT["Admin tier"]
+        AA["admin-authenticated-authorization :4025\ntoken lifecycle"]
+        AR["admin-authenticated-resource :4024\napproval, itemCategory CRUD,\nmoderation"]
+    end
+
+    subgraph UserT["User tier"]
+        UA["user-authenticated-authorization :4031\ntoken lifecycle"]
+        UR["user-authenticated-resource :4032\npersonalData, addresses,\ndefaultAddress"]
+    end
+
+    LO["authenticated-logout :4030\nserves ALL 3 authenticated tiers"]
+
+    Mongo[("MongoDB\n6 collections")]
+    Redis[("Redis cluster\nshared REDIS_KEY prefix")]
+
+    COMMON["marketplace-common\n(not deployed — deploy-local.sh\nsyncs dist/ into 9 node_modules/)"]
+    DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
+    STATUS["services-status :varies\n(monitor, parent-tracked, no own repo)"]
+    NG["nginx\n(docs only — marketplace-user/docs/nginx/,\nnot installed anywhere here)"]
+
+    FEU -->|"GraphQL, SSR bypasses nginx"| PR
+    FEU --> PA
+    FEU --> UA
+    FEU --> UR
+    FEU --> LO
+    FES --> PA
+    FES --> SA
+    FES --> SR
+    FES --> LO
+    FEA --> PA
+    FEA --> AA
+    FEA --> AR
+    FEA --> LO
+
+    NG -.fronts, docs-only.-> FEU
+    NG -.fronts, docs-only.-> FEA
+    NG -.fronts, docs-only.-> FES
+    NG -.fronts every service too.-> PA
+
+    PA --> Mongo
+    PA --> Redis
+    PR --> Mongo
+    PR --> Redis
+    SA --> Mongo
+    SA --> Redis
+    SR --> Mongo
+    SR --> Redis
+    AA --> Mongo
+    AA --> Redis
+    AR --> Mongo
+    AR --> Redis
+    UA --> Mongo
+    UA --> Redis
+    UR --> Mongo
+    UR --> Redis
+    LO --> Redis
+
+    COMMON -.compiled in, deploy-local.sh.-> PA
+    COMMON -.-> PR
+    COMMON -.-> SA
+    COMMON -.-> SR
+    COMMON -.-> AA
+    COMMON -.-> AR
+    COMMON -.-> UA
+    COMMON -.-> UR
+    COMMON -.-> LO
+
+    DBSETUP -->|"migrate:up"| Mongo
+    STATUS -.polls health of.-> PA
+    STATUS -.polls health of.-> PR
+    STATUS -.polls health of.-> SA
+    STATUS -.polls health of.-> SR
+    STATUS -.polls health of.-> AA
+    STATUS -.polls health of.-> AR
+    STATUS -.polls health of.-> UA
+    STATUS -.polls health of.-> UR
+    STATUS -.polls health of.-> LO
+```
+
+Solid arrows: real runtime calls (GraphQL over HTTP, Mongoose driver calls, Redis client calls). Dashed
+arrows: compile-time (`marketplace-common`, synced not linked), documentation-only (`nginx`), or
+monitoring (`services-status`).
+
+---
+
+## 3. Container descriptions
+
+### Backend services — 9 deployables, Koa 3 + Apollo Server 5, entry `src/index.mts`, Node `^24.18.0`, ESM
+
+| Container | Port | Tier | Technology | Responsibility |
+|---|---|---|---|---|
+| `marketplace-dev-public-authorization` | 4028 | public | Koa 3 + Apollo Server 5, `ENDPOINT = '/public-authorization'` (`BEs/dev/marketplace-dev-public-authorization/src/index.mts`) | Mints the initial session for **all three** authenticated tiers — `login` (ShopOwner), `loginAdmin`, `loginUser` mutations. No business queries. |
+| `marketplace-dev-public-resource` | 4027 | public | Koa 3 + Apollo Server 5 at `/public-resource`, **plus** a real `@koa/router` (`BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts`) prefixed `/check` | Public catalogue reads (published `company`/`item`/`itemCategory` only), customer registration, and the platform's only 3 REST endpoints: `GET /check/`, `GET /check/verify-email/:email/:hash`, `GET /check/verify-email-user/:email/:hash`. Verifies Cloudflare Turnstile. |
+| `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-authorization'` | ShopOwner token lifecycle only — refresh/rotate, re-reads the account to re-check `checkUserAuthorizationDisDel` gates. Body shared via `marketplace-common@4.4.0`'s `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`). |
+| `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-resource'` | Domain data for ShopOwner — `shopOwnerCompanies`, `companyItems`, `itemCategories` reads; `company*`, `itemAdd`/`itemUpdate`/`itemDel` mutations; file uploads (`sharp`, `clamscan`, `file-type`, `graphql-upload` — only resource services carry these). |
+| `marketplace-dev-authenticated-logout` | 4030 | **all three tiers** | Koa 3 + Apollo Server 5, `ENDPOINT = '/logout'` | One `logout` mutation, shared by every frontend. Deletes the Redis session key by **token content**, never inspects which collection minted it — the reason `REDIS_KEY` must stay one shared prefix (`docs/architecture.md` §Auth model). |
+| `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-authorization'` | Admin token lifecycle, same shared-body pattern as the other two `*-authenticated-authorization` services. |
+| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-resource'` | Domain data for Admin — `shopOwnerAdd`/`shopOwnerUpdateStatus` (approval), **sole writer** of `itemCategory` (`funItemCategoryAdd.mts` enforces the depth-2 cap), moderation (`companyDel` any row, `itemUpdatePublished`/`itemDel`). |
+| `marketplace-dev-user-authenticated-authorization` | 4031 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-authorization'` | User (customer) token lifecycle. Signs/verifies the customer refresh cookie together with `public-authorization`'s `loginUser` — both must share `KEYGRIP_KEY_1`/`_2` (`docs/workflow.md` §Environment files). |
+| `marketplace-dev-user-authenticated-resource` | 4032 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-resource'` | Customer account data — `personalData`, `addresses[]` CRUD, `defaultAddress` pointer maintenance. `funUserAddressDel.mts` is the platform's one pipeline update and must coerce ids to `ObjectId` before they enter it. |
+
+### Frontends — 3 deployables, Vite 8 + React 19 + TypeScript strict
+
+| Container | Port | Tier | Technology | Responsibility |
+|---|---|---|---|---|
+| `marketplace-admin` | 3043 | Admin | SPA — TanStack Router, urql, react-hook-form + zod, Tailwind 4 (`marketplace-admin/vite.config.ts:39`, `env.PORT ?? 3043`) | Operator UI. `loginAdmin`, then manage ShopOwners, approve onboarding, curate `itemCategory`, moderate `company`/`item`. Points at 4024/4025/4028/4030. |
+| `marketplace-shopowner` | 3044 | ShopOwner | SPA, same stack, mirror of `marketplace-admin` (`marketplace-shopowner/vite.config.ts:39`, `env.PORT ?? 3044`) | Shop-owner UI, deliberately thinner. Manages own `company` row(s) + `item` catalogue. Points at the four non-admin services: 4028/4029/4026/4030. |
+| `marketplace-user` | 3045 | User + anonymous | TanStack Start — SSR for public routes, `ssr: false` for `/account/*` (`marketplace-user/vite.config.ts:86`, `env.PORT ?? 3045`) | The only server-rendered surface. Public catalogue pages render server-side; `/account/*` never does — a security boundary, not a style choice. Production is served by `marketplace-user/serve.mjs`, which binds `127.0.0.1` only (`serve.mjs:34`, `const HOSTNAME = '127.0.0.1'`) — the one deliberate loopback bind on the platform, because nginx sits in front of it in production and this process has no auth of its own. |
+
+### Data stores
+
+| Container | Technology | Responsibility |
+|---|---|---|
+| MongoDB | primary datastore | 6 collections — `admin`, `shopOwner`, `company`, `user`, `item`, `itemCategory` — each with a strict `$jsonSchema` validator and `additionalProperties: false`, defined in `BEs/marketplace-db-setup/lib/schemas/`. Ownership chain `shopOwner ──idShopOwner──> company ──idCompany──> item ──idCategory──> itemCategory`. Read/written by all 9 backend services via Mongoose. |
+| Redis (cluster) | session store + rate-limit counters | Opaque access/refresh token session hashes, one shared prefix — `REDIS_KEY=marketplaceDev:` (verified `BEs/dev/marketplace-dev-authenticated-resource/env`). Every hash carries a `tier` field asserted by `assertTier` (`BEs/marketplace-common/src/others/assertTier.mts:21`). Cluster topology means Redis deletes must be one key per `del` call — a multi-key `del` throws `CROSSSLOT`. |
+
+### Non-deployed but real — ship code, never listen on a port
+
+| Container | Technology | Responsibility |
+|---|---|---|
+| `marketplace-common` | ESM npm-named library, `@thedoctorweb_agency/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Not on any npm registry; `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@thedoctorweb_agency/marketplace-common/`. An edit here is dead weight to all 9 services until that script runs. |
+| `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
+| `services-status` | Node monitoring app, parent-tracked (`services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
+| nginx | reverse proxy, TLS terminator, HTML cache — **documentation only** | Configs at `marketplace-user/docs/nginx/` (`cache.conf`, `marketplace-user.conf`, `rate-limit.conf`, `security-headers.conf`) — deployable, but **no nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**. They document the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, and the auth-path rate-limit zones that the live stack (fronted elsewhere) is expected to run. |
+
+---
+
+## 4. Key communications
+
+| From | To | Protocol | Data |
+|---|---|---|---|
+| Browser (Anon/User/ShopOwner/Admin) | nginx → frontend | HTTPS | static HTML/JS (SPA) or SSR HTML (`marketplace-user` public routes) |
+| `marketplace-user` SSR server | `marketplace-dev-public-resource` (4027) | HTTP, GraphQL over `fetch`, direct — **bypasses nginx** | `PUBLIC_RESOURCE_URL` (deliberately not `VITE_`-prefixed), a **new urql client built per request** — a shared client would leak one visitor's cached response to the next |
+| Any frontend | its tier's `*-authorization` service or `public-authorization` (4028) | GraphQL mutation (`login`/`loginAdmin`/`loginUser`, or refresh) over HTTPS | sets/reads the refresh-token cookie — Koa signed cookie, Keygrip SHA-512, `KEYGRIP_KEY_1`/`_2`, httpOnly |
+| Any frontend | its tier's `*-resource` service | GraphQL query/mutation over HTTPS | `Authorization: Bearer access:<token>` header, validated against Redis; `preferGetMethod: false` is load-bearing since urql sends no CSRF-preflight headers |
+| All 3 frontends | `marketplace-dev-authenticated-logout` (4030) | GraphQL mutation `logout` | deletes the Redis session key by token content — no tier check, no tier-named mutation |
+| Any `*-resource`/`*-authorization` service | MongoDB | Mongoose driver | reads/writes one or more of the 6 `$jsonSchema`-validated collections |
+| Any `*-resource`/`*-authorization` service | Redis cluster | Redis client (`hGetAll`/`hSet`/`del` etc.) | opaque session hash under the shared `REDIS_KEY` prefix; `del` is one key per call — cluster mode throws `CROSSSLOT` on multi-key `del` |
+| Any service | any other service (declared, not concretely traced) | `x-introspectioncode` header (`INTROSPECTION_CODE`) | bypasses the access-token check for service-to-service calls — treated as a secret, never logged, never sent to a browser (`docs/architecture.md` §Auth model) |
+| `marketplace-common` (compile-time) | all 9 backend services | filesystem sync, not a network call | `BEs/marketplace-common/deploy-local.sh` builds `dist/` and copies it + `package.json` into each consumer's `node_modules/@thedoctorweb_agency/marketplace-common/` |
+| `marketplace-db-setup` | MongoDB | migrate-mongo | `yarn migrate:up` applies migrations that define every collection's `$jsonSchema` |
+| `services-status` | all 9 backend services | HTTP health poll | no GraphQL — reads whatever health surface each service exposes |
+
+---
+
+## 5. Technology decisions
+
+| Decision | Choice | ADR |
+|---|---|---|
+| Identity is the collection you authenticate against — no `role` field, no permission enum | `admin`/`shopOwner`/`user` are three separate collections, three separate service pairs | `docs/devprotocol/phase3/adr/ADR-002-role-is-authentication-collection.md` |
+| Every Redis session hash carries `tier`; every service asserts its own via `assertTier`, 403 not 401, missing tier is invalid not a wildcard | `BEs/marketplace-common/src/others/assertTier.mts` | `docs/devprotocol/phase3/adr/ADR-004-per-tier-session-assertion.md` |
+| One logout service for all three authenticated tiers, keyed by token content | `marketplace-dev-authenticated-logout`, port 4030 | `docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md` |
+| Three `*-authenticated-authorization` services share their handler body via `marketplace-common@4.4.0` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | `docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md` — see §7 below |
+| Catalogue is domain-neutral: one `item` + `itemCategory` pair, no per-product-type collection | presumes nothing about what is sold; a new product type must not reintroduce vocabulary that presumes one | `docs/devprotocol/phase3/adr/ADR-008-domain-neutral-catalogue.md` |
+| No `price` field on `item` | Order/Cart/Delivery/Payment are unbuilt, undesigned — a price with nothing to buy is a guess | `docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md` |
+| English-only naming across code, routes, comments, fixtures and migrations | no exception anywhere; the `en-GB` locale and `english` text-index stemming are market choices, not names | `docs/devprotocol/phase3/adr/ADR-013-english-only-naming.md` |
+| Opaque tokens + Redis sessions, not JWT | despite a stale `JWT` type name in some `schema.graphql` slices | no dedicated ADR verified on disk — see `docs/architecture.md` §Auth model and CON-03 in `docs/devprotocol/phase3/CONSTRAINTS.md` |
+| Public routes SSR, `/account/*` `ssr: false` | pairs with a `proxy_cache` bypass on the session cookie — one security mechanism, two halves | no dedicated ADR verified on disk — see `docs/frontends.md` §marketplace-user and CON-10 in `docs/devprotocol/phase3/CONSTRAINTS.md` |
+
+---
+
+## 6. Directory layout — where to add code
+
+Verified on disk this session (`ls`, `find`, `grep`), not inferred.
+
+```
+fullstack-marketplace-blueprint/                 # parent workspace, its own git repo — tracks only workspace files
+├── BEs/
+│   ├── marketplace-common/                      # WHY: shared code consumed by npm PACKAGE NAME, not a path link —
+│   │   ├── src/others/Tier.mts                   #      an edit here is invisible to all 9 services until deploy-local.sh runs
+│   │   ├── src/others/assertTier.mts
+│   │   ├── src/others/resolveAuthorizationSession.mts
+│   │   └── deploy-local.sh                       # build + sync dist/ into every consumer's node_modules/
+│   ├── marketplace-db-setup/                     # WHY: single source of every collection's $jsonSchema — migrations immutable
+│   │   ├── lib/schemas/                           #      (account.js, collection.js, geo.js, shopOwner.js, company.js,
+│   │   │                                          #       user.js, item.js, itemCategory.js) — builders, not the migrations themselves
+│   │   └── migrations/                            #      one file per applied change, never edited after landing
+│   └── dev/                                       # WHY: 9 independent git repos — tier × concern split, one deployable each
+│       ├── marketplace-dev-public-authorization/
+│       ├── marketplace-dev-public-resource/       #      the one service with a real @koa/router, src/middleware/router/
+│       ├── marketplace-dev-authenticated-authorization/
+│       ├── marketplace-dev-authenticated-resource/
+│       ├── marketplace-dev-authenticated-logout/  #      the one service that serves all 3 tiers
+│       ├── marketplace-dev-admin-authenticated-authorization/
+│       ├── marketplace-dev-admin-authenticated-resource/
+│       ├── marketplace-dev-user-authenticated-authorization/
+│       ├── marketplace-dev-user-authenticated-resource/
+│       └── upload-local/                          # NOT a repo — empty dir the *-resource services write uploads into
+├── marketplace-admin/                             # WHY: separate deployable, separate Qodana project (1rylx), Admin tier only
+│   └── src/graphQLApi or src/gql/, src/routes/     # (per-repo CLAUDE.md/README.md/COVERAGE.md — read before editing)
+├── marketplace-shopowner/                         # WHY: mirror of marketplace-admin, thinner — ShopOwner tier only
+├── marketplace-user/                              # WHY: the only server-rendered surface — SSR/CSR split is a security boundary
+│   ├── src/routeOptions/                          #      behaviour as router-free constants, testable without mounting a router
+│   ├── serve.mjs                                  #      binds loopback only — the one deliberate exception on the platform
+│   └── docs/nginx/                                #      deployable nginx configs, documentation-only in this workspace
+├── services-status/                               # WHY: monitor with no repo of its own — tracked + gated by THIS parent repo
+├── docs/
+│   ├── decisions/                                 # ADRs referenced from CLAUDE.md prose (e.g. authorization-service-consolidation.md)
+│   └── devprotocol/                               # this document set — phase1 (PDR/SYSTEM_CONTEXT/NFR), phase2 (UL/EventStorming/BoundedContext),
+│       └── phase3/                                #   phase3 (this file + C4_CONTEXT.md + CONSTRAINTS.md + adr/)
+└── CLAUDE.md                                       # authoritative project brief — read in full before any cross-repo change
+```
+
+### Where to add
+
+| Change | Destination |
+|---|---|
+| New domain query/mutation for an existing tier | `BEs/dev/marketplace-dev-<tier>-resource/src/graphQLApi/schema/{queries,mutations}/` — **public-resource spells it `src/graphQLPublic/`, not `src/graphQLApi/`** |
+| Token-lifecycle change (refresh/rotate) | the matching `*-authenticated-authorization` service only, or `marketplace-common`'s `resolveAuthorizationSession`/`refreshSessionTokens` if the change applies to all three |
+| New shared Mongoose model or session helper | `BEs/marketplace-common/src/`, add its entry to `package.json` `exports` (no barrel export — an unlisted file is unreachable), then `./deploy-local.sh` |
+| New collection or schema change | `$jsonSchema` builder in `BEs/marketplace-db-setup/lib/schemas/<name>.js`, new migration under `migrations/`, then a full rebuild of every database that ran the migrations |
+| New product type | model in `marketplace-common` → its `exports` entry → `deploy-local.sh` → migration in `marketplace-db-setup` → resolvers in the resource services → schema slice + codegen in the frontends that read it (`docs/data-model.md`) — but check first whether it is genuinely a new type or just an `item` with a different `idCategory` |
+| Admin SPA screen | `marketplace-admin/src/` |
+| ShopOwner SPA screen | `marketplace-shopowner/src/` |
+| Public page or customer-account screen | `marketplace-user/src/routeOptions/` for behaviour, a one-line `createFileRoute(id)(options)` route file to wire it in |
+| New ADR | `docs/devprotocol/phase3/adr/ADR-0NN-<slug>.md`, DevProtocol-numbered |
+
+### Rules
+
+- Services never import each other's `src/` directly. `marketplace-common` is the only shared import, and
+  it is **synced**, not linked — an edit is invisible until `deploy-local.sh` runs.
+- Resource services own every domain write; authorization services carry token-lifecycle code only. Put a
+  new domain mutation in the wrong one and it is unreachable from the frontend that needs it.
+- `itemCategory` writes exist **only** in `marketplace-dev-admin-authenticated-resource` — the depth-2 cap
+  is enforced in that resolver, not in the `$jsonSchema`. Adding a write path anywhere else silently
+  removes the cap.
+- English only — domain names, UI text, routes, comments (CON-11). Tabs, not spaces, enforced by eslint
+  and prettier together. Node `^24.18.0` with the caret kept, `yarn` everywhere.
+- Never edit an applied migration under `BEs/marketplace-db-setup/migrations/` — add a new one.
+- No `Shop` collection, ever — a shop *is* a `company` (CON-02). No `role` field or permission enum on any
+  collection or session (CON-01).
+
+---
+
+## 7. Why the authorization/resource split, and why 3 authorization services stay 3
+
+Two axes, not one. **Tier** (public / ShopOwner / Admin / User) answers *who*; **concern**
+(authorization / resource) answers *what*. The concern axis is fixed platform-wide:
+**authorization** = refresh-token cookie → Redis session lookup → mint/rotate tokens, no business
+queries ever; **resource** = `Authorization: Bearer access:<token>` header → Redis lookup → serves
+domain GraphQL, and only resource services carry `sharp`, `clamscan`, `file-type`, `graphql-upload`
+(`docs/architecture.md` §Services). A new domain query belongs in a resource service; touching an
+authorization service for anything but token lifecycle is out of scope by construction.
+
+**The logout row breaks the pattern on purpose.** `marketplace-dev-authenticated-logout` (4030) is the
+one deployable that serves all three tiers, because its resolver deletes the Redis key by **token
+content** and never asks which collection minted it — tier-named logout mutations were evaluated and
+rejected (`docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md`). It is the exception
+that proves the rule: everywhere else, tier and concern together select exactly one service.
+
+**Why not merge the three `*-authenticated-authorization` services into one process?** Asked and answered
+2026-08-07, decided against — full argument in `docs/decisions/authorization-service-consolidation.md`
+and `docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`, held as
+CON-06 in `docs/devprotocol/phase3/CONSTRAINTS.md`. This document does not re-argue it, only states the
+two load-bearing reasons so a reader does not reopen it as an obvious refactor:
+
+- **Dispatching on a tier read out of a session is the exact pattern the platform's identity model
+  rejects for `role`.** `CLAUDE.md` §Terminology: "role = which collection you authenticate against" —
+  collapsing three tier-scoped processes into one that branches on a session field reintroduces the same
+  shape one layer up.
+- **One `process.exit(1)` for three tiers is an availability cost paid by customers**, not by the operator
+  who caused it. A crash in the Admin-tier auth path would take down ShopOwner and User token refresh
+  too, where three separate deployables fail independently.
+
+**What did ship instead: dedupe the body, keep the deployables.** Since `marketplace-common@4.4.0`, the
+session lookup, the account re-read and the token rotation are one shared implementation —
+`resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens`
+(`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`) — and each of the three services
+supplies only its own `TIER.*` constant (`BEs/marketplace-common/src/others/Tier.mts`), its own Mongoose
+model, and its own projection. The duplication that existed before is gone; the three ports, three
+processes and three independent failure domains are not. Ports 4025 (Admin), 4029 (ShopOwner) and 4031
+(User) stay distinct, verified this session against each repo's `env` template.

@@ -1,0 +1,448 @@
+# Data Model — ERD
+# Marketplace
+
+**Status:** baselined - brownfield retrofit
+**Version:** 1.0
+**Date:** 2026-08-07
+**Author:** erd-agent
+**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+**Depends on:** `CLAUDE.md` (parent workspace) ✅ · `docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md` ✅ · `docs/devprotocol/phase3/CONSTRAINTS.md` ✅ · `docs/devprotocol/phase4/CONSTRAINTS.md` ✅
+
+---
+
+## 1. Purpose
+
+6 MongoDB collections back this platform. No more, no fewer — DCON in `docs/devprotocol/phase4/CONSTRAINTS.md` §6 pins the count at 6, forbids a 7th this phase. Doc below = field-by-field truth of every collection, sourced from the `$jsonSchema` validators in `BEs/marketplace-db-setup/lib/schemas/` — those builders ARE the schema, ahead of any mongoose model (DCON-01). Physical model, not abstract — MongoDB has no FK enforcement, so every relationship line below names which validator or which resolver-level guard function stands in for one. Prescriptive: state what platform requires, not narrate what code happens to do.
+
+Ownership chain fixed, source `docs/devprotocol/phase4/CONSTRAINTS.md` §4 + parent `docs/data-model.md` — do not redraw differently.
+
+---
+
+## 2. Ownership chain — ERD diagram
+
+```mermaid
+erDiagram
+    ADMIN {
+        ObjectId _id PK
+    }
+    SHOPOWNER {
+        ObjectId _id PK
+    }
+    COMPANY {
+        ObjectId _id PK
+        ObjectId idShopOwner FK
+    }
+    ITEM {
+        ObjectId _id PK
+        ObjectId idCompany FK
+        ObjectId idCategory FK
+    }
+    ITEMCATEGORY {
+        ObjectId _id PK
+        ObjectId idParent FK
+    }
+    USER {
+        ObjectId _id PK
+        ObjectId defaultAddress "self-pointer, see section 5"
+    }
+
+    SHOPOWNER ||--o{ COMPANY : "idShopOwner, unenforced by MongoDB"
+    COMPANY ||--o{ ITEM : "idCompany, unenforced by MongoDB"
+    ITEMCATEGORY ||--o{ ITEM : "idCategory, unenforced by MongoDB"
+    ITEMCATEGORY ||--o{ ITEMCATEGORY : "idParent, max 1 level, admin-write-only"
+```
+
+`ADMIN` and `USER` carry no relationship line on purpose. `admin` owns nothing, is owned by nothing — an operator sits outside the chain entirely. `user` owns only the `addresses[]` embedded inside its own document — not a chain link, a value-object list on the `User` aggregate. Drawing either as parent/child of `shopOwner` / `company` / `item` is wrong per `docs/devprotocol/phase4/CONSTRAINTS.md` §4.
+
+`itemCategory ──idParent──> itemCategory` is capped at **one level** — a row whose `idParent` names a subcategory is the one shape the collection must never hold. The cap lives in a resolver guard (`throwIfParentNotTopLevel`, section 6), not in this diagram's relationship and not in the `$jsonSchema` — `$jsonSchema` reads one document at a time and cannot see whether a sibling document's own `idParent` is set.
+
+---
+
+## 3. Entities
+
+Six collections = six aggregate roots, each with its own `_id`. Every validator is `bsonType: 'object'`, `additionalProperties: false` — **an undeclared field on a write is REJECTED, not silently dropped** (DCON-02, `BEs/marketplace-db-setup/lib/schemas/item.js:94`). Soft delete everywhere is a `deleted` date field set once, never a hard remove (DCON-03).
+
+### 3.1 `admin`
+
+Source: `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js` (validator inlined here, no `lib/schemas/admin.js` — the collection is small enough it never needed a second historical shape). Login/reset-password/deleted/disabled sub-shapes shared from `BEs/marketplace-db-setup/lib/schemas/account.js`.
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes (implicit) | — | primary key |
+| `login.email` | string | yes | maxLength 250 | login credential |
+| `login.password` | string | yes | exactly 60 chars | bcrypt hash (`$2y$14$…`, `SALT_ROUNDS=14`) |
+| `login.firstLogin` | date | no | — | set on first successful login |
+| `login.lastLogin` | date | no | — | set on every successful login |
+| `login.onboardingStep` | string | no | maxLength 4 | shared `LOGIN` shape field; read by ShopOwner tier only, inert here |
+| `login.onboardingDone` | bool | no | — | shared `LOGIN` shape field; inert here |
+| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `personalData.firstName` | string | yes | maxLength 100 | operator's first name |
+| `personalData.lastName` | string | yes | maxLength 100 | operator's last name |
+| `deleted` | date | no | — | soft-delete stamp; `deleted: {$exists:false}` = live |
+| `disabled` | bool | no | — | present + true blocks login |
+| `resetPwd.resetDateReq` | date | yes if `resetPwd` present | — | password-reset request timestamp |
+| `resetPwd.resetHash` | string | yes if `resetPwd` present | exactly 50 chars | comparison hash for the reset link |
+| `__v` | int | no | — | mongoose `versionKey` compatibility slot |
+
+Doc-level `required`: `login`, `personalData`. **No `waitApprov`, no `emailVerify`, no `registeredAt`** — an admin account is created by hand, never self-registers, never needs an approval gate or an email-confirmation flow (`BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:6-11`).
+
+```js
+// BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:22-25
+required: [
+  'login',
+  'personalData'
+],
+```
+
+### 3.2 `shopOwner`
+
+Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, restated in full by three migrations (`20260301000100` create, `20260726000000` adds `emailVerify`, `20260802000300` adds address `position` + `notes`) because `collMod` replaces a validator wholesale rather than merging into it. Table below = the current shape, all three flags on.
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes | — | primary key |
+| `login.email` | string | yes | maxLength 250 | login credential |
+| `login.password` | string | yes | exactly 60 chars | bcrypt hash |
+| `login.firstLogin` / `login.lastLogin` | date | no | — | login timestamps |
+| `login.onboardingStep` | string | no | maxLength 4 | onboarding wizard step |
+| `login.onboardingDone` | bool | no | — | onboarding wizard complete |
+| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `personalData.firstName` / `.lastName` | string | yes | maxLength 100 each | owner's name |
+| `personalData.birth.date` | date | yes | — | date of birth |
+| `personalData.address.street` | string | yes | maxLength 250 | home address |
+| `personalData.address.postalCode` | string | yes | exactly 5 chars | — |
+| `personalData.address.city` | string | yes | maxLength 100 | — |
+| `personalData.address.province` | string | yes | exactly 2 chars | — |
+| `personalData.address.position` | object | no | GeoJSON Point, tuple `[lng,lat]`, each axis `['double','int','long']` bounded ±180/±90 | optional — no `2dsphere` index, fills in from the operator app's autocomplete |
+| `personalData.contacts.mobile` | string | yes | maxLength 12 | — |
+| `personalData.contacts.landline` | string | no | maxLength 12 | — |
+| `personalData.contacts.email` | string | yes | maxLength 250 | second contact address, distinct from `login.email` |
+| `registeredAt` | date | yes | — | sign-up date |
+| `deleted` | date | no | — | soft-delete stamp |
+| `disabled` | bool | no | — | present + true blocks login |
+| `waitApprov` | bool | no | — | present + true = awaiting admin approval (or a telepromoter flag) |
+| `notes` | string | no | maxLength 2000 | operator-written note; `marketplace-dev-authenticated-*` never loads this model field, so it cannot leak to the shop owner |
+| `resetPwd.resetDateReq` / `.resetHash` | date / string | yes if sub-doc present | exactly 50 chars for hash | password reset slot |
+| `emailVerify.*` | object | no (no required members) | see `account.js:96-125` | verify-email slot, koa-utils flow |
+| `__v` | int | no | — | versionKey |
+
+Doc-level `required`: `login`, `personalData`, `registeredAt`.
+
+```js
+// BEs/marketplace-db-setup/lib/schemas/shopOwner.js:38-42
+required: [
+  'login',
+  'personalData',
+  'registeredAt'
+],
+```
+
+### 3.3 `company`
+
+Source: `BEs/marketplace-db-setup/lib/schemas/company.js`. **A company IS the shop** — no `shop` collection exists or will (`docs/devprotocol/phase4/CONSTRAINTS.md` §4). Validator carries two historical states; table below is the current one (`publicFields: true`, since `20260804010000-alter-company-public.js`).
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes | — | primary key |
+| `idShopOwner` | ObjectId | yes | — | FK to `shopOwner`, unenforced by MongoDB (section 6) |
+| `legalName` | string | yes | maxLength 100 | registered name including legal form, never shown to a customer |
+| `vatNumber` | string | yes | exactly 11 chars | VAT registration number, globally unique |
+| `taxCode` | string | no | exactly 11 chars | tax code of the legal entity — the 11-char company form, not the 16-char personal one |
+| `contactPerson` | string | yes | maxLength 50 | — |
+| `administrator` | string | yes | maxLength 50 | — |
+| `uniqueCode` | string | no | exactly 7 chars | — |
+| `certifiedEmail` | string | yes | maxLength 250 | legally-binding certified mailbox, globally unique |
+| `address.street` | string | yes | maxLength 100 | registered seat |
+| `address.postalCode` | string | yes | exactly 5 | — |
+| `address.city` | string | yes | maxLength 100 | — |
+| `address.province` | string | yes | exactly 2 | — |
+| `address.position` | object | **yes** | GeoJSON Point, tuple `[lng,lat]` | required here, unlike `shopOwner`'s — this is what the map and "shops near me" run on |
+| `registryExtract` | string | yes | maxLength 1000 | business-register extract, a file **path**, not the file itself |
+| `publicName` | string | schema-optional, required-in-practice when `published` | maxLength 100 | trading name shown to customers, never `legalName` |
+| `slug` | string | schema-optional, required-in-practice when `published` | minLength 2, maxLength 120, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | URL segment of `/shop/:slug` |
+| `description` | string | no | maxLength 2000 | shop page body, text-search target |
+| `published` | bool | **yes** | — | false until the owner puts the shop live; every public read filters on it |
+| `deleted` | date | no | — | soft-delete stamp; `companyDel` sets this and nothing else |
+| `__v` | int | no | — | versionKey |
+
+Doc-level `required`: `idShopOwner`, `legalName`, `vatNumber`, `contactPerson`, `administrator`, `certifiedEmail`, `registryExtract`, `address`, `published`. Validator is `$and: [$jsonSchema, $expr]` — see the `PUBLISHED_IMPLIES_LINKABLE` rule in section 6.
+
+```js
+// BEs/marketplace-db-setup/lib/schemas/company.js:88-100 — published ⇒ slug + publicName
+const PUBLISHED_IMPLIES_LINKABLE = {
+  $expr: {
+    $or: [
+      { $ne: ['$published', true] },
+      { $and: [
+          { $eq: [{ $type: '$slug' }, 'string'] },
+          { $eq: [{ $type: '$publicName' }, 'string'] }
+      ] }
+    ]
+  }
+};
+```
+
+### 3.4 `user`
+
+Source: `BEs/marketplace-db-setup/lib/schemas/user.js`. Mirrors `shopOwner` — same three-collection login pattern (DCON-09: tier = which collection you authenticate against, never a `role` field) — with four deliberate divergences, detailed in section 4.
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes | — | primary key |
+| `login.email` | string | yes | maxLength 250 | login credential |
+| `login.password` | string | yes | exactly 60 chars | bcrypt hash |
+| `login.firstLogin` / `.lastLogin` | date | no | — | login timestamps |
+| `login.onboardingStep` / `.onboardingDone` | string / bool | no | maxLength 4 for the string | shared `LOGIN` shape field; inert here |
+| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `personalData` | object | **no** — whole sub-doc optional | — | filled in after email confirmation, not at registration |
+| `personalData.firstName` / `.lastName` | string | yes if `personalData` present | maxLength 100 each | — |
+| `personalData.birth.date` | date | no | — | — |
+| `personalData.contacts.mobile` / `.landline` / `.email` | string | no, none of the three | maxLength 12 / 12 / 250 | a second contact address — `login.email` is already the credential |
+| `addresses` | array | no | items = `addressItem()`, see below | every address this customer saved |
+| `addresses[]._id` | ObjectId | **yes** (per element) | — | required so `defaultAddress` has something to point at |
+| `addresses[].label` | string | no | maxLength 50 | free text, e.g. "home", "office" |
+| `addresses[].street` | string | yes | maxLength 250 | — |
+| `addresses[].postalCode` | string | yes | exactly 5 | — |
+| `addresses[].city` | string | yes | maxLength 100 | — |
+| `addresses[].province` | string | yes | exactly 2 | — |
+| `addresses[].position` | object | no | GeoJSON Point tuple | fills in from geocoder autocomplete |
+| `defaultAddress` | ObjectId | no | must be absent or equal to some `addresses[]._id` — enforced by `$expr`, section 5 | pointer to the chosen delivery address |
+| `registeredAt` | date | yes | — | sign-up date |
+| `deleted` | date | no | — | soft-delete stamp |
+| `disabled` | bool | no | — | present + true blocks login |
+| `resetPwd.*` | object | no | same shape as `admin`/`shopOwner` | password reset slot |
+| `emailVerify.*` | object | no | same shape, koa-utils flow | verify-email slot |
+| `__v` | int | no | — | versionKey |
+
+Doc-level `required`: `login`, `registeredAt` only. **No `waitApprov`** anywhere in this collection.
+
+### 3.5 `item`
+
+Source: `BEs/marketplace-db-setup/lib/schemas/item.js`. Bottom of the ownership chain, what a shop sells. **The extension seam** — a new product type is an `itemCategory` row, not a new collection (`BEs/marketplace-db-setup/lib/schemas/item.js:4-10`).
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes | — | primary key |
+| `idCompany` | ObjectId | yes | — | FK to `company` — the shop that sells this, unenforced by MongoDB |
+| `idCategory` | ObjectId | yes | — | FK to `itemCategory`, either level, unenforced by MongoDB |
+| `name` | string | yes | maxLength 150 | — |
+| `description` | string | yes | maxLength 2000 | — |
+| `slug` | string | yes | minLength 2, maxLength 160, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | URL segment of `/shop/:slug/item/:itemSlug` — unique **per company**, not globally |
+| `published` | bool | yes | — | false = draft; a public read also requires the parent `company.published` to be true |
+| `deleted` | date | no | — | soft-delete stamp |
+| `__v` | int | no | — | versionKey |
+
+Doc-level `required`: `idCompany`, `idCategory`, `name`, `description`, `slug`, `published`. **No `price` field, anywhere** — deliberate, see section 8.
+
+```js
+// BEs/marketplace-db-setup/lib/schemas/item.js:48-55
+required: [
+  'idCompany',
+  'idCategory',
+  'name',
+  'description',
+  'slug',
+  'published'
+],
+```
+
+### 3.6 `itemCategory`
+
+Source: `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`. Platform-wide taxonomy, two levels, no `idShopOwner` — two shops selling the same kind of thing land in the same category or the customer-facing filter means nothing.
+
+| Field | Type | Required | Constraints | Meaning |
+|---|---|---|---|---|
+| `_id` | ObjectId | yes | — | primary key |
+| `name` | string | yes | maxLength 100 | — |
+| `slug` | string | yes | minLength 2, maxLength 120, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | URL segment of `/category/:slug`, unique **across both levels** |
+| `idParent` | ObjectId | no | self-FK, unenforced by MongoDB | absent = top-level category; present = subcategory |
+| `position` | int | yes | minimum 0 | **sort ordinal** — not GeoJSON, shares a name with `geo.js`'s point and nothing else |
+| `deleted` | date | no | — | soft-delete stamp; a category is never hard-deleted because `item.idCategory` is required and MongoDB has no FK to stop a dangling reference |
+| `__v` | int | no | — | versionKey |
+
+Doc-level `required`: `name`, `slug`, `position`. **Writes exist only in the Admin resource service** (`BEs/dev/marketplace-dev-admin-authenticated-resource`) — ShopOwner, User and public tiers read this collection and never write it (DCON-05).
+
+```js
+// BEs/marketplace-db-setup/lib/schemas/itemCategory.js:62-65
+idParent: {
+  bsonType: 'objectId',
+  description: 'absent = top-level category; present = subcategory. Depth beyond 2 is refused by the resolver'
+},
+```
+
+---
+
+## 4. `user`'s four divergences from `shopOwner`
+
+Both collections share `login`, `resetPwd`, `emailVerify`, `deleted`/`disabled` from `BEs/marketplace-db-setup/lib/schemas/account.js` — role on this platform is which collection you authenticate against, not a field (DCON-09). Four fields diverge, all argued at `BEs/marketplace-db-setup/lib/schemas/user.js:1-103`, none an accident to "fix":
+
+| # | Divergence | `shopOwner` | `user` | Why |
+|---|---|---|---|---|
+| 1 | `personalData` | doc-level required | doc-level optional | registration is email + password only; name/contacts filled in after email confirmation |
+| 2 | address storage | one `personalData.address` object | `addresses[]` array, each element with required `_id` | a customer has a home, an office, a friend's flat; a shop owner has one residence |
+| 3 | `waitApprov` | present, operator approval gate | **absent entirely** | customers self-serve; the only gate is email confirmation (`loginUser` checks `emailVerify.valid`) |
+| 4 | `defaultAddress` | no counterpart | top-level `ObjectId` pointer into `addresses[]._id` | see section 5 |
+
+A fifth, smaller divergence: `shopOwner.personalData.contacts` requires `mobile` and `email`; `user.personalData.contacts` requires none of its members — `login.email` is already the credential, so demanding a duplicate contact email is asking the customer to retype what they already gave (`BEs/marketplace-db-setup/lib/schemas/user.js:99-102`).
+
+---
+
+## 5. The `defaultAddress` invariant
+
+"At most one default address" is a **shape**, not a rule the app has to remember to check. Original design considered a boolean `default` per array element; adopted design is a single top-level `defaultAddress` ObjectId pointing into `addresses[]._id`. A boolean can represent two defaults (or zero) at once and every write path would have to clear-then-set with a window between the two steps; a pointer cannot represent a second default at all — setting one is one atomic `$set`.
+
+The one failure a pointer *can* have is dangling, and that is checkable. `user`'s validator is therefore `$and: [{$jsonSchema}, {$expr}]`, not a bare `$jsonSchema` — a collection validator accepts any query expression, and `$jsonSchema` is only one operator inside it:
+
+```js
+// BEs/marketplace-db-setup/lib/schemas/user.js:70-82
+const DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES = {
+  $expr: {
+    $or: [
+      { $eq: [{ $type: '$defaultAddress' }, 'missing'] },
+      {
+        $in: [
+          '$defaultAddress',
+          { $map: { input: { $ifNull: ['$addresses', []] }, in: '$$this._id' } }
+        ]
+      }
+    ]
+  }
+};
+```
+
+`defaultAddress` is accepted only if **missing**, or **present in `$map` over `addresses`**. The `$ifNull: ['$addresses', []]` is load-bearing, not defensive filler: `addresses` is optional at doc level, `$map` over a missing field returns `null`, and `$in` against a `null` array **errors** rather than returning `false` — without the `$ifNull`, a brand-new customer with no `addresses` yet would be unable to write their own document at all.
+
+⚠️ **Deleting the default address must `$unset` `defaultAddress` in the same update.** If it doesn't, the write is rejected by MongoDB at the validator, not by an application code path someone forgot to call. ⚠️ **A `collMod` on `user` must restate both clauses of the `$and`.** `collMod` replaces a validator wholesale — passing the `$jsonSchema` half alone silently drops the `$expr` half, and nothing fails until a dangling pointer is written and read back.
+
+Cost, recorded so it is not re-litigated: reading "is this address the default?" is a comparison against a sibling field (`address._id === user.defaultAddress`) rather than a local boolean — any API wanting a boolean derives it at the read edge.
+
+---
+
+## 6. Reference integrity — unenforced FKs and their guards
+
+MongoDB has no foreign-key constraint of any kind. Every arrow in the section-2 diagram is an ObjectId with nothing behind it at the database layer except the two `$expr` cross-field checks above and below. A missing guard is a finding below, not something papered over.
+
+| Relationship | FK field | DB-enforced? | Guard | Source |
+|---|---|---|---|---|
+| `shopOwner` → `company` | `company.idShopOwner` | No | `throwIfShopOwnerDontOwnCompany` — refuses an `idCompany` the calling session does not hold | `BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts` |
+| `company` → `item` | `item.idCompany` | No | same `throwIfShopOwnerDontOwnCompany`, called from `itemAdd` before the write — an owner cannot stock a company the session does not own | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:5,40` |
+| `itemCategory` → `item` | `item.idCategory` | No | `throwIfItemCategoryMissing` — refuses a category id that does not resolve to a row | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:7,41` (imports `@lib/item/throwIfItemCategoryMissing.mjs`) |
+| `itemCategory` → `itemCategory` (`idParent`) | `itemCategory.idParent` | No — and a `$jsonSchema` structurally cannot check this: it reads a sibling document | `throwIfParentNotTopLevel` — called only when `idParent` is sent, refuses a parent that is itself a subcategory | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:2,24` (imports `@lib/itemCategory/throwIfParentNotTopLevel.mjs`) |
+| `user.defaultAddress` → `user.addresses[]._id` | intra-document | **Yes** — the one reference MongoDB itself checks | `$expr` `DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES` | `BEs/marketplace-db-setup/lib/schemas/user.js:70-82` |
+| `company.published` ⇒ `slug` + `publicName` present | not an FK, a cross-field invariant | **Yes** | `$expr` `PUBLISHED_IMPLIES_LINKABLE` | `BEs/marketplace-db-setup/lib/schemas/company.js:88-100` |
+
+The write-path guards (rows 1–4) are Admin/ShopOwner **resource-service application code**, never the collection validator — `$jsonSchema` cannot see across documents (DCON-01/DCON-05). The database-enforced rows (5–6) are both **intra-document** `$expr` clauses; that is the only kind of cross-reference a MongoDB validator can check, which is exactly why cross-collection FKs (rows 1–4) need a named guard function instead.
+
+`company.idShopOwner` itself has no existence guard on `company` creation beyond the caller being an authenticated `shopOwner` session — `companyAdd` trusts `ctx.state.user._id` as the value, which cannot dangle by construction rather than by check (`BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts`).
+
+---
+
+## 7. Indexes
+
+Not tuning — part of the design. The public catalogue is read by anonymous traffic at scale; a listing sorted without a supporting index is a blocking in-memory `SORT`, capped at 32 MB, that fails outright past the cap (`QueryExceededMemoryLimitNoDiskUseAllowed`) rather than degrading. Verify any geo query with `.explain()`, expect `IXSCAN` on the `2dsphere` field, never `COLLSCAN`.
+
+### `admin`
+
+| Index | Keys | Serves | Source |
+|---|---|---|---|
+| `login.email_unique` | `{'login.email':1}`, unique | login credential lookup | `BEs/marketplace-db-setup/lib/schemas/account.js:138-148` (`INDEXES_LOGIN_EMAIL`), applied by `20260301000000-create-admin.js` |
+
+### `shopOwner`
+
+| Index | Keys | Serves | Source |
+|---|---|---|---|
+| `login.email_unique` | `{'login.email':1}`, unique | login credential lookup | `account.js` `INDEXES_LOGIN_EMAIL`, `20260301000100-create-shopOwner.js` |
+| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `shopOwnersActiveTbl` default sort — ESR order, `_id` tiebreak makes offset pagination deterministic over a non-unique sort key | `20260801000100-index-shopOwner-tbl.js` |
+| `tbl_active_lastName_firstName` | `{deleted:1,disabled:1,'personalData.lastName':1,'personalData.firstName':1,_id:1}` | `sortBy: LAST_NAME`, firstName as tie-breaker | same |
+| `tbl_active_firstName` | `{deleted:1,disabled:1,'personalData.firstName':1,_id:1}` | `sortBy: FIRST_NAME` | same |
+| `tbl_active_city` | `{deleted:1,disabled:1,'personalData.address.city':1,_id:1}` | `sortBy: CITY` | same |
+| `registeredAt_series` | `{registeredAt:1}`, plain, no compound | `shopOwnersPerPeriod` chart aggregation (`$match` range + `$group` by day/month) — deliberately does **not** filter `deleted`/`disabled`, so it cannot reuse `tbl_active_registeredAt`'s leading keys | `20260802000100-index-shopOwner-registeredAt.js` |
+
+⚠️ `search` on this collection is **deliberately not indexed** — the resolver's case-insensitive prefix regex (`/^term/i`) disqualifies index use regardless (the `i` flag rules out the scan, and `$regex` ignores collation), and the cardinality is shop owners, not the ~50k-scale end-customer collection. Revisit if `shopOwner` reaches six figures (`BEs/marketplace-db-setup/migrations/20260801000100-index-shopOwner-tbl.js:47-57`).
+
+### `company`
+
+| Index | Keys | Serves | Source |
+|---|---|---|---|
+| `vatNumber_unique` | `{vatNumber:1}`, unique, **global, no `partialFilterExpression`** | one VAT number = one company, ever — a soft-deleted company keeps the slot occupied (DCON-04) | `20260803000000-create-company.js` |
+| `certifiedEmail_unique` | `{certifiedEmail:1}`, unique, global | same reasoning for *PEC* | same |
+| `idShopOwner_list` | `{idShopOwner:1}`, non-unique | "my companies" list | same |
+| `slug_unique` | `{slug:1}`, unique, **partial** on `{slug:{$type:'string'}}` | `/shop/:slug` — partial avoids treating every pre-migration slugless row as one colliding null key | `20260804010000-alter-company-public.js` |
+| `address.position_2dsphere` | 2dsphere on `address.position` | the map, "shops near me" — `companiesNearby` **is** this query | same |
+| `published_list` | `{published:1,deleted:1}` | the two equality predicates every public read carries | same |
+| `published_publicName` | `{published:1,deleted:1,publicName:1}` | `/shops` listing sorted by `publicName` | `20260804040000-index-company-public-read.js` |
+| `published_city_publicName` | `{published:1,deleted:1,'address.city':1,publicName:1}` | `/shops/:city` listing | same |
+| `search_text` | text index, weights `publicName:10, description:1`, `default_language:'english'` | company half of platform-wide `search` | same |
+
+`published_list` is a prefix of `published_publicName` and is **left installed anyway** — `company` is written a handful of times per shop, so the spare index is cheap and dropping it is a separate audit (contrast with `item` below, which drops its superseded pair).
+
+### `item`
+
+| Index | Serves | Source |
+|---|---|---|
+| `idCompany_list` | owner's own catalogue (`companyItems`, ShopOwner + Admin tiers) | `20260804030000-create-item.js` |
+| `idCompany_slug_unique` | enforces the per-company unique slug; doubles as the item-page lookup `(idCompany, slug)` | same |
+| `idCompany_published_name` | public shop page listing, sorted by `name` — **supersedes** a 3-key `idCompany_published` from the same create migration | `20260804050000-index-item-listing-sort.js` |
+| `idCategory_published_name` | category browse, the widest fan-out on the platform — **supersedes** `idCategory_published` | same |
+| `search_text` | platform-wide item search, weights `name:10, description:1`, `default_language:'english'` | `20260804030000-create-item.js` |
+
+The two `_name` indexes replaced 3-key predecessors that omitted `name` — both listings sort by `name`, and neither original index covered the sort, forcing a blocking in-memory `SORT`. Measured on 100 000 items in one category: 100 000 keys / 100 000 docs scanned / 170 ms before → 24 keys / 24 docs / 3 ms after. Unlike `company.published_list`, the superseded pair was **dropped**, not left installed: `item` is the write-heavy collection of the three (a shop owner edits a catalogue continuously, not a one-time registration), so the redundant index costs more here.
+
+⚠️ `search_text` is **not compound with `idCompany`** — MongoDB requires an equality predicate on every non-text prefix key of a compound text index, so scoping it to one company would make platform-wide search unable to use it at all; per-shop search filters after the text match. **No `2dsphere` on `item`** — an item is located at its shop, so "items near me" resolves through `company.address.position_2dsphere`; a copied point on `item` would go stale the moment the shop's address changes.
+
+### `itemCategory`
+
+| Index | Keys | Serves | Source |
+|---|---|---|---|
+| `slug_unique` | `{slug:1}`, unique, global | `/category/:slug` and `/category/:slug/:subSlug` resolve through one flat URL space across both levels | `20260804020000-create-itemCategory.js` |
+| `idParent_position` | compound on `idParent` + the sort ordinal `position` | the two listing reads: top-level categories, and subcategories under one parent, both in display order | same |
+
+### `user`
+
+| Index | Keys | Serves | Source |
+|---|---|---|---|
+| `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260804000000-create-user.js` |
+
+No `2dsphere` over `addresses[].position` — nothing on the platform queries customers by distance.
+
+---
+
+## 8. What this model does NOT include
+
+Out of scope for this phase, per `docs/devprotocol/phase4/CONSTRAINTS.md` §6 — named here only so nobody goes looking for a shape that does not exist, never designed:
+
+- **Order** — no collection, no state machine, no resolver, no node in section 2's diagram, no aggregate.
+- **Cart** — no collection, no node.
+- **Delivery** — not built: no collection, no resolver, no design.
+- **Payment** — no gateway, no integration, no error taxonomy for a payment failure.
+- **`price` on `item`** — deliberately absent, everywhere, not "TODO." A price implies a currency, a precision, a VAT treatment and a discount model, none of which is decided; `Decimal128`, the BSON type a price would need, is a *rejected* write on this platform anyway because it cannot survive `.lean()` into a GraphQL `Float` (`BEs/marketplace-db-setup/lib/schemas/item.js:12-16`). It arrives with the ordering tier, in one migration, after those questions are answered — not before.
+- **A `shop` collection** — a shop **is** a `company`. There is not going to be a seventh collection for it (`docs/devprotocol/phase4/CONSTRAINTS.md` §4).
+- **A `role` field or permission enum**, on any collection — tier = which collection/service the caller hits, never a stored value (DCON-09).
+- **A fourth tier** — `admin` / `shopOwner` / `user` stays 3.
+
+---
+
+## 9. Physical storage mapping
+
+| Logical entity | Physical storage | Format | Validator kind |
+|---|---|---|---|
+| `Admin` | MongoDB collection `admin` | BSON document | `$jsonSchema` only |
+| `ShopOwner` | MongoDB collection `shopOwner` | BSON document | `$jsonSchema` only |
+| `Company` | MongoDB collection `company` | BSON document | `$and: [$jsonSchema, $expr]` — `PUBLISHED_IMPLIES_LINKABLE` |
+| `User` | MongoDB collection `user` | BSON document | `$and: [$jsonSchema, $expr]` — `DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES` |
+| `User.addresses[]` | embedded array on the `user` document | BSON sub-documents | validated by the parent's `$jsonSchema` `items` clause — no collection of its own |
+| `Item` | MongoDB collection `item` | BSON document | `$jsonSchema` only |
+| `ItemCategory` | MongoDB collection `itemCategory` | BSON document | `$jsonSchema` only |
+
+All six live in one database, `dbMarketplaceDev` (dev) / `dbMarketplaceTest` (each repo's own integration copy — see parent `docs/testing.md` §Per-repo integration database). `validationLevel: 'strict'`, `validationAction: 'error'` on every collection (`BEs/marketplace-db-setup/lib/schemas/collection.js:8-11`) — a write violating the shape is refused outright, never partially applied.
+
+---
+
+## 10. Open questions
+
+| # | Question | Source of the gap | Status |
+|---|---|---|---|
+| 1 | `search` on `shopOwner` is unindexed by design at current cardinality — no threshold or alert exists for "collection reached six figures, revisit." | `BEs/marketplace-db-setup/migrations/20260801000100-index-shopOwner-tbl.js:57` | open, no owner |
+| 2 | `company.idShopOwner` has no existence guard at `companyAdd` time beyond trusting the authenticated session's own id — correct today because the id cannot be attacker-supplied, but the absence is implicit rather than a named guard the way `throwIfShopOwnerDontOwnCompany` is for reads. | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` | flagged, not a defect under current call pattern |
+| 3 | Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason. | `docs/devprotocol/phase4/CONSTRAINTS.md` §6 | explicitly out of scope this phase — ask before inventing |
+| 4 | Whether a "genuinely new product type" ever needs a 7th collection (vs. an `itemCategory` row) has no decision procedure beyond "check first" — the bar to clear is undocumented as a checklist. | parent `docs/data-model.md` | owned by whoever proposes the next product type, not this phase |
