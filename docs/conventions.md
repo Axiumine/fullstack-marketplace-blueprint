@@ -64,7 +64,7 @@ keeps a root-JS block off the minified Qodana report.
   `package.json` `exports` map (~38 entries) or it is unreachable. `yarn test:contract` catches
   omissions.
 - ⚠️ **Consumed as a published package name but not on any registry** (ADR-015). `package.json` names it
-  `@thedoctorweb_agency/marketplace-common`; the nine services depend on that name, which 404s on
+  `@axiumine/marketplace-common`; the nine services depend on that name, which 404s on
   registry.npmjs.org. `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` +
   `package.json` into every consumer's `node_modules/`, discovered by globbing this workspace.
   **Re-run it after every edit to common**, or the consumers keep resolving the previous build — and the

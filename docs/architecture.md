@@ -112,14 +112,18 @@ Three properties are load-bearing and must not be "simplified":
 ### Shared authorization body (ADR-006)
 
 The three `*-authenticated-authorization` services share their body and keep their ports. Since
-`marketplace-common@4.4.0` the session lookup, the account re-read and the token rotation are
+`marketplace-common@1.0.0` the session lookup, the account re-read and the token rotation are
 `resolveAuthorizationSession`, `findAccountForSession` and `refreshSessionTokens`; each service
 supplies only its own `TIER.*` constant, its own model and its own projection.
 
 - **Merging the three into one process is settled, against.** Do not re-open it as a refactor.
+- ⚠️ **`1.0.0` is a renumber, not a rewrite.** The package was `@thedoctorweb_agency/marketplace-common@4.4.0`
+  until it was renamed to `@axiumine/marketplace-common` and restarted at `1.0.0` for its first public
+  release. Same code, new name, new number — a `4.x` in an older note means this. Consumers declare
+  `^1.0.0`.
 - **`marketplace-common` now has a Koa/GraphQL-shaped surface**, consumed by three of the nine services
   but deployed to all nine — an edit there is wider than it looks. `vitest.mutation.config.mts` must
-  inline both `@thedoctorweb_agency/marketplace-common` and `@axiumine/koa-utils`, or a `vi.mock` of a
+  inline both `@axiumine/marketplace-common` and `@axiumine/koa-utils`, or a `vi.mock` of a
   koa-utils subpath silently stops intercepting.
 
 ## Resolver layout (per resource service)

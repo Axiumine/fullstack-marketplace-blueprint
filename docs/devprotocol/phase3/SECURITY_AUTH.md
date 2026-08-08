@@ -371,7 +371,7 @@ When any of these get built, this document requires a new version — per its ow
 
 | Dependency | Risk | Mitigation |
 |---|---|---|
-| `@thedoctorweb_agency/marketplace-common`, package-name-consumed, not on any registry | 9 services + edits depend on a package that 404s on `registry.npmjs.org` — a fresh `yarn install` alone leaves a consumer on the previous build with no error at the call site | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
+| `@axiumine/marketplace-common`, package-name-consumed, not on any registry | 9 services + edits depend on a package that 404s on `registry.npmjs.org` — a fresh `yarn install` alone leaves a consumer on the previous build with no error at the call site | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
 | `@axiumine/koa-utils` | Second internal package, sixteenth repo outside this workspace, same class of risk | Not deploy-local-bridged the same way — verify its consumption path before assuming parity with `marketplace-common` |
 | npm registry as a whole (`yarn install` across 9 services + 3 frontends) | Malicious or compromised published version of any transitive dependency | `yarn.lock` per repo pins exact versions; no automated dependency-audit gate found in `.githooks/pre-commit` or `pre-push` beyond lint/coverage/mutation/Qodana — **not a control that exists today** |
 | `@node-rs/bcrypt` (native binding) | Native code in the password-hashing path | Standard, widely-used package; no additional sandboxing found |

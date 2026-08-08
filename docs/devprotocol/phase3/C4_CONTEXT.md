@@ -104,7 +104,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `nginx/` in the workspace root and are exercised by `nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
-| npm registry | no | resolves every dependency except `@thedoctorweb_agency/marketplace-common`, which 404s there — bridged by `deploy-local.sh` |
+| npm registry | no | resolves every dependency except `@axiumine/marketplace-common`, which 404s there — bridged by `deploy-local.sh` |
 
 Full contract detail, direction and payload: `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §3.2 and §5.
 
