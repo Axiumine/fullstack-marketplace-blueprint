@@ -387,7 +387,7 @@ Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/
 | `shopOwnerUpdateNote` | `_id: ID!`, `notes: String!` | `Boolean!` | Operator-private annotation on a shop owner | `schema/mutations/shopOwnerUpdateNote.mts:24,25-28` |
 | `shopOwnerUpdatePreferences` | `_id: ID!`, `rememberMe: Boolean!`, `onboardingDone: Boolean!`, `onboardingStep: String` | `Boolean!` | Sets session and onboarding preferences; `onboardingStep` is the one optional arg | `schema/mutations/shopOwnerUpdatePreferences.mts:25,26-31` |
 | `shopOwnerUpdateStatus` | `_id: ID!`, `disabled: Boolean!`, `waitApprov: Boolean!` | `Boolean!` | The approval lever — `waitApprov` exists on `shopOwner` only, never on `user` | `schema/mutations/shopOwnerUpdateStatus.mts:25,28-30` |
-| `shopOwnerDel` | `_id: ID!` | `Boolean!` | Soft-delete — stamps `deleted`, never removes the row | `schema/mutations/shopOwnerDel.mts:11,12-14` |
+| `shopOwnerDel` | `_id: ID!` | `Boolean!` | Soft-delete — stamps `deleted`, never removes the document | `schema/mutations/shopOwnerDel.mts:11,12-14` |
 | `companyAdd` | `idShopOwner: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Registers a company **on another shop owner's behalf** — the `idShopOwner` arg is what the ShopOwner tier's own `companyAdd` cannot have | `schema/mutations/companyAdd.mts:23,26-27` |
 | `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Replaces a company on any shop owner's behalf | `schema/mutations/companyUpdate.mts:26,27-30` |
 | `companyDel` | `_id: ID!` | `Boolean!` | Soft-delete; answers 200 even on an already-retired company — see the note below | `schema/mutations/companyDel.mts:18,21` |
@@ -403,7 +403,7 @@ them, the divergence is deliberate (`docs/frontends.md` §marketplace-admin and 
 copies").
 
 ⚠️ **`companyDel` on this tier answers 200 on an already-retired company; the ShopOwner tier's `companyDel`
-answers 403 for the same row.** The Admin guard does not filter `deleted`, `throwIfShopOwnerDontOwnCompany`
+answers 403 for the same company.** The Admin guard does not filter `deleted`, `throwIfShopOwnerDontOwnCompany`
 on the ShopOwner tier does. Liveness filtering belongs on read paths and ownership guards, never on the
 delete write itself — both answers are correct for their tier (`docs/data-model.md`).
 

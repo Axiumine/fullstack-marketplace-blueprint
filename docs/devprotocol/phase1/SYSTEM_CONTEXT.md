@@ -48,7 +48,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |---|---|---|
 |Anonymous visitor|no session|hits SSR public routes on `marketplace-user` — `/`, `/shops`, `/shop/:slug`, `/category/:slug` (`marketplace-user/CLAUDE.md` §Public is server-rendered) — GraphQL over `/public-resource`, no auth token|
 |End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything — `item.js:12-14` has no price field|
-|Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` row(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
+|Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
 |Platform operator|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
 |Platform developer (thedoctorweb)|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 15 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
 

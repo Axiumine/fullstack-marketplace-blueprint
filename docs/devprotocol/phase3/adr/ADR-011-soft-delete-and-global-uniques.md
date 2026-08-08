@@ -17,14 +17,14 @@ carry global unique indexes: `vatNumber` and `certifiedEmail` — one legal
 entity, one VAT number, whoever registered it. `companyDel` needs a delete path. Two things collide:
 platform-wide soft-delete convention (`shopOwner`, `item`, `itemCategory` all carry an optional
 `deleted` date, never a hard remove — `BEs/marketplace-db-setup/lib/schemas/account.js` `DELETED`
-shape) and the fact that a hard-deleted row frees its unique keys for reuse while a soft-deleted one,
+shape) and the fact that a hard-deleted document frees its unique keys for reuse while a soft-deleted one,
 by default, does not — someone has to decide whether a retired VAT number becomes available again.
 
 Two resource services expose `companyDel` against the same collection under different tiers:
 `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`
-(ShopOwner, acting on rows they own) and
+(ShopOwner, acting on companies they own) and
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`
-(Admin, acting on any row). Both stamp `deleted` via `funCompanyDelete`; only the ShopOwner path runs
+(Admin, acting on any company). Both stamp `deleted` via `funCompanyDelete`; only the ShopOwner path runs
 an ownership guard first (`throwIfShopOwnerDontOwnCompany`), and that guard's filter has to decide
 whether an already-retired company still counts as "yours to act on."
 
@@ -42,10 +42,10 @@ hand for this exact collection and chose not to point it at `vatNumber`/`certifi
 
 | Option | Pros | Cons |
 |---|---|---|
-| A. Hard delete the row | Frees `vatNumber`/`certifiedEmail` immediately | Breaks platform soft-delete convention every other collection follows; loses the retirement date; any dangling `item.idCompany` reference (unenforced by Mongo — no FK) now points at nothing at all instead of a stamped, inspectable row |
+| A. Hard delete the document | Frees `vatNumber`/`certifiedEmail` immediately | Breaks platform soft-delete convention every other collection follows; loses the retirement date; any dangling `item.idCompany` reference (unenforced) now points at nothing at all instead of a stamped, inspectable document |
 | B. Soft delete (`deleted` date stamp) + global unique index, no `partialFilterExpression` — CHOSEN | Matches `shopOwner.login.email_unique` precedent exactly; one VAT number can never be double-assigned, retired or not; enforcement is the index itself, nothing to forget in application code | Same legal entity can never re-register under the same `vatNumber` again, ever — no un-retire path exists |
 | C. Soft delete + partial unique index filtered on `deleted` absent (the `company.slug_unique` pattern, same collection, one migration later) | Retired VAT number becomes registrable again; symmetric with how `slug` already behaves on this same collection | Weakens "one VAT number is one company, whoever registered it and whenever they stopped trading" to "one *live* VAT number" — two different companies could hold the same VAT number across time, and nothing downstream distinguishes that from data corruption |
-| D. Push a `deleted`-filter into the delete write itself (`funCompanyDelete`), uniform across both tiers, instead of leaving it to the ownership guard | One code path, one answer, same status for both tiers | Conflates two different questions — "is this row still live" (a read/existence concern) with "should this write happen" (idempotency of the delete verb itself); would make the Admin tier's moderation ability depend on liveness, which it deliberately does not need |
+| D. Push a `deleted`-filter into the delete write itself (`funCompanyDelete`), uniform across both tiers, instead of leaving it to the ownership guard | One code path, one answer, same status for both tiers | Conflates two different questions — "is this document still live" (a read/existence concern) with "should this write happen" (idempotency of the delete verb itself); would make the Admin tier's moderation ability depend on liveness, which it deliberately does not need |
 
 ---
 
@@ -69,7 +69,7 @@ false }) })` — and it filters `deleted` because an already-retired company is 
 `shopOwnerCompanies`, so the only way a client still names one is a stale id it kept from before; a
 second `companyDel` on it answers 403. Admin tier's `companyDel.mts` calls `funCompanyDelete` with no
 ownership or liveness guard in front of it at all — an operator's job is to be able to act on any
-company, retired or not, for moderation, and gating that on `deleted` would block exactly the rows an
+company, retired or not, for moderation, and gating that on `deleted` would block exactly the companies an
 operator most needs to reach. Both answers are correct for what each guard checks; neither tier was
 "fixed" to match the other.
 
@@ -78,7 +78,7 @@ operator most needs to reach. Both answers are correct for what each guard check
 ## Consequences
 
 ### Positive
-- Idempotent audit trail: a retired company's row, its retirement date, and its VAT and certified-mailbox history all
+- Idempotent audit trail: a retired company's document, its retirement date, and its VAT and certified-mailbox history all
   stay on disk and queryable, matching every other soft-deleted collection on the platform.
 - No double-assignment window: the unique index enforces "one VAT number, one company" at the database
   layer, not in application code that a future resolver could forget to check.
@@ -98,7 +98,7 @@ operator most needs to reach. Both answers are correct for what each guard check
 - **Tier-parity drift.** If a future edit adds a `deleted` filter to Admin's `funCompanyDelete` (or
   removes it from `throwIfShopOwnerDontOwnCompany`) to "make the two tiers consistent," it silently
   reverses this decision. Revisit only if product explicitly decides both tiers must return the same
-  status on an already-retired row — that has not been asked for.
+  status on an already-retired company — that has not been asked for.
 - **Re-registration demand.** If a real shop owner needs to reincorporate under a VAT number they
   previously retired on this platform, today's only fix is a manual document edit, outside any
   resolver. Revisit if this is requested more than once — a dedicated "reinstate" flow becomes

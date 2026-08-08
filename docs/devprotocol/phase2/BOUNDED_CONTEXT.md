@@ -64,12 +64,12 @@ args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
 
 ### BC-04 - Legal Entity / Company
 **Responsibility:** Owns the `company` aggregate - simultaneously the legal entity (`legalName`, `vatNumber`, `certifiedEmail`, `registryExtract`) a `ShopOwner` registers and the shop itself, since no separate shop collection exists or will (`CLAUDE.md` §Terminology).
-**Owns:** `company` collection (`BEs/marketplace-db-setup/lib/schemas/company.js`), its Mongoose model in `BEs/marketplace-common` (shared by both writer services so the shape cannot drift between them), `companyAdd`/`companyUpdate`/`companyDel` in two resource services - `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own rows only, answers `OnlyIdType`) and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (Admin tier, any row, answers plain `Boolean`).
-**Produces:** Company Registered, Company Updated, Company Made Public (`published` flips true once `publicName`/`slug`/`description` are populated), Company Retired (soft delete), Delete Refused - Already Retired (ShopOwner tier, 403), Delete Accepted On Already-Retired Row (Admin tier, 200).
-**Consumes:** `idShopOwner` FK from BC-01's `shopOwner` collection (unenforced by MongoDB, checked at read/ownership time by `throwIfShopOwnerDontOwnCompany`).
-**Does not own:** `item` rows (BC-05), the public read projection (BC-08 reads through a fixed pipeline, never writes here).
+**Owns:** `company` collection (`BEs/marketplace-db-setup/lib/schemas/company.js`), its Mongoose model in `BEs/marketplace-common` (shared by both writer services so the shape cannot drift between them), `companyAdd`/`companyUpdate`/`companyDel` in two resource services - `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own companies only, answers `OnlyIdType`) and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (Admin tier, any company, answers plain `Boolean`).
+**Produces:** Company Registered, Company Updated, Company Made Public (`published` flips true once `publicName`/`slug`/`description` are populated), Company Retired (soft delete), Delete Refused - Already Retired (ShopOwner tier, 403), Delete Accepted On Already-Retired Company (Admin tier, 200).
+**Consumes:** `idShopOwner` FK from BC-01's `shopOwner` collection (unenforced, checked at read/ownership time by `throwIfShopOwnerDontOwnCompany`).
+**Does not own:** `item` documents (BC-05), the public read projection (BC-08 reads through a fixed pipeline, never writes here).
 
-Two writers by design, not overlap - and they diverge on delete semantics for an already-retired row, which is the platform's canonical example of "liveness belongs on read/ownership guards, never on the delete write itself" (`docs/data-model.md`):
+Two writers by design, not overlap - and they diverge on delete semantics for an already-retired company, which is the platform's canonical example of "liveness belongs on read/ownership guards, never on the delete write itself" (`docs/data-model.md`):
 ```js
 // BEs/marketplace-db-setup/lib/schemas/company.js:88-100
 const PUBLISHED_IMPLIES_LINKABLE = {
@@ -113,7 +113,7 @@ export async function funItemCategoryAdd(data: IItemCategoryValidated) {
   catch (e) { if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category'); throw e }
 }
 ```
-**Does not own:** `item` rows themselves (BC-05) - deleting a category leaves items filed under it resolvable, on purpose.
+**Does not own:** `item` documents themselves (BC-05) - deleting a category leaves items filed under it resolvable, on purpose.
 
 ---
 
@@ -162,7 +162,7 @@ SSR half of `marketplace-user` is the one deliberate loopback-only bind on the p
 **Owns:** `BEs/marketplace-db-setup/migrations/` (immutable once applied) and `lib/schemas/*.js` (the actual builders, restated by every migration that touches a collection), `.githooks/pre-commit` + `.githooks/pre-push` in all 15 repos, each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`, `services-status` (`services-status/src/server.ts`, `services-status/src/systemd.ts`, `services-status/src/monitor.ts` - the odd one out: tracked by the parent repo, no repo of its own, gated from the parent's own hooks rather than its own).
 **Produces:** pass/fail gate signals (coverage, mutation, lint, Qodana), migration `up`/`down` pairs, service-liveness probes.
 **Consumes:** nothing from the domain contexts above except their source trees to scan and their test suites to run.
-**Does not own:** any domain collection's runtime data - it owns the *shape* (via migrations) and the *proof of correctness* (via gates), never a live row.
+**Does not own:** any domain collection's runtime data - it owns the *shape* (via migrations) and the *proof of correctness* (via gates), never a live document.
 
 `services-status` had a gate that was never wired - the mode bug that made it silent is the platform's canonical cautionary tale for this context:
 ```
@@ -227,8 +227,8 @@ graph TB
 
     Op -->|"shopOwnerAdd, shopOwnerUpdateStatus"| OB
     OB -->|"idShopOwner FK"| CO
-    Owner -->|"companyAdd/Update/Del, own rows"| CO
-    Op -->|"companyAdd/Update/Del, any row, moderation"| CO
+    Owner -->|"companyAdd/Update/Del, own companies"| CO
+    Op -->|"companyAdd/Update/Del, any company, moderation"| CO
 
     CO -->|"idCompany FK, ownership checked first"| CAT
     Owner -->|"itemAdd/Update/Del"| CAT
@@ -272,7 +272,7 @@ Solid arrows carry a real GraphQL command or FK read at runtime. Dashed arrows a
 | BC-01 Identity & Access | BC-02 Session Termination | Three tiers all call the one shared logout service | Customer-Supplier (three customers, one supplier) via Published Language - the shared `REDIS_KEY` prefix and token-content addressing is the contract, not a per-tier API |
 | BC-03 Shop Owner Onboarding & Approval | BC-01 Identity & Access | BC-03 writes `waitApprov`, BC-01 reads it to refuse `login` | Conformist, convention only - same `shopOwner` collection, no schema-level wall, see §1 boundary note |
 | BC-07 Customer Account & Addresses | BC-01 Identity & Access | Both live on the `user` collection, different sub-documents, same resource service | Conformist, convention only - see §1 boundary note |
-| BC-03 Shop Owner Onboarding & Approval | BC-04 Legal Entity / Company | `company.idShopOwner` FK points at an account BC-03 provisioned | Customer-Supplier - Company is downstream, the FK is unenforced by MongoDB |
+| BC-03 Shop Owner Onboarding & Approval | BC-04 Legal Entity / Company | `company.idShopOwner` FK points at an account BC-03 provisioned | Customer-Supplier - Company is downstream, the FK is unenforced |
 | BC-04 Legal Entity / Company | BC-05 Catalogue | `item.idCompany` FK, ownership checked before category existence | Customer-Supplier |
 | BC-06 Category Taxonomy | BC-05 Catalogue | `item.idCategory` FK; ShopOwner tier has zero write access to taxonomy shape or depth | Conformist - Catalogue has no negotiating channel, must accept whatever Admin curates |
 | BC-04, BC-05, BC-06 | BC-08 Public Discovery / SSR Storefront | Read-only, published-only projection through one shared pipeline stage | Open Host Service + Published Language - `livePublic`/`LIVE_PUBLIC_PIPELINE` (`BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts`) is the stable contract; the public GraphQL schema itself is the published language anonymous clients and the SSR app both consume |
@@ -325,8 +325,8 @@ Two field names deliberately mean **different things** in different contexts and
 | 2 | What advances `shopOwner.onboardingStep`/`onboardingDone` (BC-01/BC-03 boundary), and where does that write live? No mutation under any `mutations/` directory on the platform was found to write either field. | Platform dev | Open |
 | 3 | Is `waitApprov` (BC-03) true or false/absent by default at account creation? Schema comment conflates "awaiting approval" with "deleted" in one field's own doc comment (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`). | Platform dev | Open |
 | 4 | When BC-11 Ordering & Fulfilment design work starts, who signs off the first schema - and does it become one context or split (Cart / Order / Delivery / Payment each their own)? | Product + platform dev | Open |
-| 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same row? | Platform dev | Open |
-| 6 | What `idShopOwner` does an Admin-created `company` row (BC-04) get, absent an owning ShopOwner having created it first via BC-03? | Platform dev | Open |
+| 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item? | Platform dev | Open |
+| 6 | What `idShopOwner` does an Admin-created `company` document (BC-04) get, absent an owning ShopOwner having created it first via BC-03? | Platform dev | Open |
 | 7 | Should the BC-01/BC-03 (`shopOwner`) and BC-01/BC-07 (`user`) convention-only boundaries get a real anti-corruption layer (e.g. each context restricted to its own resolver-level projection) before a fourth tier is added and the pattern is copied a third time? | Platform dev | Open |
 
 

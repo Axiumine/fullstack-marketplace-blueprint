@@ -13,7 +13,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
 customer owns only the addresses embedded in their own document.
 
 **There is no shop collection, and there will not be — a shop *is* a `company`** (ADR-007). A shop
-owner may hold several `company` rows; each company holds its own `item` rows.
+owner may hold several `company` documents; each company holds its own `item` documents.
 
 **Order, cart, delivery and payment do not exist** — no collection, no resolver, no design. Ask before
 inventing them.
@@ -96,7 +96,7 @@ says so.
 
 ### Soft delete (ADR-011)
 
-`company` carries an optional `deleted` (date), and `companyDel` stamps it instead of removing the row.
+`company` carries an optional `deleted` (date), and `companyDel` stamps it instead of removing the document.
 `vatNumber_unique` and `certifiedEmail_unique` stay plain global uniques with **no**
 `partialFilterExpression`, so a retired company keeps its `vatNumber` occupied — one VAT number is one
 company, whoever registered it and whenever they stopped trading.

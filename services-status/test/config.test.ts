@@ -314,7 +314,7 @@ describe('loadConfig: what it builds', () => {
 
   // 'frontend' is the other half of the kind union and nothing else asserts it: with only
   // 'backend' exercised, a validator that accepted *no* kind but 'backend' would pass every test
-  // here while refusing every frontend row of the real services.json.
+  // here while refusing every frontend entry of the real services.json.
   it('accepts a frontend service as readily as a backend one', () => {
     write(withServices(service({ kind: 'frontend', id: 'marketplace-user', port: 3045 })));
 

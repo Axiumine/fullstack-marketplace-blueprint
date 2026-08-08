@@ -61,8 +61,8 @@ BC-07 Customer Account ──┘  writes user.personalData/addresses          �
 │     pointer)               │
 └─────────────────────────┘
 
-No arrow above is a MongoDB foreign key — MongoDB enforces none of them (6 collections, `additionalProperties:
-false` validators, zero `$ref`/FK mechanism). Every arrow is a resolver-side guard function, named at the
+No arrow above is enforced by the database (6 collections, `additionalProperties: false` validators, zero
+`$ref`/FK mechanism). Every arrow is a resolver-side guard function, named at the
 arrowhead, that runs as an unguaranteed extra read before the aggregate's own single-document write.
 ```
 
@@ -106,7 +106,7 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 **Entities and value objects:**
 | Name | Type | Description |
 |---|---|---|
-| `Company` | Root entity | `idShopOwner` (FK, unenforced by MongoDB), `legalName`, `vatNumber`, `taxCode`, `certifiedEmail`, `address`, `publicName`, `slug`, `description`, `published`, `deleted` |
+| `Company` | Root entity | `idShopOwner` (FK, unenforced), `legalName`, `vatNumber`, `taxCode`, `certifiedEmail`, `address`, `publicName`, `slug`, `description`, `published`, `deleted` |
 | `Address` (company) | Value object | shared `address` block from `BEs/marketplace-db-setup/lib/schemas/geo.js:89-123`; `position` (GeoJSON) is REQUIRED here, unlike `user.addresses[].position` which is optional |
 
 **Invariants:**
@@ -121,19 +121,19 @@ const PUBLISHED_IMPLIES_LINKABLE = {
 };
 ```
 - `vatNumber_unique`, `certifiedEmail_unique`, `slug_unique` — global unique indexes, NO `partialFilterExpression`. A soft-deleted company keeps occupying its `vatNumber`/`certifiedEmail`/`slug` slot forever (ADR-011). One VAT number is one company, whoever registered it and whenever they stopped trading.
-- `idShopOwner` FK is unenforced by MongoDB — checked only when `throwIfShopOwnerDontOwnCompany` runs (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts`), and only on the ShopOwner tier's own mutations. The Admin tier's `companyAdd`/`companyUpdate`/`companyDel` can act on any row and the question of what `idShopOwner` an Admin-created company gets stamped with is unexamined on disk (`EVENT_STORMING.md` §5 hotspot 5).
-- `companyDel` is soft delete only — `deleted` date stamped, row never removed (DCON-03, ADR-011).
-- The two writer tiers deliberately diverge on an already-retired row: ShopOwner tier's guard filters `deleted` and answers 403; Admin tier's guard does not filter it and answers 200 — this is the platform's canonical example that liveness belongs on read/ownership guards, never on the delete write itself (`docs/data-model.md`).
+- `idShopOwner` FK is unenforced — checked only when `throwIfShopOwnerDontOwnCompany` runs (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts`), and only on the ShopOwner tier's own mutations. The Admin tier's `companyAdd`/`companyUpdate`/`companyDel` can act on any company and the question of what `idShopOwner` an Admin-created company gets stamped with is unexamined on disk (`EVENT_STORMING.md` §5 hotspot 5).
+- `companyDel` is soft delete only — `deleted` date stamped, document never removed (DCON-03, ADR-011).
+- The two writer tiers deliberately diverge on an already-retired company: ShopOwner tier's guard filters `deleted` and answers 403; Admin tier's guard does not filter it and answers 200 — this is the platform's canonical example that liveness belongs on read/ownership guards, never on the delete write itself (`docs/data-model.md`).
 
-**Commands:** `companyAdd`/`companyUpdate`/`companyDel` — two writer services, `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own rows, answers `OnlyIdType`) and the Admin-tier sibling of the same name (any row, answers `Boolean`). Contract divergence only — same aggregate, same root, same validator.
+**Commands:** `companyAdd`/`companyUpdate`/`companyDel` — two writer services, `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own companies, answers `OnlyIdType`) and the Admin-tier sibling of the same name (any company, answers `Boolean`). Contract divergence only — same aggregate, same root, same validator.
 
-**Events emitted:** Company Registered, Duplicate vatNumber/certifiedEmail/slug Rejected, Company Updated, Company Made Public, Company Retired, Delete Refused - Already Retired, Delete Accepted On Already-Retired Row.
+**Events emitted:** Company Registered, Duplicate vatNumber/certifiedEmail/slug Rejected, Company Updated, Company Made Public, Company Retired, Delete Refused - Already Retired, Delete Accepted On Already-Retired Company.
 
 ---
 
 ### ItemAggregate
 
-**Root entity:** `Item` — the single generic, domain-neutral catalogue entry: it presumes nothing about what is sold, and a new product type is an `itemCategory` row rather than a new collection or vocabulary of its own (ADR-008). Model `BEs/marketplace-common/src/models/MongoDB/Item.mts`, validator `BEs/marketplace-db-setup/lib/schemas/item.js`.
+**Root entity:** `Item` — the single generic, domain-neutral catalogue entry: it presumes nothing about what is sold, and a new product type is an `itemCategory` document rather than a new collection or vocabulary of its own (ADR-008). Model `BEs/marketplace-common/src/models/MongoDB/Item.mts`, validator `BEs/marketplace-db-setup/lib/schemas/item.js`.
 **Bounded context:** **BC-05** (Catalogue).
 **Boundary:** one `item` document. `idCompany` and `idCategory` name the parent and the taxonomy slot but neither is inside this document's own write — `Item` is conceptually "inside its company" but is its OWN aggregate root and its OWN MongoDB collection; nothing ties an `item` write and its parent `company`'s state into one transaction (§5).
 
@@ -151,7 +151,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
   await throwIfItemCategoryMissing(args.item.idCategory)
   const newItem: IItemSchema = { _id: new Types.ObjectId(), ...args.item }
 ```
-- `idCategory` existence has no MongoDB FK — substituted entirely by `throwIfItemCategoryMissing` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/throwIfItemCategoryMissing.mts`), a second, unguaranteed-atomic read run before the write.
+- `idCategory` existence is unenforced — substituted entirely by `throwIfItemCategoryMissing` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/throwIfItemCategoryMissing.mts`), a second, unguaranteed-atomic read run before the write.
 - `idCompany_slug_unique` — a slug is unique per company, not globally, per `docs/data-model.md` §Indexes.
 - No `price` field, anywhere — deliberate (ADR-009). Orders/cart/delivery/payment have no model to copy; a price with nothing to buy is a guess at an undesigned decision.
 - Two independent writers of `item.published` — `ShopOwner`'s own `itemUpdate` and `Admin`'s `itemUpdatePublished` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts`) — both write the same flag on the same document with **no version/lock field in the schema**. A race between an owner unpublishing and an admin moderating is enforced by **nothing** (`EVENT_STORMING.md` §5 hotspot 4).
@@ -186,7 +186,7 @@ export async function funItemCategoryAdd(data: IItemCategoryValidated) {
 via `throwIfParentNotTopLevel` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/throwIfParentNotTopLevel.mts`).
 - `slug_unique` is global across BOTH levels, not per-parent — two subcategories called "drinks" under two different parents cannot both exist, because `/category/:slug` and `/category/:slug/:subSlug` share one URL namespace.
 - Write path exists ONLY in the Admin resource service — verified: no `itemCategoryAdd`/`Update`/`Del` file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource` (`phase2/BOUNDED_CONTEXT.md` BC-06). Adding a write path elsewhere silently removes the depth cap with it (`docs/data-model.md`).
-- Deleting a category does not cascade to `item` rows filed under it — they stay resolvable pointing at a soft-deleted category, on purpose (BC-06 "Does not own" note). `item.idCategory` is required, so a hard delete of the category would leave items pointing at nothing with no FK to stop it — soft delete is the only safe option here, not a stylistic choice.
+- Deleting a category does not cascade to `item` documents filed under it — they stay resolvable pointing at a soft-deleted category, on purpose (BC-06 "Does not own" note). `item.idCategory` is required, so a hard delete of the category would leave items pointing at nothing to stop it — soft delete is the only safe option here, not a stylistic choice.
 
 **Commands:** `itemCategoryAdd`/`itemCategoryUpdate`/`itemCategoryDel` — Admin tier only.
 
@@ -333,7 +333,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | `PUBLISHED_IMPLIES_LINKABLE` | Company | `$expr` validator, `company.js:88-100` | Insert/update rejected by MongoDB |
 | `vatNumber`/`certifiedEmail`/`slug` stay occupied after soft delete | Company | unique index, no `partialFilterExpression` | A retired company's vatNumber can never be re-registered by anyone — deliberate, not a bug (ADR-011) |
 | `idShopOwner` FK validity | Company | resolver guard, `throwIfShopOwnerDontOwnCompany`, ShopOwner tier only | Admin tier has no ownership guard at all on `companyAdd`/`Update`/`Del` — any `idShopOwner` value can be stamped; unexamined (hotspot 5) |
-| `companyDel` on already-retired row | Company | resolver guard (ShopOwner: filters `deleted`, 403; Admin: does not, 200) | Documented divergence, not a bug — see `docs/data-model.md` §`company` |
+| `companyDel` on already-retired company | Company | resolver guard (ShopOwner: filters `deleted`, 403; Admin: does not, 200) | Documented divergence, not a bug — see `docs/data-model.md` §`company` |
 | `idCompany` ownership before `idCategory` existence, in that order | Item | two sequential resolver guards, `itemAdd.mts:39-46` | Reversed order would let a non-owner enumerate real category ids via the error message |
 | `idCategory` FK validity | Item | resolver guard, `throwIfItemCategoryMissing` | An `item` can reference a deleted or nonexistent category if the guard is ever bypassed or the category is deleted in the window between check and write (§5) |
 | `idCompany_slug_unique` | Item | unique index | Insert rejected — per-company slug collision |
@@ -341,7 +341,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | Two writers of `item.published`, no lock | Item | **nothing** — no version/lock field in schema | Last write wins; an owner unpublishing and an admin moderating concurrently can silently overwrite each other (hotspot 4) |
 | `itemCategory` depth ≤ 2 | ItemCategory | resolver guard, `throwIfParentNotTopLevel` — **cannot** be a `$jsonSchema` rule (validator sees one document) | A category 3+ levels deep could be created if the write path bypassed this resolver — the write path is deliberately confined to one service to keep this true (BC-06) |
 | `slug` unique across both taxonomy levels | ItemCategory | unique index, global (not scoped to `idParent`) | Insert rejected — two same-named subcategories under different parents cannot coexist |
-| Deleting a category does not orphan `item.idCategory` | ItemCategory | soft delete only (`deleted` stamped, row never removed) — NOT a validator rule | If a category were ever hard-deleted, every `item` pointing at it would reference a nonexistent id with no FK to catch it |
+| Deleting a category does not orphan `item.idCategory` | ItemCategory | soft delete only (`deleted` stamped, document never removed) — NOT a validator rule | If a category were ever hard-deleted, every `item` pointing at it would reference a nonexistent id with nothing to catch it |
 | `defaultAddress` points into `addresses[]._id` or is absent | User | `$and: [$jsonSchema, $expr]`, `user.js:70-82` | Insert/update rejected by MongoDB — this is ADR-010's central guarantee: a second default is not merely forbidden, it has no representation to write |
 | Deleting the default address `$unset`s the pointer in the same write | User | resolver, `funUserAddressDel.mts:50-62`, single aggregation-pipeline `updateOne` with `updatePipeline: true` | If the pointer were cleared in a SEPARATE write, the intermediate state (pointer dangling) would be rejected by the `$expr` above — the atomic pipeline is what makes the two-part change legal at all |
 | `ObjectId` coercion before entering an aggregation pipeline | User | resolver discipline, `new Types.ObjectId(...)` before any pipeline stage (DCON-06) | Uncoerced `GraphQLID` string vs real `ObjectId` in `$ne` never matches — silent `matchedCount:1, modifiedCount:0`, the exact bug this function shipped with once |

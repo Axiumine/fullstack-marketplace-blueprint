@@ -36,13 +36,13 @@ The single most important mapping on the platform. Get this wrong and every down
 | Unauthenticated caller | Anonymous Visitor | none | `public-*` |
 
 ### ShopOwner
-**Definition:** Business owner who runs one or more shops on the platform. Authenticates against the `shopOwner` collection. Each `ShopOwner` document owns N `company` rows via `company.idShopOwner`.
+**Definition:** Business owner who runs one or more shops on the platform. Authenticates against the `shopOwner` collection. Each `ShopOwner` document owns N `company` documents via `company.idShopOwner`.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-authenticated-resource`, `BEs/dev/marketplace-dev-authenticated-authorization`, `marketplace-shopowner`.
 **Not to be confused with:** `Admin` (platform operator, different collection, different service pair). Old business talk called this role "the admin" — that phrase is banned, see §19.
 **Example:** No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts`). Verified: grepped every `mutations/` dir across all 9 services, no `shopOwnerRegister` exists anywhere.
 
 ### Admin
-**Definition:** Platform operator, thedoctorweb staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` row regardless of ownership.
+**Definition:** Platform operator, thedoctorweb staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
 **Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:1-61`, `BEs/dev/marketplace-dev-admin-authenticated-resource`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `marketplace-admin`.
 **Not to be confused with:** "superadmin" — never used in code. `ShopOwner` owns companies; `Admin` owns nothing.
 
@@ -58,7 +58,7 @@ The single most important mapping on the platform. Get this wrong and every down
 ### Company
 **Definition:** The legal entity a `ShopOwner` registers, AND the shop itself — there is no separate shop collection and there will not be one. `company.idShopOwner` (required) is the ownership FK. Since `20260804010000-alter-company-public`, also carries the public storefront face: `publicName`, `slug`, `description`, `published`.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `Company` model in `BEs/marketplace-common`.
-**Not to be confused with:** `legalName` (the registered name, never shown to customers) vs `publicName` (the trading name, shown to customers). A shop owner may hold several `company` rows, each with its own `item` rows.
+**Not to be confused with:** `legalName` (the registered name, never shown to customers) vs `publicName` (the trading name, shown to customers). A shop owner may hold several `company` documents, each with its own `item` documents.
 **Example:**
 ```js
 // BEs/marketplace-db-setup/lib/schemas/company.js:111-125
@@ -213,13 +213,13 @@ Hotspot, unresolved: no confirmed write path exists on disk. Do not assume deriv
 
 ## 7. Collection: `company`
 
-**Definition:** The legal entity (and the shop) a `ShopOwner` registers. Two states this builder produces: the `20260803000000-create-company` shape (legal fields only) and the `publicFields: true` shape `20260804010000-alter-company-public` installs (adds storefront fields). Two independent writers by design — `ShopOwner` on own rows only, `Admin` on any row.
+**Definition:** The legal entity (and the shop) a `ShopOwner` registers. Two states this builder produces: the `20260803000000-create-company` shape (legal fields only) and the `publicFields: true` shape `20260804010000-alter-company-public` installs (adds storefront fields). Two independent writers by design — `ShopOwner` on own companies only, `Admin` on any company.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `_id` | objectId | auto | |
-| `idShopOwner` | objectId | yes | ownership FK, unenforced by MongoDB |
+| `idShopOwner` | objectId | yes | ownership FK, unenforced |
 | `legalName` | string ≤100 | yes | registered name including legal form — never shown to customers, see §12 |
 | `vatNumber` | string, exactly 11 | yes | VAT registration number, globally unique index `vatNumber_unique`, no `partialFilterExpression` |
 | `taxCode` | string, exactly 11 | no | tax code of the legal entity, not the 16-char personal form |
@@ -336,7 +336,7 @@ const ret = await User.updateOne(
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `_id` | objectId | auto | |
-| `idCompany` | objectId | yes | FK, unenforced by MongoDB, checked in resolver |
+| `idCompany` | objectId | yes | FK, unenforced, checked in resolver |
 | `idCategory` | objectId | yes | FK into `itemCategory`, either level |
 | `name` | string ≤150 | yes | |
 | `description` | string ≤2000 | yes | |
@@ -367,7 +367,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 
 ## 10. Collection: `itemCategory`
 
-**Definition:** Platform-wide taxonomy `item` rows are filed under. Two levels only — a row with no `idParent` is a category, a row whose `idParent` names a category is a subcategory, a row whose `idParent` names a subcategory is disallowed. Admin-only writes; ShopOwner and public tiers read only.
+**Definition:** Platform-wide taxonomy `item` documents are filed under. Two levels only — a document with no `idParent` is a category, one whose `idParent` names a category is a subcategory, one whose `idParent` names a subcategory is disallowed. Admin-only writes; ShopOwner and public tiers read only.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
 
 | Field | Type | Required | Notes |
@@ -422,8 +422,8 @@ Not collections — reusable `$jsonSchema` fragments every collection composes f
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:96-125`. On `user`: `loginUser` refuses login when `emailVerify.valid` is false, same generic error every other login failure gets.
 
 ### DELETED / DISABLED
-**Definition:** `DELETED` = optional date, soft-delete stamp — never a boolean, and the row is never actually removed. `DISABLED` = optional bool, present+true blocks login.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:127-135`. `companyDel`, and every tier's equivalent, stamp `deleted` rather than deleting the row.
+**Definition:** `DELETED` = optional date, soft-delete stamp — never a boolean, and the document is never actually removed. `DISABLED` = optional bool, present+true blocks login.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:127-135`. `companyDel`, and every tier's equivalent, stamp `deleted` rather than deleting the document.
 
 ### address (shared street-address block)
 **Definition:** `street`, `postalCode` (exactly 5 chars), `city` (≤100), `province` (exactly 2 chars) always required; `position` allowed or required depending on caller. `maxLength` on `street` varies: 100 on `company`, 250 on `shopOwner`/`user`.
@@ -435,7 +435,7 @@ Not collections — reusable `$jsonSchema` fragments every collection composes f
 **Not to be confused with:** `itemCategory.position` — same field name, sort ordinal, no coordinates.
 
 ### COORDINATE_TUPLE
-**Definition:** The array-form coordinate schema — 2 items, longitude then latitude, each independently bounded. GeoJSON order (`[lng, lat]`), not `[lat, lng]` — the original mongosh scripts had this backwards, which put a demo row 5000 km off before anyone fixed it.
+**Definition:** The array-form coordinate schema — 2 items, longitude then latitude, each independently bounded. GeoJSON order (`[lng, lat]`), not `[lat, lng]` — the original mongosh scripts had this backwards, which put a demo company 5000 km off before anyone fixed it.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js:30-48`.
 
 ### migrationCreation / setValidator
@@ -526,7 +526,7 @@ A command is an intentional trigger, imperative present tense — almost always 
 | `itemDel` (Admin tier) | Admin | `item` | Item Deleted By Admin | same dir |
 | `shopOwnerUpdateNote` / `shopOwnerUpdatePreferences` | Admin | `shopOwner` | Shop Owner Note Recorded | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/` |
 | `companyAdd` / `companyUpdate` / `companyDel` (ShopOwner tier) | ShopOwner | `company` | Company Registered/Updated/Retired, Delete Refused — Already Retired (403) | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` — answers `OnlyIdType`, not `Boolean` |
-| `companyAdd` / `companyUpdate` / `companyDel` (Admin tier) | Admin | `company` | same events, plus Delete Accepted On Already-Retired Row (200) | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` |
+| `companyAdd` / `companyUpdate` / `companyDel` (Admin tier) | Admin | `company` | same events, plus Delete Accepted On Already-Retired Company (200) | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` |
 | `itemAdd` / `itemUpdate` / `itemDel` (ShopOwner tier) | ShopOwner | `item` | Item Added/Updated/Deleted, Add Refused — Company Not Owned / Category Missing | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts` |
 | `userPersonalDataUpdate` | Customer | `user` | Personal Data Filled In | `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/mutations/` |
 | `userAddressAdd` / `userAddressUpdate` | Customer | `user.addresses` | Address Added/Updated | same dir |
@@ -549,7 +549,7 @@ A domain event is something that happened, always past tense. Grouped by aggrega
 | `admin` | Admin Logged In |
 | `itemCategory` | Item Category Created · Deep-Nesting Rejected · Duplicate Slug Rejected · Item Category Updated · Item Category Deleted |
 | `item` | Item Added · Add Refused — Company Not Owned · Add Refused — Category Missing · Item Updated · Item Published / Item Unpublished · Item Deleted · Item Published By Admin · Item Unpublished By Admin · Item Deleted By Admin |
-| `company` | Company Registered · Duplicate vatNumber/certifiedEmail/slug Rejected · Company Updated · Company Made Public · Company Retired · Delete Refused — Already Retired (ShopOwner, 403) · Delete Accepted On Already-Retired Row (Admin, 200) |
+| `company` | Company Registered · Duplicate vatNumber/certifiedEmail/slug Rejected · Company Updated · Company Made Public · Company Retired · Delete Refused — Already Retired (ShopOwner, 403) · Delete Accepted On Already-Retired Company (Admin, 200) |
 
 **Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/devprotocol/phase2/EVENT_STORMING.md` §2.1-§2.6.
 **Not to be confused with:** the command that triggers it — e.g. `companyDel` (command, imperative) vs Company Retired (event, past tense).
@@ -573,7 +573,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | ShopOwner logs in while `waitApprov` true | Login refused, generic error shape | login flow |
 | Any account `deleted` or `disabled` | `checkUserAuthorizationDisDel` gates every authenticated call, all 3 tiers | `BEs/marketplace-common` |
 | Logout, any tier's token | Same Redis keys deleted regardless of which service minted them | `authorizationLogoutHandler.mts:60,74` |
-| `itemAdd`/`itemUpdate` given a nonexistent `idCategory` | `throwIfItemCategoryMissing` rejects — substitutes for a FK MongoDB has none of | Admin/ShopOwner resource services |
+| `itemAdd`/`itemUpdate` given a nonexistent `idCategory` | `throwIfItemCategoryMissing` rejects — the substitute for a reference nothing enforces | Admin/ShopOwner resource services |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects BEFORE the category check, so a non-owner learns nothing about real category ids | `itemAdd.mts:39-46` |
 | `x-introspectioncode` header present and matching | Bearer-token check bypassed | Introspection code, §4 |
 
@@ -586,7 +586,7 @@ A read model is the shape of a GraphQL query response an actor reads to decide t
 | Read model | Used by | Contains | Source |
 |---|---|---|---|
 | `me` (`GraphQLUserMe`) | Customer | personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, login/verify state | `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
-| `shopOwnerCompanies` / `companyItems` / `itemCategories` | ShopOwner | own `company` rows, own `item` rows per company, admin-curated category tree (read-only this tier) | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
+| `shopOwnerCompanies` / `companyItems` / `itemCategories` | ShopOwner | own `company` documents, own `item` documents per company, admin-curated category tree (read-only this tier) | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
 | `shopOwnerById` (`GraphQLShopOwnerById`) | Admin | full account incl. `waitApprov`, `disabled`, onboarding fields, note/preferences — the approval-screen read model | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries/shopOwnerById.mts` |
 | `companies` / `companiesNearby` / `companyBySlug` / `items` / `itemBySlug` / `itemCategories` / `search` / `sitemapEntries` | Anon Visitor, Customer | published-only projection of `company`/`item`/`itemCategory`, filtered through `livePublic`/`LIVE_PUBLIC_PIPELINE` | `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |
 | `RefreshType` | all 3 authenticated tiers | new access/refresh token pair + expiry | `refresh` mutation response |

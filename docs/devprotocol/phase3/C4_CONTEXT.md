@@ -82,7 +82,7 @@ graph TB
 |---|---|---|
 | Anonymous visitor | no session | reads public SSR routes on `marketplace-user` (`/`, `/shops`, `/shop/:slug`, `/category/:slug`) — GraphQL over the public-resource service, no auth token |
 | User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything — no cart or order model exists |
-| ShopOwner | shop owner, `shopOwner` collection | registers via `marketplace-shopowner`, waits on `waitApprov` from an Admin, manages own `company` row(s) and `item` catalogue |
+| ShopOwner | shop owner, `shopOwner` collection | registers via `marketplace-shopowner`, waits on `waitApprov` from an Admin, manages own `company` document(s) and `item` catalogue |
 | Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
 | Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 15 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 
@@ -116,7 +116,7 @@ Full contract detail, direction and payload: `docs/devprotocol/phase1/SYSTEM_CON
 |---|---|---|
 | Anonymous visitor | Marketplace | reads public catalogue over SSR, no auth |
 | User | Marketplace | `loginUser` → opaque session → account area, identity only, no commerce |
-| ShopOwner | Marketplace | `login` → manages own `company` + `item` rows, gated by `waitApprov` |
+| ShopOwner | Marketplace | `login` → manages own `company` + `item` documents, gated by `waitApprov` |
 | Admin | Marketplace | `loginAdmin` → approves ShopOwners, sole writer of `itemCategory` |
 | Platform developer | Marketplace | out-of-band ops — migrations, `deploy-local.sh`, git, Qodana tokens |
 | Marketplace | MongoDB | primary datastore, 6 collections, ownership chain `shopOwner → company → item → itemCategory` |
