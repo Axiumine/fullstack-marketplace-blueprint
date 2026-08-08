@@ -13,7 +13,7 @@
 
 `marketplace-user` (port 3045) is the only server-rendered app on the platform — TanStack Start, Vite 8, React 19. It carries two halves in one codebase: an anonymous catalogue meant to be indexed (`/`, `/shops`, `/shop/:slug`, `/category/:slug`, `/search`) and a private account area (`/login`, `/register`, `/reset-password*`, `/account/*`) where a `User` reads and edits personal data and addresses. No order, cart, delivery or payment exists to render — out of scope, `docs/devprotocol/phase3/CONSTRAINTS.md` §5.
 
-The SSR process sits behind a shared nginx layer with `proxy_cache` (`marketplace-user/docs/nginx/cache.conf`). A cache exists to serve the same bytes to many visitors — that is its entire value, and it is also the entire danger the moment a page contains one visitor's own data. Auth on this platform is opaque tokens + Redis sessions (`docs/architecture.md` §Auth model): the refresh token is a Keygrip-signed httpOnly cookie scoped to API paths, the access token lives in browser memory only. The SSR pass runs on the server and holds neither.
+The SSR process sits behind a shared nginx layer with `proxy_cache` (`nginx/conf.d/30-cache.conf` at the workspace root; when this ADR was written the file was a customer-only copy at `marketplace-user/docs/nginx/cache.conf`, now deleted). A cache exists to serve the same bytes to many visitors — that is its entire value, and it is also the entire danger the moment a page contains one visitor's own data. Auth on this platform is opaque tokens + Redis sessions (`docs/architecture.md` §Auth model): the refresh token is a Keygrip-signed httpOnly cookie scoped to API paths, the access token lives in browser memory only. The SSR pass runs on the server and holds neither.
 
 Two failure modes are live at once: (1) server-rendering a page built from `me`/personal-data/addresses caches that HTML and can serve customer A's data to customer B on the next cache hit; (2) even without caching, the SSR pass cannot authenticate — it has no access token to attach, so a would-be SSR'd private page would just 401.
 
@@ -27,7 +27,7 @@ Two failure modes are live at once: (1) server-rendering a page built from `me`/
 
 ## Decision
 
-Chose the third option: `ssr: false` on the `/account` layout route (`marketplace-user/src/routeOptions/account.tsx:59`, inherited by every child under it — `account.addresses.tsx`, `account.password.tsx`, `account.index.tsx`), paired with the nginx bypass in `marketplace-user/docs/nginx/cache.conf:21-30`, which sets `$mkt_user_no_cache = 1` whenever `$http_cookie` matches `refresh_token` or `refresh_token.sig`.
+Chose the third option: `ssr: false` on the `/account` layout route (`marketplace-user/src/routeOptions/account.tsx:59`, inherited by every child under it — `account.addresses.tsx`, `account.password.tsx`, `account.index.tsx`), paired with the nginx bypass in `nginx/conf.d/30-cache.conf:32-35`, which sets `$mkt_user_no_cache = 1` whenever `$http_cookie` matches `refresh_token` or `refresh_token.sig`. That variable feeds both `proxy_cache_bypass` and `proxy_no_cache` in the apex vhost — skipping the lookup and the store are separate switches and the bypass needs both.
 
 Reasoning stated at the route itself (`account.tsx:11-28`), in order of how badly each one bites:
 
@@ -35,7 +35,7 @@ Reasoning stated at the route itself (`account.tsx:11-28`), in order of how badl
 2. **The server literally cannot answer the query.** The access token lives in browser memory; the refresh cookie is httpOnly and scoped to API paths. SSR holds neither, so an SSR'd `me` query 401s on every request — "server-rendered" would mean "server-rendered error state."
 3. **Zero SEO upside.** Nothing under `/account` should ever be indexed, so SSR's only remaining justification is absent. `noIndex` plus `robots.txt` disallowing the prefix (`marketplace-user/src/routes/robots[.]txt.ts:9`) back this up independently of the rendering mode, because the two protections fail differently.
 
-The nginx side never parses the cookie's content, only its presence — the comment at `cache.conf:17-19` is explicit that presence of `refresh_token` or `refresh_token.sig` is read as "this visitor has a session," full stop. That is deliberate: correctness here should not depend on nginx understanding Keygrip signing.
+The nginx side never parses the cookie's content, only its presence — the comment at `nginx/conf.d/30-cache.conf:18-19` is explicit that presence of `refresh_token` or `refresh_token.sig` is read as "this visitor has a session," full stop. That is deliberate: correctness here should not depend on nginx understanding Keygrip signing.
 
 ## Consequences
 
@@ -51,14 +51,14 @@ The nginx side never parses the cookie's content, only its presence — the comm
 
 ### Risks
 - **A new account route bypasses the layout.** If a future `/account/*` route is added as a sibling `createFileRoute` outside the `account.tsx` layout tree instead of a child of it, it does not inherit `ssr: false` and can render authenticated HTML server-side by accident. Revisit if `marketplace-user/src/routes/` ever gains an `account.*` file that is not nested under the existing layout.
-- **The cookie-bypass regex drifts from the actual cookie name.** If `refresh_token`'s name or signing scheme changes in `marketplace-dev-public-authorization` or `marketplace-dev-user-authenticated-authorization` without updating `cache.conf:23`, the bypass silently stops firing and authenticated responses become cacheable again. Revisit any time the refresh-cookie name or Keygrip setup changes.
-- **nginx config is documentation only.** `marketplace-user/docs/nginx/*.conf` is not installed anywhere in this workspace (`docs/architecture.md` §nginx confirms no `/etc/nginx` on this machine) — the mechanism's second half is unverified in any running environment until someone deploys it. Revisit once a real install exists and can be smoke-tested.
+- **The cookie-bypass regex drifts from the actual cookie name.** If `refresh_token`'s name or signing scheme changes in `marketplace-dev-public-authorization` or `marketplace-dev-user-authenticated-authorization` without updating the map in `nginx/conf.d/30-cache.conf:32-35`, the bypass silently stops firing and authenticated responses become cacheable again. Revisit any time the refresh-cookie name or Keygrip setup changes.
+- **nginx is written and tested, but installed on no host.** The config moved to `nginx/` at the workspace root and is now exercised by `nginx/test/run.sh` — a container that runs `nginx -t` and 150 behavioural assertions, including this bypass: MISS, then HIT, then BYPASS once a `refresh_token` cookie is present, asserting the session response is never stored. So the mechanism's second half is no longer unverified, only undeployed (`docs/architecture.md` §nginx — still no `/etc/nginx` on this machine). Revisit once a real install exists and the same three-step check can be run against it.
 
 ## Compliance
 
 Verify on disk, two checks, both must hold together — checking one without the other is not verification:
 
 - `grep -n "ssr: false" marketplace-user/src/routeOptions/account.tsx` must return the `accountRouteOptions` export line (`account.tsx:59`), and no other `routeOptions/*.tsx` file for a public route (`home.tsx`, `shop.tsx`, `category*.tsx`, `search.tsx`, `shopsCity.tsx`) may set `ssr: false`.
-- `grep -n "refresh_token" marketplace-user/docs/nginx/cache.conf` must show the `$mkt_user_has_session` map still matching on the refresh-token cookie name currently issued by the auth services.
+- `grep -n "refresh_token" nginx/conf.d/30-cache.conf` must show the `$mkt_user_no_cache` map still matching on the refresh-token cookie name currently issued by the auth services. ⚠️ The `$mkt_user_has_session` relay map this line used to name is gone — one map now feeds `proxy_cache_bypass` and `proxy_no_cache` directly.
 
-A violation looks like: a route under `/account` (or a new private route added as a sibling instead of a child of the `account` layout) missing `ssr: false`, or `cache.conf`'s cookie regex renamed/loosened without a matching change in the cookie name the auth services actually set. Either alone reopens the leak this ADR closes.
+A violation looks like: a route under `/account` (or a new private route added as a sibling instead of a child of the `account` layout) missing `ssr: false`, or the cookie regex in `30-cache.conf` renamed/loosened without a matching change in the cookie name the auth services actually set. Either alone reopens the leak this ADR closes.

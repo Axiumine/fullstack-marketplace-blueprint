@@ -67,7 +67,7 @@ against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a
 |Nominatim — public OSM|geocoding API|`marketplace-admin` / `marketplace-shopowner` browser → `nominatim.openstreetmap.org`|address search, low-volume internal-panel traffic only|
 |Cloudflare Turnstile|bot-mitigation / CAPTCHA|browser → Cloudflare (widget script) **and** `marketplace-dev-public-resource` → Cloudflare `siteverify`|anti-bot token issued client-side, verified server-side over HTTPS|
 |Protomaps PMTiles archive|static basemap tile source|`marketplace-user` browser ↔ nginx `/tiles/` (self-hosted static file)|vector map tiles via HTTP range requests — not a live 3rd-party tile server|
-|nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|documentation-only in this workspace — configs exist, nothing installed here|
+|nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|three vhosts at `nginx/` in the workspace root, exercised by `nginx/test/run.sh`; still installed on no host|
 |Qodana Cloud (JetBrains)|static-analysis SaaS|every repo's `pre-commit`/`pre-push` hook → Qodana Cloud|SARIF-shaped scan report, one project + token per repo|
 |npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency **except** `@thedoctorweb_agency/marketplace-common`, which 404s there|
 
@@ -85,7 +85,7 @@ graph TB
         Dev[Platform developer]
     end
 
-    subgraph Edge["nginx — docs only, not installed here"]
+    subgraph Edge["nginx — nginx/, 3 vhosts, tested; installed on no host"]
         NG[TLS + HTML cache + rate limits]
     end
 
@@ -111,9 +111,11 @@ graph TB
 
     Anon -->|GraphQL POST| NG
     Cust -->|GraphQL + cookie| NG
-    Owner --> FE_SO
-    Op --> FE_AD
+    Owner -->|GraphQL + cookie| NG
+    Op -->|GraphQL + cookie| NG
     NG --> FE_U
+    NG --> FE_SO
+    NG --> FE_AD
     NG --> SVC
     FE_U -->|SSR direct, skips nginx| SVC
     FE_SO --> SVC
@@ -277,12 +279,15 @@ local instance ... default is the root-relative /nominatim, so the request is sa
 ```
 
 ```conf
-# marketplace-user/docs/nginx/marketplace-user.conf:187-195
+# nginx/sites-available/marketplace-domain.com.conf:217-225
 location /geocode/ {
 	limit_req zone=mkt_geocode burst=20 nodelay;
 	proxy_pass http://mkt_nominatim/;
-	proxy_cache mkt_user_html;
+	proxy_cache       mkt_user_html;
 	proxy_cache_valid 200 1h;
+	proxy_cache_key   "$scheme$request_method$host$request_uri";
+	add_header X-Cache-Status $upstream_cache_status always;
+	include snippets/security-headers-public.conf;
 }
 ```
 
@@ -312,7 +317,7 @@ const registerPmtilesProtocol = () => {
 ```
 
 ```conf
-# marketplace-user/docs/nginx/marketplace-user.conf:102-110
+# nginx/sites-available/marketplace-domain.com.conf:102-110
 location /tiles/ {
 	alias /srv/marketplace-user/tiles/;
 	add_header Accept-Ranges "bytes" always;
@@ -353,46 +358,93 @@ reads as "the gate is broken", not "the gate is off" (comment, `assertTurnstile.
 `guardPublicWrite` (`BEs/dev/marketplace-dev-public-resource/src/lib/access/guardPublicWrite.mts:43-50`),
 **after** the Redis rate-limit counter, so a tokenless flood never reaches the Cloudflare round trip.
 
-### 5.11 nginx — TLS termination + cache (documentation only)
+### 5.11 nginx — TLS termination + cache (written and tested, not installed)
 
-Configs exist and are deployable, nothing installed anywhere in this workspace or on this machine —
-`marketplace-user/docs/nginx/{cache.conf,marketplace-user.conf,rate-limit.conf,security-headers.conf}`.
-Upstream map, all loopback:
+⚠️ **Rewritten after the edge moved.** This section originally described four files under
+`marketplace-user/docs/nginx/` covering the customer surface alone. Those files are deleted. The edge is
+now `nginx/` at the workspace root: one vhost per hostname — `marketplace-domain.com`,
+`shopowner.marketplace-domain.com`, `admin.marketplace-domain.com` — sharing one upstream table, one
+rate-limit file and one TLS file.
+
+Still nothing installed on this machine (no `/etc/nginx`, no binary in `PATH`), but "documentation only"
+now understates it: `nginx/test/run.sh` runs the whole configuration in a throwaway container —
+`nginx -t` as a hard gate, then 150 assertions through a live nginx against stand-in backends. The
+directives below are executed, not merely written.
+
+Upstream map, all loopback, now eleven rather than seven — the two panels' tiers were never in the old
+file:
 
 ```conf
-# marketplace-user/docs/nginx/cache.conf:36-42
-upstream mkt_user_ssr        { server 127.0.0.1:3045; keepalive 32; }
+# nginx/conf.d/10-upstreams.conf:24-56
+upstream mkt_user_ssr { server 127.0.0.1:3045; keepalive 32; }
+
 upstream mkt_public_resource { server 127.0.0.1:4027; keepalive 16; }
 upstream mkt_public_authz    { server 127.0.0.1:4028; keepalive 16; }
-upstream mkt_user_authz      { server 127.0.0.1:4031; keepalive 16; }
-upstream mkt_user_resource   { server 127.0.0.1:4032; keepalive 16; }
-upstream mkt_logout          { server 127.0.0.1:4030; keepalive 8;  }
-upstream mkt_nominatim       { server 127.0.0.1:8080; keepalive 8;  }
+
+upstream mkt_user_resource { server 127.0.0.1:4032; keepalive 16; }
+upstream mkt_user_authz    { server 127.0.0.1:4031; keepalive 16; }
+
+upstream mkt_owner_resource { server 127.0.0.1:4026; keepalive 16; }
+upstream mkt_owner_authz    { server 127.0.0.1:4029; keepalive 16; }
+
+upstream mkt_admin_resource { server 127.0.0.1:4024; keepalive 16; }
+upstream mkt_admin_authz    { server 127.0.0.1:4025; keepalive 16; }
+
+upstream mkt_logout { server 127.0.0.1:4030; keepalive 8; }
+
+upstream mkt_nominatim { server 127.0.0.1:8080; keepalive 8; }
 ```
+
+⚠️ The edge is also the only thing on the platform that sets `Secure` on the session cookie —
+`proxy_cookie_flags ~ secure httponly samesite=strict;` in `nginx/snippets/proxy-backend.conf`, included
+at server level in all three vhosts. koa-utils ships `secure: false` with a comment saying to rewrite it
+here. Nothing fails without nginx in front; the cookie simply goes out replayable over plain HTTP.
 
 Cache-bypass decision is the session cookie, never parsed, only checked for presence — this is the other
 half of the §5.1 mechanism:
 
 ```conf
-# marketplace-user/docs/nginx/cache.conf:21-30
-map $http_cookie $mkt_user_has_session {
-	default 0;
-	"~*(^|;\s*)refresh_token(\.sig)?="  1;
+# nginx/conf.d/30-cache.conf:32-35
+map $http_cookie $mkt_user_no_cache {
+	default                            0;
+	"~*(^|;\s*)refresh_token(\.sig)?=" 1;
 }
-map $mkt_user_has_session $mkt_user_no_cache { 0 0; 1 1; }
 ```
 
-⚠️ Doc/impl gap found this session: `marketplace-user.conf:173-176` documents a proxied `/api/register`
-route ("the server route verifies the Turnstile token, then forwards to the userRegister mutation") that
-does not exist in `marketplace-user/src/routes/` — no server route or `createServerFn` matching
-`api/register` was found. Actual registration path is client → GraphQL `userRegister` straight to
-`/public-resource`, verified server-side by `guardPublicWrite`/`assertTurnstile` in the resource service
-itself (§5.10). Log as open question — see §7.
+⚠️ One map now, not two. The old pair — `$mkt_user_has_session`, then a second map relaying it into
+`$mkt_user_no_cache` — was collapsed: `proxy_cache_bypass` and `proxy_no_cache` both read this one
+variable, the request must skip the lookup **and** never be stored, and there is no case where one is
+true and the other is not. Two maps were a place for those answers to drift apart. Anything still citing
+`$mkt_user_has_session` is citing a variable that no longer exists.
 
-The admin-authenticated-authorization upstream (port 4025) is **absent** from every file under
-`marketplace-user/docs/nginx/` — expected, since that traffic belongs to `marketplace-admin`, not this
-app; whether an equivalent vhost exists for the two SPA frontends is unconfirmed
-(`docs/decisions/authorization-service-consolidation.md` §Not verified).
+~~Doc/impl gap: the apex vhost proxies `/api/register`, and no such route exists in
+`marketplace-user/src/routes/`.~~ **Resolved by removing the block, not by building the route.** There
+was a `location = /api/register` and a `location /api/`, both proxying to the SSR process under a 5r/m
+`mkt_register` zone. No `/api/*` route has ever existed in `marketplace-user/src/routes/` — no server
+route, no `createServerFn` — so every request there 404'd at the renderer and the zone metered nothing.
+
+The route was **not** built, because the design it described is weaker than what already runs on both
+counts it claimed. The Turnstile secret is server-side already and always was: `assertTurnstile` calls
+Cloudflare from `marketplace-dev-public-resource`, so no verification moves closer to the user by adding
+an SSR hop. And the rate limit is already stricter than an edge zone can be: `guardPublicWrite` spends
+two Redis counters per hour, one keyed on `ctx.ip` and one keyed on **the email address**, before the
+Turnstile round trip (§5.10). A `limit_req_zone` keyed on `$binary_remote_addr` never sees the address,
+so it cannot stop a distributed source mail-bombing one inbox — the half that matters is the half nginx
+cannot express. Building the route would have pushed plaintext passwords through a second Node process
+(against ADR-018) to end up with less.
+
+Registration therefore reaches the edge as a GraphQL POST to `/public-resource` alongside every other
+public write, bounded there by `mkt_public` (120r/m), and metered properly one hop later. Both the apex
+vhost and `nginx/conf.d/20-rate-limit.conf` carry this reasoning in place of the deleted block, so it is
+not re-added on the strength of the comment that used to describe it.
+
+~~The admin-authenticated-authorization upstream (port 4025) is **absent** from every file under
+`marketplace-user/docs/nginx/`.~~ **Resolved: it was never written, and now it is.** `mkt_admin_authz`
+(4025) and `mkt_admin_resource` (4024) are in the upstream table above, proxied from
+`admin.marketplace-domain.com` at `/admin-authenticated-authorization` and
+`/admin-authenticated-resource`; `mkt_owner_authz` (4029) and `mkt_owner_resource` (4026) likewise from
+`shopowner.marketplace-domain.com`. The old files described the customer surface only, which is why the
+other two tiers looked missing rather than unwritten.
 
 ### 5.12 Marketplace repos → Qodana Cloud
 
@@ -449,9 +501,9 @@ error at the call site.
 |A payment gateway (Stripe/PayPal/etc.)|downstream of the missing order model — cannot be designed before it|
 |GitHub / any git forge|no forge account is wired to this workspace; where/under which org the repos get published is the platform owner's open call (§7 q6)|
 |A separate shop / point-of-sale collection|will not exist — a shop **is** a `company` (`CLAUDE.md` §Terminology, stated twice as a thing not to re-propose)|
-|A CDN in front of PMTiles or static assets|nginx serves `dist/client` and `/tiles/` straight off disk with immutable cache headers — no CDN wired (`marketplace-user.conf:80-95`)|
+|A CDN in front of PMTiles or static assets|nginx serves `dist/client` and `/tiles/` straight off disk with immutable cache headers — no CDN wired (`nginx/sites-available/marketplace-domain.com.conf:80-110`)|
 |A live tile-serving backend|PMTiles is one static archive read via HTTP range requests, not a server (§5.9)|
-|Any centralized log aggregator|only Sentry is wired for errors/traces; nginx `access_log`/`error_log` write to local files (`marketplace-user.conf:60-61`), no shipping config found|
+|Any centralized log aggregator|only Sentry is wired for errors/traces; each vhost's `access_log`/`error_log` write to local files under `/var/log/nginx/`, one pair per hostname (`nginx/sites-available/marketplace-domain.com.conf:74-75`), no shipping config found|
 
 ---
 
@@ -459,8 +511,8 @@ error at the call site.
 
 |#|Question|Owner|Status|
 |---|---|---|---|
-|1|`marketplace-user.conf:173-176` documents a proxied `/api/register` SSR route that does not exist in `src/routes/` or as a `createServerFn` — is the nginx doc stale, or is the route unimplemented?|platform owner|open — found this session, §5.11|
-|2|Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`, given port 4025 (admin authorization) is absent from every file in `marketplace-user/docs/nginx/`?|platform owner / ops|open, carried from `docs/decisions/authorization-service-consolidation.md` §Follow-ups|
+|1|~~Does the `/api/register` SSR route that the apex vhost proxies get built, or does the block go?~~|platform owner|**closed — the block went.** Neither thing it claimed to add was missing: the Turnstile secret is already server-side and `guardPublicWrite` already limits per IP *and per email*, which no `$binary_remote_addr` zone can do. Both `location`s and the `mkt_register` zone are deleted, §5.11|
+|2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|Who creates the 4 missing Qodana Cloud projects (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
 |5|Does `@thedoctorweb_agency/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, `PDR.md` §8 item 5|

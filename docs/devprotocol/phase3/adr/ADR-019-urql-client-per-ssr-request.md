@@ -48,7 +48,7 @@ with **no `cacheExchange` and no `authExchange`**, and read the endpoint from `p
 rather than a `VITE_`-prefixed variable.
 
 The per-request client is the second table row: HTTP caching already has a correct home — nginx, keyed
-and bypassed properly (`marketplace-user/docs/nginx/cache.conf`) — so a urql-level cache on a single-use object has nothing
+and bypassed properly (`nginx/conf.d/30-cache.conf`) — so a urql-level cache on a single-use object has nothing
 to serve results *to*, only a liability to carry cross-request state by accident. `authExchange` is absent
 for a structural reason, not an oversight: this client only ever talks to `public-resource`, which mounts
 no auth middleware, and that absence is precisely what lets an anonymous crawler request render without

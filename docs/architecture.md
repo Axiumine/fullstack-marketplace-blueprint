@@ -60,7 +60,7 @@ it would run is checked in, at the **workspace root**: `nginx/`. Read `nginx/REA
 it.
 
 One instance, three hostnames, one vhost each — the apex for the public site and the customer account
-area, `shopowner.` and `admin.` for the two panels. TLS terminates there and only there; the twelve
+area, `shopowner.` and `admin.` for the two panels. TLS terminates there and only there; the eleven
 upstream processes speak plain HTTP on loopback ports. It lives above the repos rather than inside one
 because it is the only artefact that is not per-repo: the three vhosts share the upstream table and the
 rate-limit zones, and the same `logout` service answers on all three hosts.
@@ -70,7 +70,7 @@ the only thing on the platform that sets `Secure` on the session cookie.** koa-u
 `secure: false` with a comment saying to rewrite it at the edge. Nothing fails without nginx in front —
 the cookie simply goes out replayable over plain HTTP.
 
-`nginx/test/run.sh` runs the whole thing in a throwaway container: `nginx -t`, then ~150 assertions
+`nginx/test/run.sh` runs the whole thing in a throwaway container: `nginx -t`, then 150 assertions
 against a live nginx and stand-in backends. It is the only way to test any of this, since there is no
 nginx here.
 
