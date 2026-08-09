@@ -43,7 +43,7 @@ The single most important mapping on the platform. Get this wrong and every down
 
 ### Admin
 **Definition:** Platform operator, thedoctorweb staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
-**Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:1-61`, `BEs/dev/marketplace-dev-admin-authenticated-resource`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `marketplace-admin`.
+**Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `marketplace-admin`.
 **Not to be confused with:** "superadmin" — never used in code. `ShopOwner` owns companies; `Admin` owns nothing.
 
 ### User
@@ -56,17 +56,17 @@ The single most important mapping on the platform. Get this wrong and every down
 **Used in:** `BEs/dev/marketplace-dev-public-resource`, `marketplace-user` SSR routes (every route except `/account/*`).
 
 ### Company
-**Definition:** The legal entity a `ShopOwner` registers, AND the shop itself — there is no separate shop collection and there will not be one. `company.idShopOwner` (required) is the ownership FK. Since `20260804010000-alter-company-public`, also carries the public storefront face: `publicName`, `slug`, `description`, `published`.
+**Definition:** The legal entity a `ShopOwner` registers, AND the shop itself — there is no separate shop collection and there will not be one. `company.idShopOwner` (required) is the ownership FK. It also carries the public storefront face: `publicName`, `slug`, `description`, `published`.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `Company` model in `BEs/marketplace-common`.
 **Not to be confused with:** `legalName` (the registered name, never shown to customers) vs `publicName` (the trading name, shown to customers). A shop owner may hold several `company` documents, each with its own `item` documents.
 **Example:**
 ```js
-// BEs/marketplace-db-setup/lib/schemas/company.js:111-125
-function validatorCompany({ publicFields = false, publishedRequired = publicFields } = {}) {
+// BEs/marketplace-db-setup/lib/schemas/company.js
+function validatorCompany() {
   const schema = {
     bsonType: 'object', title: 'company',
     required: ['idShopOwner','legalName','vatNumber','contactPerson','administrator',
-      'certifiedEmail','registryExtract','address', ...(publicFields && publishedRequired ? ['published'] : [])],
+      'certifiedEmail','registryExtract','address','published'],
 ```
 
 ---
@@ -142,7 +142,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 ## 5. Collection: `admin`
 
 **Definition:** Platform operator account. No approval gate, no email verify (created by hand), no `registeredAt`. Owns nothing, owned by nothing.
-**Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:1-61`.
+**Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -160,7 +160,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 **Example:**
 ```js
-// BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:6-11
+// BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js
 // an admin and an shopOwner are the same thing seen from the auth side — role here is which
 // collection you authenticate against, not a field. What is left below is the whole difference
 // between the two: an admin has a name and nothing else. No waitApprov, no emailVerify, no registeredAt.
@@ -193,7 +193,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### waitApprov
 **Definition:** Manual approval gate. Present and `true` blocks login. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the ONLY mutation that ever writes it, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30`.
 **Not to be confused with:** `disabled` — independent flag, also written by `shopOwnerUpdateStatus` in the same call, never alone.
 **Example:**
 ```ts
@@ -213,7 +213,7 @@ Hotspot, unresolved: no confirmed write path exists on disk. Do not assume deriv
 
 ## 7. Collection: `company`
 
-**Definition:** The legal entity (and the shop) a `ShopOwner` registers. Two states this builder produces: the `20260803000000-create-company` shape (legal fields only) and the `publicFields: true` shape `20260804010000-alter-company-public` installs (adds storefront fields). Two independent writers by design — `ShopOwner` on own companies only, `Admin` on any company.
+**Definition:** The legal entity (and the shop) a `ShopOwner` registers. One shape, produced by `validatorCompany()`: the legal fields and the storefront fields (`publicName`, `slug`, `description`, `published`) in the same validator, wrapped as `$and: [{$jsonSchema}, {$expr}]` so a published company must carry a slug and a publicName. Two independent writers by design — `ShopOwner` on own companies only, `Admin` on any company.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`.
 
 | Field | Type | Required | Notes |
@@ -229,17 +229,17 @@ Hotspot, unresolved: no confirmed write path exists on disk. Do not assume deriv
 | `certifiedEmail` | string ≤250 | yes | legally-binding certified mailbox, globally unique index `certifiedEmail_unique` |
 | `address.*` | shared address block, maxLength 100, `position` REQUIRED | yes | 2dsphere index `address.position_2dsphere` |
 | `registryExtract` | string ≤1000 | yes | business-register extract — a file path, not the file |
-| `publicName` | string ≤100 | required once `publicFields`+`publishedRequired` on | trading name shown to customers |
+| `publicName` | string ≤100 | optional field, required in practice by `$expr` when publishing | trading name shown to customers |
 | `slug` | string 2-120, pattern `^[a-z0-9]+(?:-[a-z0-9]+)*$` | optional field, required in practice by `$expr` when publishing | `/shop/:slug`, partial-unique index `slug_unique` on `{$type:'string'}` |
 | `description` | string ≤2000 | no | shop page body + text-search target |
-| `published` | bool | required once `publicFields` on | false = invisible to every public read |
+| `published` | bool | yes | false = invisible to every public read |
 | `deleted` | date | no | soft delete, `companyDel` stamps rather than removes |
 | `__v` | int | no | |
 
 **Not to be confused with:** `legalName` vs `publicName` — never render `legalName` on a customer-facing shop card.
 **Example — the publish invariant, a second validator clause the `$jsonSchema` half cannot express:**
 ```js
-// BEs/marketplace-db-setup/lib/schemas/company.js:88-100
+// BEs/marketplace-db-setup/lib/schemas/company.js
 const PUBLISHED_IMPLIES_LINKABLE = {
   $expr: { $or: [
     { $ne: ['$published', true] },
@@ -273,14 +273,14 @@ Two tiers diverge on delete semantics for an already-retired company: ShopOwner 
 
 ### personalData
 **Definition:** Optional sub-document — registration is email + password only, name/contacts filled in after email confirmed. `shopOwner`'s equivalent is required at creation.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js:104-171`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js`.
 
 ### addresses
 **Definition:** Array of address elements, each carrying required `_id` (Mongoose auto-mints it), optional `label`, the shared street-address block, optional `position`.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js:27-49` (`addressItem()`).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js` (`addressItem()`).
 **Example:**
 ```js
-// BEs/marketplace-db-setup/lib/schemas/user.js:34-49
+// BEs/marketplace-db-setup/lib/schemas/user.js
 return {
   ...base,
   required: ['_id', ...base.required],
@@ -292,15 +292,15 @@ return {
 
 ### label
 **Definition:** Optional free-text name a customer gives an address — "home", "office". Max 50 chars.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js:41-45`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js`.
 
 ### defaultAddress
 **Definition:** Single top-level ObjectId pointer into `addresses[]._id`. NOT a per-element boolean — "at most one default" is a shape, made structurally impossible to violate, rather than a rule checked at write time. Enforced by the collection's `$expr` clause: pointer must be absent OR present in `addresses[]._id`.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js:70-82` (`DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES`).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js` (`DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES`).
 **Not to be confused with:** a `default: true` boolean per address element — original design, rejected, would allow two defaults simultaneously and need a clear-then-set two-step write.
 **Example:**
 ```js
-// BEs/marketplace-db-setup/lib/schemas/user.js:70-82
+// BEs/marketplace-db-setup/lib/schemas/user.js
 const DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES = {
   $expr: { $or: [
     { $eq: [{ $type: '$defaultAddress' }, 'missing'] },
@@ -323,7 +323,7 @@ const ret = await User.updateOne(
 
 ### position (GeoJSON, on `user.addresses[]`)
 **Definition:** Optional GeoJSON Point, tuple form `[longitude, latitude]`, filled in when the address is picked from the geocoder autocomplete. Never required — an address typed by hand has no map until re-picked.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js:30-48` (`COORDINATE_TUPLE`), `:51-69` (`position()`).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js` (`COORDINATE_TUPLE`), `:51-69` (`position()`).
 **Not to be confused with:** `itemCategory.position` — a SORT ORDINAL integer, unrelated shape, same field name, see §10.
 
 ---
@@ -348,7 +348,7 @@ const ret = await User.updateOne(
 **Not to be confused with:** a priced product — `item` deliberately carries no `price` field; see §Banned Terms rationale, §19.
 **Example:**
 ```js
-// BEs/marketplace-db-setup/lib/schemas/item.js:12-17
+// BEs/marketplace-db-setup/lib/schemas/item.js
 // ⚠️ There is no `price`. Cart, order, delivery and payment have no model anywhere on this
 // platform and no design decision behind them yet, so a price would be a guess at a currency, a
 // precision, a VAT treatment and a discount model all at once
@@ -382,7 +382,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 
 ### idParent
 **Definition:** Self-referencing FK. Depth cap (max 2 levels) is enforced in the resolver, NOT the validator — a `$jsonSchema` reads one document only and cannot check whether its parent is itself a subcategory.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js:62-65`; enforced by `throwIfParentNotTopLevel` in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`; enforced by `throwIfParentNotTopLevel` in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33`.
 **Example:**
 ```ts
 // BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
@@ -396,12 +396,12 @@ Writes to `itemCategory` exist ONLY in `marketplace-dev-admin-authenticated-reso
 
 ### position (sort ordinal, on `itemCategory`)
 **Definition:** Integer sort order within a level, operator-set.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js:66-69`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
 **Not to be confused with:** GeoJSON `position` on `company.address` / `user.addresses[]` — same field name, unrelated shape, no coordinates stored here at all.
 
 ### slug (itemCategory)
 **Definition:** URL segment for `/category/:slug` and `/category/:slug/:subSlug`, globally unique across both levels — two subcategories called "drinks" under two different parents would be two URLs that cannot both exist.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js:55-60`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
 
 ---
 
@@ -411,36 +411,36 @@ Not collections — reusable `$jsonSchema` fragments every collection composes f
 
 ### LOGIN
 **Definition:** Shared login sub-document — `email` (string ≤250), `password` (bcrypt hash, string exactly 60 chars), `firstLogin`/`lastLogin` (date), `onboardingStep` (string ≤4)/`onboardingDone` (bool, ShopOwner tier reads only), `rememberMe` (bool). One shape across `admin`, `shopOwner`, `user` — the three collections you authenticate against.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:18-53`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js`.
 
 ### RESET_PWD
 **Definition:** Password-reset slot — `resetDateReq` (date), `resetHash` (string, exactly 50 chars). Kept strictly disjoint from `EMAIL_VERIFY` — a shared slot let a reset-flow hash authenticate the activation flow and vice versa.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:60-80`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js`.
 
 ### EMAIL_VERIFY
 **Definition:** Verify-email slot bound to the `@axiumine/koa-utils` flow — `valid` (bool), `hash` (string, exactly 50 chars), `dateLastReq` (date, sets a 3-day window), `requestTimes` (int, wrong-hash attempts — the fifth deletes the account), `newEmailTmp` (string ≤250). No `required` array — the flow writes the sub-document piecemeal across three distinct writers.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:96-125`. On `user`: `loginUser` refuses login when `emailVerify.valid` is false, same generic error every other login failure gets.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js`. On `user`: `loginUser` refuses login when `emailVerify.valid` is false, same generic error every other login failure gets.
 
 ### DELETED / DISABLED
 **Definition:** `DELETED` = optional date, soft-delete stamp — never a boolean, and the document is never actually removed. `DISABLED` = optional bool, present+true blocks login.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js:127-135`. `companyDel`, and every tier's equivalent, stamp `deleted` rather than deleting the document.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/account.js`. `companyDel`, and every tier's equivalent, stamp `deleted` rather than deleting the document.
 
 ### address (shared street-address block)
 **Definition:** `street`, `postalCode` (exactly 5 chars), `city` (≤100), `province` (exactly 2 chars) always required; `position` allowed or required depending on caller. `maxLength` on `street` varies: 100 on `company`, 250 on `shopOwner`/`user`.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js:89-123` (`address()` builder).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js` (`address()` builder).
 
 ### position (GeoJSON builder)
 **Definition:** `{ type: 'Point', coordinates: [lng, lat] }`, tuple form, longitude first. Backing `COORDINATE_TUPLE` bounds each axis separately (±180 longitude, ±90 latitude) and accepts `['double','int','long']` — an integer-valued coordinate like `9` is stored as int32 by `bson`, so a `'double'`-only validator would wrongly reject it.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js:16-48` (`COORDINATE_TUPLE`), `:51-69` (`position()`).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js` (`COORDINATE_TUPLE`), `:51-69` (`position()`).
 **Not to be confused with:** `itemCategory.position` — same field name, sort ordinal, no coordinates.
 
 ### COORDINATE_TUPLE
 **Definition:** The array-form coordinate schema — 2 items, longitude then latitude, each independently bounded. GeoJSON order (`[lng, lat]`), not `[lat, lng]` — the original mongosh scripts had this backwards, which put a demo company 5000 km off before anyone fixed it.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js:30-48`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js`.
 
-### migrationCreation / setValidator
-**Definition:** `migrationCreation(collection, validator, indexes)` builds the `up`/`down` pair of a `<ts>-create-<coll>.js` migration. `setValidator(db, collection, validator)` wraps a `collMod` — replaces a validator WHOLESALE, never merges, so every `collMod` caller must restate the complete shape.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/collection.js:26-53`.
+### migrationCreation
+**Definition:** `migrationCreation(collection, validator, indexes)` builds the `up`/`down` pair of a `<ts>-create-<coll>.js` migration: `up` creates the collection with its validator and then every index, `down` drops the collection. It is the ONLY export of `lib/schemas/collection.js` — there is no `collMod` helper, because there is no `collMod` on this platform.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/collection.js`.
 
 ---
 
@@ -459,7 +459,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `CLAUDE.md` §Two naming rules.
 **Example — the distinction that matters most, `legalName` vs `publicName`:**
 ```
-// BEs/marketplace-db-setup/lib/schemas/company.js:18-21
+// BEs/marketplace-db-setup/lib/schemas/company.js
 // `legalName` is the registered name — "Northwind Trading Ltd" — and putting it on a customer-facing card is
 // wrong twice over: it is not what the shop is called, and it carries a corporate form nobody
 // searches for. `publicName` is the trading name over the door.
@@ -482,11 +482,11 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** `BEs/marketplace-common/deploy-local.sh`.
 
 ### Migration
-**Definition:** One `migrate-mongo`-managed file under `BEs/marketplace-db-setup/migrations/`, timestamp-prefixed, immutable once applied — never edit an applied migration, add a new one. `<ts>-create-<coll>.js` creates a collection + validator + indexes; `<ts>-alter-<coll>.js` does a `collMod`.
+**Definition:** One `migrate-mongo`-managed file under `BEs/marketplace-db-setup/migrations/`, timestamp-prefixed, immutable once applied — never edit an applied migration, add a new one. `<ts>-create-<coll>.js` creates a collection + validator + indexes in one call. There is no `<ts>-alter-<coll>.js` and no `collMod`: a collection is declared once, in its final shape.
 **Used in:** `BEs/marketplace-db-setup/migrations/`, `BEs/marketplace-db-setup/CLAUDE.md` §Authoring migrations.
 
 ### Validator
-**Definition:** MongoDB `$jsonSchema` (or `$and: [{$jsonSchema}, {$expr}]` when a cross-field rule is needed, as on `user` and `company`), `strict` + `additionalProperties: false`. Built from `lib/schemas/*.js`, one builder per collection, each carrying EVERY historical shape its collection has had.
+**Definition:** MongoDB `$jsonSchema` (or `$and: [{$jsonSchema}, {$expr}]` when a cross-field rule is needed, as on `user` and `company`), `strict` + `additionalProperties: false`. Built from `lib/schemas/*.js`, one builder per collection, each returning exactly ONE shape and taking no arguments.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/README.md`, all six `lib/schemas/*.js` files.
 
 ### Coverage gate

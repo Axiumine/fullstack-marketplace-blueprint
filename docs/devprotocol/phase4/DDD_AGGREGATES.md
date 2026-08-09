@@ -79,8 +79,8 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 **Entities and value objects:**
 | Name | Type | Description |
 |---|---|---|
-| `ShopOwner` | Root entity | `login`/`resetPwd`/`emailVerify` sub-docs (shared `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY` shapes, `BEs/marketplace-db-setup/lib/schemas/account.js:18-125`), `waitApprov`, `notes`, `onboardingStep`/`onboardingDone`, `disabled`, `deleted` |
-| `PersonalData` | Value object | required at creation: `firstName`, `lastName`, `birth.date`, `address` (GeoJSON `position` optional), `contacts` (requires BOTH `mobile` and `email`) — `BEs/marketplace-db-setup/lib/schemas/shopOwner.js:38-88` |
+| `ShopOwner` | Root entity | `login`/`resetPwd`/`emailVerify` sub-docs (shared `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY` shapes, `BEs/marketplace-db-setup/lib/schemas/account.js`), `waitApprov`, `notes`, `onboardingStep`/`onboardingDone`, `disabled`, `deleted` |
+| `PersonalData` | Value object | required at creation: `firstName`, `lastName`, `birth.date`, `address` (GeoJSON `position` optional), `contacts` (requires BOTH `mobile` and `email`) — `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` |
 
 **Invariants:**
 - `login.email` unique across the collection — `INDEXES_LOGIN_EMAIL` (shared shape from `account.js`).
@@ -107,12 +107,12 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 | Name | Type | Description |
 |---|---|---|
 | `Company` | Root entity | `idShopOwner` (FK, unenforced), `legalName`, `vatNumber`, `taxCode`, `certifiedEmail`, `address`, `publicName`, `slug`, `description`, `published`, `deleted` |
-| `Address` (company) | Value object | shared `address` block from `BEs/marketplace-db-setup/lib/schemas/geo.js:89-123`; `position` (GeoJSON) is REQUIRED here, unlike `user.addresses[].position` which is optional |
+| `Address` (company) | Value object | shared `address` block from `BEs/marketplace-db-setup/lib/schemas/geo.js`; `position` (GeoJSON) is REQUIRED here, unlike `user.addresses[].position` which is optional |
 
 **Invariants:**
 - `PUBLISHED_IMPLIES_LINKABLE`: `published: true` implies `slug` and `publicName` are both present strings — DB-enforced `$expr`:
 ```js
-// BEs/marketplace-db-setup/lib/schemas/company.js:88-100
+// BEs/marketplace-db-setup/lib/schemas/company.js
 const PUBLISHED_IMPLIES_LINKABLE = {
   $expr: { $or: [
     { $ne: ['$published', true] },
@@ -214,7 +214,7 @@ via `throwIfParentNotTopLevel` (`BEs/dev/marketplace-dev-admin-authenticated-res
 - `login.email` unique (`INDEXES_LOGIN_EMAIL`).
 - Only `login` and `registeredAt` required at creation — `personalData` optional:
 ```js
-// BEs/marketplace-db-setup/lib/schemas/user.js:38-43
+// BEs/marketplace-db-setup/lib/schemas/user.js
 required: [
   'login',
   'registeredAt'
@@ -223,7 +223,7 @@ required: [
 - `addresses[]._id` required (Mongoose-minted) — the precondition for `defaultAddress` to be expressible at all.
 - **DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES** — DB-enforced `$expr`, `defaultAddress` accepted only if missing or present in `$map` over `addresses`:
 ```js
-// BEs/marketplace-db-setup/lib/schemas/user.js:70-82
+// BEs/marketplace-db-setup/lib/schemas/user.js
 const DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES = {
   $expr: { $or: [
     { $eq: [{ $type: '$defaultAddress' }, 'missing'] },
@@ -260,8 +260,8 @@ Both `$set` stages run inside ONE `updateOne` pipeline against ONE document — 
 
 ### AdminAggregate
 
-**Root entity:** `Admin` — the platform operator, stands outside the ownership chain entirely: owns nothing, owned by nothing (`docs/data-model.md`). Model `BEs/marketplace-common/src/models/MongoDB/Admin.mts`. **No `lib/schemas/admin.js` builder exists** — unlike the other five collections, this one's `$jsonSchema` is assembled inline in its single migration, `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js:18-59`, and restated nowhere else. It is not standalone, though: the credential and state sub-shapes still come from the shared `lib/schemas/account.js` (`LOGIN`, `DELETED`, `DISABLED`, `RESET_PWD`, `INDEXES_LOGIN_EMAIL`). Only the `personalData` block is literal, because nothing else on the platform carries that shape — an operator's registry data is two names and no more.
-**Bounded context:** **BC-01** (Identity & Access) only. No BC-03-equivalent onboarding context exists for `Admin` — how new `Admin` accounts get provisioned was not found by a repo-wide search for an `adminAdd` mutation in this pass (§10 open question); the one confirmed write path is the seed migration `BEs/marketplace-db-setup/migrations/20260301001800-seed-demo.js`.
+**Root entity:** `Admin` — the platform operator, stands outside the ownership chain entirely: owns nothing, owned by nothing (`docs/data-model.md`). Model `BEs/marketplace-common/src/models/MongoDB/Admin.mts`. **No `lib/schemas/admin.js` builder exists** — unlike the other five collections, this one's `$jsonSchema` is assembled inline in its single migration, `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`, and restated nowhere else. It is not standalone, though: the credential and state sub-shapes still come from the shared `lib/schemas/account.js` (`LOGIN`, `DELETED`, `DISABLED`, `RESET_PWD`, `INDEXES_LOGIN_EMAIL`). Only the `personalData` block is literal, because nothing else on the platform carries that shape — an operator's registry data is two names and no more.
+**Bounded context:** **BC-01** (Identity & Access) only. No BC-03-equivalent onboarding context exists for `Admin` — how new `Admin` accounts get provisioned was not found by a repo-wide search for an `adminAdd` mutation in this pass (§10 open question); the one confirmed write path is the seed migration `BEs/marketplace-db-setup/migrations/20260301000600-seed-demo.js`.
 **Boundary:** one `admin` document. The smallest aggregate on the platform — verified: the migration's `$jsonSchema` declares `_id`, `login`, `personalData`, `deleted`, `disabled`, `resetPwd` and `__v`, with `additionalProperties: false` at both levels, and `required: ['login', 'personalData']` (`20260301000000-create-admin.js:22-25,31-49`). No `waitApprov`, no `onboardingStep`, no `addresses`, no `emailVerify` — an operator account is provisioned, not self-registered, so there is nothing to approve and no address to confirm.
 
 **Entities and value objects:**

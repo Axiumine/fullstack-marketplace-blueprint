@@ -74,7 +74,7 @@ No design, no diagram, no ADR that presumes these exist or invents their shape:
 - **Cart** — no collection.
 - **Delivery** — no collection, no resolver, no design.
 - **Payment** — no gateway chosen, no integration.
-- **Price on `item`** — deliberately absent, comment at `BEs/marketplace-db-setup/lib/schemas/item.js:12-17` says why. Do not add "just a field" — a price with nothing to buy is a guess at an undesigned decision.
+- **Price on `item`** — deliberately absent, comment at `BEs/marketplace-db-setup/lib/schemas/item.js` says why. Do not add "just a field" — a price with nothing to buy is a guess at an undesigned decision.
 
 These 4 are BC-11 "Ordering & Fulfilment [PLANNED - NOT BUILT]" in `phase2/BOUNDED_CONTEXT.md`. Its own §6 row says explicit: do not pre-build an ACL for a context with no shape yet. Same logic bind Phase 3 — naming the term in a glossary-reference way (already done, UBIQUITOUS_LANGUAGE.md §18) is fine; drawing its schema, its resolver, its state machine is not. **Ask before inventing them** — `CLAUDE.md` §Build state, said twice in that file already.
 

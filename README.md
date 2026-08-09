@@ -155,17 +155,17 @@ Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push`
 formatter that rewrites them is the wrong tool. Qodana still *inspects* those files, which is the part
 worth having.
 
-⚠️ **The coverage and mutation gates there are new, and this file argued at length that neither could
-exist.** The argument was that the repo's only suite drives real `up()`/`down()` against a real database,
-so 100% would measure whether every migration got added to a list rather than whether any schema is
-right. That was true of *one* suite and stopped being true when there were five: `test/mongoUrl.test.mjs`
-and `test/migrateMongoConfig.test.mjs` cover the URL and config builders as plain units,
-`test/migrationGuards.test.mjs` drives the error paths a healthy database never reaches, and
+⚠️ **A coverage or mutation gate over migrations only means something because the suite is not only the
+replay.** An end-to-end `up()`/`down()` against a real database, on its own, measures whether every
+migration got added to a list — not whether any schema is right, and a mutation score over it would be
+noise. Five suites is what makes the number real: `test/mongoUrl.test.mjs` and
+`test/migrateMongoConfig.test.mjs` cover the URL and config builders as plain units,
+`test/encryption.test.mjs` drives the four CSFLE guards a healthy environment never trips, and
 `test/migrationCalls.test.mjs` freezes the ordered driver-call log of every migration in both directions
-— which is the piece that made mutation testing worth anything here, because it is the only suite that
-can tell two migrations apart when they leave the same database behind. Baseline was **52.92%** at 100%
-coverage; it is 100 now, over 848 mutants. The replay suite is still push-only in spirit — it needs the
-database up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
+— that last one is what makes mutation testing worth anything here, because it is the only suite that can
+tell two migrations apart when they leave the same database behind. 100% on all four coverage metrics and
+**mutation score 100 over 788 mutants**. The replay suite is push-only in spirit — it needs the database
+up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
 
 **The fifteenth gated repo is this workspace itself, and it gates `services-status`.** The parent dir is
 a git repo like the other fourteen, but it is the only gated one that is not a package: it has no

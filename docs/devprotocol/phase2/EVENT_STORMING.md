@@ -29,7 +29,7 @@ Vocab:
 | Platform operator | `Admin` | `admin` |
 | Anonymous visitor | none | none |
 
-Built vs planned, stated once because every flow below depends on it: identity, tenant, catalogue flows are BUILT, stormed in full below. Order/cart/delivery/payment are PLANNED — zero collection, zero resolver, zero migration, zero design — stormed separately in §2.9 as a naming exercise only, never as implementation fact. `item` deliberately carries no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js:12-17`).
+Built vs planned, stated once because every flow below depends on it: identity, tenant, catalogue flows are BUILT, stormed in full below. Order/cart/delivery/payment are PLANNED — zero collection, zero resolver, zero migration, zero design — stormed separately in §2.9 as a naming exercise only, never as implementation fact. `item` deliberately carries no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js`).
 
 ---
 
@@ -183,7 +183,7 @@ import { OnlyIdType } from '@axiumine/koa-utils/graphQL/schema/types/OnlyIdType'
 type: new GraphQLNonNull(OnlyIdType),
 ```
 
-The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired company — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description`, `published` were added by `20260804010000-alter-company-public` — `published` defaults false, nothing indexable until the owner opts in.
+The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired company — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description` and `published` live on the same collection as the legal fields, declared together by `20260301000200-create-company` — `published` defaults false, nothing indexable until the owner opts in.
 
 ### 2.5 Catalogue writes: item
 Aggregate: `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`)
@@ -283,7 +283,7 @@ Anon Visitor →  sitemapEntries                             → slugs for SSR s
 // No `centerSphereFilter` here, deliberately: the map's radius path wants distances back, so it uses
 // `$geoNear` — which sorts and reports `distanceMeters` — while `centerSphereFilter` exists for the
 // one caller that cannot sort by distance because it already sorts by relevance. See `search`.
-// Both read the `address.position_2dsphere` index, added by `20260804010000-alter-company-public`
+// Both read the `address.position_2dsphere` index, created by `20260301000200-create-company`
 ```
 
 Every query here answers only `published: true` documents — enforced by a shared pipeline stage, not repeated per query, per the `LIVE_PUBLIC_PIPELINE`/`livePublic` import at `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` (imported by `companiesNearby.mts:6`).
@@ -307,7 +307,7 @@ Customer →  Pay                          →  Payment Authorised      [NOT BUI
 ShopOwner→  Dispatch                     →  Delivery Dispatched     [NOT BUILT]
 ```
 
-Verified absence, not assumed: PDR.md's scope section lists all 6 collections that exist by migration filename (`admin`, `shopOwner`, `company`, `user`, `itemCategory`, `item`) and none is `order`/`cart`/`payment`/`delivery`; no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching those names (checked during §2.1–2.6 traversal above). `item` has no price field for exactly this reason — `BEs/marketplace-db-setup/lib/schemas/item.js:12-17` states outright a price would be "a guess at a design decision nobody has made." Inventing any part of this requires operator sign-off (`CLAUDE.md` §Build state: "ask before inventing them").
+Verified absence, not assumed: PDR.md's scope section lists all 6 collections that exist by migration filename (`admin`, `shopOwner`, `company`, `user`, `itemCategory`, `item`) and none is `order`/`cart`/`payment`/`delivery`; no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching those names (checked during §2.1–2.6 traversal above). `item` has no price field for exactly this reason — `BEs/marketplace-db-setup/lib/schemas/item.js` states outright a price would be "a guess at a design decision nobody has made." Inventing any part of this requires operator sign-off (`CLAUDE.md` §Build state: "ask before inventing them").
 
 ---
 
@@ -350,7 +350,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 
 | # | Hotspot | Description |
 |---|---|---|
-| 1 | `waitApprov` field semantics | Schema comment reads "present and true: awaiting admin approval (flagged by telepromoter) or deleted" (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`) — conflates an approval-pending state with a deletion state in one boolean's own doc comment. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the only writer. Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver examined. |
+| 1 | `waitApprov` field semantics | Schema comment reads "present and true: awaiting admin approval (flagged by telepromoter) or deleted" (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js`) — conflates an approval-pending state with a deletion state in one boolean's own doc comment. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the only writer. Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver examined. |
 | 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` document) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
 | 3 | No self-service shop-owner registration | Every `ShopOwner` account today is Admin-provisioned via `shopOwnerAdd`. A public self-registration flow, if ever wanted, is new scope — not a bug in an existing one. |
 | 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |

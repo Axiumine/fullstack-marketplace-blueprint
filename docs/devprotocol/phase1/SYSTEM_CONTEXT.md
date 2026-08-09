@@ -210,15 +210,15 @@ Direction: bidirectional, internal only — no external actor ever reaches Mongo
 `$jsonSchema` + `additionalProperties: false` on every one. Geo index that public search depends on:
 
 ```js
-// BEs/marketplace-db-setup/migrations/20260804010000-alter-company-public.js:92-95
+// BEs/marketplace-db-setup/migrations/20260301000200-create-company.js
 'address.position': '2dsphere'
 ...
 name: 'address.position_2dsphere'
 ```
 
 `item` and `user.addresses[]` deliberately carry **no** `2dsphere` index — nothing queries either by
-distance (`BEs/marketplace-db-setup/migrations/20260804030000-create-item.js:42-44`,
-`BEs/marketplace-db-setup/migrations/20260804000000-create-user.js:28`).
+distance (`BEs/marketplace-db-setup/migrations/20260301000500-create-item.js`,
+`BEs/marketplace-db-setup/migrations/20260301000300-create-user.js`).
 
 ### 5.5 Marketplace ↔ Redis (cluster)
 

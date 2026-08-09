@@ -64,9 +64,9 @@ No `role` field, no permission enum anywhere in the schema. Role IS which collec
 
 ### In scope
 
-**Tenant skeleton** — `admin`, `shopOwner`, `company` collections, ownership chain `shopOwner ──idShopOwner──> company`. Verified 6 collections total via migration filenames in `BEs/marketplace-db-setup/migrations/`: `20260301000000-create-admin.js`, `20260301000100-create-shopOwner.js`, `20260803000000-create-company.js`, `20260804000000-create-user.js`, `20260804020000-create-itemCategory.js`, `20260804030000-create-item.js`.
+**Tenant skeleton** — `admin`, `shopOwner`, `company` collections, ownership chain `shopOwner ──idShopOwner──> company`. Verified 6 collections total via migration filenames in `BEs/marketplace-db-setup/migrations/`: `20260301000000-create-admin.js`, `20260301000100-create-shopOwner.js`, `20260301000200-create-company.js`, `20260301000300-create-user.js`, `20260301000400-create-itemCategory.js`, `20260301000500-create-item.js`.
 
-**Domain-neutral catalogue** — `item` + `itemCategory`, hanging off `company`, no shop collection (a shop IS a `company`). No price field, deliberately — see comment block in `BEs/marketplace-db-setup/lib/schemas/item.js:12-17`: "Cart, order, delivery and payment have no model anywhere on this platform … a price would be a guess." `itemCategory` depth capped at two levels, enforced in resolver not validator — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:24` calls `throwIfParentNotTopLevel(data.idParent)` before write, writes exist only in the Admin-tier resource service.
+**Domain-neutral catalogue** — `item` + `itemCategory`, hanging off `company`, no shop collection (a shop IS a `company`). No price field, deliberately — see comment block in `BEs/marketplace-db-setup/lib/schemas/item.js`: "Cart, order, delivery and payment have no model anywhere on this platform … a price would be a guess." `itemCategory` depth capped at two levels, enforced in resolver not validator — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:24` calls `throwIfParentNotTopLevel(data.idParent)` before write, writes exist only in the Admin-tier resource service.
 
 **Customer identity + addresses** — `user` collection mirrors `shopOwner` with 4 divergences (`personalData` optional, `addresses[]` array, no `waitApprov`, `defaultAddress` pointer). Default-address invariant is DB-enforced via `$and: [{$jsonSchema}, {$expr}]` validator, not app code — deletion must clear the pointer in the same write, real code:
 
@@ -102,7 +102,7 @@ graph TD
 
 ### Out of scope
 
-- **Orders, cart, delivery, payment** — no collection, no resolver, no design. `item` has no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js:12-17`). Not a backlog item with an owner — genuinely undesigned, "ask before inventing them" per `CLAUDE.md` §Build state.
+- **Orders, cart, delivery, payment** — no collection, no resolver, no design. `item` has no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js`). Not a backlog item with an owner — genuinely undesigned, "ask before inventing them" per `CLAUDE.md` §Build state.
 - **A separate shop collection** — will not exist. A shop IS a `company`. `CLAUDE.md` states this twice, deliberately, as a thing not to re-propose.
 - **Vocabulary that presumes a specific product domain** — the catalogue (`item` + `itemCategory`) is domain-neutral by design. Reintroducing domain-presuming vocabulary in a new product type is a regression, not a feature.
 - **`role` field or permission enum** — role = which collection you authenticate against, by design. A dispatcher on `redData.tier` was explicitly evaluated and rejected for the authorization-consolidation question — see option (a) in `docs/decisions/authorization-service-consolidation.md`, blocked on doctrine grounds, not merely deferred.
