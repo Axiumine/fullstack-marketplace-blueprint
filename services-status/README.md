@@ -60,7 +60,7 @@ yarn systemd:install
 `.env` or a missing `node_modules` in that service's repo, and it asserts that no monitored unit is
 enabled. It refuses to run as root and checks that
 `~/.nvm/versions/node/v24.18.0/bin/yarn` exists before doing anything, printing the `nvm install
-24.18.0` line if it does not. Both halves come from `services.json` (`nvmDir`, `nodeVersion`).
+24.18.0` line if it does not.
 
 `yarn systemd:uninstall` stops `marketplace.target`, removes the generated units and reloads the daemon;
 it supports `--dry-run`.
