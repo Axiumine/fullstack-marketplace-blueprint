@@ -34,8 +34,9 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 
 The parent tracks each of the fifteen as a **submodule** (ADR-031): a gitlink pinning one commit SHA, and
 nothing else. **Anything written under those paths is still tracked by that sub-repo and never by the
-parent** — a submodule pins a sub-repo, it does not absorb one. `git ls-files BEs/marketplace-common`
-returns nothing, and if it ever returns files the boundary has been broken.
+parent** — a submodule pins a sub-repo, it does not absorb one. `git ls-files -s BEs/marketplace-common`
+returns exactly one entry and its mode is `160000`, the gitlink; anything else under that path means a
+sub-repo's files have been committed into the parent and the boundary is broken.
 
 `.gitmodules` is the tracked list of all fifteen: path, `git@github.com:Axiumine/<repo-name>.git`, and
 `branch = main`. One transport for all fifteen, deliberately — a `.gitmodules` mixing `ssh` and `https`
