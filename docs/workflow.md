@@ -181,6 +181,14 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
 
 Node **v24.18.0** via nvm, **yarn** everywhere.
 
+⚠️ **All of this assumes a reachable MongoDB replica set** — a commit needs one, not only a test run,
+because coverage is a pre-commit gate. The platform's own cluster is external and does not travel
+with a clone, and neither does `marketplace-db-setup/setup/mongodb.js`, the gitignored runbook that
+provisions its users. `docker-mongodb/` is the stand-in: `cp env .env && ./up.sh` brings up a
+three-node `rs0` with every account the fifteen repos expect, an optional Redis, and a CSFLE master
+key. Its `README.md` also carries the boot order for the whole platform and the per-repo
+`MONGO_TEST_DB` table.
+
 ```bash
 # any backend service (cd into it)
 yarn dev            # tsc && tsx watch src/index.mts

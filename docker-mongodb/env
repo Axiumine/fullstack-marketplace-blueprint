@@ -1,0 +1,40 @@
+# Committed template for docker-mongodb/.env. Copy it, fill in the four passwords, keep the names.
+#
+#     cp env .env
+#
+# ⚠️ Every value here is a LOCAL DEVELOPMENT credential for a cluster published on 127.0.0.1 only.
+# Nothing in this stack is hardened for anything else — see README.md §Not for production.
+#
+# One value, one line. A newline inside a quoted value ends the value there and dotenv reads the
+# tail as its own variable: docs/workflow.md §Environment files.
+
+# Image tags. Pin them when you want a rebuild to be reproducible.
+MONGO_TAG=8.0
+REDIS_TAG=7.4-alpine
+
+# The cluster administrator, created through the localhost exception on the very first `./up.sh`.
+# It is the only account that may create the others, and the one setup/mongodb.js calls
+# userAdminAnyDatabase.
+MONGO_ROOT_USER=userAdminAnyDatabase
+MONGO_ROOT_PWD=
+
+# The dev database the nine services and the migrations actually use. Both users authenticate
+# against this database (authSource), not against admin — every account on this cluster is scoped to
+# exactly one database, which is also why the CSFLE key vault has to live inside it.
+MONGO_DEV_DB=dbMarketplaceDev
+MONGO_DEV_UDBOWNER=marketplaceOwnerDev
+MONGO_DEV_URW=marketplaceRwDev
+MONGO_DEV_PWD=
+
+# The test users. One pair, defined separately in EVERY test database — dbMarketplaceTest plus the
+# nine per-repo ones listed in init/provision.js. The suites drop their database on every run, which
+# does not delete users: MongoDB keeps them in admin.system.users whatever their authSource is.
+MONGO_TEST_DB=dbMarketplaceTest
+MONGO_TEST_UDBOWNER=marketplaceOwnerTest
+MONGO_TEST_PWDDBOWNER=
+MONGO_TEST_UDBRW=marketplaceRwTest
+MONGO_TEST_PWDDBRW=
+
+# Only read when you start the optional Redis (`./up.sh --with-redis`). The services dial it through
+# REDIS_URL as the built-in `default` user, so there is no separate username to set.
+REDIS_PASSWORD=
