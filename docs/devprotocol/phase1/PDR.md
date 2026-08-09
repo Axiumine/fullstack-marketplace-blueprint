@@ -11,7 +11,7 @@
 
 ## 1. What are we building?
 
-Multi-tenant marketplace platform. Many independent shops, one operator (thedoctorweb). Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md` §Build state.
+Multi-tenant marketplace platform. Many independent shops, one operator (thedoctorweb). Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see `CLAUDE.md` §Build state.
 
 Polyrepo, 15 independent git repos, no monorepo tooling. Verified: `find . -maxdepth 4 -name ".git" -type d` returns 15 dirs (parent + `BEs/marketplace-common` + `BEs/marketplace-db-setup` + 9 under `BEs/dev/marketplace-dev-*` + `marketplace-admin` + `marketplace-shopowner` + `marketplace-user`).
 

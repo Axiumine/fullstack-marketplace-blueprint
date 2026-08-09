@@ -132,7 +132,7 @@ services-status/           # NO own .git — tracked by parent directly
 
 ## Compliance
 
-Verify repo count and boundary: `find /media/nvme/websites/fullstack-marketplace-blueprint -maxdepth 3 -name .git -type d | wc -l` must return 14 (sub-repos only; parent's own `.git` is at depth 1 and is the 15th). Verify parent ignores the 4 heavy dirs: `git -C /media/nvme/websites/fullstack-marketplace-blueprint check-ignore -v BEs marketplace-admin marketplace-shopowner marketplace-user` must each resolve to the `.gitignore` lines shown above. Verify `services-status` is the one tracked exception: `git -C /media/nvme/websites/fullstack-marketplace-blueprint ls-files services-status | wc -l` must be nonzero while the same command for `BEs`/`marketplace-admin`/etc must be zero.
+From the workspace root, verify repo count and boundary: `find . -maxdepth 3 -name .git -type d | wc -l` must return 14 (sub-repos only; parent's own `.git` is at depth 1 and is the 15th). Verify parent ignores the 4 heavy dirs: `git check-ignore -v BEs marketplace-admin marketplace-shopowner marketplace-user` must each resolve to the `.gitignore` lines shown above. Verify `services-status` is the one tracked exception: `git ls-files services-status | wc -l` must be nonzero while the same command for `BEs`/`marketplace-admin`/etc must be zero.
 
 A violation looks like: a `.git` directory appearing inside `BEs/` or one of the 3 frontend dirs (nested
 repo, breaks the gitignore boundary); a cross-repo change landing as a single commit message spanning

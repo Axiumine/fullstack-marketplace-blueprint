@@ -13,7 +13,7 @@
 
 ## 1. Purpose
 
-Single authoritative vocabulary for Marketplace, a 15-repo polyrepo. Every term here is canonical — code, config, docs, conversation must match it. A term not here does not yet exist in the domain; propose an addition before using one. **The vocabulary is English, everywhere and without exception** — collections, fields, identifiers, function names, UI strings, routes, comments, test fixtures, migrations. A term in any other language is not a style nit here, it is a term that does not exist. Platform has no `role` field, no permission enum anywhere (`/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md` §Terminology) — role IS which MongoDB collection a session authenticated against. That single fact drives half this glossary: three near-identical account shapes (`admin`, `shopOwner`, `user`), one per tier, never merged into one "account" concept with a role flag. Built brownfield — reverse-engineered from the working tree, not from a spec that predates the code. Prescriptive throughout: states what the platform requires, not merely what the code happens to do today.
+Single authoritative vocabulary for Marketplace, a 15-repo polyrepo. Every term here is canonical — code, config, docs, conversation must match it. A term not here does not yet exist in the domain; propose an addition before using one. **The vocabulary is English, everywhere and without exception** — collections, fields, identifiers, function names, UI strings, routes, comments, test fixtures, migrations. A term in any other language is not a style nit here, it is a term that does not exist. Platform has no `role` field, no permission enum anywhere (`CLAUDE.md` §Terminology) — role IS which MongoDB collection a session authenticated against. That single fact drives half this glossary: three near-identical account shapes (`admin`, `shopOwner`, `user`), one per tier, never merged into one "account" concept with a role flag. Built brownfield — reverse-engineered from the working tree, not from a spec that predates the code. Prescriptive throughout: states what the platform requires, not merely what the code happens to do today.
 
 ---
 
@@ -101,7 +101,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Session
 **Definition:** Redis hash keyed `${REDIS_KEY}${token}`, minted at login, carries `tier` since 2026-08-05, carries account id, refreshed on each `refresh` mutation, deleted on logout by token content.
-**Used in:** shared `REDIS_KEY=marketplaceDev:` prefix across all 9 services, per `/media/nvme/websites/fullstack-marketplace-blueprint/docs/architecture.md` §Auth model.
+**Used in:** shared `REDIS_KEY=marketplaceDev:` prefix across all 9 services, per `docs/architecture.md` §Auth model.
 **Not to be confused with:** JWT — platform uses opaque tokens + Redis lookup, NOT JWT, despite a stale `JWT` type name surviving in some `schema.graphql` files. See §19.
 
 ### Access token
@@ -123,7 +123,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Service pair
 **Definition:** Two Koa+Apollo services per authenticated tier — one `*-authenticated-authorization` (token lifecycle only) and one `*-authenticated-resource` (domain GraphQL, bearer-token gated). A fifth tier means a fifth service pair, not a role check bolted onto the existing ones.
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/architecture.md` §Services table.
+**Used in:** `docs/architecture.md` §Services table.
 
 ### Resource service
 **Definition:** Serves domain GraphQL behind bearer-token auth. Only resource services carry `sharp`, `clamscan`, `file-type`, `graphql-upload`.
@@ -456,7 +456,7 @@ These five fields on `company` all look like "some official string about the bus
 | `registryExtract` | the reference of an official extract from the business register | "extract" alone would be ambiguous about which registry; this is the company-registry one |
 | `legalName` | the formal registered company name, including its legal form | **never** the same thing as `publicName` — see the example below |
 
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md` §Two naming rules.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `CLAUDE.md` §Two naming rules.
 **Example — the distinction that matters most, `legalName` vs `publicName`:**
 ```
 // BEs/marketplace-db-setup/lib/schemas/company.js:18-21
@@ -471,11 +471,11 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Polyrepo
 **Definition:** 14 independent git repos + 1 parent workspace repo tracking only workspace files. NOT a monorepo — no shared tooling spans repos, one logical change = N separate commits, N separate pushes.
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/workflow.md` §This directory is the parent workspace.
+**Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### Parent workspace
-**Definition:** `/media/nvme/websites/fullstack-marketplace-blueprint` itself — a 15th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-shopowner/`, `/marketplace-user/` so sub-repos nest without conflict.
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/workflow.md` §This directory is the parent workspace.
+**Definition:** `/media/nvme/websites/fullstack-marketplace-blueprint` on the dev machine, <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online — a 15th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-shopowner/`, `/marketplace-user/` so sub-repos nest without conflict.
+**Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### deploy-local.sh
 **Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between "consumed as a published package name" and "not actually on any registry" — `@axiumine/marketplace-common` 404s on `registry.npmjs.org`. Must be re-run after every edit to common or consumers keep resolving the previous build.
@@ -491,7 +491,7 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Coverage gate
 **Definition:** 100% required on all four v8 metrics (statements/branches/functions/lines) in every package that ships code — 9 backend services, `marketplace-common`, `marketplace-db-setup`, 3 frontends, `services-status`. Gated four times over: `thresholds` in vitest config, `testCoverageThresholds` in `qodana.yaml`, and a `yarn test:cov` step in both `.githooks/pre-commit` and `.githooks/pre-push`.
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/README.md` §Test quality gates and `docs/testing.md`.
+**Used in:** `README.md` §Test quality gates and `docs/testing.md`.
 
 ### Mutation score
 **Definition:** Stryker-measured percentage of mutants a test suite kills, gated at 100 in every package that has a coverage gate. Measures whether a test would FAIL if the code were wrong — coverage only measures whether a line RAN. The two diverge badly: `marketplace-common` scored 45.95% coverage-100%, `marketplace-db-setup` scored 52.92%.
@@ -500,7 +500,7 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Hook
 **Definition:** Git hook under each repo's `.githooks/` dir, wired via `core.hooksPath` (local config, must be set by hand after clone — `git config core.hooksPath .githooks`). `pre-commit` and `pre-push`, both blocking. Every repo except `marketplace-db-setup` also gates lint.
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/`docs/workflow.md` §Git hooks, last bullet.
+**Used in:** `docs/workflow.md` §Git hooks, last bullet.
 
 ---
 
@@ -551,7 +551,7 @@ A domain event is something that happened, always past tense. Grouped by aggrega
 | `item` | Item Added · Add Refused — Company Not Owned · Add Refused — Category Missing · Item Updated · Item Published / Item Unpublished · Item Deleted · Item Published By Admin · Item Unpublished By Admin · Item Deleted By Admin |
 | `company` | Company Registered · Duplicate vatNumber/certifiedEmail/slug Rejected · Company Updated · Company Made Public · Company Retired · Delete Refused — Already Retired (ShopOwner, 403) · Delete Accepted On Already-Retired Company (Admin, 200) |
 
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/docs/devprotocol/phase2/EVENT_STORMING.md` §2.1-§2.6.
+**Used in:** `docs/devprotocol/phase2/EVENT_STORMING.md` §2.1-§2.6.
 **Not to be confused with:** the command that triggers it — e.g. `companyDel` (command, imperative) vs Company Retired (event, past tense).
 
 ---
@@ -608,7 +608,7 @@ Named here for glossary readiness only. No collection, no migration, no resolver
 | Delivery | NOT BUILT. No collection, no resolver, no design. |
 | Payment | NOT BUILT. No integration, no gateway chosen. |
 
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md` §Build state, ⚠️ callout under Customer area row; `EVENT_STORMING.md` §2.9.
+**Used in:** `CLAUDE.md` §Build state, ⚠️ callout under Customer area row; `EVENT_STORMING.md` §2.9.
 **Not to be confused with:** treating any of the four as designed because a term exists for it here — the entry exists so a future agent names it consistently, not so it can be assumed built.
 
 ---
@@ -627,6 +627,6 @@ Every term below is forbidden platform-wide. Reintroducing one — even as a com
 | any identifier, comment, UI string or route that is not English | The platform is English-only, everywhere, with no exception (§1). A second language in one file is a second language in the database the day that file is read. | the English name — this document is the list |
 | "customer" / "admin" / "superadmin" as code identifiers | Business-role words never appear in code — see §2. | `User` / `ShopOwner` / `Admin` |
 
-**Used in:** `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md` §Two naming rules and `docs/data-model.md`.
+**Used in:** `CLAUDE.md` §Two naming rules and `docs/data-model.md`.
 
 ---
