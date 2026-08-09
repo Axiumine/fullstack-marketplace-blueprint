@@ -291,3 +291,7 @@ Stated plainly so nobody has to guess:
 | `MONGO_TEST_CONN_STRING names database "x" but MONGO_TEST_DB is "y"` | the three test-database names disagree; the table above has the right one for that repo. |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh`. |
 | the suite drops the wrong database | it refuses to: `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env`. |
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](./LICENSE).

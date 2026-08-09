@@ -46,7 +46,7 @@ source distributes *our* code — whatever stays true of the dependencies, which
 
 | Was | Is |
 |---|---|
-| `LICENSE` only in `BEs/marketplace-common` | all **sixteen** repos carry it, byte-identical below line 1, which names the repo it sits in |
+| `LICENSE` only in `BEs/marketplace-common` | **eighteen copies** — all sixteen repos, plus `services-status/` and `docker-DBs/`; byte-identical below line 1, which names what it sits in |
 | `"license": "UNLICENSED"` in the other manifests | **GPL-3.0-or-later** in all fourteen that have a `package.json` — `marketplace-nginx` and the parent have none |
 | `licenseRules.keys: ['PROPRIETARY-LICENSE']` | `['GPL-3.0-or-later', 'PROPRIETARY-LICENSE']` in all fourteen `qodana.yaml`, matching what `marketplace-common` already did |
 
@@ -61,6 +61,14 @@ rule holds whichever way the metadata is read.
 `allowed` is unchanged in every file, including `marketplace-db-setup`'s deliberately short list: a
 GPL-3.0-or-later project accepting copyleft dependencies is the ordinary case and needs no argument, and
 widening the set would be a policy change nobody asked for.
+
+**`services-status/` and `docker-DBs/` each get their own `LICENSE` even though neither is a repo.** They
+are tracked directories of the parent (ADR-025 for the first), so the parent's `LICENSE` already covered
+them and a second copy is redundant *inside this workspace*. It is not redundant outside it: both are
+self-contained enough to be lifted out — a systemd monitor and a Docker compose cluster — and a directory
+copied without the file it points at travels with no licence at all. The copy costs nothing and removes
+the dependency on where the directory happens to sit. `services-status/README.md` links `./LICENSE` rather
+than `../LICENSE` for the same reason.
 
 ---
 
