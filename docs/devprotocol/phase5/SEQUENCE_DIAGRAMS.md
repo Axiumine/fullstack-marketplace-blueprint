@@ -404,7 +404,7 @@ sequenceDiagram
 5. **Cache bypass is keyed on the session cookie**, not on the route — one `map` sets `$mkt_user_no_cache`
    from `$http_cookie`, and the apex vhost feeds it to **both** `proxy_cache_bypass` (skip the lookup) and
    `proxy_no_cache` (never store), independent of whether the route itself is public.
-   `nginx/conf.d/30-cache.conf:32-35`, `nginx/sites-available/marketplace-domain.com.conf` §`location /`
+   `marketplace-nginx/conf.d/30-cache.conf:32-35`, `marketplace-nginx/sites-available/marketplace-domain.com.conf` §`location /`
 6. **Failure/negative path is architectural, not a thrown error**: `/account/*` routes are declared
    `ssr: false` specifically so this diagram's server-render path never executes for authenticated pages —
    rendering authenticated HTML behind a shared `proxy_cache` is exactly how one customer's data would reach
@@ -414,7 +414,7 @@ sequenceDiagram
 7. **Cached-repeat-request branch**: an anonymous request that matches a fresh `proxy_cache` entry never
    reaches `serve.mjs` at all — nginx answers from cache, so `PUBLIC_RESOURCE_URL`/Mongo are not touched a
    second time until the cache entry expires or is bypassed by a cookie.
-   `nginx/conf.d/30-cache.conf:8,32-35`
+   `marketplace-nginx/conf.d/30-cache.conf:8,32-35`
 
 ---
 

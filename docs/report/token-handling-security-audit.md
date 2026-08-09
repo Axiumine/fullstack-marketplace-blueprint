@@ -81,9 +81,9 @@ Secure directive. The only hit for the string was `upgrade-insecure-requests` in
 unrelated.
 
 ✅ **Closed since.** The rewrite now exists, once, in a snippet every proxying location includes:
-`proxy_cookie_flags ~ secure httponly samesite=strict;` in `nginx/snippets/proxy-backend.conf` (`~` is the
+`proxy_cookie_flags ~ secure httponly samesite=strict;` in `marketplace-nginx/snippets/proxy-backend.conf` (`~` is the
 empty regex — it matches every cookie name, so `refresh_token` and its `.sig` companion are both covered
-without naming either). `nginx/test/run.sh` asserts it: stand-in backends emit a `Set-Cookie` exactly as
+without naming either). `marketplace-nginx/test/run.sh` asserts it: stand-in backends emit a `Set-Cookie` exactly as
 `tokenOptions.mjs` does today — `secure: false`, no flags — and every one of the seven cookie-minting
 endpoints across the three vhosts, plus the three logout paths, comes back `Secure; HttpOnly;
 SameSite=Strict`.
@@ -92,7 +92,7 @@ SameSite=Strict`.
 `/etc/nginx`, no nginx binary in this workspace — so the flag is set by a file nothing is currently
 serving. It is also now the single point of failure this audit warned about from the other direction:
 `koa-utils` still ships `secure: false`, so any deployment that serves an authorization endpoint without
-that snippet in front of it puts a session cookie on the wire in cleartext. `nginx/README.md` §Verifying a
+that snippet in front of it puts a session cookie on the wire in cleartext. `marketplace-nginx/README.md` §Verifying a
 live deployment carries the `curl` that checks it on a real host.
 
 Why this outranks everything else: Keygrip's constant-time signature stops an attacker who wants to
@@ -287,7 +287,7 @@ Checked and deliberately left alone. Listed so a later reader does not re-raise 
 - **ADR-018's "cookie scoped to API paths" is inaccurate prose, but root-scoping is load-bearing.** The
   cookie is genuinely root-scoped (`path` is commented out in `tokenOptions.mjs`). Narrowing it to match
   the prose would break NFR-SE09's cache-poisoning defence, which needs nginx to see the cookie on public
-  catalogue requests (`nginx/conf.d/30-cache.conf:32-35`). **Correct the sentence, not the scope.**
+  catalogue requests (`marketplace-nginx/conf.d/30-cache.conf:32-35`). **Correct the sentence, not the scope.**
 - **`expirationDate: 0` in the shared cookie options is inert.** The underlying `cookies` package consumes
   only `maxAge`. Reads like a control, is not one. Code-quality noise, not a session weakness.
 - **UUIDv4's 122 effective bits and `Math.random()` in `accessTokenExpiry()` are both fine.** 122 bits is

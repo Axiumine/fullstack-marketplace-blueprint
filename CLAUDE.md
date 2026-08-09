@@ -11,7 +11,7 @@ Load the file that matches the task. Do not guess from this page alone.
 | Topic | File |
 |---|---|
 | services, ports, auth model, resolver layout | `docs/architecture.md` |
-| the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | `nginx/README.md` |
+| the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | `marketplace-nginx/README.md` |
 | collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
 | the three apps + `services-status` | `docs/frontends.md` |
 | vitest layout, integration + mutation traps | `docs/testing.md` |

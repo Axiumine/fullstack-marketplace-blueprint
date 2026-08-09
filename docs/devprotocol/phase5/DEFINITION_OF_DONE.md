@@ -212,10 +212,10 @@ document is that doctrine in checklist form.
 - No production deploy target exists in this workspace — nothing here deploys anywhere; "shipped to prod"
   is never a DoD claim.
 - No nginx is installed anywhere in this workspace or on this machine — no `/etc/nginx`, no nginx binary on
-  `PATH`. The edge under `nginx/` at the workspace root (three vhosts, five `conf.d/` files, three snippets)
-  is deployable, real, and passes `nginx -t` plus 168 behavioural assertions in `nginx/test/run.sh` — which
+  `PATH`. The edge under `marketplace-nginx/` at the workspace root (three vhosts, five `conf.d/` files, three snippets)
+  is deployable, real, and passes `nginx -t` plus 168 behavioural assertions in `marketplace-nginx/test/run.sh` — which
   makes "nginx config written" *and* "nginx config tested" claimable, and neither of them is "nginx config
-  live" (`phase3/SECURITY_AUTH.md` §5, `nginx/README.md`). ⚠️ The suite runs against stand-in backends in a
+  live" (`phase3/SECURITY_AUTH.md` §5, `marketplace-nginx/README.md`). ⚠️ The suite runs against stand-in backends in a
   container, so it proves the configuration's behaviour, never the platform's.
 - Where these repos get published, and under which org, is the platform owner's open call, not yet made.
   Until that call is made, a `git push` or `git merge` here is not "shipped" or "released" in any
