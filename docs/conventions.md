@@ -52,11 +52,12 @@ keeps a root-JS block off the minified Qodana report.
   Keep the caret: semver reads `24.18` as `24.18.x` and bare `24.18.0` as that one release. **`engines`
   is a hard gate under yarn classic** — a mismatch exits 1 with `The engine "node" is incompatible with
   this module`, not a warning. When bumping Node, bump all fifteen in one sweep.
-- **`packageManager` is *not* everywhere.** Seven packages carry `yarn@1.22.22+sha512.…` —
-  `marketplace-db-setup`, the two `*-user-authenticated-*` services, the three frontends and
-  `services-status`. `marketplace-common` and the seven original backend services have no such key, so
-  under Corepack they resolve to whatever yarn is on `PATH`. Add the field when touching one of them, in
-  the same spelling as the seven that have it.
+- **`packageManager` is in all fifteen packages**, one identical `yarn@1.22.22+sha512.…` string. Keep
+  it that way: it is what makes Corepack hand every repo the same yarn binary, and the eight that used
+  to lack it — `marketplace-common` and the seven original backend services — were the ones where a
+  divergent yarn would be least visible, since they are also the pair that publishes and consumes an
+  unregistered package by name. A new package copies the line verbatim; a yarn bump changes all fifteen
+  in one sweep, exactly like `engines.node`.
 
 ## marketplace-common plumbing
 
