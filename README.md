@@ -124,10 +124,12 @@ Verified present in all seven services on 2026-07-26: `thresholds` in every `vit
 every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
 gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
 
-### Where the gates fire — push and commit, in all fifteen gated repos
+### Where the gates fire — push and commit, in all sixteen repos
 
-Fifteen of the sixteen repos gate on **both**. `marketplace-nginx` is the exception and has no hooks at
-all — nginx config and shell tests, no `package.json`, nothing for a hook to run.
+Fifteen of the sixteen gate on **both**. `marketplace-nginx` gates on **push only**: no `package.json`
+means no lint, coverage, mutation or Qodana step to run, so its one `pre-push` gate runs `test/run.sh`
+— `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check. It
+carries no `pre-commit`, so ⚠️ **the secret guard below does not run there.**
 
 `.githooks/pre-commit` runs the secret guard — which since 2026-08-09
 opens with **check 0**, the only check on the platform that reads the *working tree* rather than the
@@ -283,9 +285,10 @@ and confirm the id is that repo's own — one project per repo, one distinct id 
 
 Every sub-repo that ships code carries a `qodana.yaml` — all fourteen — and so does `services-status`,
 scanned by this workspace's hooks rather than by one of its own. The fifteenth sub-repo,
-`marketplace-nginx`, ships no code, has no config and is gated by nothing; its `test/suite.sh` runs when
-someone runs it. **Every repo that ships code is gated, and that is the invariant to keep.** A new code
-repo without a config is silently outside every layer described above.
+`marketplace-nginx`, ships no code and so has no Qodana config; what it has instead is a `pre-push` hook
+running `test/suite.sh`, which is the gate that fits what it does ship. **Every repo is gated by
+something on push, and that is the invariant to keep.** A new repo without a config and without a hook
+is silently outside every layer described above.
 
 ⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
 missing `QODANA_TOKEN` rather than passing: `services-status`, `marketplace-user` and the two

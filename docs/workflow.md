@@ -42,10 +42,12 @@ write uploads into. Do not count it, do not `git init` it.
 ### Current state
 
 - **All sixteen repos have a `main`, and it is normally the checked-out branch.**
-- **Fifteen of the sixteen have `core.hooksPath=.githooks` set.** The exception is `marketplace-nginx`:
-  it holds nginx config and shell tests, has no `package.json` and carries no hooks, so nothing gates a
-  commit there — including the secret guard. No CI/CD pipeline is configured today either; every gate on
-  the platform is a local git hook.
+- **All sixteen have `core.hooksPath=.githooks` set and a `.githooks/` of their own**, but they do not
+  all hold the same gates. Fifteen gate on **commit and push**. `marketplace-nginx` gates on **push
+  only** — it has no `package.json`, so there is no lint, coverage, mutation or Qodana step for it to
+  run; its single `pre-push` gate runs `test/run.sh` and blocks on any failed check. It has no
+  `pre-commit`, so ⚠️ **the secret guard does not run there.** No CI/CD pipeline is configured either;
+  every gate on the platform is a local git hook.
 - History is shallow: `git diff`, `git stash` and `git reset` work, but `git log` answers almost nothing
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
@@ -93,11 +95,16 @@ reads `.git/hooks/` unless told otherwise; a repo without that setting runs no g
 nothing about it.
 
 - The fourteen sub-repos that are packages carry `"prepare": "git config core.hooksPath .githooks ||
-  true"` in `package.json`, so `yarn install` restores it. `marketplace-nginx`, the fifteenth, has no
-  `package.json` and no hooks at all.
-- ⚠️ **The parent workspace has no `package.json`**, so it has no such mechanism. After a fresh clone of
-  this directory, run `git config core.hooksPath .githooks` by hand — or the secret guard and all of
-  `services-status`'s coverage, mutation and Qodana gates are off.
+  true"` in `package.json`, so `yarn install` restores it.
+- ⚠️ **Two repos have no `package.json` and so no such mechanism: this parent workspace and
+  `marketplace-nginx`.** After a fresh clone of either, run `git config core.hooksPath .githooks` by
+  hand — or, in the parent, the secret guard and all of `services-status`'s coverage, mutation and
+  Qodana gates are off, and in `marketplace-nginx` the edge configuration is pushed without ever being
+  validated.
+- `marketplace-nginx` carries `pre-push` and nothing else. Its gate is `test/run.sh` — `nginx -t` plus
+  the behavioural suite, in a throwaway container — and it blocks rather than skips when the container
+  engine, the daemon or the image is missing. ⚠️ **It has no `pre-commit`, so check 0 and both
+  staged-secret scans never run there.**
 - A relative value is safe: git resolves it against the worktree root, so hooks fire from subdirectories
   too.
 - **Check the hook is executable.** Git skips a non-executable hook with only a hint, so the gate
