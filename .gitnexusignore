@@ -1,0 +1,25 @@
+# What keeps this index the parent-workspace index.
+#
+# GitNexus reads .gitignore, and until ADR-031 that was enough: the parent
+# ignored /BEs/ and the four sibling directories, so `analyze` here saw docs and
+# services-status and nothing else. Since the fifteen sub-repos became submodules
+# those paths had to leave .gitignore — an ignored path is one `git submodule add`
+# refuses — and the very next analyze pulled all fifteen codebases in: 143 files
+# and 1651 nodes became 1480 files and 9567 nodes, one index holding the whole
+# platform.
+#
+# This file restores the boundary without touching .gitignore. Each sub-repo has
+# its OWN GitNexus index, registered under its own name — see docs/gitnexus.md
+# for the registry-name table. Querying the platform's code through
+# `fullstack-marketplace-blueprint` is always the wrong index, and this file is
+# what stops it from being possible.
+#
+# ⚠️ Every new sub-repo needs a line here as well as a submodule entry. Verify
+# after any analyze: `stats.files` in .gitnexus/meta.json must stay in the low
+# hundreds. Thousands means a sub-repo got in.
+
+BEs/
+marketplace-admin/
+marketplace-nginx/
+marketplace-shopowner/
+marketplace-user/

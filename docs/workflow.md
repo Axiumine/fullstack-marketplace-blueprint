@@ -38,9 +38,11 @@ parent** — a submodule pins a sub-repo, it does not absorb one. `git ls-files 
 returns exactly one entry and its mode is `160000`, the gitlink; anything else under that path means a
 sub-repo's files have been committed into the parent and the boundary is broken.
 
-`.gitmodules` is the tracked list of all fifteen: path, `git@github.com:Axiumine/<repo-name>.git`, and
-`branch = main`. One transport for all fifteen, deliberately — a `.gitmodules` mixing `ssh` and `https`
-makes a clone's authentication depend on which line it is reading.
+`.gitmodules` is the tracked list of all fifteen: path, `url = ../<repo-name>.git`, `branch = main`. The
+URL is **relative on purpose** — it resolves against whatever the parent's own `origin` is, so a clone over
+`https` fetches the submodules over `https` and a clone over `ssh` fetches them over `ssh`. An absolute URL
+would pin one transport and make a clone switch halfway through, which is how a submodule fetch ends up
+asking for credentials the cloner does not have.
 
 `BEs/dev/upload-local/` is **not** a repo and not a service — an empty directory the resource services
 write uploads into. Do not count it, do not `git init` it. It is the one path under `BEs/` the parent
@@ -49,12 +51,16 @@ still ignores, because the old blanket `/BEs/` entry used to cover it.
 ### Cloning the workspace
 
 ```bash
-git clone --recurse-submodules git@github.com:Axiumine/fullstack-marketplace-blueprint.git
+git clone --recurse-submodules https://github.com/Axiumine/fullstack-marketplace-blueprint.git
+# or, identically, git@github.com:Axiumine/fullstack-marketplace-blueprint.git —
+# the submodule URLs are relative, so they follow whichever you use.
 ```
 
-⚠️ **This does not work yet.** The parent has no `origin` at all, and nothing in any of the sixteen repos
-has ever been pushed — so the SHAs `.gitmodules` pins exist on no remote. The recipe is what the layout is
-*for*; it becomes true when the repositories are created.
+⚠️ **This does not work yet.** The parent repository exists on GitHub and is **empty**; so are
+`marketplace-common`, `marketplace-db-setup` and `marketplace-nginx`; and the **other twelve sub-repo
+repositories have not been created**. Nothing in any of the sixteen has ever been pushed, so every SHA
+`.gitmodules` pins exists on no remote. The recipe is what the layout is *for*; it becomes true when the
+repositories exist and have been pushed to.
 
 In an existing checkout, or after a clone that forgot `--recurse-submodules`:
 
@@ -91,12 +97,18 @@ the `branch = main` entries are recorded for.
 - History is shallow: `git diff`, `git stash` and `git reset` work, but `git log` answers almost nothing
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
-Whether and when these sixteen repos get published is still the platform owner's open call and has not
-been made — **nothing has ever been pushed**, and no branch in any of the sixteen has an upstream. What
-*is* settled is the naming: `.gitmodules` records all fifteen sub-repos as
-`git@github.com:Axiumine/<repo-name>.git`, extending the convention the three pre-existing remotes already
-followed (ADR-031). Changing the org is cheap while nothing is pushed — edit `.gitmodules`, then
-`git submodule sync --recursive` — and progressively less so afterwards.
+The org is settled — `github.com/Axiumine` — and so is the naming: every repo is published under its own
+directory basename. **When** they get published is still the owner's call and has not been made.
+Verified 2026-08-09:
+
+|State|Repos|
+|---|---|
+|exists on GitHub, zero refs|the parent, `marketplace-common`, `marketplace-db-setup`, `marketplace-nginx`|
+|not created yet|the other twelve sub-repos|
+|has an upstream branch|none of the sixteen|
+
+**Nothing has ever been pushed.** Moving the whole platform to another org is still cheap: change the
+parent's `origin` and every submodule URL follows it, because they are relative.
 
 ⚠️ **Note the npm/git split.** `@axiumine/marketplace-common` and `@axiumine/koa-utils` are
 *npm package* names, unrelated to where the git repo lives. Renaming a git remote never implies renaming
