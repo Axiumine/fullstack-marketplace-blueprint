@@ -4,7 +4,7 @@ The local MongoDB replica set (`rs0` — `mdb1` 27017 / `mdb2` 27018 / `mdb3` 27
 Redis the nine services keep their sessions in. Not a repo of its own — a tracked directory of the
 parent workspace, so a change here commits under the parent's rules.
 
-**Read parent first** — `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md`
+**Read parent first** — `../CLAUDE.md`
 (<https://github.com/Axiumine/fullstack-marketplace-blueprint> if you are reading this on GitHub).
 
 | Need | File |

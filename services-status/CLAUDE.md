@@ -6,7 +6,7 @@ snapshot to a browser page that can start, stop and restart units and tail their
 its own — a tracked directory of the parent workspace, gated by the parent's hooks (ADR-025), so a
 change here commits under the parent's rules.
 
-**Read parent first** — `/media/nvme/websites/fullstack-marketplace-blueprint/CLAUDE.md`
+**Read parent first** — `../CLAUDE.md`
 (<https://github.com/Axiumine/fullstack-marketplace-blueprint> if you are reading this on GitHub).
 
 | Need | File |
