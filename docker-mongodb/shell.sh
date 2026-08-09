@@ -42,6 +42,6 @@ esac
 # --shell keeps the REPL open after --eval has run, with `db` already switched and authenticated.
 dc exec \
 	-e MP_AUTHDB="$authdb" -e MP_USER="$user" -e MP_PWD="$secret" \
-	db1 sh -c 'exec mongosh --shell --quiet \
+	mdb1 sh -c 'exec mongosh --shell --quiet \
 		--eval "db = db.getSiblingDB(\"$MP_AUTHDB\"); db.auth(\"$MP_USER\", \"$MP_PWD\")" \
-		"mongodb://db1:27017,db2:27018,db3:27019/?replicaSet=rs0"'
+		"mongodb://mdb1:27017,mdb2:27018,mdb3:27019/?replicaSet=rs0"'

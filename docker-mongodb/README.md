@@ -27,19 +27,26 @@ election or a stepdown behaves here the way it behaves on the real cluster.
 ### The `/etc/hosts` entries
 
 ```
-127.0.0.1   db1 db2 db3
+127.0.0.1   mdb1 mdb2 mdb3
 ```
 
 ⚠️ **This is the one manual step, and skipping it produces a confusing failure rather than an
 obvious one.** A replica set advertises its members by the `host:port` written into its own config,
 and every driver re-dials those addresses — the URI you hand it is only a seed list. The members
-here are `db1:27017`, `db2:27018`, `db3:27019`, so a process on your machine has to be able to
+here are `mdb1:27017`, `mdb2:27018`, `mdb3:27019`, so a process on your machine has to be able to
 resolve those three names or it will connect, discover the topology, and then fail every operation
 with `Server selection timed out`.
 
 That is also why the three nodes listen on **three different ports**. One name per node cannot be
 distinguished by `127.0.0.1` alone, so all three sharing 27017 would collapse into one reachable
 member the moment the traffic came from outside the Docker network.
+
+`up.sh` prints what the three names currently resolve to when it finishes, so a missing entry — or
+one pointing somewhere unexpected — is visible without a debugging session:
+
+```sh
+getent hosts mdb1 mdb2 mdb3
+```
 
 ## Quick start
 
@@ -91,7 +98,7 @@ are what this cluster answers to.
 `MONGO_DEV_PWD` from `docker-mongodb/.env`, written out in full:
 
 ```
-mongodb://marketplaceRwDev:<pwd>@db1:27017,db2:27018,db3:27019/dbMarketplaceDev?replicaSet=rs0&authSource=dbMarketplaceDev
+mongodb://marketplaceRwDev:<pwd>@mdb1:27017,mdb2:27018,mdb3:27019/dbMarketplaceDev?replicaSet=rs0&authSource=dbMarketplaceDev
 ```
 
 The placeholder is kept short on purpose: the pre-commit secret guard blocks a staged `mongodb://`
@@ -102,7 +109,7 @@ a leak.
 itself (`lib/mongoUrl.js`), so the connection string carries no user:
 
 ```
-MONGO_DEV_CONN_STRING=mongodb://db1:27017,db2:27018,db3:27019/dbMarketplaceDev?replicaSet=rs0
+MONGO_DEV_CONN_STRING=mongodb://mdb1:27017,mdb2:27018,mdb3:27019/dbMarketplaceDev?replicaSet=rs0
 MONGO_DEV_AUTH_ADMIN=dbMarketplaceDev
 MONGO_DEV_DB=dbMarketplaceDev
 MONGO_DEV_UDBOWNER=marketplaceOwnerDev
@@ -114,7 +121,7 @@ MONGO_DEV_PWD=<pwd>
 same database and all three must agree — the suite checks:
 
 ```
-MONGO_TEST_CONN_STRING=mongodb://db1:27017,db2:27018,db3:27019/<this repo's test db>?replicaSet=rs0
+MONGO_TEST_CONN_STRING=mongodb://mdb1:27017,mdb2:27018,mdb3:27019/<this repo's test db>?replicaSet=rs0
 MONGO_TEST_DB=<this repo's test db>
 MONGO_TEST_AUTH_ADMIN=<this repo's test db>
 MONGO_TEST_UDBOWNER=marketplaceOwnerTest
@@ -274,8 +281,8 @@ Stated plainly so nobody has to guess:
 
 | Symptom | Cause |
 |---|---|
-| `Server selection timed out` from a host process, containers healthy | the `/etc/hosts` line is missing. The driver resolved the seed and then re-dialled `db1` / `db2` / `db3` as advertised. |
-| `MongoServerError: not primary` | an election is in flight; retry. If it never settles, `docker compose logs db1` — a node whose clock is far off never wins one. |
+| `Server selection timed out` from a host process, containers healthy | the `/etc/hosts` line is missing. The driver resolved the seed and then re-dialled `mdb1` / `mdb2` / `mdb3` as advertised. |
+| `MongoServerError: not primary` | an election is in flight; retry. If it never settles, `docker compose logs mdb1` — a node whose clock is far off never wins one. |
 | `Authentication failed` on a test suite | `MONGO_TEST_AUTH_ADMIN` is `admin`. It must be the test database itself. |
 | `up.sh` stops at `Unauthorized` on the root user | a root user already exists with a different password than `.env` now holds. Either restore the old value or `./down.sh --purge`. |
 | `MONGO_TEST_CONN_STRING names database "x" but MONGO_TEST_DB is "y"` | the three test-database names disagree; the table above has the right one for that repo. |
