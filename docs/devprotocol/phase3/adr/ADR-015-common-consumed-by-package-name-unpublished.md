@@ -1,7 +1,7 @@
 # ADR-015 — marketplace-common is consumed by published package name, is not published, and deploy-local.sh bridges the gap
 # Marketplace
 
-**Status:** accepted, amended 2026-08-08
+**Status:** accepted, amended 2026-08-08 and 2026-08-09
 **Date:** 2026-08-04
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
@@ -34,6 +34,33 @@ One compliance line below is superseded by this amendment: a `publishConfig` reg
 
 When the publish does happen, this ADR is superseded rather than amended again — that is the trigger
 CON-09 describes, and the day it fires the "Was" column above becomes history rather than context.
+
+---
+
+## Amendment, 2026-08-09 — the LICENSE is in all sixteen repos and the manifests declare it
+
+⚠️ **"The nine services stay `UNLICENSED`" in the table above is no longer true, and the reason it gave
+has expired.** That row rested on the services never being distributed. Since ADR-031 all sixteen
+repositories exist under `github.com/Axiumine` and every one of them is **public**, so publishing the
+source distributes *our* code — whatever stays true of the dependencies, which are still never shipped.
+
+| Was | Is |
+|---|---|
+| `LICENSE` only in `BEs/marketplace-common` | all **sixteen** repos carry it, byte-identical below line 1, which names the repo it sits in |
+| `"license": "UNLICENSED"` in the other manifests | **GPL-3.0-or-later** in all fourteen that have a `package.json` — `marketplace-nginx` and the parent have none |
+| `licenseRules.keys: ['PROPRIETARY-LICENSE']` | `['GPL-3.0-or-later', 'PROPRIETARY-LICENSE']` in all fourteen `qodana.yaml`, matching what `marketplace-common` already did |
+
+⚠️ **The `qodana.yaml` half is not cosmetic and had to land in the same commit as the manifest.** Qodana
+derives the project key from `package.json`, so a rule keyed only on `PROPRIETARY-LICENSE` matches
+nothing the moment the manifest reads `GPL-3.0-or-later` — and a rule that matches no project **does not
+fail**. It silently stops checking while the audit still reports green. Flipping the manifest on its own
+would have removed the license gate and called it a pass, which is exactly the failure
+`marketplace-common`'s own `qodana.yaml` comment was written to warn about. Both keys stay listed so the
+rule holds whichever way the metadata is read.
+
+`allowed` is unchanged in every file, including `marketplace-db-setup`'s deliberately short list: a
+GPL-3.0-or-later project accepting copyleft dependencies is the ordinary case and needs no argument, and
+widening the set would be a policy change nobody asked for.
 
 ---
 

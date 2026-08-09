@@ -366,3 +366,7 @@ in an exported-but-unreferenced value means the thing is orphaned and the fix is
 how `COORDINATE_DECIMAL` was found in `lib/schemas/geo.js`, left behind when the migrations that
 restated it were deleted along with a since-removed collection. Deleting code is a legitimate way to clear
 a mutant; lowering `thresholds.break` never is.
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](./LICENSE).

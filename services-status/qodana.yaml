@@ -33,8 +33,12 @@ raiseLicenseProblems: true
 # monitors, and the only thing that leaves the machine is HTML over a private
 # nginx vhost. The GPL's distribution trigger is never pulled. Accepted by the
 # project owner, on the same reasoning as the three frontends.
+# ⚠️ Two keys, not one. This project declares GPL-3.0-or-later in package.json since the LICENSE
+# file landed, and Qodana derives the project key from that field — a rule keyed only on
+# PROPRIETARY-LICENSE now matches nothing, and a rule that matches no project does not fail: it
+# silently does nothing while the audit still reports green. `allowed` below is unchanged.
 licenseRules:
-  - keys: ['PROPRIETARY-LICENSE']
+  - keys: ['GPL-3.0-or-later', 'PROPRIETARY-LICENSE']
     allowed:
       ['PROPRIETARY-LICENSE', 'GPL-3.0-or-later', 'GPL-3.0-only', 'LGPL-3.0-or-later', 'LGPL-3.0-only', 'MPL-2.0', 'CC0-1.0']
 

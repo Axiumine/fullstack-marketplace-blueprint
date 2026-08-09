@@ -173,6 +173,13 @@ nothing about it.
 - Bypass Qodana alone with `SKIP_QODANA=1`; coverage and mutation still gate. A missing prerequisite —
   docker, the `qodana` CLI, the linter image, `QODANA_TOKEN` — **blocks and prints the fixing command**;
   it never warns and continues.
+- ⚠️ **Changing `license` in a `package.json` silently disarms that repo's Qodana license audit unless
+  `qodana.yaml` changes with it, in the same commit.** Qodana derives the project key for `licenseRules`
+  from the manifest, and a rule whose `keys` match no project **does not fail the run** — it stops
+  checking and the scan still reports clean, so the gate disappears with no output saying so. Every
+  `qodana.yaml` therefore lists **both** `GPL-3.0-or-later` and `PROPRIETARY-LICENSE` (the key Qodana
+  derives from `UNLICENSED`), so the rule holds whichever way the metadata is read. `allowed` is a
+  separate list — dependency licences — and is not what breaks here.
 
 Gate policy in full: `README.md`, *Test quality gates*.
 

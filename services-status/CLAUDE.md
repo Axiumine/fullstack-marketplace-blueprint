@@ -99,8 +99,11 @@ code.
   same kind of reason: it drives a `dist/` built before the mutant existed.
 - **`qodana.yaml`'s image tag must stay a real tag.** Only `2026.2`, `2026.1`, `2025.3`, `2025.2` and
   `latest` exist — bumping the pin to match a CLI version banner makes the pull fail and the scan never
-  run. Its `licenseRules` key is `PROPRIETARY-LICENSE`, the key Qodana derives from `UNLICENSED`; the
-  literal `UNLICENSED` matches nothing and the rule silently never fires.
+  run. Its `licenseRules` lists **two** keys, `GPL-3.0-or-later` and `PROPRIETARY-LICENSE` — the first is
+  what Qodana derives from `package.json` now that this directory declares the GPL, the second is what it
+  derived from the `UNLICENSED` that field used to hold. Both stay, because the failure is silent: the
+  literal `UNLICENSED` matches nothing, and a key that matches no project does not fail the run — the rule
+  simply never fires and the audit reports green while checking nothing.
 
 ## Gates
 
