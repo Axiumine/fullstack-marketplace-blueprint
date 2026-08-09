@@ -140,8 +140,8 @@ public services and `graphQLApi` for the other seven (§1).
 
 No auth middleware runs in front of either public service — every field below is reachable by anyone on
 the internet, unauthenticated, at whatever rate they choose, unless the operation states otherwise
-(`login`/`loginAdmin` are not rate-limited; `loginUser` and the customer-facing mutations under §4.2 are —
-see the per-operation notes).
+(all three logins are rate-limited and Turnstile-gated, as are the customer-facing mutations under §4.2;
+`resetPwd`/`updatePwd` are the two that are not — see the per-operation notes).
 
 ### 4.1 `marketplace-dev-public-authorization` — port 4028
 
@@ -150,9 +150,9 @@ root, same as `public-resource` (§1).
 
 | Op | Type | Args | Answer | Effect | Source |
 |---|---|---|---|---|---|
-| `login` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!` | `LoginAppType!` (`accessToken`, `onboardingStep`, `onboardingDone`) | Logs a `ShopOwner` in; sets refresh cookie; stamps `tier: TIER.shopOwner` into the Redis session | `mutations/login.mts:21-27` |
-| `loginAdmin` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!` | `LoginAppType!` | Logs an `Admin` in; `onboardingDone` is hardcoded `true` (Admin has no onboarding flow); stamps `tier: TIER.admin` | `mutations/loginAdmin.mts:20-25,87` |
-| `loginUser` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!`, `turnstileToken: String` | `LoginUserType!` (`accessToken` only — no onboarding fields, a customer has none) | Logs a `User` (customer) in; stamps `tier: TIER.user`; **the only one of the three rate-limited and Turnstile-gated** (20/hr per IP, 60/hr per email); refuses if `emailVerify.valid` is false, same generic error as every other failure (anti-enumeration) | `mutations/loginUser.mts:67-91`; `types/LoginUserType.mts:16-21` |
+| `login` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!`, `turnstileToken: String` | `LoginAppType!` (`accessToken`, `onboardingStep`, `onboardingDone`) | Logs a `ShopOwner` in; sets refresh cookie; stamps `tier: TIER.shopOwner` into the Redis session; rate-limited + Turnstile-gated by `guardPublicLogin` (20/hr per IP, 60/hr per email) | `mutations/login.mts` |
+| `loginAdmin` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!`, `turnstileToken: String` | `LoginAppType!` | Logs an `Admin` in; `onboardingDone` is hardcoded `true` (Admin has no onboarding flow); stamps `tier: TIER.admin`; rate-limited + Turnstile-gated, **tightest ceilings of the three** (10/hr per IP, 30/hr per email — a handful of accounts exist and nothing legitimate retries more) | `mutations/loginAdmin.mts` |
+| `loginUser` | mutation | `email: String!`, `password: String!`, `rememberMe: Boolean!`, `turnstileToken: String` | `LoginUserType!` (`accessToken` only — no onboarding fields, a customer has none) | Logs a `User` (customer) in; stamps `tier: TIER.user`; rate-limited + Turnstile-gated (20/hr per IP, 60/hr per email); refuses if `emailVerify.valid` is false, same generic error as every other failure (anti-enumeration) | `mutations/loginUser.mts`; `types/LoginUserType.mts:16-21` |
 | `authPublicHello` | query | none observed | — | Smoke-test query confirming the endpoint is mounted; no business logic | `schema/queries.mts:3,33` |
 
 `LoginAppType` (shared by `login`/`loginAdmin`) is defined once, in `@axiumine/koa-utils`, not per-service:
@@ -205,15 +205,17 @@ resolver** — nothing upstream of this service bounds it, since no auth middlew
 | `userVerifyEmailResend` | `email: String!`, `turnstileToken: String` | `Boolean!` | Re-sends the customer activation link; rate-limited + Turnstile-gated | `mutations/userVerifyEmailResend.mts:46-51` |
 | `userResetPwd` | `email: String!`, `turnstileToken: String` | same type as `resetPwd` below (`boundResetPwd.type`) | Sends a customer password-reset link (mails on `APP_DOMAIN_USER`); rate-limited + Turnstile-gated | `mutations/userResetPwd.mts:37-42` |
 | `userUpdatePwd` | `email: String!`, `hash: String!`, `password: String!`, `turnstileToken: String` | same type as `updatePwd` below (`boundUpdatePwd.type`) | Confirms a customer password reset | `mutations/userUpdatePwd.mts:37-44` |
-| `resetPwd` | mirrors `userResetPwd` minus `turnstileToken` (ShopOwner pair is not Turnstile-gated — `mutations.mts:23-28`) | bound from `resetPwdFlow.mjs` | Sends a `ShopOwner` password-reset link (mails on `APP_DOMAIN`); **not** rate-limited or Turnstile-gated | `schema/mutations.mts:3,21` |
+| `resetPwd` | mirrors `userResetPwd` minus `turnstileToken` (the ShopOwner pair is still not Turnstile-gated — `mutations.mts:23-28`) | bound from `resetPwdFlow.mjs` | Sends a `ShopOwner` password-reset link (mails on `APP_DOMAIN`); **not** rate-limited or Turnstile-gated | `schema/mutations.mts:3,21` |
 | `updatePwd` | mirrors `userUpdatePwd` minus `turnstileToken` | bound from `resetPwdFlow.mjs` | Confirms a `ShopOwner` password reset | `schema/mutations.mts:3,22` |
 | `publicMutNoArgs`, `publicMutArgs` | — | — | Smoke-test mutations | `schema/mutations.mts:16-17` |
 
 Two collections, two flows, never one dispatching on an argument: "an email plus a hash says nothing
-about which [collection]" (`schema/mutations.mts:18-20`). `resetPwd`/`updatePwd` and `login`/`loginAdmin`
-on 4028 are the four operations on the platform **not** behind the Turnstile+rate-limit guard — both
-shipped frontends (`marketplace-admin`, `marketplace-shopowner`) call them today and mint no Turnstile
-token, so gating them is a coordinated frontend change not yet made (`schema/mutations.mts:23-28`).
+about which [collection]" (`schema/mutations.mts:18-20`). `resetPwd`/`updatePwd` are now the only two
+public operations on the platform **not** behind the Turnstile+rate-limit guard: they are the ShopOwner
+tier's recovery pair, and no frontend calls them — neither panel ships a recovery screen, so the tokens
+they would need have nowhere to come from yet (`schema/mutations.mts:23-28`). `login` and `loginAdmin`
+*were* in that list and no longer are; both panels mint a Turnstile token now and both mutations run
+`guardPublicLogin` before they touch the database.
 
 ### 4.3 The three REST endpoints — the only REST on the platform
 

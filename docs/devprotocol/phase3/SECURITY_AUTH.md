@@ -43,7 +43,7 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 |---|---|---|
 | Anonymous internet caller against public GraphQL (`marketplace-dev-public-resource`, `marketplace-dev-public-authorization`) | High | scripted registration / login / password-reset / verify-resend abuse, enumeration attempts |
 | Authenticated caller of one tier probing another tier's resource service with their own valid token | Medium | this is the exact hole that existed until 2026-08-05 - see §3 |
-| Credential-stuffing / brute-force bot against `login` / `loginAdmin` / `loginUser` | Medium | automated password guessing at scale absent a limiter |
+| Credential-stuffing / brute-force bot against `login` / `loginAdmin` / `loginUser` | Medium | automated password guessing at scale — now metered by `guardPublicLogin` on all three (per IP and per email an hour) plus Turnstile, and by a per-hostname `limit_req_zone` at the edge |
 | Malicious or compromised npm dependency | Low-Medium | code execution inside any of the 15 repos via `yarn install` - see §7 Supply chain |
 | Developer accidentally echoing or committing a secret | Medium | secret lands in git history or in a Claude Code transcript (`~/.claude/projects/<slug>/*.jsonl`) permanently |
 | Insider / process with direct Mongo or Redis access | Low | bypasses every application-level guard; MongoDB collection-level RBAC beneath the shared app connection is **unverified** - open question, `phase1/SYSTEM_CONTEXT.md` §7 item 3 |
@@ -275,7 +275,7 @@ It has no authentication of its own — reaching it directly bypasses every ngin
 
 `nginx/` at the workspace root is the edge: `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the proxy body and two header policies) and a vhost per hostname in `sites-available/` — apex, `shopowner.`, `admin.`. The customer-only copy this section used to cite, `marketplace-user/docs/nginx/*.conf`, is deleted.
 
-**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `nginx/test/run.sh` starts a container, runs `nginx -t`, then drives 150 behavioural assertions against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; `nginx/README.md` lists them.
+**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `nginx/test/run.sh` starts a container, runs `nginx -t`, then drives 168 behavioural assertions against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; `nginx/README.md` lists them.
 
 Upstream map, all loopback, matching the port table in `docs/architecture.md` §Services (`nginx/conf.d/10-upstreams.conf:24-56`, comments elided):
 

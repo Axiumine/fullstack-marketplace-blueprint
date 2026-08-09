@@ -475,7 +475,7 @@ document; the four customer-only files this section used to cite,
 `PATH` on this machine. Nothing is installed — but "uninstalled" no longer means "unverified".
 `nginx/test/run.sh` starts a container (`nginx:1.29-alpine` by default), generates a self-signed cert for
 all four names, replaces every upstream with a stand-in that echoes which one answered, runs `nginx -t`,
-and then drives **150 behavioural assertions** over the real config: the path→service map, the `Secure`
+and then drives **168 behavioural assertions** over the real config: the path→service map, the `Secure`
 rewrite on all seven cookie-minting endpoints, CSP nonce equality across a cache MISS *and* a HIT,
 cache BYPASS with a session cookie, `gzip off` on the token endpoints, the redirect and ACME behaviour,
 panel hardening, and each rate-limit zone engaging out of its own budget.
