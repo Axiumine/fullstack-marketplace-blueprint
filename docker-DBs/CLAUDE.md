@@ -8,7 +8,7 @@ parent workspace, so a change here commits under the parent's rules.
 
 | Need | File |
 |---|---|
-| how a human runs any of it, `.env` wiring per repo, troubleshooting table | [`README.md`](./README.md) |
+| running the cluster, `.env` wiring per repo, troubleshooting table | [`README.md`](./README.md) |
 | the order the whole platform boots in | [`README.md`](./README.md) §Running the whole platform |
 | why the master key is one file for every repo | [`docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md`](../docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) |
 

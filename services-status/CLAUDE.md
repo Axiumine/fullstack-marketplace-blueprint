@@ -40,8 +40,8 @@ never mention it.
 ⚠️ **The WebSocket upgrade path bypasses Koa entirely** and re-implements the Host allowlist and the
 Origin/token checks by hand in `server.ts`. The two copies can drift and nothing enforces that they
 don't. A new mutating route, or a new WS message type that mutates, must be wired into the same-origin
-check as well — `test/security.live.test.ts` exists because the WS path once never invoked the
-origin-check function at all, though the function itself was correct.
+check as well — `test/security.live.test.ts` is what proves the WS path actually *invokes* the
+origin-check function, which a unit test of the function itself cannot show.
 
 ⚠️ **`BIND_ALL` gates `HOST`, not the other way round.** With `BIND_ALL` false (the default) the bind
 address is hardcoded `127.0.0.1` and `HOST` is not read at all, so "fixing" a bind problem by editing
@@ -66,7 +66,7 @@ code.
   booleans.
 - **`refresh()` is not `tick()`.** It awaits any in-flight tick *then* starts a new one, so a
   post-action response cannot report state captured before the action landed. Simplifying it to
-  `return tick()` reintroduces a bug that was already fixed once.
+  `return tick()` lets a post-action response report pre-action state.
 - **`showUnits` matches output blocks back to units by each block's own `Id=`**, never by position.
   Zipping results to the requested array by index would silently show one service's pid, memory and
   state under another service's name.
@@ -99,8 +99,8 @@ code.
 - **`qodana.yaml`'s image tag must stay a real tag.** Only `2026.2`, `2026.1`, `2025.3`, `2025.2` and
   `latest` exist — bumping the pin to match a CLI version banner makes the pull fail and the scan never
   run. Its `licenseRules` lists **two** keys, `GPL-3.0-or-later` and `PROPRIETARY-LICENSE` — the first is
-  what Qodana derives from `package.json` now that this directory declares the GPL, the second is what it
-  derived from the `UNLICENSED` that field used to hold. Both stay, because the failure is silent: the
+  what Qodana derives from `package.json`'s GPL declaration, the second is what it derives from an
+  `UNLICENSED` one. Both stay, because the failure is silent: the
   literal `UNLICENSED` matches nothing, and a key that matches no project does not fail the run — the rule
   simply never fires and the audit reports green while checking nothing.
 
