@@ -67,6 +67,7 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 | Draft/unpublished `company` or `item` exposed to anonymous traffic | Single shared `livePublic` / `LIVE_PUBLIC_PIPELINE` filter stage, applied once | `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` | A new public query that forgets to compose this stage bypasses the protection entirely — no test enforces every future public query uses it |
 | Secret printed to terminal / LLM transcript | `permissions.deny` + `no-secret-leak` PreToolUse hook + `pre-commit` guard + 2-level `.gitignore` | `.claude/SECRETS.md` §1-4 | Hook inspects the command line, not a launched script's contents — `bash leak.sh` where `leak.sh` runs `cat .env` is **not caught**, documented gap |
 | Secret value silently truncated by dotenv on unquoted whitespace | Rule: quote any value containing whitespace | none — a written convention, not a lint/test | An 89-char Keygrip key was truncated to 76 chars this way in the user-tier authz service's `env`, 2026-08-07, undetected until a manual cross-repo fingerprint sweep — no automated check exists for this class |
+| Secret value silently truncated by a **line break inside a quoted value** | none — quoting does not help here, the newline ends the value regardless | none — same gap as the row above | 2026-08-09: all 5 `.env` files holding `KEYGRIP_KEY_1`/`_2` had both 88-char keys wrapped after 76 chars, the 12-char tail sitting on the next line with no `KEY=` prefix, so dotenv exported a truncated key **and** a junk variable named after the tail. The user-tier authz file had the tail duplicated a second time. Repaired by rejoining; all 5 files now fingerprint-identical. A `.env` whose non-blank, non-comment lines do not all match `^[A-Za-z_][A-Za-z_0-9]*=` is the detector — cheap, and nothing runs it |
 | Mongo write violating collection shape | `$jsonSchema` + `additionalProperties: false` per collection | `BEs/marketplace-db-setup/lib/schemas/*.js` | MongoDB collection-level RBAC beneath the shared app connection is **unverified** — open question |
 
 ---
@@ -219,20 +220,24 @@ Both halves are load-bearing, and weakening either alone is enough to leak one c
 
 - No secret value may be read, echoed, or committed: `.env`, `.env.*`, `.npmrc`, `.yarnrc`, `.netrc`, `*.pem`, ssh keys. Placeholder templates named `env` and `npmrc` (no leading dot) are safe and the only files this doc or any agent working here reads directly.
 - Protected values, named explicitly across the codebase: `KEYGRIP_KEY_1`/`_2`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`, `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY`, any npm token.
-- Every credential is referenced by env var, never inlined — `process.env.KEYGRIP_KEY_1`, `process.env.INTROSPECTION_CODE`, etc. across all 9 services' `src/index.mts` `REQUIRED_ENV_VARS`.
-- **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or `#` and reports nothing — the mechanism behind the 89→76 char Keygrip-key truncation in §3.6/§2. Use single quotes; double quotes expand `\n`/`\r` escapes, which is its own trap for a key that should be opaque bytes.
+- Every credential is referenced by env var, never inlined — `process.env.KEYGRIP_KEY_1`, `process.env.INTROSPECTION_CODE`, etc. in each service's `src/index.mts` `REQUIRED_ENV_VARS`. ⚠️ **The list is per service, not universal.** `INTROSPECTION_CODE` is in all 9; `KEYGRIP_KEY_1`/`_2` are in **5** — the four `*-authorization` services plus `marketplace-dev-authenticated-logout`, i.e. exactly those that mint or verify the refresh cookie. The four `*-resource` services authenticate over a bearer header checked against Redis, sign no cookie, and carry neither key in `REQUIRED_ENV_VARS` or in their `env` template.
+- **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or `#` and reports nothing — the mechanism behind the 89→76 char Keygrip-key truncation in §2. Use single quotes; double quotes expand `\n`/`\r` escapes, which is its own trap for a key that should be opaque bytes.
+- ⚠️ **Quoting is not enough on its own: a quoted value can still be broken across two physical lines.** dotenv stops the value at the newline and hands back the truncated prefix, and the tail — which is a bare fragment with no `KEY=` on it — is then parsed as its own garbage assignment. Found in 5 of the 9 `.env` files on 2026-08-09 (§2). A value must be exactly one line. It is visible in the one listing the guard allows — `grep -oE '^[A-Za-z_0-9]+' .env` — because the orphan tail is read as a variable and shows up as a bogus, non-`SCREAMING_SNAKE_CASE` key name. `docs/workflow.md` §Environment files.
 - Secret files are inspected by **key name or salted fingerprint only, never by value**: `grep -oE '^[A-Za-z_0-9]+' .env` for names, `sha256(key + ' ' + value)` first-six-hex for cross-repo agreement checks. Never `cat`, never a value in a terminal — a value printed here is sent to the model API and written unencrypted to `~/.claude/projects/<slug>/*.jsonl`, with no un-send.
 
 ### Pattern
 
 ```bash
-# BEs/dev/marketplace-dev-admin-authenticated-resource/env  (committed placeholder template — safe)
+# BEs/dev/marketplace-dev-public-authorization/env  (committed placeholder template — safe)
 KEYGRIP_KEY_1=
 KEYGRIP_KEY_2=
 REDIS_PASSWORD=
 INTROSPECTION_CODE=
 MONGODB_URI=
 ```
+
+The two `KEYGRIP_KEY_*` lines belong to this template because `public-authorization` signs the refresh
+cookie. A `*-resource` template shows the same file **without** them — see the Rules above.
 
 Real values live in each repo's untracked `.env`, one file per repo, never shared as a single platform-wide file — because the 9 backend `env` templates enumerate `REQUIRED_ENV_VARS` per service and several values (`INTROSPECTION_CODE`, both `KEYGRIP_KEY_*`) must be **byte-identical across specific repo pairs** while others (`MONGO_TEST_DB` family) must be **unique per repo** — see §6.
 
