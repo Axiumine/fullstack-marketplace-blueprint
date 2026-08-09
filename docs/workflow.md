@@ -142,6 +142,37 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
 - ⚠️ **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or
   `#`, hands back the truncated prefix and reports nothing. Use **single** quotes: dotenv expands `\n`
   and `\r` escapes inside double quotes.
+- ⚠️ **One value, one line — quoting does not save you from a line break.** A newline inside a quoted
+  value ends the value there; the tail lands on the next line with no `KEY=` in front of it, and dotenv
+  reads that tail as its own variable named after its first token. Both halves are silent. This is how
+  all 5 `.env` files holding `KEYGRIP_KEY_1`/`_2` were found broken on 2026-08-09: 88-char keys wrapped
+  after 76 chars, and one file had the 12-char tail duplicated on a further line.
+
+  **This is a gate, not a convention.** `.githooks/pre-commit` **check 0** reads the working tree — the
+  only check that does, because a `.env` is git-ignored and never staged — and refuses the commit when
+  any `.env`, `.env.*` or `env` in that repo holds a non-blank, non-comment line that is not `KEY=VALUE`,
+  or a value that opens a quote the line never closes. It reports file, line and key name, never a value.
+  A deliberate multi-line value would trip it; none exists here, and the escape hatch is
+  `git commit --no-verify`.
+
+  **Detector, to check by hand before you get that far — the key-name listing you are already allowed to
+  run:**
+
+  ```bash
+  grep -oE '^[A-Za-z_0-9]+' .env
+  ```
+
+  A wrapped value announces itself as a **bogus key name** in that listing: the orphan tail begins with
+  base64 characters, so dotenv and this grep both read it as a variable. Anything in the output that is
+  not an English `SCREAMING_SNAKE_CASE` name is a broken line above it. Nothing wider than this one
+  command is available in-agent — the secret guard rejects any pipeline over a `.env`, including
+  `grep -vE … | wc -l` and a `diff` of key names against the `env` template. To check the file's whole
+  shape, run a script from disk instead of inlining it: the guard reads the command line, not the
+  script.
+
+- **Which services need `KEYGRIP_KEY_*`:** the four `*-authorization` services and
+  `marketplace-dev-authenticated-logout` — 5 of 9. The four `*-resource` services sign no cookie and
+  must not carry the keys; per-service table in `docs/devprotocol/phase3/INFRA.md` §7.
 - `checkRequiredEnv` is `if (!env[envVar])`, so an empty value fails exactly like a missing one — that
   is the only class of these the code catches. Audit by parsing each service's `REQUIRED_ENV_VARS` out
   of `src/index.mts`, then checking that repo's local config for absent-or-empty.

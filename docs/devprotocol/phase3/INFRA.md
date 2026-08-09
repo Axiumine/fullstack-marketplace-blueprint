@@ -320,6 +320,25 @@ Each service's own list differs by concern (resource services additionally requi
 vars; the exact list is per-repo — grep that repo's `src/index.mts`, do not assume the authorization list
 above is universal).
 
+⚠️ **`KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` are in 5 of the 9 lists, not all 9** — the four `*-authorization`
+services and `marketplace-dev-authenticated-logout`, i.e. exactly the services that mint or verify the
+refresh cookie. The four `*-resource` services authenticate over an `Authorization: Bearer` header
+checked against Redis, sign no cookie, and carry neither key in `REQUIRED_ENV_VARS` nor in their `env`
+template. Do not add them back to a resource service: it puts a live signing key on a service that
+cannot use it and enlarges the unenforced cross-repo agreement set below for nothing.
+
+| Service | `KEYGRIP_KEY_1`/`_2` required |
+|---|---|
+| `marketplace-dev-admin-authenticated-authorization` | ✅ |
+| `marketplace-dev-authenticated-authorization` | ✅ |
+| `marketplace-dev-public-authorization` | ✅ |
+| `marketplace-dev-user-authenticated-authorization` | ✅ |
+| `marketplace-dev-authenticated-logout` | ✅ |
+| `marketplace-dev-admin-authenticated-resource` | ❌ |
+| `marketplace-dev-authenticated-resource` | ❌ |
+| `marketplace-dev-public-resource` | ❌ |
+| `marketplace-dev-user-authenticated-resource` | ❌ |
+
 Two classes of variable and how they were found to disagree, 2026-08-07 audit:
 
 - **Per-repo, self-consistent** — a wrong value here breaks only that repo's own suite, which then fails
