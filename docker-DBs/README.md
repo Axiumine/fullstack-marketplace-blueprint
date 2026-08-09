@@ -1,5 +1,7 @@
 # docker-DBs — the local databases, and how to run the platform on them
 
+Part of the **Marketplace** project — <https://github.com/Axiumine/fullstack-marketplace-blueprint>.
+
 Marketplace talks to an **external MongoDB replica set** (`rs0`, members `db1` / `db2` / `db3`) that
 lives on the maintainer's network. A clone does not get it, and neither does a clone get
 `BEs/marketplace-db-setup/setup/mongodb.js`, the runbook that provisions its users — that file is
