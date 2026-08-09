@@ -15,7 +15,7 @@ Thirteen repos run eslint + prettier: nine backend services under `BEs/dev/`, `B
 and three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`). `marketplace-db-setup`
 is a deliberate fourteenth exception — no prettier, no eslint, content is immutable applied migrations.
 
-eslint enforces `indent: ['error','tab']` per `docs/conventions.md` §Formatting. Prettier's `useTabs` key
+eslint enforces `indent: ['error','tab']` per [`docs/conventions.md`](../../../conventions.md) §Formatting. Prettier's `useTabs` key
 was present in only one repo (`marketplace-admin`) before this decision. Everywhere else prettier's default
 (`useTabs: false`) fought eslint: prettier reindented with spaces exactly what eslint demanded back as tabs,
 and whichever tool ran last in a given workflow won. Nobody could safely run both in sequence without one
@@ -38,7 +38,7 @@ is the reference — and that block is load-bearing rather than decorative.
 All thirteen repos' `lint` / `lint:check` scripts are identical in shape (`marketplace-admin/package.json`
 line 22-23: `"lint": "eslint --fix . && prettier --write .", "lint:check": "eslint . && prettier --check ."`;
 same two lines verbatim in `BEs/dev/marketplace-dev-public-authorization/package.json` line 16-17), and both
-gates run in `.githooks/pre-commit` and `.githooks/pre-push` per `docs/workflow.md` §Git hooks.
+gates run in `.githooks/pre-commit` and `.githooks/pre-push` per [`docs/workflow.md`](../../../workflow.md) §Git hooks.
 
 ---
 
@@ -104,7 +104,7 @@ a root-JS block off the minified Qodana report), plus a `test/**/*.mts` block fo
   stops being byte-identical.
 - **`marketplace-db-setup` gets prettier/eslint added later** without re-litigating why it was excluded —
   its content is immutable applied migrations, and reformatting one would violate the immutability rule in
-  `docs/conventions.md` §Lint scripts (CON-07 in `docs/devprotocol/phase3/CONSTRAINTS.md`).
+  [`docs/conventions.md`](../../../conventions.md) §Lint scripts (CON-07 in `docs/devprotocol/phase3/CONSTRAINTS.md`).
 
 ---
 

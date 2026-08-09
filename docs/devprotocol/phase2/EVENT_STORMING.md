@@ -13,7 +13,7 @@
 
 ## 1. Purpose
 
-Maps every domain event, cmd, actor, policy, read model in Marketplace biz flow. Feeds `UBIQUITOUS_LANGUAGE.md`, next in Phase 2. No `role` field, no permission enum anywhere in this codebase (`CLAUDE.md` §Terminology) — actor identity = which MongoDB collection a session authenticated against. Doc groups flows by aggregate/collection, not by UI screen, for that reason.
+Maps every domain event, cmd, actor, policy, read model in Marketplace biz flow. Feeds [`UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md), next in Phase 2. No `role` field, no permission enum anywhere in this codebase (`CLAUDE.md` §Terminology) — actor identity = which MongoDB collection a session authenticated against. Doc groups flows by aggregate/collection, not by UI screen, for that reason.
 
 Vocab:
 - Commands: intentional trigger, imperative present tense — a GraphQL mutation name in almost every case, one REST verb where the router exists (`GET /check/...`).
@@ -65,7 +65,7 @@ const redRefreshSession = await redisClient.hGet(`${process.env.REDIS_KEY}${refr
 const redAccessSession = await redisClient.hGet(`${process.env.REDIS_KEY}${accessToken}`, '_id')
 ```
 
-Deletes by token content, tier-blind, on purpose — `docs/architecture.md` §Services: "one service serves every tier, because its resolver deletes the Redis keys by token content and never asks which collection minted them." `loginUser` refuses an account whose `emailVerify.valid` is false with the same generic error every other failure gets, so login cannot be used as an email-enumeration oracle (`docs/architecture.md` §Auth model).
+Deletes by token content, tier-blind, on purpose — [`docs/architecture.md`](../../architecture.md) §Services: "one service serves every tier, because its resolver deletes the Redis keys by token content and never asks which collection minted them." `loginUser` refuses an account whose `emailVerify.valid` is false with the same generic error every other failure gets, so login cannot be used as an email-enumeration oracle (`docs/architecture.md` §Auth model).
 
 ### 2.2 Shop owner account provisioning, approval, onboarding, session lifecycle
 Aggregate: `shopOwner`
@@ -294,7 +294,7 @@ Aggregate: Redis session hash (`REDIS_KEY` prefix, shared across all 9 services)
 Not a flow with its own actor — a guard every authenticated resolver in §2.1–2.6 passes through first. `assertTier(actual, expected)` throws 403, never 401, and treats a session with no `tier` field as invalid rather than a wildcard (`BEs/marketplace-common/src/others/assertTier.mts`, per `docs/architecture.md` §Auth model, pre-verified there). Modelled as a policy, §3, not a flow of its own.
 
 ### 2.9 PLANNED — commerce, out of scope, no implementation
-Aggregate: none exist. Named here only so `UBIQUITOUS_LANGUAGE.md` has vocabulary ready if/when this scope is opened — **never** read the presence of these names as a design decision.
+Aggregate: none exist. Named here only so [`UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md) has vocabulary ready if/when this scope is opened — **never** read the presence of these names as a design decision.
 
 ```
 PLANNED — NOT BUILT, NO COLLECTION, NO RESOLVER
@@ -354,7 +354,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` document) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
 | 3 | No self-service shop-owner registration | Every `ShopOwner` account today is Admin-provisioned via `shopOwnerAdd`. A public self-registration flow, if ever wanted, is new scope — not a bug in an existing one. |
 | 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
-| 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | `docs/frontends.md` documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
+| 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | [`docs/frontends.md`](../../frontends.md) documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
 | 6 | Commerce vocabulary (§2.9) | Named for glossary readiness only. Zero collection, zero resolver, zero migration exists. Do not treat presence in this document as scope. |
 
 ---

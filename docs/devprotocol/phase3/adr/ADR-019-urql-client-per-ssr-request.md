@@ -13,7 +13,7 @@
 
 `marketplace-user` is the one server-rendered app on the platform (`docs/frontends.md` §marketplace-user). Public
 catalogue routes (`/`, `/shops`, `/shop/:slug`, `/category/:slug`, etc) render on a shared Node process
-before any browser is involved — `marketplace-user/CLAUDE.md` §Public is server-rendered, private is not.
+before any browser is involved — [`marketplace-user/CLAUDE.md`](https://github.com/Axiumine/marketplace-user/blob/main/CLAUDE.md) §Public is server-rendered, private is not.
 `/account/*` is `ssr: false` (ADR-covered elsewhere, CON-10) so this decision is scoped to the SSR half
 only: the anonymous public surface.
 

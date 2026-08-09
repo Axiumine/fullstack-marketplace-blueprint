@@ -274,7 +274,7 @@ sequenceDiagram
    Keygrip-signed cookie every tier writes at login, then issues two `del` calls — no `hGetAll`, so it
    never learns (or needs) which collection minted the session.
    `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:1-82`
-3. Consequence documented in `docs/architecture.md` §Auth model: tier-named logout mutations were evaluated and
+3. Consequence documented in [`docs/architecture.md`](../../architecture.md) §Auth model: tier-named logout mutations were evaluated and
    rejected — a single content-addressed delete is simpler and cannot desync from whichever tier the
    session actually belongs to.
 4. **No failure branch tied to tier** — the one deviation from the other diagrams. A `del` on a key that
@@ -400,7 +400,7 @@ sequenceDiagram
    `marketplace-user/src/api/ssr.ts:1-53`
 4. The SSR client talks to `PUBLIC_RESOURCE_URL` directly — deliberately not `VITE_`-prefixed, since that
    prefix would inline a loopback address into the client-side bundle that ships to browsers.
-   `marketplace-user/src/api/ssr.ts:1-53`, `marketplace-user/CLAUDE.md:47-49`
+   `marketplace-user/src/api/ssr.ts:1-53`, [`marketplace-user/CLAUDE.md:47-49`](https://github.com/Axiumine/marketplace-user/blob/main/CLAUDE.md#L47-L49)
 5. **Cache bypass is keyed on the session cookie**, not on the route — one `map` sets `$mkt_user_no_cache`
    from `$http_cookie`, and the apex vhost feeds it to **both** `proxy_cache_bypass` (skip the lookup) and
    `proxy_no_cache` (never store), independent of whether the route itself is public.
@@ -410,7 +410,7 @@ sequenceDiagram
    rendering authenticated HTML behind a shared `proxy_cache` is exactly how one customer's data would reach
    another. Weakening either half (turning SSR on for `/account/*`, or removing the cookie-keyed bypass)
    reopens the leak.
-   `marketplace-user/CLAUDE.md:18-30`
+   [`marketplace-user/CLAUDE.md:18-30`](https://github.com/Axiumine/marketplace-user/blob/main/CLAUDE.md#L18-L30)
 7. **Cached-repeat-request branch**: an anonymous request that matches a fresh `proxy_cache` entry never
    reaches `serve.mjs` at all — nginx answers from cache, so `PUBLIC_RESOURCE_URL`/Mongo are not touched a
    second time until the cache entry expires or is bypassed by a cookie.

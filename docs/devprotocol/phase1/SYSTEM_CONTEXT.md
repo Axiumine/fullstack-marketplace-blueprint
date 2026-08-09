@@ -14,7 +14,7 @@
 
 Names every external actor + system that crosses the Marketplace boundary, and states the contract each
 crossing must honour. Internal impl (resolver layout, model shapes, repo-split rationale) lives in
-`CLAUDE.md` + `docs/` and `PDR.md`, not here — this doc is boundary-only. Every claim below cites an on-disk path
+[`CLAUDE.md`](../../../CLAUDE.md) + `docs/` and [`PDR.md`](./PDR.md), not here — this doc is boundary-only. Every claim below cites an on-disk path
 verified this session; a path in backticks was opened, not guessed.
 
 ---
@@ -35,7 +35,7 @@ verified this session; a path in backticks was opened, not guessed.
 ```
 
 16 git working trees total (`docs/workflow.md` §Repo layout), per
-`docs/devprotocol/phase1/PDR.md` §1, no `git` command run to re-verify (HARD RULE — never run git commands
+[`docs/devprotocol/phase1/PDR.md`](./PDR.md) §1, no `git` command run to re-verify (HARD RULE — never run git commands
 in this doc's authoring). Outside the box above = external actor or system.
 
 ---
@@ -523,5 +523,5 @@ error at the call site.
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|Who creates the 4 missing Qodana Cloud projects (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
-|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, `PDR.md` §8 item 5|
-|6|Where do the 16 repos get published, and under which forge org?|platform owner|open, `PDR.md` §8 item 1|
+|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 5|
+|6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

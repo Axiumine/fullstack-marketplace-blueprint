@@ -23,7 +23,7 @@ literal `loader`/`head`/`component` properties to split into per-route chunks. T
 behaviour wants plain functions/objects importable in isolation; the splitter wants literal properties in
 the route file itself to do its job.
 
-`marketplace-user/CLAUDE.md` (cited from the parent `docs/frontends.md` §marketplace-user) records the resolution
+[`marketplace-user/CLAUDE.md`](https://github.com/Axiumine/marketplace-user/blob/main/CLAUDE.md) (cited from the parent [`docs/frontends.md`](../../../frontends.md) §marketplace-user) records the resolution
 already taken: route files became one-line `createFileRoute(id)(options)` calls, and the actual `loader`,
 `head`, `validateSearch`, `component` live in `src/routeOptions/` as plain constants with no router
 dependency.
@@ -68,7 +68,7 @@ regardless of how routes are split.
 ### Positive
 - `loader`/`head`/`validateSearch` are unit-testable in isolation, no router mount required — this is what
   let `marketplace-user` reach 100%/100 (66 test files, 1165 tests, 2028/6/0 mutants per
-  `docs/frontends.md` §Current suite sizes) without router-integration tests standing in for unit tests.
+  [`docs/frontends.md`](../../../frontends.md) §Current suite sizes) without router-integration tests standing in for unit tests.
 - Route files (`src/routes/*.tsx`) are uniform and nearly impossible to get wrong — one import, one
   `createFileRoute` call. Routing wiring and business logic are physically separated.
 - The pairing with `src/router.ts`'s `RouterContext` type keeps `loader`/`head` signatures consistent across

@@ -6,7 +6,7 @@
 **Date:** 2026-08-07
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-**Depends on:** `docs/devprotocol/phase1/PDR.md` ✅ · `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` ✅ · `docs/devprotocol/phase2/BOUNDED_CONTEXT.md` ✅
+**Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
 
 ---
@@ -14,17 +14,17 @@
 ## 1. Purpose
 
 One system, one box: Marketplace — multi-tenant marketplace platform, 16-repo polyrepo, ground truth is
-`CLAUDE.md` plus `docs/` at the workspace root. This document draws the box and everything around it: human actors,
+[`CLAUDE.md`](../../../CLAUDE.md) plus `docs/` at the workspace root. This document draws the box and everything around it: human actors,
 external systems, what crosses the boundary. Detail on each interface contract already lives in
-`docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §5 — this document references it and stays consistent with
+[`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §5 — this document references it and stays consistent with
 it, never restates it. Container-level detail (every deployable unit, ports, tier × concern split) is
-`docs/devprotocol/phase3/C4_CONTAINER.md`.
+[`docs/devprotocol/phase3/C4_CONTAINER.md`](./C4_CONTAINER.md).
 
 ---
 
 ## 2. Context diagram
 
-Boundary, actors and external systems below match `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §4 —
+Boundary, actors and external systems below match [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §4 —
 verified against it, kept in sync by hand since neither document regenerates the other.
 
 ```mermaid
@@ -86,7 +86,7 @@ graph TB
 | Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
 | Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 
-Full contract detail: `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §3.1. No `role` field anywhere on the
+Full contract detail: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.1. No `role` field anywhere on the
 platform — actor identity = which MongoDB collection the session authenticated against (`CLAUDE.md`
 §Terminology; CON-01 in `docs/devprotocol/phase3/CONSTRAINTS.md`).
 
@@ -106,7 +106,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
 | npm registry | no | resolves every dependency except `@axiumine/marketplace-common`, which 404s there — bridged by `deploy-local.sh` |
 
-Full contract detail, direction and payload: `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §3.2 and §5.
+Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.2 and §5.
 
 ---
 
@@ -133,4 +133,4 @@ Full contract detail, direction and payload: `docs/devprotocol/phase1/SYSTEM_CON
 ---
 
 Container-level detail — every deployable unit, its port, its tier, its concern, and the full
-tier × concern grid — is `docs/devprotocol/phase3/C4_CONTAINER.md`.
+tier × concern grid — is [`docs/devprotocol/phase3/C4_CONTAINER.md`](./C4_CONTAINER.md).

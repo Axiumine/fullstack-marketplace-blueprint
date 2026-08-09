@@ -18,7 +18,7 @@
 
 No cart, order, delivery or payment collection exists anywhere in
 `BEs/marketplace-db-setup/migrations/` — zero files match `order`/`cart` in that directory. No
-model, no resolver, no state machine for any of the four. `CLAUDE.md` names them "genuinely new
+model, no resolver, no state machine for any of the four. [`CLAUDE.md`](../../../../CLAUDE.md) names them "genuinely new
 design with no existing model to copy — ask before inventing them." A `price` field is the one piece
 of that undesigned commerce tier that would otherwise land on `item` by habit.
 
@@ -28,11 +28,11 @@ Forces:
 - `Decimal128` is the correct BSON type for money and is already a **rejected write** on this
   platform: resolvers use `.lean()`, mongoose getters never run, and `GraphQLFloat.serialize(Decimal128)`
   throws — documented in the header comment of `lib/schemas/item.js` and in
-  `BEs/marketplace-db-setup/CLAUDE.md` under *Naming* → geo `position`, where the same type on a
+  [`BEs/marketplace-db-setup/CLAUDE.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/CLAUDE.md) under *Naming* → geo `position`, where the same type on a
   coordinate answers 500 on every call for the same reason.
 - Nothing reads a price today. `item` has no `Cart`/`Order` consumer, so a `price` field would sit
   unused — the platform's own convention (`published`, `deleted`) is that a field earns its place by a
-  reader that needs it, argued field-by-field in `docs/data-model.md`.
+  reader that needs it, argued field-by-field in [`docs/data-model.md`](../../../data-model.md).
 - `CONSTRAINTS.md` §5 states this outright as an out-of-scope boundary for the current build phase:
   "Price on `item` — deliberately absent, the header comment in
   `BEs/marketplace-db-setup/lib/schemas/item.js` says why. Do not add 'just a field'."
@@ -44,7 +44,7 @@ Forces:
 | Option | Pros | Cons |
 |---|---|---|
 | A. Add `price` now as `Float`/`Number` | Unblocks any UI wanting to show a number today; cheapest schema change | `Float` loses precision for money (binary rounding); still guesses currency and VAT with no consumer to validate the guess against; a later correct type means rewriting the create migration's shape plus the full-database-rebuild cost `lib/schemas/README.md` requires for any `lib/schemas/` change (ADR-014) |
-| B. Add `price` now as `Decimal128` (correct money type) | Right precision, matches how a real price should be stored | Already a *known-broken* write path on this platform — `.lean()` + `GraphQLFloat.serialize(Decimal128)` throws, same class of bug the geo-position fix in `BEs/marketplace-db-setup/CLAUDE.md` had to work around; still no currency/VAT/discount design; adds a field with zero readers |
+| B. Add `price` now as `Decimal128` (correct money type) | Right precision, matches how a real price should be stored | Already a *known-broken* write path on this platform — `.lean()` + `GraphQLFloat.serialize(Decimal128)` throws, same class of bug the geo-position fix in [`BEs/marketplace-db-setup/CLAUDE.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/CLAUDE.md) had to work around; still no currency/VAT/discount design; adds a field with zero readers |
 | C. Defer — ship `item` with no price field, design it together with `Cart`/`Order`/`Payment` when that tier is built | Matches the platform's existing "field earns its place by a reader" convention (`published`, `deleted`); avoids shipping a type known to break the `.lean()`→GraphQL path; no debt from an undesigned currency/VAT/discount decision baked into a strict-schema collection | Storefront cannot display a price today; any commerce demo waits on the ordering tier; whenever it does land, the shape and the rebuild are paid then rather than now (ADR-014) |
 
 ---
@@ -61,7 +61,7 @@ GraphQL — so adding it now would ship a field that is broken from the first re
 avoids that specific break but replaces it with a silent one: a `Float` price stored today is the wrong
 type the moment currency/VAT/discount are actually designed, and fixing the type is exactly the kind of
 `lib/schemas/` edit that forces a full rebuild of every database that ran the migrations (ADR-014,
-`BEs/marketplace-db-setup/CLAUDE.md` → *Authoring migrations*). Option C pays that shape-plus-rebuild
+[`BEs/marketplace-db-setup/CLAUDE.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/CLAUDE.md) → *Authoring migrations*). Option C pays that shape-plus-rebuild
 cost once, at design time, instead of twice.
 
 ---
@@ -71,7 +71,7 @@ cost once, at design time, instead of twice.
 ### Positive
 - Catalogue ships now without blocking on the undesigned ordering tier.
 - No dead field: every field on `item` has a reader today, matching the platform convention argued for
-  `published`/`deleted` in `docs/data-model.md`.
+  `published`/`deleted` in [`docs/data-model.md`](../../../data-model.md).
 - Avoids re-introducing the `.lean()` / `GraphQLFloat.serialize(Decimal128)` failure class the
   `lib/schemas/item.js` header comment describes.
 

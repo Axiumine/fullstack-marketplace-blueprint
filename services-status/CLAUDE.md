@@ -6,16 +6,15 @@ snapshot to a browser page that can start, stop and restart units and tail their
 its own — a tracked directory of the parent workspace, gated by the parent's hooks (ADR-025), so a
 change here commits under the parent's rules.
 
-**Read parent first** — `../CLAUDE.md`
-(<https://github.com/Axiumine/fullstack-marketplace-blueprint> if you are reading this on GitHub).
+**Read parent first** — [`../CLAUDE.md`](../CLAUDE.md)
 
 | Need | File |
 |---|---|
-| what it monitors, install, boot policy, the route table, the env table, security posture, troubleshooting, adding a service | `README.md` |
-| the generated units, why nothing except the monitor is enabled, why `ExecStart` is not `yarn dev` | `systemd/README.md` |
-| the three custom rules, what is vendored and why | `semgrep/README.md` |
-| why it has no git repo of its own and how the parent gates it | `../docs/devprotocol/phase3/adr/ADR-025-services-status-gated-by-parent-hooks.md` |
-| where this sits among the frontends and their gates | `../docs/frontends.md` |
+| what it monitors, install, boot policy, the route table, the env table, security posture, troubleshooting, adding a service | [`README.md`](./README.md) |
+| the generated units, why nothing except the monitor is enabled, why `ExecStart` is not `yarn dev` | [`systemd/README.md`](./systemd/README.md) |
+| the three custom rules, what is vendored and why | [`semgrep/README.md`](./semgrep/README.md) |
+| why it has no git repo of its own and how the parent gates it | [`../docs/devprotocol/phase3/adr/ADR-025-services-status-gated-by-parent-hooks.md`](../docs/devprotocol/phase3/adr/ADR-025-services-status-gated-by-parent-hooks.md) |
+| where this sits among the frontends and their gates | [`../docs/frontends.md`](../docs/frontends.md) |
 
 `services.json` is the only source of truth: 6 groups over the 9 backend services and the 3 frontend
 dev servers. Adding a service is an entry there plus a re-run of `yarn systemd:install` — no code
@@ -87,7 +86,7 @@ code.
 - **`generate.mjs`'s shell-syntax guard fails the whole run, not one unit.** It accepts only a plain
   `&&` chain, so one repo adding `||` or a pipe to its dev script makes `yarn systemd:install` throw
   before writing any of the 13 unit files.
-- **`install.sh`'s step 7 warns but never exits non-zero**, despite `README.md` calling it an
+- **`install.sh`'s step 7 warns but never exits non-zero**, despite [`README.md`](./README.md) calling it an
   assertion — a monitored unit found wrongly `enabled` does not fail the script. Do not gate automation
   on its exit code for that condition.
 - **Raising `MAX_LOG_LINES` has an unstated dependency on `LOGS_MAX_BUFFER`.** The 16MB figure was

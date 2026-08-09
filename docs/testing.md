@@ -1,6 +1,6 @@
 # Testing
 
-Gate **policy** — which layer blocks what, and what the rollout found — is in `README.md`, *Test
+Gate **policy** — which layer blocks what, and what the rollout found — is in [`README.md`](../README.md), *Test
 quality gates*. This file is the operational side: how the suites are laid out and the traps that make
 a green run lie.
 
@@ -35,7 +35,7 @@ Outside `dev/`, coverage lives in `marketplace-common` (vitest + stryker) and `m
   and answers `matchedCount: 1, modifiedCount: 0`. **Coerce with `new Types.ObjectId(…)` before any id
   enters a pipeline.** `funUserAddressDel` is the only pipeline update on the platform.
 - ⚠️ **No test on this platform spans two services**, so every cross-repo value agreement is unenforced
-  by construction — see `docs/workflow.md`, *Environment files*.
+  by construction — see [`docs/workflow.md`](./workflow.md), *Environment files*.
 
 ## Integration test conventions
 

@@ -34,7 +34,7 @@ State at the time of this decision, which shapes what is and is not yet true of 
   parent's `origin` is `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`.
 - **No branch in any of the sixteen repos has an upstream. Nothing has ever been pushed.**
 
-So the publishing question `ADR-INDEX.md` §5 records as an open gap — *when* the sixteen repos get
+So the publishing question [`ADR-INDEX.md`](./ADR-INDEX.md) §5 records as an open gap — *when* the sixteen repos get
 published — is answered here only as far as naming and topology. Whether and when anything is pushed
 remains the owner's call and is outside this decision. Public repositories also make the pre-first-push
 history scan (`docs/workflow.md`) the last gate before sixteen histories are world-readable.

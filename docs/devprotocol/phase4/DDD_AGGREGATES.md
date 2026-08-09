@@ -152,7 +152,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
   const newItem: IItemSchema = { _id: new Types.ObjectId(), ...args.item }
 ```
 - `idCategory` existence is unenforced — substituted entirely by `throwIfItemCategoryMissing` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/throwIfItemCategoryMissing.mts`), a second, unguaranteed-atomic read run before the write.
-- `idCompany_slug_unique` — a slug is unique per company, not globally, per `docs/data-model.md` §Indexes.
+- `idCompany_slug_unique` — a slug is unique per company, not globally, per [`docs/data-model.md`](../../data-model.md) §Indexes.
 - No `price` field, anywhere — deliberate (ADR-009). Orders/cart/delivery/payment have no model to copy; a price with nothing to buy is a guess at an undesigned decision.
 - Two independent writers of `item.published` — `ShopOwner`'s own `itemUpdate` and `Admin`'s `itemUpdatePublished` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts`) — both write the same flag on the same document with **no version/lock field in the schema**. A race between an owner unpublishing and an admin moderating is enforced by **nothing** (`EVENT_STORMING.md` §5 hotspot 4).
 
@@ -333,7 +333,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | `PUBLISHED_IMPLIES_LINKABLE` | Company | `$expr` validator, `company.js:88-100` | Insert/update rejected by MongoDB |
 | `vatNumber`/`certifiedEmail`/`slug` stay occupied after soft delete | Company | unique index, no `partialFilterExpression` | A retired company's vatNumber can never be re-registered by anyone — deliberate, not a bug (ADR-011) |
 | `idShopOwner` FK validity | Company | resolver guard, `throwIfShopOwnerDontOwnCompany`, ShopOwner tier only | Admin tier has no ownership guard at all on `companyAdd`/`Update`/`Del` — any `idShopOwner` value can be stamped; unexamined (hotspot 5) |
-| `companyDel` on already-retired company | Company | resolver guard (ShopOwner: filters `deleted`, 403; Admin: does not, 200) | Documented divergence, not a bug — see `docs/data-model.md` §`company` |
+| `companyDel` on already-retired company | Company | resolver guard (ShopOwner: filters `deleted`, 403; Admin: does not, 200) | Documented divergence, not a bug — see [`docs/data-model.md`](../../data-model.md) §`company` |
 | `idCompany` ownership before `idCategory` existence, in that order | Item | two sequential resolver guards, `itemAdd.mts:39-46` | Reversed order would let a non-owner enumerate real category ids via the error message |
 | `idCategory` FK validity | Item | resolver guard, `throwIfItemCategoryMissing` | An `item` can reference a deleted or nonexistent category if the guard is ever bypassed or the category is deleted in the window between check and write (§5) |
 | `idCompany_slug_unique` | Item | unique index | Insert rejected — per-company slug collision |

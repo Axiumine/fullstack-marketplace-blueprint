@@ -25,7 +25,7 @@ concept the backend refuses. It would also mean every customer browser downloads
 delivered ≠ content authorized is a leak surface (bundle inspection, source maps, unminified strings) even
 if UI hides it.
 
-Constraint from `docs/architecture.md` §Services: each tier's resource service exposes a genuinely different
+Constraint from [`docs/architecture.md`](../../../architecture.md) §Services: each tier's resource service exposes a genuinely different
 GraphQL surface — `marketplace-dev-admin-authenticated-resource` (4024) owns `itemCategory` CRUD and
 moderation, `marketplace-dev-authenticated-resource` (4026) owns `company`/`item` CRUD for the owner's own
 documents, `marketplace-dev-user-authenticated-resource` (4032) owns account/personalData/addresses. No overlap
@@ -45,13 +45,13 @@ in `marketplace-admin` or `marketplace-shopowner`, which are pure SPA.
 |---|---|---|
 | One frontend app, role switch at runtime (read tier from session, branch UI/router/queries) | Single codebase, single build, single deploy artifact, shared components trivially reused | Ships operator+shopOwner+customer code to every browser regardless of tier; reintroduces `role`-shaped branching backend explicitly rejected (ADR-002); one urql client config must reconcile 3 different endpoint sets and 3 different codegen outputs; a bug in the switch is a cross-tier data leak, not a build error; SSR-vs-CSR split (`marketplace-user` only) would infect the other 2 tiers' routing for no reason |
 | One frontend app, 3 separate build entry points (multi-page build, shared `src/`) | Some code sharing without runtime role switch; still 1 repo, 1 `package.json`, 1 `node_modules` | Still 1 dependency tree — a `marketplace-user`-only package (MapLibre GL, PMTiles) ships to operator/shopOwner installs too; 1 `.githooks/pre-push` gate (100% coverage + mutation, `README.md` §Test quality gates) now spans 3 apps' worth of code, so an operator-only test failure blocks a shopOwner-only change from shipping; 1 Qodana project/token for 3 surfaces corrupts the per-tier baseline the way a misrouted token does elsewhere on this platform (`docs/frontends.md` warns against exactly this for `services-status`); still needs a build-time (not runtime) role split, which is a smaller version of the same coupling |
-| Three separate repos/apps, one per tier — `marketplace-admin` (3043), `marketplace-shopowner` (3044), `marketplace-user` (3045) | No tier's code ever reaches another tier's browser; each app talks only to its own tier's endpoints (CON_ports above), so an operator bug cannot touch customer traffic; each gets its own coverage/mutation/Qodana gate and project token, matching the backend's per-service gating pattern already established; `marketplace-user` free to be the one SSR app without dragging SSR concerns into the 2 pure-SPA tiers; mirrors the backend split 1:1 (tier × concern), so the pattern engineers already learned reading `docs/architecture.md` §Services applies again here | 3 codegen setups, 3 dependency trees, 3 things to keep in sync when a shared concept (e.g. `Company` shape) changes on all 3 — no shared package like `marketplace-common` exists for frontend code; genuinely divergent behaviour between `marketplace-admin` and `marketplace-shopowner` (see Decision) must be tracked per-repo, nothing enforces they stay consistent where they should be |
+| Three separate repos/apps, one per tier — `marketplace-admin` (3043), `marketplace-shopowner` (3044), `marketplace-user` (3045) | No tier's code ever reaches another tier's browser; each app talks only to its own tier's endpoints (CON_ports above), so an operator bug cannot touch customer traffic; each gets its own coverage/mutation/Qodana gate and project token, matching the backend's per-service gating pattern already established; `marketplace-user` free to be the one SSR app without dragging SSR concerns into the 2 pure-SPA tiers; mirrors the backend split 1:1 (tier × concern), so the pattern engineers already learned reading [`docs/architecture.md`](../../../architecture.md) §Services applies again here | 3 codegen setups, 3 dependency trees, 3 things to keep in sync when a shared concept (e.g. `Company` shape) changes on all 3 — no shared package like `marketplace-common` exists for frontend code; genuinely divergent behaviour between `marketplace-admin` and `marketplace-shopowner` (see Decision) must be tracked per-repo, nothing enforces they stay consistent where they should be |
 
 ---
 
 ## Decision
 
-Chosen: three separate repos, one per tier — row 3. Reasoning stated in `CLAUDE.md` §Build state
+Chosen: three separate repos, one per tier — row 3. Reasoning stated in [`CLAUDE.md`](../../../../CLAUDE.md) §Build state
 and §Frontends table: `marketplace-admin` (Admin, 3043, SPA), `marketplace-shopowner` (ShopOwner, 3044,
 SPA), `marketplace-user` (User + anonymous, 3045, SSR public / CSR account). This is the frontend
 consequence of ADR-002 — a role switch inside one bundle would (a) ship the operator surface to every
@@ -68,7 +68,7 @@ conventions, same hooks" (`docs/frontends.md` §marketplace-admin and marketplac
 Router, urql + `cacheExchange` + `@urql/exchange-auth`, graphql-codegen `client-preset`, Tailwind 4,
 Sentry — but that mirroring is convention only, not code sharing. Consequence recorded here because a
 "mirror" invites the assumption of identical GraphQL contract, and it is not identical. Three points where
-the tiers diverge on purpose and must not be "corrected" into matching (source: `docs/frontends.md`
+the tiers diverge on purpose and must not be "corrected" into matching (source: [`docs/frontends.md`](../../../frontends.md)
 §marketplace-admin and marketplace-shopowner, "Three things there are not copies…"):
 
 ```
@@ -93,7 +93,7 @@ GraphQL contracts and needs its own ADR, not a silent PR.
   (`docs/workflow.md` §Git hooks) — a failing test in one tier's app never blocks a deploy of another.
 - `marketplace-user` alone carries the SSR/CSR split and MapLibre/PMTiles dependency weight; the other 2
   apps stay pure SPA with no trace of either.
-- Matches the backend's tier × concern split 1:1 — an engineer who has read `docs/architecture.md` §Services
+- Matches the backend's tier × concern split 1:1 — an engineer who has read [`docs/architecture.md`](../../../architecture.md) §Services
   recognizes the same shape in `marketplace-admin` / `marketplace-shopowner` / `marketplace-user`.
 
 ### Negative
@@ -116,7 +116,7 @@ GraphQL contracts and needs its own ADR, not a silent PR.
   breaking whichever tier depended on the divergent behaviour (e.g. a shopOwner client expecting
   `OnlyIdType` back from `companyAdd` receiving `Boolean` instead). Revisit condition: any PR touching
   `companyAdd`, `GraphQLInputCompanyPosition`, or `resetPwdFlow` in either app must cite this ADR or
-  `docs/frontends.md` §marketplace-admin and marketplace-shopowner in its description.
+  [`docs/frontends.md`](../../../frontends.md) §marketplace-admin and marketplace-shopowner in its description.
 - **Risk:** a 4th tier is added (CLAUDE.md §Terminology names the pattern: "a fifth role means a fifth
   collection and a fifth service pair") without a 4th frontend repo, because someone tries to save setup
   time by bolting it onto an existing app. Revisit condition: any new tier gets its own repo by the same

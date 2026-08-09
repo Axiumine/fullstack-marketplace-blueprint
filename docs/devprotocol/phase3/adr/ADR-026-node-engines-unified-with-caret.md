@@ -72,7 +72,7 @@ close.
 
 ### Positive
 - One string, `^24.18.0`, greppable across all 14 `package.json` — verified present in all 14 sub-repos
-  plus `services-status/package.json` (15 total, parent workspace excluded, matching `docs/workflow.md` §Commands
+  plus `services-status/package.json` (15 total, parent workspace excluded, matching [`docs/workflow.md`](../../../workflow.md) §Commands
   wording).
 - `yarn install` / `yarn <script>` now fails loud and immediately on a genuinely incompatible Node, instead
   of three specific services failing while the rest silently worked.

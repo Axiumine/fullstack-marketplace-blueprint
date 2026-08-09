@@ -33,7 +33,7 @@ topology where the reverse proxy is not the same process.
 
 One frontend does the opposite. `marketplace-user/serve.mjs:34,45` sets
 `const HOSTNAME = '127.0.0.1'` and calls `serve({ fetch: handler.fetch, port, hostname: HOSTNAME })`.
-That SSR process has no authentication layer of its own — see `docs/frontends.md` §marketplace-user — and
+That SSR process has no authentication layer of its own — see [`docs/frontends.md`](../../../frontends.md) §marketplace-user — and
 sits behind nginx for TLS, rate limiting (`marketplace-nginx/conf.d/20-rate-limit.conf`) and the
 `proxy_cache` bypass keyed on the session cookie (CON-10, `phase3/CONSTRAINTS.md:33`). A wildcard
 bind on that one process would let a caller who can reach the box on `3045` skip every one of those
@@ -94,7 +94,7 @@ alternative to this decision.
   decide its bind explicitly against this ADR's reasoning rather than by nearest-neighbor copy.
 - **Risk:** the nginx config that fronts this process (`marketplace-nginx/sites-available/marketplace-domain.com.conf`,
   upstream `mkt_user_ssr` in `marketplace-nginx/conf.d/10-upstreams.conf:24`) is installed on no host —
-  `docs/architecture.md` §nginx states no nginx binary and no `/etc/nginx` exist in this
+  [`docs/architecture.md`](../../../architecture.md) §nginx states no nginx binary and no `/etc/nginx` exist in this
   workspace or on this machine. Revisit if that config is ever deployed and the actual upstream
   bind does not match `127.0.0.1:3045`, since nothing here verifies the deployed nginx target
   against the loopback bind at runtime.

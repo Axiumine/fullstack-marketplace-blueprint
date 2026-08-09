@@ -85,7 +85,7 @@ which are deliberately not GraphQL (ADR-021; `phase4/CONSTRAINTS.md` §5).
   toward `Boolean` elsewhere without the same cache-invalidation justification (`phase4/CONSTRAINTS.md`
   DCON-08):
   - `companyAdd` answers `OnlyIdType` (the new `_id`) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts:27`.
-  - `itemAdd` **also** answers `OnlyIdType`, not `Boolean` — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:34`. ⚠️ This is a correction to how the exception is framed elsewhere on this platform: `docs/frontends.md` names only `companyAdd` as the `OnlyIdType` exception. Reading the resolver directly (per the §1 rule) shows `itemAdd` follows the identical pattern — "answers the new `_id`, like `companyAdd`, unlike the operator tier's `Boolean`" per the comment at the cited line. Both are the owner-tier's own creation flow needing the new id to continue (e.g. attach an image next); the exception is genuinely two mutations, not one.
+  - `itemAdd` **also** answers `OnlyIdType`, not `Boolean` — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:34`. ⚠️ This is a correction to how the exception is framed elsewhere on this platform: [`docs/frontends.md`](../../frontends.md) names only `companyAdd` as the `OnlyIdType` exception. Reading the resolver directly (per the §1 rule) shows `itemAdd` follows the identical pattern — "answers the new `_id`, like `companyAdd`, unlike the operator tier's `Boolean`" per the comment at the cited line. Both are the owner-tier's own creation flow needing the new id to continue (e.g. attach an image next); the exception is genuinely two mutations, not one.
   - `GraphQLInputCompanyPosition` requires `type: String!` on the ShopOwner tier and forbids it on the Admin tier, which stamps `'Point'` server-side. Declared inline inside `GraphQLInputCompany.mts:46-51` (`GraphQLInputCompanyPosition`, built from `GraphQLPositionFrag`) — there is no separate `GraphQLInputCompanyPosition.mts` file, despite the type name suggesting one.
 
 **Error shape.** Not duplicated here — see `phase4/ERROR_HANDLING.md` for the taxonomy and payload shape
@@ -106,7 +106,7 @@ placeholder file, never the real `.env`.
 | `marketplace-dev-public-resource` | 4027 | public (anonymous) | public catalogue reads, customer registration, verify-email | `env:1` |
 | `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | token lifecycle | `env:1` |
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | domain data, item/company CRUD, uploads | `env:1` |
-| `marketplace-dev-authenticated-logout` | 4030 | **all three** | logout | — (not re-verified this pass; per `docs/architecture.md` §Services) |
+| `marketplace-dev-authenticated-logout` | 4030 | **all three** | logout | — (not re-verified this pass; per [`docs/architecture.md`](../../architecture.md) §Services) |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | token lifecycle | — (Part 2) |
 | `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | domain data, `itemCategory` CRUD, moderation | — (Part 2) |
 | `marketplace-dev-user-authenticated-authorization` | 4031 | User | token lifecycle | — (Part 2) |
@@ -416,7 +416,7 @@ companies.
 ## 7. User tier (the customer)
 
 Transport, auth headers and error shape all follow §2. Tier value asserted: `user`. Identity only — see
-`CLAUDE.md` §Build state: no cart, no order, no delivery, no payment collection exists on this tier or
+[`CLAUDE.md`](../../../CLAUDE.md) §Build state: no cart, no order, no delivery, no payment collection exists on this tier or
 anywhere else on the platform.
 
 ### 7.1 `marketplace-dev-user-authenticated-authorization` — port 4031
@@ -509,7 +509,7 @@ key. That is what lets one process serve every tier: tier-named logout mutations
 - **No versioning scheme, no deprecation policy, no cross-service contract test.** Every service versions
   independently by whatever is on `main` at deploy time, and no test on this platform spans two services —
   agreement between a producer and a consumer (a resolver's argument shape, a shared secret, a Redis key
-  format) is enforced by nothing but manual review. `docs/workflow.md` §Environment files records one
+  format) is enforced by nothing but manual review. [`docs/workflow.md`](../../workflow.md) §Environment files records one
   concrete cost of this: two of the user-tier services shipped mismatched `.env` values
   (`KEYGRIP_KEY_1`/`_2` between `marketplace-dev-public-authorization` and
   `marketplace-dev-user-authenticated-authorization`) for a period where both repos' own suites stayed

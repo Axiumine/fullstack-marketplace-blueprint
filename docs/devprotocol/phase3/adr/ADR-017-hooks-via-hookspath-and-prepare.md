@@ -63,7 +63,7 @@ Running Qodana in both hooks (not just `pre-push`) is the second half of the dec
 - A developer who edits files without ever running `yarn install` (rare, but possible with manual file copies or some editor-only workflows) still gets a silent `.git/hooks/` fallback in the 14 sub-repos, same failure shape this ADR fixes, just narrower.
 
 ### Risks
-- **Risk:** a future new sub-repo is created without copying `prepare` into its `package.json`. Revisit if a new repo is added to `docs/workflow.md` §Repo layout without that line being checked at review time.
+- **Risk:** a future new sub-repo is created without copying `prepare` into its `package.json`. Revisit if a new repo is added to [`docs/workflow.md`](../../../workflow.md) §Repo layout without that line being checked at review time.
 - **Risk:** `core.hooksPath` being local-only means any operation that creates a *new* worktree from the parent (e.g. `git worktree add`) starts unwired again, same as a fresh clone. Revisit if this workspace starts using `git worktree` — the fix would need documenting alongside the clone-time instruction, not a code change.
 - **Risk:** Qodana running in both hooks doubles token/compute usage against `QODANA_TOKEN`'s cloud project quota. Revisit if a repo's Qodana Cloud plan starts rate-limiting or billing per scan.
 

@@ -101,7 +101,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Session
 **Definition:** Redis hash keyed `${REDIS_KEY}${token}`, minted at login, carries `tier` since 2026-08-05, carries account id, refreshed on each `refresh` mutation, deleted on logout by token content.
-**Used in:** shared `REDIS_KEY=marketplaceDev:` prefix across all 9 services, per `docs/architecture.md` §Auth model.
+**Used in:** shared `REDIS_KEY=marketplaceDev:` prefix across all 9 services, per [`docs/architecture.md`](../../architecture.md) §Auth model.
 **Not to be confused with:** JWT — platform uses opaque tokens + Redis lookup, NOT JWT, despite a stale `JWT` type name surviving in some `schema.graphql` files. See §19.
 
 ### Access token
@@ -123,7 +123,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Service pair
 **Definition:** Two Koa+Apollo services per authenticated tier — one `*-authenticated-authorization` (token lifecycle only) and one `*-authenticated-resource` (domain GraphQL, bearer-token gated). A fifth tier means a fifth service pair, not a role check bolted onto the existing ones.
-**Used in:** `docs/architecture.md` §Services table.
+**Used in:** [`docs/architecture.md`](../../architecture.md) §Services table.
 
 ### Resource service
 **Definition:** Serves domain GraphQL behind bearer-token auth. Only resource services carry `sharp`, `clamscan`, `file-type`, `graphql-upload`.
@@ -131,7 +131,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Authorization service
 **Definition:** Refresh-token cookie → Redis session → mints/rotates access+refresh token pair. No business queries.
-**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common@1.0.0`, decision recorded in `docs/decisions/authorization-service-consolidation.md`.
+**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common@1.0.0`, decision recorded in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md).
 
 ### checkUserAuthorizationDisDel
 **Definition:** Shared guard function, gates every authenticated resource call on `deleted`/`disabled` flags, all 3 tiers.
@@ -207,7 +207,7 @@ Hotspot, unresolved: schema comment conflates "awaiting approval" with "deleted"
 ### onboardingStep / onboardingDone
 **Definition:** Fields read at 3 auth-middleware sites, written by NO mutation found under any `mutations/` dir on the platform.
 **Used in:** read at `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`.
-Hotspot, unresolved: no confirmed write path exists on disk. Do not assume derivation logic — open question, `EVENT_STORMING.md` §6 open question 2.
+Hotspot, unresolved: no confirmed write path exists on disk. Do not assume derivation logic — open question, [`EVENT_STORMING.md`](./EVENT_STORMING.md) §6 open question 2.
 
 ---
 
@@ -456,7 +456,7 @@ These five fields on `company` all look like "some official string about the bus
 | `registryExtract` | the reference of an official extract from the business register | "extract" alone would be ambiguous about which registry; this is the company-registry one |
 | `legalName` | the formal registered company name, including its legal form | **never** the same thing as `publicName` — see the example below |
 
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, `CLAUDE.md` §Two naming rules.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/company.js`, [`CLAUDE.md`](../../../CLAUDE.md) §Two naming rules.
 **Example — the distinction that matters most, `legalName` vs `publicName`:**
 ```
 // BEs/marketplace-db-setup/lib/schemas/company.js
@@ -471,11 +471,11 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Polyrepo
 **Definition:** 15 independent sub-repos + 1 parent workspace repo tracking only workspace files and one submodule gitlink per sub-repo. NOT a monorepo — no shared tooling spans repos, and one logical change = N separate commits and N separate pushes, plus one parent commit bumping the pointers (ADR-031).
-**Used in:** `docs/workflow.md` §This directory is the parent workspace.
+**Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### Parent workspace
 **Definition:** the directory the fifteen sub-repos are checked out under — `fullstack-marketplace-blueprint` by default, wherever a clone puts it; <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online. A 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
-**Used in:** `docs/workflow.md` §This directory is the parent workspace.
+**Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### deploy-local.sh
 **Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between "consumed as a published package name" and "not actually on any registry" — `@axiumine/marketplace-common` 404s on `registry.npmjs.org`. Must be re-run after every edit to common or consumers keep resolving the previous build.
@@ -483,15 +483,15 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Migration
 **Definition:** One `migrate-mongo`-managed file under `BEs/marketplace-db-setup/migrations/`, timestamp-prefixed, immutable once applied — never edit an applied migration, add a new one. `<ts>-create-<coll>.js` creates a collection + validator + indexes in one call. There is no `<ts>-alter-<coll>.js` and no `collMod`: a collection is declared once, in its final shape.
-**Used in:** `BEs/marketplace-db-setup/migrations/`, `BEs/marketplace-db-setup/CLAUDE.md` §Authoring migrations.
+**Used in:** `BEs/marketplace-db-setup/migrations/`, [`BEs/marketplace-db-setup/CLAUDE.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/CLAUDE.md) §Authoring migrations.
 
 ### Validator
 **Definition:** MongoDB `$jsonSchema` (or `$and: [{$jsonSchema}, {$expr}]` when a cross-field rule is needed, as on `user` and `company`), `strict` + `additionalProperties: false`. Built from `lib/schemas/*.js`, one builder per collection, each returning exactly ONE shape and taking no arguments.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/README.md`, all six `lib/schemas/*.js` files.
+**Used in:** [`BEs/marketplace-db-setup/lib/schemas/README.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/lib/schemas/README.md), all six `lib/schemas/*.js` files.
 
 ### Coverage gate
 **Definition:** 100% required on all four v8 metrics (statements/branches/functions/lines) in every package that ships code — 9 backend services, `marketplace-common`, `marketplace-db-setup`, 3 frontends, `services-status`. Gated four times over: `thresholds` in vitest config, `testCoverageThresholds` in `qodana.yaml`, and a `yarn test:cov` step in both `.githooks/pre-commit` and `.githooks/pre-push`.
-**Used in:** `README.md` §Test quality gates and `docs/testing.md`.
+**Used in:** [`README.md`](../../../README.md) §Test quality gates and [`docs/testing.md`](../../testing.md).
 
 ### Mutation score
 **Definition:** Stryker-measured percentage of mutants a test suite kills, gated at 100 in every package that has a coverage gate. Measures whether a test would FAIL if the code were wrong — coverage only measures whether a line RAN. The two diverge badly: `marketplace-common` scored 45.95% coverage-100%, `marketplace-db-setup` scored 52.92%.
@@ -500,7 +500,7 @@ These five fields on `company` all look like "some official string about the bus
 
 ### Hook
 **Definition:** Git hook under each repo's `.githooks/` dir, wired via `core.hooksPath` (local config, must be set by hand after clone — `git config core.hooksPath .githooks`). `pre-commit` and `pre-push`, both blocking. Every repo except `marketplace-db-setup` also gates lint.
-**Used in:** `docs/workflow.md` §Git hooks, last bullet.
+**Used in:** [`docs/workflow.md`](../../workflow.md) §Git hooks, last bullet.
 
 ---
 
@@ -551,7 +551,7 @@ A domain event is something that happened, always past tense. Grouped by aggrega
 | `item` | Item Added · Add Refused — Company Not Owned · Add Refused — Category Missing · Item Updated · Item Published / Item Unpublished · Item Deleted · Item Published By Admin · Item Unpublished By Admin · Item Deleted By Admin |
 | `company` | Company Registered · Duplicate vatNumber/certifiedEmail/slug Rejected · Company Updated · Company Made Public · Company Retired · Delete Refused — Already Retired (ShopOwner, 403) · Delete Accepted On Already-Retired Company (Admin, 200) |
 
-**Used in:** `docs/devprotocol/phase2/EVENT_STORMING.md` §2.1-§2.6.
+**Used in:** [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) §2.1-§2.6.
 **Not to be confused with:** the command that triggers it — e.g. `companyDel` (command, imperative) vs Company Retired (event, past tense).
 
 ---
@@ -608,7 +608,7 @@ Named here for glossary readiness only. No collection, no migration, no resolver
 | Delivery | NOT BUILT. No collection, no resolver, no design. |
 | Payment | NOT BUILT. No integration, no gateway chosen. |
 
-**Used in:** `CLAUDE.md` §Build state, ⚠️ callout under Customer area row; `EVENT_STORMING.md` §2.9.
+**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Build state, ⚠️ callout under Customer area row; [`EVENT_STORMING.md`](./EVENT_STORMING.md) §2.9.
 **Not to be confused with:** treating any of the four as designed because a term exists for it here — the entry exists so a future agent names it consistently, not so it can be assumed built.
 
 ---
@@ -627,6 +627,6 @@ Every term below is forbidden platform-wide. Reintroducing one — even as a com
 | any identifier, comment, UI string or route that is not English | The platform is English-only, everywhere, with no exception (§1). A second language in one file is a second language in the database the day that file is read. | the English name — this document is the list |
 | "customer" / "admin" / "superadmin" as code identifiers | Business-role words never appear in code — see §2. | `User` / `ShopOwner` / `Admin` |
 
-**Used in:** `CLAUDE.md` §Two naming rules and `docs/data-model.md`.
+**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Two naming rules and [`docs/data-model.md`](../../data-model.md).
 
 ---

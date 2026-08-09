@@ -6,14 +6,14 @@
 **Date:** 2026-08-07
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-**Depends on:** `docs/devprotocol/phase1/PDR.md` ✅ · `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` ✅ · `docs/devprotocol/phase2/BOUNDED_CONTEXT.md` ✅ · `docs/devprotocol/phase3/C4_CONTEXT.md` ✅
+**Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
 
 ---
 
 ## 1. Purpose
 
-Zooms inside the Marketplace box drawn in `docs/devprotocol/phase3/C4_CONTEXT.md`. Every runnable unit on
+Zooms inside the Marketplace box drawn in [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md). Every runnable unit on
 the platform, split on two axes — **tier** (who: public / ShopOwner / Admin / User) × **concern** (what:
 authorization = token lifecycle, resource = domain data) — plus the two data stores, plus the three
 packages that ship code but are never themselves deployed (`marketplace-common`,
@@ -21,7 +21,7 @@ packages that ship code but are never themselves deployed (`marketplace-common`,
 is what the shape of the platform **requires**, backed by real on-disk paths, not a narration of
 incidental code.
 
-Ground truth for every fact below: `CLAUDE.md` and `docs/` at the workspace root, `docs/devprotocol/phase3/adr/`, and
+Ground truth for every fact below: [`CLAUDE.md`](../../../CLAUDE.md) and `docs/` at the workspace root, `docs/devprotocol/phase3/adr/`, and
 per-repo `env` templates read directly this session (`grep -m1 '^PORT=' <repo>/env`).
 
 ---
@@ -195,15 +195,15 @@ monitoring (`services-status`).
 
 | Decision | Choice | ADR |
 |---|---|---|
-| Identity is the collection you authenticate against — no `role` field, no permission enum | `admin`/`shopOwner`/`user` are three separate collections, three separate service pairs | `docs/devprotocol/phase3/adr/ADR-002-role-is-authentication-collection.md` |
-| Every Redis session hash carries `tier`; every service asserts its own via `assertTier`, 403 not 401, missing tier is invalid not a wildcard | `BEs/marketplace-common/src/others/assertTier.mts` | `docs/devprotocol/phase3/adr/ADR-004-per-tier-session-assertion.md` |
-| One logout service for all three authenticated tiers, keyed by token content | `marketplace-dev-authenticated-logout`, port 4030 | `docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md` |
-| Three `*-authenticated-authorization` services share their handler body via `marketplace-common@1.0.0` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | `docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md` — see §7 below |
-| Catalogue is domain-neutral: one `item` + `itemCategory` pair, no per-product-type collection | presumes nothing about what is sold; a new product type must not reintroduce vocabulary that presumes one | `docs/devprotocol/phase3/adr/ADR-008-domain-neutral-catalogue.md` |
-| No `price` field on `item` | Order/Cart/Delivery/Payment are unbuilt, undesigned — a price with nothing to buy is a guess | `docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md` |
-| English-only naming across code, routes, comments, fixtures and migrations | no exception anywhere; the `en-GB` locale and `english` text-index stemming are market choices, not names | `docs/devprotocol/phase3/adr/ADR-013-english-only-naming.md` |
-| Opaque tokens + Redis sessions, not JWT | despite a stale `JWT` type name in some `schema.graphql` slices | no dedicated ADR verified on disk — see `docs/architecture.md` §Auth model and CON-03 in `docs/devprotocol/phase3/CONSTRAINTS.md` |
-| Public routes SSR, `/account/*` `ssr: false` | pairs with a `proxy_cache` bypass on the session cookie — one security mechanism, two halves | no dedicated ADR verified on disk — see `docs/frontends.md` §marketplace-user and CON-10 in `docs/devprotocol/phase3/CONSTRAINTS.md` |
+| Identity is the collection you authenticate against — no `role` field, no permission enum | `admin`/`shopOwner`/`user` are three separate collections, three separate service pairs | [`docs/devprotocol/phase3/adr/ADR-002-role-is-authentication-collection.md`](./adr/ADR-002-role-is-authentication-collection.md) |
+| Every Redis session hash carries `tier`; every service asserts its own via `assertTier`, 403 not 401, missing tier is invalid not a wildcard | `BEs/marketplace-common/src/others/assertTier.mts` | [`docs/devprotocol/phase3/adr/ADR-004-per-tier-session-assertion.md`](./adr/ADR-004-per-tier-session-assertion.md) |
+| One logout service for all three authenticated tiers, keyed by token content | `marketplace-dev-authenticated-logout`, port 4030 | [`docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md`](./adr/ADR-005-single-logout-service-all-tiers.md) |
+| Three `*-authenticated-authorization` services share their handler body via `marketplace-common@1.0.0` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | [`docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`](./adr/ADR-006-authorization-services-share-body-keep-deployables.md) — see §7 below |
+| Catalogue is domain-neutral: one `item` + `itemCategory` pair, no per-product-type collection | presumes nothing about what is sold; a new product type must not reintroduce vocabulary that presumes one | [`docs/devprotocol/phase3/adr/ADR-008-domain-neutral-catalogue.md`](./adr/ADR-008-domain-neutral-catalogue.md) |
+| No `price` field on `item` | Order/Cart/Delivery/Payment are unbuilt, undesigned — a price with nothing to buy is a guess | [`docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md`](./adr/ADR-009-no-price-on-item.md) |
+| English-only naming across code, routes, comments, fixtures and migrations | no exception anywhere; the `en-GB` locale and `english` text-index stemming are market choices, not names | [`docs/devprotocol/phase3/adr/ADR-013-english-only-naming.md`](./adr/ADR-013-english-only-naming.md) |
+| Opaque tokens + Redis sessions, not JWT | despite a stale `JWT` type name in some `schema.graphql` slices | no dedicated ADR verified on disk — see [`docs/architecture.md`](../../architecture.md) §Auth model and CON-03 in [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) |
+| Public routes SSR, `/account/*` `ssr: false` | pairs with a `proxy_cache` bypass on the session cookie — one security mechanism, two halves | no dedicated ADR verified on disk — see [`docs/frontends.md`](../../frontends.md) §marketplace-user and CON-10 in [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) |
 
 ---
 
@@ -297,13 +297,13 @@ rejected (`docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.m
 that proves the rule: everywhere else, tier and concern together select exactly one service.
 
 **Why not merge the three `*-authenticated-authorization` services into one process?** Asked and answered
-2026-08-07, decided against — full argument in `docs/decisions/authorization-service-consolidation.md`
-and `docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`, held as
-CON-06 in `docs/devprotocol/phase3/CONSTRAINTS.md`. This document does not re-argue it, only states the
+2026-08-07, decided against — full argument in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md)
+and [`docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`](./adr/ADR-006-authorization-services-share-body-keep-deployables.md), held as
+CON-06 in [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md). This document does not re-argue it, only states the
 two load-bearing reasons so a reader does not reopen it as an obvious refactor:
 
 - **Dispatching on a tier read out of a session is the exact pattern the platform's identity model
-  rejects for `role`.** `CLAUDE.md` §Terminology: "role = which collection you authenticate against" —
+  rejects for `role`.** [`CLAUDE.md`](../../../CLAUDE.md) §Terminology: "role = which collection you authenticate against" —
   collapsing three tier-scoped processes into one that branches on a session field reintroduces the same
   shape one layer up.
 - **One `process.exit(1)` for three tiers is an availability cost paid by customers**, not by the operator

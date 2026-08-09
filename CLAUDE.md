@@ -12,18 +12,18 @@ Load the file that matches the task. Do not guess from this page alone.
 
 | Topic | File |
 |---|---|
-| bringing the whole platform up from nothing, in order | `SETUP.md` |
-| services, ports, auth model, resolver layout | `docs/architecture.md` |
-| the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | `marketplace-nginx/CLAUDE.md` |
-| collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
-| the three apps + `services-status` | `docs/frontends.md` |
-| vitest layout, integration + mutation traps | `docs/testing.md` |
-| repos, git rules, cloning the workspace, secrets, `.env`, commands | `docs/workflow.md` |
-| lint, formatting, engines, package plumbing | `docs/conventions.md` |
-| GitNexus MCP + CLI | `docs/gitnexus.md` |
-| no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | `docker-DBs/CLAUDE.md` |
-| gate policy — which layer blocks what | `README.md` |
-| **why** any of this is the way it is (29 ADRs) | `docs/devprotocol/phase3/adr/ADR-INDEX.md` |
+| bringing the whole platform up from nothing, in order | [`SETUP.md`](./SETUP.md) |
+| services, ports, auth model, resolver layout | [`docs/architecture.md`](./docs/architecture.md) |
+| the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | [`marketplace-nginx/CLAUDE.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/CLAUDE.md) |
+| collections, validators, indexes, migrations, PII encryption | [`docs/data-model.md`](./docs/data-model.md) |
+| the three apps + `services-status` | [`docs/frontends.md`](./docs/frontends.md) |
+| vitest layout, integration + mutation traps | [`docs/testing.md`](./docs/testing.md) |
+| repos, git rules, cloning the workspace, secrets, `.env`, commands | [`docs/workflow.md`](./docs/workflow.md) |
+| lint, formatting, engines, package plumbing | [`docs/conventions.md`](./docs/conventions.md) |
+| GitNexus MCP + CLI | [`docs/gitnexus.md`](./docs/gitnexus.md) |
+| no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | [`docker-DBs/CLAUDE.md`](./docker-DBs/CLAUDE.md) |
+| gate policy — which layer blocks what | [`README.md`](./README.md) |
+| **why** any of this is the way it is (29 ADRs) | [`docs/devprotocol/phase3/adr/ADR-INDEX.md`](./docs/devprotocol/phase3/adr/ADR-INDEX.md) |
 | traps of one specific repo | that repo's own `CLAUDE.md` |
 
 `git log` answers almost nothing here — history is shallow. The ADR index is the
@@ -62,7 +62,7 @@ same name has to spell identically in a migration, a `$jsonSchema`, a model, a r
 and three frontends, and nothing maps between those layers.
 
 A field whose meaning is not obvious from its English name gets a comment saying exactly what it holds —
-see `docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md` §12 for the five registration fields on `company`,
+see [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md) §12 for the five registration fields on `company`,
 where `legalName` (registered name) and `publicName` (trading name) are the pair worth knowing. The
 `en-GB` locale the frontends format dates with, and the `english` stemming on the two text indexes, are
 market choices rather than names.
@@ -141,7 +141,7 @@ admin, user — outside the chain
   test.
 - **Never read, echo or commit a secret-bearing file** (`.env`, `.npmrc`, `*.pem`, …). `env` and
   `npmrc` without the dot are committed templates and safe. Print key names only:
-  `grep -oE '^[A-Za-z_0-9]+' .env`. See `.claude/SECRETS.md`.
+  `grep -oE '^[A-Za-z_0-9]+' .env`. See [`.claude/SECRETS.md`](./.claude/SECRETS.md).
 - **Migrations are immutable** — never edit an applied one, add a new one. But `$jsonSchema` shapes are
   shared from `marketplace-db-setup/lib/schemas/`, and a change there means rebuilding every database
   that has run these migrations, in the same piece of work.

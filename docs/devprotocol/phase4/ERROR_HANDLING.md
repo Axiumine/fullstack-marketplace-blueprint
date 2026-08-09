@@ -70,7 +70,7 @@ is exactly what happened on 2026-08-07 in both `*-user-authenticated-*` services
 an unrelated database with no `authSource`, `INTROSPECTION_CODE` mismatched the other seven services, and
 `KEYGRIP_KEY_1`/`_2` mismatched the service that signs the cookie this one verifies — none of it tripped
 `checkRequiredEnv`, because every var was non-empty. No test on this platform spans two services (see
-platform `docs/workflow.md` §Environment files), so cross-repo value agreement is unenforced by construction; the fix is
+platform [`docs/workflow.md`](../../workflow.md) §Environment files), so cross-repo value agreement is unenforced by construction; the fix is
 a fingerprint sweep, not a stronger boot check.
 
 | Error | When detected | Message pattern | Action |
@@ -156,7 +156,7 @@ simplify: *the caller authenticated correctly, it simply authenticated somewhere
 client to refresh its way out of something a refresh cannot fix, since the token is valid, just for
 another tier's Redis session.* `REDIS_KEY` stays one shared prefix across all nine services on purpose
 (single logout service, ADR-005), so `assertTier` is the only thing standing between an Admin token and
-the ShopOwner API — see ADR-004 and platform `docs/architecture.md` §Auth model.
+the ShopOwner API — see ADR-004 and platform [`docs/architecture.md`](../../architecture.md) §Auth model.
 
 **3b — Ownership guard.** A resource exists, caller is the right tier, but does not own the specific document.
 
@@ -317,7 +317,7 @@ Absence of a thrown error is not proof a write happened. Any future aggregation-
 pipeline with `new Types.ObjectId(...)` **and** check `modifiedCount`/`matchedCount` before answering
 `true`. Unit tests that mock `User.updateOne` cannot catch either bug — a mock accepts an array happily
 and returns whatever the test hands it; only an integration suite against real Mongo/Mongoose surfaces
-this class (see platform `docs/testing.md` §Traps that make a green run lie, "a vitest project with no matching files passes").
+this class (see platform [`docs/testing.md`](../../testing.md) §Traps that make a green run lie, "a vitest project with no matching files passes").
 
 | Error (non-throwing) | When it would have gone unnoticed | Message pattern | Action |
 |---|---|---|---|
@@ -377,7 +377,7 @@ reminder:
 
 | Must never appear in a response body, log line visible to a client, or Sentry breadcrumb tagged user-facing | Where it would otherwise leak from |
 |---|---|
-| `x-introspectioncode` value | service-to-service bypass header, `authorizationAuthenticatedResourceHandler.mts:31` — must never be echoed, logged, or exposed to a browser client (platform `docs/architecture.md` §Auth model) |
+| `x-introspectioncode` value | service-to-service bypass header, `authorizationAuthenticatedResourceHandler.mts:31` — must never be echoed, logged, or exposed to a browser client (platform [`docs/architecture.md`](../../architecture.md) §Auth model) |
 | `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` | refresh-cookie signing keys; a leaked key lets an attacker forge a session cookie for any tier |
 | Any Mongo connection string / `MONGODB_URI` | `throwMongoDBErrors` deliberately never forwards the driver's own error text for this reason — only `Error reported to Dev Team.` |
 | A raw stack trace | `throwInternalError()`'s description is a fixed string; the real error goes to `Sentry.captureException(e)` only |
@@ -431,7 +431,7 @@ and no step queues a failed write for later replay — see §6.
 
 No structured incident/failure-report file exists on this platform (no `FAILURES.md`, no error-code
 registry, no audit-log table). What functions as the closest thing is the narrative record kept in each
-repo's `CLAUDE.md` and in `phase4/CONSTRAINTS.md`'s DCON entries — prose plus exact error text plus
+repo's [`CLAUDE.md`](../../../CLAUDE.md) and in `phase4/CONSTRAINTS.md`'s DCON entries — prose plus exact error text plus
 file:line, written after the fact once a bug is understood. This document adopts that same shape for any
 future entry, since introducing a separate machine-readable format now would create a second source of
 truth nothing reads:
@@ -518,4 +518,4 @@ them (`phase4/CONSTRAINTS.md` §6).
 | 2 | Mail-provider (SocketLabs) send failure on verify-email flows was not traced to a specific throw site in this pass — confirm it surfaces as a typed error rather than an unhandled promise rejection. | backend leads | open |
 | 3 | No idempotency-key mechanism exists anywhere; a network-timeout retry on any mutation can double-execute it. Not urgent while cart/order/payment are unbuilt, but the gap should be named before those tiers are designed. | whoever owns the ordering tier next | open, tracked against `phase4/CONSTRAINTS.md` §6 out-of-scope list |
 | 4 | `marketplace-shopowner` and `marketplace-admin`'s own `src/api/errors.ts`-equivalent files were not read in this pass — only `marketplace-user`'s was verified. Confirm the other two frontends share the identical `statusOf`/`messageOf`/`isSessionGone` shape rather than a drifted copy. | frontend leads | open |
-| 5 | Whether `login`/`loginAdmin` (the two non-rate-limited login resolvers) preserve the same generic-error discipline as `loginUser` was not independently re-verified in this pass — `docs/architecture.md` §Auth model implies they share `checkUserAuthorizationDisDel` and should, but the resolver files themselves were not read. | backend leads | open |
+| 5 | Whether `login`/`loginAdmin` (the two non-rate-limited login resolvers) preserve the same generic-error discipline as `loginUser` was not independently re-verified in this pass — [`docs/architecture.md`](../../architecture.md) §Auth model implies they share `checkUserAuthorizationDisDel` and should, but the resolver files themselves were not read. | backend leads | open |

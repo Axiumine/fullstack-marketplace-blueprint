@@ -4,14 +4,13 @@ The local MongoDB replica set (`rs0` — `mdb1` 27017 / `mdb2` 27018 / `mdb3` 27
 Redis the nine services keep their sessions in. Not a repo of its own — a tracked directory of the
 parent workspace, so a change here commits under the parent's rules.
 
-**Read parent first** — `../CLAUDE.md`
-(<https://github.com/Axiumine/fullstack-marketplace-blueprint> if you are reading this on GitHub).
+**Read parent first** — [`../CLAUDE.md`](../CLAUDE.md)
 
 | Need | File |
 |---|---|
-| how a human runs any of it, `.env` wiring per repo, troubleshooting table | `README.md` |
-| the order the whole platform boots in | `README.md` §Running the whole platform |
-| why the master key is one file for every repo | `docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md` |
+| how a human runs any of it, `.env` wiring per repo, troubleshooting table | [`README.md`](./README.md) |
+| the order the whole platform boots in | [`README.md`](./README.md) §Running the whole platform |
+| why the master key is one file for every repo | [`docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md`](../docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) |
 
 Scripts: `./up.sh [--with-redis]` · `./shell.sh [root\|dev\|owner]` · `./down.sh [--purge]`.
 `up.sh` is idempotent — it mints the keys once, initiates `rs0` once and checks every user before
@@ -44,7 +43,7 @@ empty. Rename only with a purge planned, or move the volumes by hand first.
   every operation. That symptom is almost always this cause.
 - **Each account is scoped to one database and authenticates against it** — `authSource` is never
   `admin`. `MONGO_TEST_AUTH_ADMIN` equal to `admin` is the bug behind `Authentication failed` in a
-  suite, and the per-repo test database names are the table in `README.md` §Wiring the repos.
+  suite, and the per-repo test database names are the table in [`README.md`](./README.md) §Wiring the repos.
 - **One value, one line in any `.env`.** dotenv truncates at the newline even inside quotes and
   reads the tail as its own variable; the parent `.githooks/pre-commit` check 0 blocks that shape.
 - **Dev only, by design.** Ports bind `127.0.0.1`, there is no TLS and only a `Dev` environment

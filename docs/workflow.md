@@ -101,7 +101,7 @@ directory basename. Verified 2026-08-09: **all sixteen repositories exist, all s
 sixteen are empty.** No branch in any of them has an upstream, and **nothing has ever been pushed.**
 
 ⚠️ **Public, and empty is the only reason that is currently safe.** Every one of these becomes
-world-readable the moment it is pushed to, so `docs/workflow.md` §*Scan history for secrets before the
+world-readable the moment it is pushed to, so [`docs/workflow.md`](./workflow.md) §*Scan history for secrets before the
 first push of any new repo* below is not a formality — it is the last gate before sixteen histories are
 public. A filename check is not enough; scan every blob.
 
@@ -181,7 +181,7 @@ nothing about it.
   derives from `UNLICENSED`), so the rule holds whichever way the metadata is read. `allowed` is a
   separate list — dependency licences — and is not what breaks here.
 
-Gate policy in full: `README.md`, *Test quality gates*.
+Gate policy in full: [`README.md`](../README.md), *Test quality gates*.
 
 ## Secrets
 
@@ -197,7 +197,7 @@ Anything printed to a terminal here is sent to the model API **and** written in 
 - Protected values include `KEYGRIP_KEY_1/2`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`,
   `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY` and any npm token.
 
-Enforced, not just documented — see `.claude/SECRETS.md` for the three layers (`permissions.deny`, the
+Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.md) for the three layers (`permissions.deny`, the
 `no-secret-leak` PreToolUse hook, and a `pre-commit` guard in every repo).
 
 ## Environment files
@@ -245,7 +245,7 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
 
 - **Which services need `KEYGRIP_KEY_*`:** the four `*-authorization` services and
   `marketplace-dev-authenticated-logout` — 5 of 9. The four `*-resource` services sign no cookie and
-  must not carry the keys; per-service table in `docs/devprotocol/phase3/INFRA.md` §7.
+  must not carry the keys; per-service table in [`docs/devprotocol/phase3/INFRA.md`](./devprotocol/phase3/INFRA.md) §7.
 - `checkRequiredEnv` is `if (!env[envVar])`, so an empty value fails exactly like a missing one — that
   is the only class of these the code catches. Audit by parsing each service's `REQUIRED_ENV_VARS` out
   of `src/index.mts`, then checking that repo's local config for absent-or-empty.
@@ -259,7 +259,7 @@ because coverage is a pre-commit gate. The platform's own cluster is external an
 with a clone, and neither does `marketplace-db-setup/setup/mongodb.js`, the gitignored runbook that
 provisions its users. `docker-DBs/` is the stand-in: `cp env .env && ./up.sh` brings up a
 three-node `rs0` with every account the backend services expect, an optional Redis, and a CSFLE master
-key. Its `README.md` also carries the boot order for the whole platform and the per-repo
+key. Its [`README.md`](../README.md) also carries the boot order for the whole platform and the per-repo
 `MONGO_TEST_DB` table.
 
 ```bash

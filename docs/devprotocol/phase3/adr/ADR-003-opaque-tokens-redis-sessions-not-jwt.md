@@ -12,7 +12,7 @@
 ## Context
 
 Platform needs auth for 3 tiers (`Admin`, `ShopOwner`, `User`), each own collection, own service pair
-(authorization + resource), per `CLAUDE.md` §Terminology. No `role` field, no permission enum anywhere —
+(authorization + resource), per [`CLAUDE.md`](../../../../CLAUDE.md) §Terminology. No `role` field, no permission enum anywhere —
 role = which collection session authenticated against (CON-01, `phase3/CONSTRAINTS.md`).
 
 Two token halves already fixed by the time this ADR records them: refresh token in Koa signed httpOnly
@@ -32,7 +32,7 @@ Forces:
 - Immediate logout matters — `marketplace-dev-authenticated-logout` exists as its own service; whatever
   the token is, revoking it before natural expiry cannot require a second piece of infrastructure bolted
   on afterward.
-- `schema.graphql` slices (hand-maintained, not authoritative — `docs/frontends.md` §marketplace-admin and marketplace-shopowner) still name
+- `schema.graphql` slices (hand-maintained, not authoritative — [`docs/frontends.md`](../../../frontends.md) §marketplace-admin and marketplace-shopowner) still name
   a `JWT` type in places. `phase2/UBIQUITOUS_LANGUAGE.md:105,633` records this explicitly as a stale name,
   not a design statement — resolvers are the source of truth, not the SDL slice.
 
@@ -117,5 +117,5 @@ resource service, none with the check commented out or replaced by a truthy chec
 
 Violation looks like: a resource service reading `redisClient.hGetAll` and setting `ctx.state.user` on
 any non-empty result without an `assertTier` call in between (the exact shape ADR-004 exists to prevent,
-per `docs/architecture.md` §Auth model) — or a new mutation/service that mints or verifies a `jsonwebtoken`/`jose`
+per [`docs/architecture.md`](../../../architecture.md) §Auth model) — or a new mutation/service that mints or verifies a `jsonwebtoken`/`jose`
 signed token instead of writing/reading a Redis hash under `REDIS_KEY`.

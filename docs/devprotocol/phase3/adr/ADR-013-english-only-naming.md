@@ -51,7 +51,7 @@ Forces:
 **English everywhere, with no carve-out.** There is no field, no comment, no fixture and no locale
 argument that licenses a second language into an identifier. Scope of the rule is everything:
 collection names, field names, identifiers, function names, routes, UI text, comments, test fixtures,
-migration files and docs. `docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md` is the list of the names;
+migration files and docs. [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](../../phase2/UBIQUITOUS_LANGUAGE.md) is the list of the names;
 §19 Banned Terms states the rule as a ban rather than a preference.
 
 Option 2 was rejected on where it puts the exception, not on how large it is. The fields it would carve
@@ -96,7 +96,7 @@ same way the resolver, the GraphQL field and the frontend do, because there was 
 - Some names are less precise than their Italian originals and rely on a comment to close the gap —
   `taxCode` and `vatNumber` say what they are, not which national register they come from.
 - The rule has to be restated to every contributor, because the pull toward the local domain word is
-  real and does not go away; it is stated in `CLAUDE.md`, here, and in `UBIQUITOUS_LANGUAGE.md` §19.
+  real and does not go away; it is stated in [`CLAUDE.md`](../../../../CLAUDE.md), here, and in `UBIQUITOUS_LANGUAGE.md` §19.
 
 ### Risks
 - **Risk: a contributor introduces a non-English identifier because a domain word "has no good English
@@ -123,7 +123,7 @@ Verify the database side specifically: every file under `BEs/marketplace-db-setu
 `BEs/marketplace-db-setup/lib/schemas/` reads as English, keys included. That is where a second language
 is most expensive, because a collection is created once and its name is what every other layer spells.
 
-Verify the rule is stated as a ban, not as a preference: `docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`
+Verify the rule is stated as a ban, not as a preference: [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](../../phase2/UBIQUITOUS_LANGUAGE.md)
 §19 must carry the non-English-identifier row. Removing it, or replacing it with a list of allowed
 exceptions, is a violation of this decision rather than a clarification of it.
 
