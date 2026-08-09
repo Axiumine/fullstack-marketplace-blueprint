@@ -1,0 +1,72 @@
+# A three-node MongoDB replica set for local development, plus an optional Redis.
+#
+# Member hostnames are db1/db2/db3 and each node listens on its OWN port. That is not decoration:
+# a replica set advertises its members by the host:port written into its config, and the driver
+# dials those, not the address you handed it. With all three on 27017 the host could not tell them
+# apart through 127.0.0.1, so the second and third members would be unreachable from outside Docker
+# and every read with a non-primary preference would hang. Distinct ports let one /etc/hosts line
+# per name resolve correctly on both sides of the network boundary — see README.md §Prerequisites.
+
+name: marketplace-mongo
+
+x-mongod: &mongod
+  image: marketplace-mongo:${MONGO_TAG:-8.0}
+  build:
+    context: .
+    args:
+      MONGO_TAG: ${MONGO_TAG:-8.0}
+  restart: unless-stopped
+  networks: [rs0]
+
+services:
+  db1:
+    <<: *mongod
+    container_name: marketplace-db1
+    command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27017']
+    ports: ['127.0.0.1:27017:27017']
+    volumes: [db1:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --port, '27017', --eval, "db.adminCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  db2:
+    <<: *mongod
+    container_name: marketplace-db2
+    command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27018']
+    ports: ['127.0.0.1:27018:27018']
+    volumes: [db2:/data/db]
+
+  db3:
+    <<: *mongod
+    container_name: marketplace-db3
+    command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27019']
+    ports: ['127.0.0.1:27019:27019']
+    volumes: [db3:/data/db]
+
+  # Opt-in: `./up.sh --with-redis`. The nine services keep their sessions here, so the platform does
+  # not boot without one — but a dev who already has a Redis wants this container to stay down.
+  redis:
+    image: redis:${REDIS_TAG:-7.4-alpine}
+    container_name: marketplace-redis
+    profiles: [redis]
+    restart: unless-stopped
+    # Interpolation happens for the whole file whether or not the profile is active, so this cannot
+    # use `:?` — that would break a plain `./up.sh` on a .env with no Redis password. up.sh checks it
+    # instead, and only when --with-redis was asked for.
+    command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:-unset}']
+    ports: ['127.0.0.1:6379:6379']
+    volumes: [redis:/data]
+    networks: [rs0]
+
+networks:
+  rs0:
+    name: marketplace-rs0
+
+volumes:
+  db1:
+  db2:
+  db3:
+  redis:
