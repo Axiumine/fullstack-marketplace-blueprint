@@ -109,8 +109,8 @@ text, so no gate on the platform would ever flag this. No ADR discusses or excus
 already resolves http-vs-https per request via `req.protocol` / `isRequestEncrypted`, so this does not
 require knowing the deployment topology in advance and does not need to wait for the topology ADR.
 
-⚠️ **This code lives in `@axiumine/koa-utils` — the sixteenth repo, outside this workspace.** It is not
-fixable from any of the fifteen repos here, and `koa-utils` is not bridged by `deploy-local.sh` the way
+⚠️ **This code lives in `@axiumine/koa-utils` — the seventeenth repo, outside this workspace.** It is not
+fixable from any of the sixteen repos here, and `koa-utils` is not bridged by `deploy-local.sh` the way
 `marketplace-common` is (`phase3/SECURITY_AUTH.md` §7). Sequencing that edit is part of the work.
 
 ---

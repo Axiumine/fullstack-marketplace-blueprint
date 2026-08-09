@@ -6,16 +6,19 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
+**Amended:** 2026-08-09 — `marketplace-nginx` was extracted from the parent, making fifteen sub-repos. The
+decision is unchanged; §Options and §Decision below say "a fifteenth repo" because that is what splitting
+`services-status` out would have made on 2026-08-07 — today it would be the seventeenth.
 
 ---
 
 ## Context
 
 `services-status` (realtime monitor + control panel for the platform's systemd user units, see
-`services-status/package.json` `description`) is not one of the fourteen sub-repos under `BEs/`,
-`marketplace-admin/`, `marketplace-shopowner/`, `marketplace-user/`. It is a plain subdirectory tracked by
-the **parent** workspace repo (`fullstack-marketplace-blueprint`), the same repo that also holds `CLAUDE.md`
-and `.claude/`.
+`services-status/package.json` `description`) is not one of the fifteen sub-repos under
+`BEs/`, `marketplace-admin/`, `marketplace-nginx/`, `marketplace-shopowner/`, `marketplace-user/`. It is a
+plain subdirectory tracked by the **parent** workspace repo (`fullstack-marketplace-blueprint`), the same
+repo that also holds `CLAUDE.md` and `.claude/`.
 
 Every other package on the platform lives in its own git repo and carries its own `.githooks/pre-commit` /
 `pre-push`, so its gates fire on its own commits (`docs/workflow.md` §Git hooks, "Qodana runs in

@@ -1,7 +1,8 @@
 # GitNexus — code intelligence
 
-**Polyrepo setup: 14 independent indexes, not one.** Each sub-repo is indexed on its own and tied
-together by the group **`marketplace-platform`**.
+**Polyrepo setup: 14 independent indexes, not one.** Each sub-repo that ships code is indexed on its own
+and tied together by the group **`marketplace-platform`**. `marketplace-nginx` — nginx config and shell
+tests, no code — has no index and is not in the group.
 
 ⚠️ **`repo:` is mandatory on every MCP call.** Use the registry name, not the group path:
 `impact({target: 'loginAdmin', repo: 'marketplace-dev-public-authorization'})`.

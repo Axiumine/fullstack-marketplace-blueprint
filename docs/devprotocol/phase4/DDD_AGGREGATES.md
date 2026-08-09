@@ -385,7 +385,7 @@ Four commerce concepts are named in `phase2/BOUNDED_CONTEXT.md` BC-11 ("Ordering
 
 | Planned aggregate | Why it has no shape yet | What would need to exist first |
 |---|---|---|
-| **Cart** | No collection, no migration, no resolver anywhere on the 15-repo tree | An ADR deciding cart lifecycle (session-bound vs account-bound), and a decision on whether `item` needs a price field at all before a cart line item can mean anything (ADR-009 blocks this) |
+| **Cart** | No collection, no migration, no resolver anywhere on the 16-repo tree | An ADR deciding cart lifecycle (session-bound vs account-bound), and a decision on whether `item` needs a price field at all before a cart line item can mean anything (ADR-009 blocks this) |
 | **Order** | No collection, no state machine, no resolver, no ERD node | An ADR for the state machine itself — order status transitions, who can trigger which, is genuinely new design with no existing pattern on this platform to copy (`CLAUDE.md` §Build state: "ask before inventing them") |
 | **Delivery** | No collection, no resolver, no design exists for this concept | An ADR on fulfilment ownership — `BOUNDED_CONTEXT.md` §4 names `company` as the eventual fulfilment owner once this exists, but nothing today models a delivery zone, cost, or method |
 | **Payment** | No gateway, no integration, no error taxonomy for payment failure modes | An ADR on the payment provider and on how a payment failure surfaces through the (also undesigned) order state machine |

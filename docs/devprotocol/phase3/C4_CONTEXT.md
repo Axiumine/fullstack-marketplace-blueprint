@@ -13,7 +13,7 @@
 
 ## 1. Purpose
 
-One system, one box: Marketplace — multi-tenant marketplace platform, 15-repo polyrepo, ground truth is
+One system, one box: Marketplace — multi-tenant marketplace platform, 16-repo polyrepo, ground truth is
 `CLAUDE.md` plus `docs/` at the workspace root. This document draws the box and everything around it: human actors,
 external systems, what crosses the boundary. Detail on each interface contract already lives in
 `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §5 — this document references it and stays consistent with
@@ -84,7 +84,7 @@ graph TB
 | User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything — no cart or order model exists |
 | ShopOwner | shop owner, `shopOwner` collection | registers via `marketplace-shopowner`, waits on `waitApprov` from an Admin, manages own `company` document(s) and `item` catalogue |
 | Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
-| Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 15 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
+| Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 
 Full contract detail: `docs/devprotocol/phase1/SYSTEM_CONTEXT.md` §3.1. No `role` field anywhere on the
 platform — actor identity = which MongoDB collection the session authenticated against (`CLAUDE.md`

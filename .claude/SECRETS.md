@@ -42,7 +42,7 @@ in the hook itself denies rather than waves the call through. 41 cases in
 `bash leak.sh`, where `leak.sh` contains `cat .env`, is not caught. Only output-side redaction would
 close that, and no such hook point exists — so treat it as a real gap rather than a solved problem.
 
-## 3. `pre-commit` guard — installed in all 15 repos
+## 3. `pre-commit` guard — installed in 15 of the 16 repos
 
 Blocks a commit when a staged **path** looks like a secret file, or when staged **added lines** contain a
 high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----BEGIN … PRIVATE KEY-----`,
@@ -61,7 +61,7 @@ prevent it** — every one of those ten values was correctly quoted — which is
 another line in the conventions. It reports file, line number and key name; **never a value**. A
 deliberate multi-line value would trip it; none exists here, and `--no-verify` is the escape hatch.
 
-Patterns were tuned against the whole tracked corpus of the 11 repos of that baseline (15 today, and the
+Patterns were tuned against the whole tracked corpus of the 11 repos of that baseline (16 today, and the
 patterns have not been re-tuned since) so the committed `env` and `npmrc`
 placeholder templates pass — a guard that cries wolf gets disabled. Vendored scanner rulesets
 (`semgrep/vendor/`) are skipped. Escape hatch: `git commit --no-verify`.
@@ -76,10 +76,14 @@ a secret embedded in a URI, an object literal, or any longer expression. Verifie
 corpus of that same 11-repo baseline: the only lines whose verdict changes are the two `vitest.config.mts` fixtures;
 the live-looking credentials in `marketplace-db-setup/setup/mongodb.js` still block.
 
-Tracked at `.githooks/pre-commit` in **all 15 repos** (counted 2026-08-09: 15 repos, 15 hook files, 15
+Tracked at `.githooks/pre-commit` in **15 of the 16 repos** (counted 2026-08-09: 15 hook files, 15
 carrying check 0), each setting `core.hooksPath=.githooks`. The 14 repos that have a `package.json` set
 it from their `prepare` script, so installing dependencies arms the guard and a fresh clone is protected
 without anyone remembering to install it by hand.
+
+⚠️ **`marketplace-nginx` is the sixteenth and has no hook at all** — no `package.json`, no `.githooks/`,
+so no guard runs on a commit there. It holds nginx config and shell tests and no credential today; a
+secret added to it is caught by nothing.
 
 ⚠️ This parent workspace has no `package.json`, so nothing runs `prepare` here. The hook file is tracked
 and travels with the clone, but after cloning the parent you must arm it once by hand:
@@ -112,7 +116,8 @@ must stay that way: change one, copy that head to the other four.
 - The parent workspace `.gitignore` — was the one repo of the eleven that did **not** ignore `.env`.
   Fixed. All ten sub-repos already did.
 
-Verified 2026-08-09 across all 15 repos, by listing tracked paths and every path ever added in any
+Verified 2026-08-09 across the 15 repos that existed then — `marketplace-nginx` was still a directory of
+this one — by listing tracked paths and every path ever added in any
 commit on any ref — **0 hits in both**. No `.env` is tracked anywhere, and none appears in any history.
 
 ## Not fixed here

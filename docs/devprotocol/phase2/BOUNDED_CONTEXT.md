@@ -13,7 +13,7 @@
 
 ## 1. Purpose
 
-Draws boundaries between sub-domains of Marketplace, a 15-repo polyrepo (`CLAUDE.md`). Each bounded context owns its own data and language; no context reaches into another's internals except through the integration patterns named in §4. Terms used below are canonical per `UBIQUITOUS_LANGUAGE.md` - no synonym, no re-translation.
+Draws boundaries between sub-domains of Marketplace, a 16-repo polyrepo (`CLAUDE.md`). Each bounded context owns its own data and language; no context reaches into another's internals except through the integration patterns named in §4. Terms used below are canonical per `UBIQUITOUS_LANGUAGE.md` - no synonym, no re-translation.
 
 Boundary enforcement note, load-bearing for every entry below: on this platform "tier" (`Admin` / `ShopOwner` / `User`) is a collection plus a dedicated service pair, never a role flag (`UBIQUITOUS_LANGUAGE.md` §3-4, `CLAUDE.md` §Terminology - "There is no `role` field and no permission enum anywhere"). That makes the three identity contexts enforced **by construction**: separate MongoDB collections (`admin`/`shopOwner`/`user`), separate git repos, separate ports, a `tier` value stamped into the Redis session and asserted on every call (`assertTier`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`). Not every boundary below gets that guarantee. Two do not, and are flagged where they occur: the split between Identity & Access and Shop Owner Onboarding & Approval (both write different sub-documents of the same `shopOwner` collection, from two different services, with no schema-level partition) and the split between Identity & Access and Customer Account & Addresses (same story, one `user` collection, one resource service, two conceptual owners of different sub-documents). Those are conventions this document records, not walls MongoDB enforces.
 
@@ -159,7 +159,7 @@ SSR half of `marketplace-user` is the one deliberate loopback-only bind on the p
 
 ### BC-09 - Platform Operations & Quality Gates
 **Responsibility:** Keeps every other context honest at commit/push time - coverage, mutation score, lint, Qodana, and the migration pipeline that changes the shape every context above builds on.
-**Owns:** `BEs/marketplace-db-setup/migrations/` (immutable once applied) and `lib/schemas/*.js` (the actual builders, restated by every migration that touches a collection), `.githooks/pre-commit` + `.githooks/pre-push` in all 15 repos, each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`, `services-status` (`services-status/src/server.ts`, `services-status/src/systemd.ts`, `services-status/src/monitor.ts` - the odd one out: tracked by the parent repo, no repo of its own, gated from the parent's own hooks rather than its own).
+**Owns:** `BEs/marketplace-db-setup/migrations/` (immutable once applied) and `lib/schemas/*.js` (the actual builders, restated by every migration that touches a collection), `.githooks/pre-commit` + `.githooks/pre-push` in the 15 gated repos, each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`, `services-status` (`services-status/src/server.ts`, `services-status/src/systemd.ts`, `services-status/src/monitor.ts` - the odd one out: tracked by the parent repo, no repo of its own, gated from the parent's own hooks rather than its own).
 **Produces:** pass/fail gate signals (coverage, mutation, lint, Qodana), migration `up`/`down` pairs, service-liveness probes.
 **Consumes:** nothing from the domain contexts above except their source trees to scan and their test suites to run.
 **Does not own:** any domain collection's runtime data - it owns the *shape* (via migrations) and the *proof of correctness* (via gates), never a live document.
@@ -187,7 +187,7 @@ reaching Qodana -> exited non-zero with no results directory -> both hooks repor
 
 ### BC-11 - Ordering & Fulfilment [PLANNED - NOT BUILT]
 **Responsibility:** Would own cart, order, delivery and payment - the commerce flow a customer needs to actually buy an `item`. Named here for glossary and boundary readiness only.
-**Owns:** nothing. No collection, no migration, no model, no resolver, no schema builder exists anywhere in the 15 repos (`EVENT_STORMING.md` §2.9, verified: no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching `cart`/`order`/`payment`/`delivery`).
+**Owns:** nothing. No collection, no migration, no model, no resolver, no schema builder exists anywhere in the 16 repos (`EVENT_STORMING.md` §2.9, verified: no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching `cart`/`order`/`payment`/`delivery`).
 **Produces:** nothing real. Hypothetical, unimplemented events named for vocabulary readiness: Cart Item Added, Order Placed, Payment Authorised, Delivery Dispatched - none exists in code.
 **Consumes:** would need BC-05's `item` (still with no price - `BEs/marketplace-db-setup/lib/schemas/item.js:12-17` states a price "would be a guess at a design decision nobody has made"), BC-07's `addresses` for delivery, BC-04's `company` for fulfilment ownership.
 **Does not own:** anything yet. **Ask before inventing any part of this** (`CLAUDE.md` §Build state) - designing it requires operator sign-off, not an agent's inference from the shape of the other ten contexts.

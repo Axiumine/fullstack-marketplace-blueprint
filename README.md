@@ -124,9 +124,12 @@ Verified present in all seven services on 2026-07-26: `thresholds` in every `vit
 every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
 gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
 
-### Where the gates fire — push and commit, in all fifteen
+### Where the gates fire — push and commit, in all fifteen gated repos
 
-Every repo gates on **both**. `.githooks/pre-commit` runs the secret guard — which since 2026-08-09
+Fifteen of the sixteen repos gate on **both**. `marketplace-nginx` is the exception and has no hooks at
+all — nginx config and shell tests, no `package.json`, nothing for a hook to run.
+
+`.githooks/pre-commit` runs the secret guard — which since 2026-08-09
 opens with **check 0**, the only check on the platform that reads the *working tree* rather than the
 staged index: it blocks when a repo's `.env` or `env` holds a value broken across two physical lines,
 the failure that silently truncated all ten `KEYGRIP_KEY_*` values that day (`.claude/SECRETS.md` §3,
@@ -154,9 +157,9 @@ can tell two migrations apart when they leave the same database behind. Baseline
 coverage; it is 100 now, over 848 mutants. The replay suite is still push-only in spirit — it needs the
 database up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
 
-**The fifteenth is this workspace itself, and it gates `services-status`.** The parent dir is a git repo
-like the other fourteen, but it is the only one that is not a package: it has no `package.json`, and until
-2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `services-status` — a
+**The fifteenth gated repo is this workspace itself, and it gates `services-status`.** The parent dir is
+a git repo like the other fourteen, but it is the only gated one that is not a package: it has no
+`package.json`, and until 2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `services-status` — a
 subdirectory here rather than a repo of its own — carrying a `qodana.yaml`, a `stryker.config.mjs` and a
 100% coverage threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the
 appearance of a gated project. Both parent hooks now close it:
@@ -184,8 +187,9 @@ verdict `marketplace-db-setup` reached, one repo over.
 prints the fixing command and exits 1, exactly as designed, so a commit here needs `SKIP_QODANA=1` until
 the user creates one (the placeholder key is in `services-status/env`). And this repo has **no
 `package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
-fourteen sub-repos restore that setting on every `yarn install`, and this one restores it never. After a
-fresh clone of this directory, run the line by hand or all three gates and the secret guard are simply off.
+fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one restores
+it never. After a fresh clone of this directory, run the line by hand or all three gates and the secret
+guard are simply off.
 
 Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
 linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict
@@ -277,9 +281,11 @@ histories interleave and neither is trustworthy. That happened here: `marketplac
 empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
 and confirm the id is that repo's own — one project per repo, one distinct id each.
 
-Every sub-repo carries a `qodana.yaml` — all fourteen — and so does `services-status`, scanned by this
-workspace's hooks rather than by one of its own. "All repos are gated" means what it says. Keep it true: a
-new repo without a config is silently outside every layer described above.
+Every sub-repo that ships code carries a `qodana.yaml` — all fourteen — and so does `services-status`,
+scanned by this workspace's hooks rather than by one of its own. The fifteenth sub-repo,
+`marketplace-nginx`, ships no code, has no config and is gated by nothing; its `test/suite.sh` runs when
+someone runs it. **Every repo that ships code is gated, and that is the invariant to keep.** A new code
+repo without a config is silently outside every layer described above.
 
 ⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
 missing `QODANA_TOKEN` rather than passing: `services-status`, `marketplace-user` and the two

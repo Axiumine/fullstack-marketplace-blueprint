@@ -35,7 +35,7 @@ with this index.
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [E06.md](epics/E06.md) |
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [E07.md](epics/E07.md) |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [E08.md](epics/E08.md) |
-| E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 15 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
+| E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 15 gated repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | Not built - no collection, no resolver, no design | none | [E11.md](epics/E11.md) |
 

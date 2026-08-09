@@ -119,7 +119,7 @@ graph TB
   binds `::` (every interface) on all 9 services. `marketplace-user/serve.mjs` is the one deliberate
   exception (see `serve.mjs:1-7,36,47` — binds `127.0.0.1`, has no auth of its own).
 - Nothing here is a container. No `Dockerfile`, no `docker-compose.yml`, no k8s manifest found anywhere
-  under the 15 repos — services run as bare `node`/`tsx` processes, per each `package.json` `dev`/`start`
+  under the 16 repos — services run as bare `node`/`tsx` processes, per each `package.json` `dev`/`start`
   script (§5).
 - MongoDB and Redis are **external to every repo** — no repo starts them, no repo embeds them. Their
   reachability is entirely a `.env` matter (§7 for the test-DB variant of this rule).
@@ -427,7 +427,7 @@ Two layers exist. Nothing else is wired.
   `(config.port, config.host)` from its own config, not a hardcoded literal —
   `services-status/src/server.ts:710`.
 
-**Not present anywhere in the 15 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
+**Not present anywhere in the 16 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
 log aggregator (each vhost's `access_log`/`error_log` write to local files under
 `/var/log/nginx/`, one pair per hostname — `marketplace-nginx/sites-available/marketplace-domain.com.conf:74-75`
 and the same lines in the two panel vhosts — with no shipping config — `SYSTEM_CONTEXT.md` §6), and distributed tracing beyond whatever Sentry's own SDK samples. Do not describe
@@ -439,19 +439,21 @@ any of these as built.
 
 **There is none.** State this plainly rather than implying a pipeline exists somewhere unseen.
 
-No forge (no GitHub Actions, no GitLab CI, no Jenkins config) is configured across the 15 repos — no
+No forge (no GitHub Actions, no GitLab CI, no Jenkins config) is configured across the 16 repos — no
 CI/CD pipeline exists today, per `docs/workflow.md` §Repo layout and re-stated in `PDR.md` §6 Constraints.
 
 The entire delivery/quality-gate mechanism is **local git hooks**, wired via `core.hooksPath` to
 `.githooks/` in each repo:
 
 - `.githooks/pre-commit` — lint, `tsc`, coverage (scoped to staged paths in some repos).
-- `.githooks/pre-push` — `lint:check` → `test:cov` → `test:mutation` → Qodana, in that order, in all 14
-  sub-repos (`docs/workflow.md` §Git hooks).
+- `.githooks/pre-push` — `lint:check` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14
+  sub-repos that ship code (`docs/workflow.md` §Git hooks). `marketplace-nginx`, the fifteenth, has no
+  hooks at all.
 
-`core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos self-arms it via a
-`"prepare": "git config core.hooksPath .githooks || true"` script that `yarn install` runs. **The parent
-workspace has no `package.json`**, so nothing re-arms it here after a fresh clone; it must be set by hand
+`core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos that is a package
+self-arms it via a `"prepare": "git config core.hooksPath .githooks || true"` script that `yarn install`
+runs. **The parent workspace has no `package.json`**, so nothing re-arms it here after a fresh clone; it
+must be set by hand
 (`git config core.hooksPath .githooks`).
 
 This is an open question, not a gap this document closes — `PDR.md` §8 Open questions and `NFR.md` §4
@@ -463,11 +465,13 @@ explicitly out of scope for Phase 3 — the user's undecided call.
 
 ## 11. nginx — the whole edge, written and container-tested, installed nowhere
 
-The edge lives in `marketplace-nginx/` at the **workspace root**, not inside any repo: `conf.d/` (hardening,
-upstreams, rate limits, cache, TLS), `snippets/` (the shared proxy body and two header policies), and one
-vhost per hostname in `sites-available/` — `marketplace-domain.com`, `shopowner.`, `admin.`. It
-terminates TLS for all three, proxies eleven loopback upstreams, serves both SPAs and the SSR app's
-static output off disk, and rewrites both session cookies to `Secure`. `marketplace-nginx/README.md` is the operator
+The edge lives in `marketplace-nginx/` at the **workspace root** — its own git repo since 2026-08-09,
+remote `Axiumine/marketplace-nginx`, with no `package.json` and therefore no hooks and no gates:
+`conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the shared proxy body and two
+header policies), and one vhost per hostname in `sites-available/` — `marketplace-domain.com`,
+`shopowner.`, `admin.`. It terminates TLS for all three, proxies eleven loopback upstreams, serves both
+SPAs and the SSR app's static output off disk, and rewrites both session cookies to `Secure`.
+`marketplace-nginx/README.md` is the operator
 document; the four customer-only files this section used to cite,
 `marketplace-user/docs/nginx/*.conf`, are deleted.
 
@@ -525,7 +529,7 @@ every request in Topology A (§2) reaches a service directly on its own port.
 |---|---|---|
 | Linux | Primary, verified | This session's environment (`Linux 6.12.100+deb13-amd64`); `dev.sh`'s `sudo mount --bind` and `/var/ram/*` tmpfs path are Linux-specific mechanisms — no macOS/Windows equivalent exists in any repo |
 | macOS | Unverified, likely partial | Node/yarn/nvm tooling is portable, but `dev.sh` (§6) will not run as-is — no `/var/ram` tmpfs equivalent, no `mount --bind` semantics match |
-| Windows (native) | Unsupported | No `.ps1`/`.cmd`/`.bat` script anywhere in the 15 repos; `dev.sh` is bash-only |
+| Windows (native) | Unsupported | No `.ps1`/`.cmd`/`.bat` script anywhere in the 16 repos; `dev.sh` is bash-only |
 | Windows (WSL2) | Plausible, unverified | Would inherit Linux semantics inside the WSL2 VM, but nothing in this tree documents or tests it |
 
 `NFR-PO01`–`PO05` (`NFR.md` §2.5 Portability) govern Node version and module-system portability, not OS
@@ -587,7 +591,7 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 
 | # | Question | Why it's open |
 |---|---|---|
-| 1 | Where do the 15 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — `docs/workflow.md` §Repo layout, `PDR.md` §4 Out of scope. |
+| 1 | Where do the 16 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — `docs/workflow.md` §Repo layout, `PDR.md` §4 Out of scope. |
 | 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | No forge today means no pipeline can exist today — sequencing depends on question 1. |
 | 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | §11 — the config exists, is container-tested and is installed nowhere; installing it is out of scope for Phase 3 doc work (`CONSTRAINTS.md` §5). `INTROSPECTION_CODE` is honoured wherever a service port is reachable, so port closure is the security-relevant half. |
 | 4 | ~~Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost?~~ | **Answered** — both do: `marketplace-nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |
