@@ -1,4 +1,4 @@
-# docker-mongodb — a local replica set, and how to run the platform on it
+# docker-DBs — a local replica set, and how to run the platform on it
 
 Marketplace talks to an **external MongoDB replica set** (`rs0`, members `db1` / `db2` / `db3`) that
 lives on the maintainer's network. A clone does not get it, and neither does a clone get
@@ -51,7 +51,7 @@ getent hosts mdb1 mdb2 mdb3
 ## Quick start
 
 ```sh
-cd docker-mongodb
+cd docker-DBs
 cp env .env          # then fill in the four passwords — MONGO_ROOT_PWD, MONGO_DEV_PWD,
                      # MONGO_TEST_PWDDBOWNER, MONGO_TEST_PWDDBRW
 ./up.sh              # or: ./up.sh --with-redis
@@ -95,7 +95,7 @@ Each repo has a committed `env` template and a gitignored `.env` you create from
 are what this cluster answers to.
 
 **Every backend service** — `MONGODB_URI`, one line, no line break inside it. `<pwd>` is
-`MONGO_DEV_PWD` from `docker-mongodb/.env`, written out in full:
+`MONGO_DEV_PWD` from `docker-DBs/.env`, written out in full:
 
 ```
 mongodb://marketplaceRwDev:<pwd>@mdb1:27017,mdb2:27018,mdb3:27019/dbMarketplaceDev?replicaSet=rs0&authSource=dbMarketplaceDev
@@ -157,7 +157,7 @@ needs, since it splits the file into a 32-byte encryption key, a 32-byte MAC key
 reserve. Point every repo at that one file:
 
 ```
-CSFLE_MASTER_KEY_PATH=<absolute path>/docker-mongodb/secrets/csfle-master-key
+CSFLE_MASTER_KEY_PATH=<absolute path>/docker-DBs/secrets/csfle-master-key
 CSFLE_KEY_VAULT_NAMESPACE=dbMarketplaceDev.__keyVault
 ```
 
@@ -202,7 +202,7 @@ Bring things up in this order. Every command runs from the repo it names.
 **1 — the cluster**
 
 ```sh
-cd docker-mongodb && ./up.sh --with-redis
+cd docker-DBs && ./up.sh --with-redis
 ```
 
 **2 — the shared library.** It is consumed by package name and is not published, so an un-deployed
