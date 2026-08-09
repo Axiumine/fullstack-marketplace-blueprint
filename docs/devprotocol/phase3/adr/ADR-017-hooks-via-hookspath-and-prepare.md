@@ -6,12 +6,16 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
+**Amended:** 2026-08-09 — a sixteenth repo, `marketplace-nginx`, was extracted from the parent. It has no
+`package.json`, so neither the `prepare` mechanism nor the lint/coverage/mutation/Qodana tail below
+applies to it; ADR-030 records what it gates on instead. The decision here is unchanged, and the counts in
+§Context are the current ones.
 
 ---
 
 ## Context
 
-15 gated repos here — 14 sub-repos + this parent workspace; `marketplace-nginx`, the sixteenth, has no `package.json` and carries `pre-push` alone, gating on its own test suite and on nothing else. Every sub-repo commits `.githooks/pre-commit` and `.githooks/pre-push`, mode `100755`, enforcing lint, 100% coverage (CON-08), mutation, Qodana. Discovered 2026-08-07: none of it had ever fired. Git reads `.git/hooks/` by default; a repo only looks in `.githooks/` if local config `core.hooksPath` points there. That config is per-worktree, not versioned — a fresh clone starts without it regardless of what's committed. So every gate described in `docs/workflow.md` §Git hooks was documentation of intent, not a running control, until this ADR's fix landed.
+15 gated repos here — 14 sub-repos + this parent workspace; `marketplace-nginx`, the sixteenth, has no `package.json` and gates differently, on its own test suite and the secret guard (ADR-030). Every sub-repo commits `.githooks/pre-commit` and `.githooks/pre-push`, mode `100755`, enforcing lint, 100% coverage (CON-08), mutation, Qodana. Discovered 2026-08-07: none of it had ever fired. Git reads `.git/hooks/` by default; a repo only looks in `.githooks/` if local config `core.hooksPath` points there. That config is per-worktree, not versioned — a fresh clone starts without it regardless of what's committed. So every gate described in `docs/workflow.md` §Git hooks was documentation of intent, not a running control, until this ADR's fix landed.
 
 Two more findings in the same sweep, same root cause (a check exists on disk but nothing runs it):
 

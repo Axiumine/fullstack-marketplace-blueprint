@@ -42,7 +42,7 @@ in the hook itself denies rather than waves the call through. 41 cases in
 `bash leak.sh`, where `leak.sh` contains `cat .env`, is not caught. Only output-side redaction would
 close that, and no such hook point exists — so treat it as a real gap rather than a solved problem.
 
-## 3. `pre-commit` guard — installed in 15 of the 16 repos
+## 3. `pre-commit` guard — installed in all sixteen repos
 
 Blocks a commit when a staged **path** looks like a secret file, or when staged **added lines** contain a
 high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----BEGIN … PRIVATE KEY-----`,
@@ -76,15 +76,16 @@ a secret embedded in a URI, an object literal, or any longer expression. Verifie
 corpus of that same 11-repo baseline: the only lines whose verdict changes are the two `vitest.config.mts` fixtures;
 the live-looking credentials in `marketplace-db-setup/setup/mongodb.js` still block.
 
-Tracked at `.githooks/pre-commit` in **15 of the 16 repos** (counted 2026-08-09: 15 hook files, 15
+Tracked at `.githooks/pre-commit` in **all sixteen repos** (counted 2026-08-09: 16 hook files, 16
 carrying check 0), each setting `core.hooksPath=.githooks`. The 14 repos that have a `package.json` set
 it from their `prepare` script, so installing dependencies arms the guard and a fresh clone is protected
 without anyone remembering to install it by hand.
 
-⚠️ **`marketplace-nginx` is the sixteenth and carries `pre-push` only** — its gate runs the edge test
-suite, and there is no `pre-commit`, so **no secret guard runs on a commit there**. It holds nginx
-config and shell tests and no credential today; a secret added to it is caught by nothing, including by
-its own hook, which never inspects a diff.
+`marketplace-nginx` was the sixteenth to get one, later the same day: it holds no `package.json`, so it
+has no lint, coverage, mutation or Qodana gate to hang the guard off, and for a few hours it carried
+`pre-push` alone — a hook that runs the edge test suite and never inspects a diff. That made it the one
+repo where a staged credential was caught by nothing. Its `pre-commit` is now the secret guard and
+nothing else.
 
 ⚠️ This parent workspace has no `package.json`, so nothing runs `prepare` here. The hook file is tracked
 and travels with the clone, but after cloning the parent you must arm it once by hand:
@@ -97,7 +98,7 @@ Once `hooksPath` is set, `.git/hooks/pre-commit` never runs, so the old untracke
 every repo rather than left to drift out of sync with the tracked one. Each repo holds exactly one copy.
 
 ⚠️ **They are not all byte-identical, and a fix has to be applied to each variant.** Measured
-2026-08-09 — five distinct files, because the tail of the hook differs by what a repo can actually run:
+2026-08-09 — six distinct files, because the tail of the hook differs by what a repo can actually run:
 
 |Variant|Repos|Why it differs|
 |---|---|---|
@@ -106,9 +107,12 @@ every repo rather than left to drift out of sync with the tracked one. Each repo
 |`marketplace-common`|1|its own lint/coverage chain|
 |`marketplace-db-setup`|1|no lint — no `eslint.config.js` on that repo (`README.md`)|
 |parent workspace|this directory|scoped to `services-status/`, no lint|
+|`marketplace-nginx`|1|**no tail at all** — no `package.json`, so the guard runs and the hook exits|
 
-The secret-guard head — check 0 and the two staged-secret scans — **is** identical across all five, and
-must stay that way: change one, copy that head to the other four.
+The secret-guard body — check 0 and the two staged-secret scans, from `set -uo pipefail` to the end of
+the abort block, 123 lines — **is** byte-identical across all six, and must stay that way: change one,
+copy that body to the other five. The header comment above it is not identical, because it lists the
+gates each variant goes on to run.
 
 ## 4. Git ignore, two levels
 

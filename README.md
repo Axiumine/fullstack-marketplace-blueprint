@@ -126,10 +126,10 @@ gate disappears silently; `marketplace-dev-public-authorization` shipped that wa
 
 ### Where the gates fire — push and commit, in all sixteen repos
 
-Fifteen of the sixteen gate on **both**. `marketplace-nginx` gates on **push only**: no `package.json`
-means no lint, coverage, mutation or Qodana step to run, so its one `pre-push` gate runs `test/run.sh`
-— `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check. It
-carries no `pre-commit`, so ⚠️ **the secret guard below does not run there.**
+All sixteen gate on **both**, but not with the same content. `marketplace-nginx` has no `package.json`,
+so there is no lint, coverage, mutation or Qodana step it could run: its `pre-push` runs `test/run.sh`
+— `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check, and
+its `pre-commit` is the secret guard below and nothing else (ADR-030).
 
 `.githooks/pre-commit` runs the secret guard — which since 2026-08-09
 opens with **check 0**, the only check on the platform that reads the *working tree* rather than the

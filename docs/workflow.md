@@ -101,10 +101,11 @@ nothing about it.
   hand — or, in the parent, the secret guard and all of `services-status`'s coverage, mutation and
   Qodana gates are off, and in `marketplace-nginx` the edge configuration is pushed without ever being
   validated.
-- `marketplace-nginx` carries `pre-push` and nothing else. Its gate is `test/run.sh` — `nginx -t` plus
-  the behavioural suite, in a throwaway container — and it blocks rather than skips when the container
-  engine, the daemon or the image is missing. ⚠️ **It has no `pre-commit`, so check 0 and both
-  staged-secret scans never run there.**
+- `marketplace-nginx` carries both, and both are unlike every other repo's (ADR-030). Its `pre-push`
+  gate is `test/run.sh` — `nginx -t` plus the behavioural suite, in a throwaway container — and it
+  blocks rather than skips when the container engine, the daemon or the image is missing. Its
+  `pre-commit` is the secret guard and stops there: check 0 and the two staged-secret scans, then
+  `exit 0`, because with no `package.json` there is no lint, coverage, mutation or Qodana step to run.
 - A relative value is safe: git resolves it against the worktree root, so hooks fire from subdirectories
   too.
 - **Check the hook is executable.** Git skips a non-executable hook with only a hint, so the gate
