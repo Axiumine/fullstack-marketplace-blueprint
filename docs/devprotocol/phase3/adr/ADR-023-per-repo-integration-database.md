@@ -22,10 +22,10 @@ Naming that database takes 3 separate env vars, not 1: `MONGO_TEST_DB` (what mon
 `globalSetup` drops), `MONGO_TEST_CONN_STRING` (its path segment — what any non-mongoose client dials),
 `MONGO_TEST_AUTH_ADMIN` (authSource — the two `MONGO_TEST_UDBOWNER`/`MONGO_TEST_UDBRW` users are defined
 per-database, not globally, per `BEs/marketplace-common/vitest.mongo.mts:51-67`). 3 vars, 3 places to
-drift, and drift used to be silent: the old `buildTestMongoUrl` rebuilt the URL path from `MONGO_TEST_DB`
-alone, so a `MONGO_TEST_CONN_STRING` naming a different database still produced a URL that connected fine
-— pointed at, and about to drop, a database its own connection string never named
-(`BEs/marketplace-common/vitest.mongo.mts:59-61` comment).
+drift, and the drift is silent by default: rebuilding the URL path from `MONGO_TEST_DB` alone makes a
+`MONGO_TEST_CONN_STRING` naming a different database still produce a URL that connects fine — pointed at,
+and about to drop, a database its own connection string never named (`BEs/marketplace-common/vitest.mongo.mts`
+comment).
 
 Cross-repo, the databases must all be distinct — `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`,
 `…PublicRes`, `…OwnerAuthz`, `…OwnerRes`, `…AdminAuthz`, `…AdminRes`, `…UserAuthz`, `…UserRes` (`docs/testing.md` §Per-repo integration database) — confirmed on disk: `MONGO_TEST_AUTH_ADMIN=dbMarketplaceTestOwnerRes` and
@@ -88,8 +88,8 @@ fingerprint sweep, not a per-repo assertion — recorded here so it is not re-di
 - 3 vars per repo instead of 1 — every new integration-suite repo must remember to keep all 3 in sync, by
   hand, with no shared source.
 - The assertion only proves internal consistency. A `.env` wrong in a way that is internally consistent
-  (all 3 vars agree, but the value is copied from the wrong project) still passes — this is exactly what
-  happened to both `*-user-authenticated-*` services on 2026-08-07.
+  (all 3 vars agree, but the value is copied from the wrong project) still passes. That is the residual
+  failure mode this decision does not close, and nothing else does either.
 - Adds one more required-env check to `globalSetup`, on top of `assertTestMongoEnv`'s presence check.
 
 ### Risks

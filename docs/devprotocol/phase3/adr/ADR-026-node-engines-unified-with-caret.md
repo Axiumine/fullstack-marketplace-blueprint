@@ -78,7 +78,7 @@ close.
   of three specific services failing while the rest silently worked.
 - `pre-push`'s node-selection step (`BEs/dev/marketplace-dev-public-authorization/.githooks/pre-push:33-70`)
   has one predictable place to read the required version from in every repo — no per-repo special-casing
-  for the two bare-number spellings that used to exist.
+  for a bare-number spelling.
 
 ### Negative
 - 14 separate edits for what is conceptually one decision — no atomic cross-repo commit exists in this

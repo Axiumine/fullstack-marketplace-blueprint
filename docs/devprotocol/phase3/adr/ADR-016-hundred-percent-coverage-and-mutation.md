@@ -11,7 +11,7 @@
 
 ## Context
 
-Platform is 14 packages: 9 Koa/Apollo backend services under `BEs/dev/`, `BEs/marketplace-common`,
+Platform is 15 packages: 9 Koa/Apollo backend services under `BEs/dev/`, `BEs/marketplace-common`,
 `BEs/marketplace-db-setup`, 3 frontends (`marketplace-admin`, `marketplace-shopowner`,
 `marketplace-user`), plus `services-status` (tracked by the parent repo, no repo of its own). Coverage
 alone was already the house rule and every package sat at 100% on it — and mutants still survived under
@@ -43,7 +43,7 @@ to touch.
 
 | Option | Pros | Cons |
 |---|---|---|
-| Coverage-only gate (status quo before this decision) | Cheap to run, already wired in all 14 packages, fast feedback | Proven blind to real bugs — `marketplace-common` and `marketplace-db-setup` both sat at 100% coverage while entire classes of logic (schema builders, several guard branches) could be silently inverted and no test would notice |
+| Coverage-only gate (status quo before this decision) | Cheap to run, already wired in all 15 packages, fast feedback | Proven blind to real bugs — `marketplace-common` and `marketplace-db-setup` both sat at 100% coverage while entire classes of logic (schema builders, several guard branches) could be silently inverted and no test would notice |
 | Mutation gate with a threshold below 100 (e.g. `break: 90`) | Tolerates equivalent/near-equivalent mutants without per-case suppression comments, less friction on large diffs | A threshold under 100 is a standing exception with no owner — CON-08 forbids it outright, and every survivor left under the line is an untested behavior nobody has to name or justify |
 | Coverage 100% + mutation 100%, enforced four times over (vitest `thresholds`, `qodana.yaml` `testCoverageThresholds`, `test:cov` in both `.githooks/pre-commit` and `pre-push`, `stryker.config.mjs` `thresholds.break: 100` as the second `pre-push` step) — **chosen** | Closes the exact gap the 45.95%/52.92% numbers exposed; every survivor is either killed by a new test, a dead branch deleted, or a documented `// Stryker disable next-line <Mutator>: <reason>` — never a silent pass | Slower CI, forces two load-bearing test-authoring patterns (`evictLib`-style module eviction for top-level consts, checking the coverage file list rather than only its percentage) that are easy to get wrong on a first pass |
 | `ignoreStatic` on Stryker config to silence hard-to-kill survivors | Fastest path to a green mutation report | Masks real gaps rather than closing them — `docs/testing.md` §Mutation testing traps names this explicitly as the wrong fix, because the survivor it appears to clear is usually a load-time mutant needing a dynamic `await import()` inside `beforeEach`, not a static exemption |
@@ -80,13 +80,14 @@ now house convention rather than a one-off discovery.
 
 ### Negative
 - CI is materially slower: `pre-push` runs lint → `test:cov` → `test:mutation` → Qodana in sequence, and
-  Stryker's sandboxed mutant runs are the most expensive of the four in every one of the 14 packages.
+  Stryker's sandboxed mutant runs are the most expensive of the four in every one of the 15 packages.
 - Every new file needs a genuine assertion against its own logic, not just execution — a smoke test that
   merely calls a function and checks it doesn't throw passes coverage but is killed instantly by mutation,
   so the bar for "done" moved for every contributor.
-- `services-status` shows what happens when the gate exists on paper but nothing runs it: it carried
-  `stryker.config.mjs` and a 100% threshold with no hook invoking either until 2026-08-07, an appearance of
-  a gate rather than a gate (`docs/frontends.md` §marketplace-user, `services-status` bullets).
+- `services-status` is the standing illustration of a gate that exists on paper: it carries
+  `stryker.config.mjs` and a 100% threshold, and it has no `.githooks/` of its own to invoke either —
+  a config with no runner is an appearance of a gate rather than a gate, which is why its steps live in
+  the parent's hooks instead (ADR-025, `docs/frontends.md` §services-status).
 
 ### Risks
 - **Equivalent-mutant creep.** A contributor under deadline pressure reaches for `ignoreStatic` or a
@@ -94,12 +95,12 @@ now house convention rather than a one-off discovery.
   any `stryker.config.mjs` diff that adds `ignoreStatic` or lowers `thresholds.break` below 100 — CON-08
   names this exact failure mode.
 - **Hooks silently not firing.** The gate depends on `core.hooksPath` being set locally; it is not global
-  git config and does not travel with a clone. `docs/workflow.md` §Git hooks records this already happened once across all 15
-  repos before `git config core.hooksPath .githooks` was set everywhere and verified with
-  `git hook run pre-commit`. Revisit trigger: a merge lands on `main` with a coverage or mutation regression
-  that no hook caught.
+  git config and does not travel with a clone, so a fresh clone of any of the 15 gated repos starts
+  ungated until `git config core.hooksPath .githooks` runs there (ADR-017, `docs/workflow.md` §Git hooks).
+  `git hook run pre-commit` is what proves it is wired. Revisit trigger: a merge lands on `main` with a
+  coverage or mutation regression that no hook caught.
 - **A gate with no invoking mechanism reads identically to a passing one from outside**, exactly the
-  `services-status` case (unwired `stryker.config.mjs` before 2026-08-07). Revisit trigger: any package
+  `services-status` case — a `stryker.config.mjs` with no `.githooks/` of its own to run it. Revisit trigger: any package
   added to the platform that has a `stryker.config.mjs` / coverage threshold but no `.githooks/` (or, for
   `services-status`, no scoped step in the parent's own `.githooks/pre-commit` / `pre-push`) referencing it.
 
@@ -130,4 +131,4 @@ A violation on disk looks like: a `thresholds.break` value under 100 in any `str
 name or no reason string after the colon; a `.githooks/pre-push` missing the `test:mutation` step or
 reordering it before `test:cov`; or a package with a `stryker.config.mjs` present but no
 `.githooks/` directory (or, for `services-status`, no matching scoped step in the parent's own hooks)
-invoking it — the exact shape the `services-status` gap took until 2026-08-07.
+invoking it. A threshold nothing reads is the failure shape to look for, because it reports nothing.

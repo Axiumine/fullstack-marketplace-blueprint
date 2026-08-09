@@ -6,21 +6,14 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
-**Amended:** 2026-08-09 — later the same day the parent stopped `.gitignore`ing this repo and began
-tracking it as a submodule (ADR-031), so the half-sentence "is gitignored by the parent and is not a
-submodule" in §Context and in option E is no longer the current arrangement. **Option E stays rejected on
-the surviving half of its reason**: a submodule is a pointer, not a merge of histories, so a commit or a
-push made inside `marketplace-nginx` still fires this repo's hooks and no parent hook — there is still no
-parent event to gate on. What the change does add is a sixteenth thing to remember at clone time; see
-ADR-031 §Consequences.
 
 ---
 
 ## Context
 
-`marketplace-nginx` became a repo of its own on 2026-08-09, extracted from the parent workspace where it
-had been the directory `nginx/` (ADR-001 §Amended, remote `Axiumine/marketplace-nginx`). It arrived with
-**no `.githooks/` at all** — the extraction moved files, not gates.
+`marketplace-nginx` is a repo of its own, one of the fifteen sub-repos the parent tracks as submodules
+(ADR-001, ADR-031, remote `Axiumine/marketplace-nginx`). It is the only one that arrives at the gate
+question with nothing ADR-017 can be applied to.
 
 Every other repo on the platform gates itself the way ADR-017 describes: `.githooks/pre-commit` and
 `.githooks/pre-push`, mode `100755`, armed by `core.hooksPath` which a `prepare` script restores on
@@ -51,15 +44,15 @@ a container engine and an image.
 Two further constraints shaped the option that was picked:
 
 - **No `package.json` means no `prepare`**, so `core.hooksPath` is not self-armed here — the same hole
-  ADR-025 records for the parent workspace, and now the second of exactly two repos with it.
-- **`marketplace-nginx` is gitignored by the parent** (`/marketplace-nginx/` in `.gitignore`) and is not a
-  submodule. The parent's hooks never see a commit or a push made in it, so ADR-025's answer for
-  `services-status` — gate it from the parent — has no event to hang on here.
+  ADR-025 records for the parent workspace, and the second of exactly two repos with it.
+- **The parent's hooks never fire for a change made here.** A submodule is a pointer, not a merge of
+  histories (ADR-031): a commit or a push inside `marketplace-nginx` is an event in `marketplace-nginx`,
+  so ADR-025's answer for `services-status` — gate it from the parent — has nothing to hang on.
 
 Separately, `.claude/SECRETS.md` §3 lists the `pre-commit` secret guard as layer 3 of four: check 0 (a
-working-tree env value split across two physical lines, R05b) plus two staged-secret scans. It was in
-fifteen repos. A sixteenth repo with no `pre-commit` was a sixteenth repo where a staged credential was
-caught by nothing.
+working-tree env value split across two physical lines, R05b) plus two staged-secret scans. A repo with no
+`pre-commit` is a repo where a staged credential is caught by nothing, and the argument above rules out
+every mechanism that puts one here by default.
 
 ---
 
@@ -67,11 +60,11 @@ caught by nothing.
 
 | Option | Pros | Cons |
 |---|---|---|
-| A — no hooks; run `test/run.sh` by hand before pushing | Zero setup; the suite is a single command with no arguments | This is the state at extraction, and it is the "documentation of intent, not a running control" that ADR-017 exists to end; it also leaves the repo outside `.claude/SECRETS.md` layer 3 entirely |
+| A — no hooks; run `test/run.sh` by hand before pushing | Zero setup; the suite is a single command with no arguments | "Documentation of intent, not a running control" is exactly what ADR-017 exists to end; it also leaves the repo outside `.claude/SECRETS.md` layer 3 entirely |
 | B — one `pre-commit` and one `pre-push`, both running `test/run.sh` | Symmetric with the other fifteen; the suite runs as early as possible | The suite needs a container engine and an image, and this repo's ordinary commit is one directive in one file — paying a container run per commit is exactly how a hook gets bypassed out of habit, the reasoning ADR-025 already applied to keep mutation push-only |
 | C — `pre-push` runs `test/run.sh`; `pre-commit` runs the secret guard and stops | Each gate is paid where its cost is worth it; the secret guard is cheap and belongs at commit, the container suite is not and belongs at push; `.claude/SECRETS.md` layer 3 becomes exceptionless | Two hooks in one repo doing unrelated jobs, neither shaped like any other repo's; a sixth variant of the secret-guard body to keep in sync |
 | D — add a `package.json` purely to get `prepare` and a script chain | `core.hooksPath` would self-arm on `yarn install`, matching the fourteen packages | Invents a JavaScript toolchain to host one line of git config, and makes `yarn install` a prerequisite for editing an nginx conf; it also invites a `lint`/`test` script with nothing behind it, which is the appearance of a gate that ADR-025 spent a whole decision removing |
-| E — gate it from the parent workspace's hooks, as ADR-025 does for `services-status` | Reuses hooks that already exist and are already armed | Structurally impossible: `services-status` has no `.git`, so its changes *are* parent commits. `marketplace-nginx` has its own `.git` and is gitignored by the parent, so no parent hook ever fires for a change made here |
+| E — gate it from the parent workspace's hooks, as ADR-025 does for `services-status` | Reuses hooks that already exist and are already armed | Structurally impossible: `services-status` has no `.git`, so its changes *are* parent commits. `marketplace-nginx` has its own `.git`, and the parent's gitlink records its SHA rather than its commits, so no parent hook ever fires for a change made here |
 
 ---
 
@@ -98,17 +91,13 @@ and blocking instead keeps a slow or unreachable registry from becoming a failed
 `docker pull` per image bump, versus a network flake on any push.
 
 **`.githooks/pre-commit` — the secret guard, and nothing after it.** The 123-line body from
-`set -uo pipefail` through the abort block is copied **verbatim** from the other fifteen repos: check 0
+`set -uo pipefail` through the abort block is **verbatim** the one the other fifteen repos carry: check 0
 (working-tree env value split across two lines, R05b), the staged-path scan, the staged-added-lines value
 scan, and the declared-placeholder filter that keeps the committed `env` / `npmrc` templates passing.
-Then `exit 0`. This makes a sixth variant in `.claude/SECRETS.md` §3's table, and it is the only one
+Then `exit 0`. This is the sixth variant in `.claude/SECRETS.md` §3's table, and the only one
 distinguished by having **no tail at all** — the other five differ by which of lint / type check /
-coverage / Qodana they go on to run, and this repo can run none of them.
-
-The two landed hours apart on the same day: `pre-push` first, `pre-commit` after. For that window
-`marketplace-nginx` was the one repo of sixteen with no secret guard, and every passage written in between
-said so. Those passages are now false and were swept in the same piece of work; `.claude/SECRETS.md` §3
-reads sixteen of sixteen, counted on 2026-08-09.
+coverage / Qodana they go on to run, and this repo can run none of them. With it, layer 3 covers sixteen
+repos of sixteen and has no exception.
 
 ---
 
@@ -116,30 +105,28 @@ reads sixteen of sixteen, counted on 2026-08-09.
 
 ### Positive
 - Every revision that reaches `origin` has had `nginx -t` and 168 behavioural assertions run against it.
-  Before this, nothing had: there is no nginx on the machine, so the configuration's first execution
-  would have been on a host where a failed reload is an outage.
-- `.claude/SECRETS.md` layer 3 has no exception left. All sixteen repos carry check 0 and both staged
-  scans; `marketplace-nginx` was the last hole and it is closed.
-- Splitting the two gates by cost keeps the ordinary commit here — one directive, one file — exactly as
-  fast as it was, which is the difference between a hook that runs and a hook that gets `--no-verify`d
-  out of habit.
-- The `pre-push` prerequisites block instead of warning, so the failure mode this platform already had
-  once — a gate reporting success because it never ran (`services-status/qodana.sh` at mode `100644`,
-  ADR-017 §Context) — cannot repeat here quietly.
+  Without the gate nothing would have: there is no nginx on the machine, so the configuration's first
+  execution would be on a host where a failed reload is an outage.
+- `.claude/SECRETS.md` layer 3 has no exception. All sixteen repos carry check 0 and both staged scans.
+- Splitting the two gates by cost keeps the ordinary commit here — one directive, one file — as fast as a
+  commit with no hook at all, which is the difference between a hook that runs and a hook that gets
+  `--no-verify`d out of habit.
+- The `pre-push` prerequisites block instead of warning, so the failure mode ADR-017 §Context describes —
+  a gate reporting success because it never ran — cannot happen here quietly.
 
 ### Negative
-- **Two repos now need `git config core.hooksPath .githooks` by hand after a clone**: the parent
-  (ADR-025) and this one. Neither has a `package.json`, so neither self-arms, and a clone that skips the
-  step loses *both* hooks silently — no output says the push was ungated.
-- The secret-guard body is duplicated in **six** variants rather than five. Nothing enforces that they
-  stay identical; it is a `diff` run by hand, and a fix to one must be copied to the other five.
-- `pre-push` now depends on a container engine and a locally present image. An offline push, or a push
-  from a machine without Docker or podman, is blocked until the operator installs or pulls — which is the
+- **Two repos need `git config core.hooksPath .githooks` by hand after a clone**: the parent (ADR-025)
+  and this one. Neither has a `package.json`, so neither self-arms, and a clone that skips the step loses
+  *both* hooks silently — no output says the push was ungated.
+- The secret-guard body exists in **six** variants. Nothing enforces that they stay identical; it is a
+  `diff` run by hand, and a fix to one must be copied to the other five.
+- `pre-push` depends on a container engine and a locally present image. An offline push, or a push from a
+  machine without Docker or podman, is blocked until the operator installs or pulls — which is the
   intended behaviour and is still a real cost.
 - **No static analysis of nginx directives exists, and none is added by this ADR.** `nginx -t` is a
-  parser, not a linter: it accepted the backslash-continued `Content-Security-Policy` that shipped with
-  the header silently dropped. Only the behavioural half of the suite catches that class, so coverage of
-  this repo is exactly the set of assertions someone wrote.
+  parser, not a linter: it accepts a backslash-continued `Content-Security-Policy` that drops the header
+  silently. Only the behavioural half of the suite catches that class, so coverage of this repo is exactly
+  the set of assertions someone wrote.
 
 ### Risks
 - **Risk:** the suite grows slow — more assertions, a heavier image — and someone moves it out of
@@ -151,9 +138,9 @@ reads sixteen of sixteen, counted on 2026-08-09.
   Revisit condition: a `package.json` appears in this repo.
 - **Risk:** the six secret-guard bodies drift, and a fix applied to the backend variant never reaches
   this one. Revisit condition: any diff between the six bodies (command in §Compliance).
-- **Risk:** a directive lands that `nginx -t` accepts and no assertion covers, in the same class as the
-  dropped CSP header. Revisit condition: any edge defect reaching a host that the suite could have caught
-  but did not — the fix is a new assertion, never a relaxed gate.
+- **Risk:** a directive lands that `nginx -t` accepts and no assertion covers, in the same class as a
+  silently dropped CSP header. Revisit condition: any edge defect reaching a host that the suite could
+  have caught but did not — the fix is a new assertion, never a relaxed gate.
 
 ---
 
@@ -166,7 +153,7 @@ git -C marketplace-nginx config core.hooksPath          # must print .githooks
 git -C marketplace-nginx ls-files -s .githooks          # both modes must start 100755
 ```
 
-Verify the secret-guard body is still identical across all six variants — it is the body, not the whole
+Verify the secret-guard body is identical across all six variants — it is the body, not the whole
 file, that must match, because each variant's header comment lists its own gates:
 
 ```bash

@@ -6,20 +6,16 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
-**Amended:** 2026-08-09 — a sixteenth repo, `marketplace-nginx`, was extracted from the parent. It has no
-`package.json`, so neither the `prepare` mechanism nor the lint/coverage/mutation/Qodana tail below
-applies to it; ADR-030 records what it gates on instead. The decision here is unchanged, and the counts in
-§Context are the current ones.
 
 ---
 
 ## Context
 
-15 gated repos here — 14 sub-repos + this parent workspace; `marketplace-nginx`, the sixteenth, has no `package.json` and gates differently, on its own test suite and the secret guard (ADR-030). Every sub-repo commits `.githooks/pre-commit` and `.githooks/pre-push`, mode `100755`, enforcing lint, 100% coverage (CON-08), mutation, Qodana. Discovered 2026-08-07: none of it had ever fired. Git reads `.git/hooks/` by default; a repo only looks in `.githooks/` if local config `core.hooksPath` points there. That config is per-worktree, not versioned — a fresh clone starts without it regardless of what's committed. So every gate described in `docs/workflow.md` §Git hooks was documentation of intent, not a running control, until this ADR's fix landed.
+15 gated repos here — 14 sub-repos + this parent workspace; `marketplace-nginx`, the sixteenth, has no `package.json`, so neither the `prepare` mechanism nor the lint/coverage/mutation/Qodana tail below reaches it and it gates on its own test suite and the secret guard instead (ADR-030). Every one of the 14 commits `.githooks/pre-commit` and `.githooks/pre-push`, mode `100755`, enforcing lint, 100% coverage (CON-08), mutation, Qodana. None of it fires by itself. Git reads `.git/hooks/` by default; a repo only looks in `.githooks/` if local config `core.hooksPath` points there. That config is per-worktree and not versioned — a fresh clone starts without it regardless of what is committed. A committed hook with no wiring is documentation of intent rather than a running control, and it fails open: the commit succeeds and prints nothing to say the gate never ran.
 
 Two more findings in the same sweep, same root cause (a check exists on disk but nothing runs it):
 
-- `services-status/qodana.sh` was committed at `100644` (non-executable) while the 11 other packages' copies are `100755`. Invocation died with `Permission denied` before reaching Qodana. Because it then exited non-zero having written no results directory, both hooks reported a generic `Qodana failed on services-status` pointing at a SARIF path that was never created — indistinguishable from "Qodana ran and found nothing," and indistinguishable from "hook path missing entirely" from the log alone.
+- A `qodana.sh` committed at `100644` (non-executable) rather than `100755` dies with `Permission denied` before reaching Qodana. It then exits non-zero having written no results directory, so the hook reports a generic `Qodana failed on <app>` pointing at a SARIF path that was never created — indistinguishable from "Qodana ran and found nothing," and, from the log alone, indistinguishable from "hook path missing entirely."
 - Even once `core.hooksPath` is set, `git merge --no-ff` does not run `pre-commit` — git only fires that hook for `git commit`. In the standing branch → commit → merge → push flow (`docs/workflow.md` §Git hooks, "never commit on main"), the merge commit — the one revision that actually reaches the tip of `main` — is the single commit no `pre-commit` scan ever inspects. Two branches individually clean at their own `pre-commit` can merge into a tree that isn't.
 - Qodana Cloud files each report under the branch `git HEAD` names at scan time, and the CLI takes no `--branch` override. A repo gated only by `pre-commit` runs every scan on a feature branch and can never produce a report tagged `main` — so the cloud project has no branch to treat as its "new problems" baseline.
 
@@ -40,17 +36,17 @@ Constraint in force: CON-08 / `CONSTRAINTS.md` §4 marks the quality gate regime
 
 ## Decision
 
-Option C for the 14 sub-repos, option A (documented, not automated) for the parent. Each of the 14 sub-repos with a `package.json` carries `"prepare": "git config core.hooksPath .githooks || true"`, verified at `BEs/marketplace-common/package.json:26`; the `prepare` lifecycle script runs on every `yarn install`, which `dev.sh` already calls, so the config self-heals without a developer having to remember it. Option A alone (no row above beats it on cost) was rejected precisely because it is what was already in place and already failed silently for every one of these repos.
+Option C for the 14 sub-repos, option A (documented, not automated) for the parent. Each of the 14 sub-repos with a `package.json` carries `"prepare": "git config core.hooksPath .githooks || true"` — `marketplace-common` is the one that wraps it, calling a `hooks:install` script that sets the same config before building `dist/`, because its `prepare` has a second job. The `prepare` lifecycle script runs on every `yarn install`, which `dev.sh` already calls, so the config self-heals without a developer having to remember it. Option A alone was rejected precisely because it is git's own default posture and fails open in exactly the way described above.
 
-The parent workspace has no `package.json` (verified: no `package.json` at the workspace root) and therefore no `prepare` hook to piggyback on — option C is unavailable there by construction, not by oversight. The fallback is option A, explicit: after a fresh clone of the parent, run `git config core.hooksPath .githooks` by hand. Until that line runs, the parent's own `pre-commit`/`pre-push` — which since 2026-08-07 also gate `services-status` (`docs/frontends.md` §marketplace-user) and the secret-leak guard (`.claude/SECRETS.md`) — are off.
+The parent workspace has no `package.json` and therefore no `prepare` hook to piggyback on — option C is unavailable there by construction, not by oversight. The fallback is option A, explicit: after a fresh clone of the parent, run `git config core.hooksPath .githooks` by hand. Until that line runs, the parent's own `pre-commit`/`pre-push` — which also gate `services-status` (ADR-025) and the secret-leak guard (`.claude/SECRETS.md`) — are off.
 
-Running Qodana in both hooks (not just `pre-push`) is the second half of the decision, and it is not redundant with the merge-commit and branch-baseline gaps found in Context: `pre-commit` is what can produce a `main`-tagged Qodana report at all, since `pre-push` runs after `git merge --no-ff` has already moved HEAD to `main`, while `pre-commit` alone would leave the merge commit unscanned. Both hooks now also test executability separately from existence for every `qodana.sh` they invoke, rather than treating "file present" as "hook usable" — a missing prerequisite (docker, the `qodana` CLI, the linter image, `QODANA_TOKEN`, or now, an unset execute bit) blocks and prints the fixing command; it never warns and continues. For the executable-bit case specifically, both hooks print both `chmod +x $APP/qodana.sh` and `git update-index --chmod=+x $APP/qodana.sh` (`.githooks/pre-commit:252-253`, `.githooks/pre-push:255-256`) because the mode is tracked by git — a local `chmod` alone would be lost on the next checkout.
+Running Qodana in both hooks (not just `pre-push`) is the second half of the decision, and it is not redundant with the merge-commit and branch-baseline gaps in Context: `pre-push` runs after `git merge --no-ff` has already moved HEAD to `main`, so it is what can produce a `main`-tagged Qodana report at all, while `pre-commit` alone would leave the merge commit unscanned. Both hooks test executability separately from existence for every `qodana.sh` they invoke, rather than treating "file present" as "hook usable" — a missing prerequisite (docker, the `qodana` CLI, the linter image, `QODANA_TOKEN`, or an unset execute bit) blocks and prints the fixing command; it never warns and continues. For the executable-bit case specifically, both hooks print two commands, because the mode is tracked by git and a local `chmod` alone would be lost on the next checkout:
 
 ```
 "chmod +x $APP/qodana.sh" \
 "git update-index --chmod=+x $APP/qodana.sh"
 ```
-(`.githooks/pre-push:255-256`)
+(`.githooks/pre-commit`, `.githooks/pre-push`)
 
 ---
 
@@ -58,7 +54,7 @@ Running Qodana in both hooks (not just `pre-push`) is the second half of the dec
 
 ### Positive
 - `yarn install` — already part of the normal workflow via `dev.sh` — is enough to restore hook wiring in all 14 sub-repos; no separate onboarding step to remember there.
-- The executable-bit check turns a class of failure that previously looked like "Qodana ran clean, or Qodana found nothing" into a named, fixable error at commit/push time.
+- The executable-bit check turns a class of failure that otherwise looks like "Qodana ran clean, or Qodana found nothing" into a named, fixable error at commit/push time.
 - Running Qodana at both hook points closes the merge-commit blind spot and gives Qodana Cloud a `main`-tagged baseline to diff future scans against.
 
 ### Negative
@@ -75,6 +71,6 @@ Running Qodana in both hooks (not just `pre-push`) is the second half of the dec
 
 ## Compliance
 
-Verify wiring is live: `git config --get core.hooksPath` inside any of the 15 gated repos must print `.githooks`; empty output means the gate is off regardless of what `.githooks/pre-commit` contains on disk. Verify the fix is committed, not just locally patched: `grep -n '"prepare"' <subrepo>/package.json` must show the `git config core.hooksPath .githooks || true` line for all 14 sub-repos (confirmed present at `BEs/marketplace-common/package.json:26`). Verify executable bits: `git ls-files -s <repo>/qodana.sh` (or `.githooks/pre-commit`, `.githooks/pre-push` themselves) must report mode `100755`, not `100644` — a `services-status/qodana.sh`-style regression looks exactly like the fixed bug: green log, no scan.
+Verify wiring is live: `git config --get core.hooksPath` inside any of the 15 gated repos must print `.githooks`; empty output means the gate is off regardless of what `.githooks/pre-commit` contains on disk. Verify the wiring is committed, not just locally set: `grep -n 'core.hooksPath .githooks' <subrepo>/package.json` must match in all 14 sub-repos with a `package.json` — directly in the `prepare` script for 13 of them, through `hooks:install` for `marketplace-common`. Verify executable bits: `git ls-files -s <repo>/qodana.sh` (or `.githooks/pre-commit`, `.githooks/pre-push` themselves) must report mode `100755`, not `100644` — a non-executable scanner looks exactly like a clean one: green log, no scan.
 
-A violation looks like: a `git commit` or `git push` on any of the 15 gated repos completing with no `.githooks` output at all in the terminal (no lint/coverage/Qodana lines) — that is the exact symptom that hid for as long as it did here, because the operation still succeeds and prints nothing to say the gate never ran.
+A violation looks like: a `git commit` or `git push` on any of the 15 gated repos completing with no `.githooks` output at all in the terminal (no lint/coverage/Qodana lines). That is the symptom to watch for, because the operation still succeeds and prints nothing to say the gate never ran.

@@ -12,17 +12,16 @@
 ## Context
 
 Vendor is thedoctorweb, tenants are arbitrary shops (`company`), product types unknown in advance.
-Previously, the catalogue modeled each product type as its own collection — own migration, own
-mongoose model, own resolver set, own test file. Adding a new product type meant a new collection top
-to bottom.
+The obvious modelling — and the one a catalogue drifts into — gives each product type its own
+collection, with its own migration, mongoose model, resolver set and test file. Adding a product type
+then means a new collection top to bottom, and the collections differ in their *category*, not in their
+shape.
 
 Platform target is a domain-neutral marketplace — "not tied to any one product domain" per `CLAUDE.md`
-§Two naming rules, restated twice. Forces: the rebuild had to (1) let a shop sell anything without a
+§Two naming rules, restated twice. Forces: the catalogue has to (1) let a shop sell anything without a
 schema migration per product type, (2) keep category/subcategory browse, (3) not smuggle
 domain-specific vocabulary back in — CON-11/vocab-lock bans it — and (4) not invent commerce fields
-(`price`) with no order/cart/payment model to attach to. Built 2026-08-05 per `docs/data-model.md`
-migration-immutability rule (schema builder change ⇒ full DB rebuild, done same day, `dbMarketplaceDev`
-dropped and replayed with `SEED_DEMO=true`).
+(`price`) with no order/cart/payment model to attach to (ADR-009).
 
 ---
 
@@ -116,7 +115,7 @@ that presumes what is sold, added outside a migration, is a violation.
 
 Verify collection count matches CONSTRAINTS.md §4 invariant (6 total): `admin`, `shopOwner`, `company`,
 `user`, `item`, `itemCategory` — check migration filenames under `BEs/marketplace-db-setup/migrations/`,
-no per-product-type migration should exist post-2026-08-04.
+a per-product-type migration is the violation.
 
 Verify depth cap stays resolver-only in the one place it's supposed to be: `itemCategory` write mutations
 (`itemCategoryAdd.mts`, `itemCategoryUpdate.mts`) should exist only under

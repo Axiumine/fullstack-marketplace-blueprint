@@ -11,14 +11,13 @@
 
 ## Context
 
-`company` was extracted into its own collection, from an earlier embedded shop sub-document, in
-migration `BEs/marketplace-db-setup/migrations/20260803000000-create-company.js`. Two identity fields
-carry global unique indexes: `vatNumber` and `certifiedEmail` — one legal
-entity, one VAT number, whoever registered it. `companyDel` needs a delete path. Two things collide:
-platform-wide soft-delete convention (`shopOwner`, `item`, `itemCategory` all carry an optional
-`deleted` date, never a hard remove — `BEs/marketplace-db-setup/lib/schemas/account.js` `DELETED`
-shape) and the fact that a hard-deleted document frees its unique keys for reuse while a soft-deleted one,
-by default, does not — someone has to decide whether a retired VAT number becomes available again.
+`company` carries two identity fields under global unique indexes: `vatNumber` and `certifiedEmail` —
+one legal entity, one VAT number, whoever registered it (ADR-007). `companyDel` needs a delete path, and
+two things collide there: the platform-wide soft-delete convention (`shopOwner`, `item`, `itemCategory`
+all carry an optional `deleted` date, never a hard remove — `BEs/marketplace-db-setup/lib/schemas/account.js`
+`DELETED` shape) and the fact that a hard-deleted document frees its unique keys for reuse while a
+soft-deleted one, by default, does not. Someone has to decide whether a retired VAT number becomes
+available again.
 
 Two resource services expose `companyDel` against the same collection under different tiers:
 `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`
@@ -28,13 +27,12 @@ Two resource services expose `companyDel` against the same collection under diff
 an ownership guard first (`throwIfShopOwnerDontOwnCompany`), and that guard's filter has to decide
 whether an already-retired company still counts as "yours to act on."
 
-Precedent already existed inside the same migration: `shopOwner.login.email_unique` is a global unique
-with no `partialFilterExpression`, so a disabled/deleted shop owner keeps their login email occupied
-(`BEs/marketplace-db-setup/migrations/20260803000000-create-company.js:52-57` states the match is
-deliberate). Counter-precedent existed too, one migration later: `company.slug_unique` in
-`BEs/marketplace-db-setup/migrations/20260804010000-alter-company-public.js:83` IS a partial index
-(`partialFilterExpression: { slug: { $type: 'string' } }`) — so the team had the partial-index tool in
-hand for this exact collection and chose not to point it at `vatNumber`/`certifiedEmail`.
+Both answers already have a precedent on this platform, which is what makes the choice a real one.
+`shopOwner.login.email_unique` is a plain global unique with no `partialFilterExpression`, so a disabled
+or deleted shop owner keeps their login email occupied. And `company.slug_unique`, on this very
+collection, **is** a partial index (`partialFilterExpression: { slug: { $type: 'string' } }`) — so the
+partial-index tool is in hand for exactly these fields, and pointing it at `vatNumber` /
+`certifiedEmail` is a decision, not an omission.
 
 ---
 
@@ -44,7 +42,7 @@ hand for this exact collection and chose not to point it at `vatNumber`/`certifi
 |---|---|---|
 | A. Hard delete the document | Frees `vatNumber`/`certifiedEmail` immediately | Breaks platform soft-delete convention every other collection follows; loses the retirement date; any dangling `item.idCompany` reference (unenforced) now points at nothing at all instead of a stamped, inspectable document |
 | B. Soft delete (`deleted` date stamp) + global unique index, no `partialFilterExpression` — CHOSEN | Matches `shopOwner.login.email_unique` precedent exactly; one VAT number can never be double-assigned, retired or not; enforcement is the index itself, nothing to forget in application code | Same legal entity can never re-register under the same `vatNumber` again, ever — no un-retire path exists |
-| C. Soft delete + partial unique index filtered on `deleted` absent (the `company.slug_unique` pattern, same collection, one migration later) | Retired VAT number becomes registrable again; symmetric with how `slug` already behaves on this same collection | Weakens "one VAT number is one company, whoever registered it and whenever they stopped trading" to "one *live* VAT number" — two different companies could hold the same VAT number across time, and nothing downstream distinguishes that from data corruption |
+| C. Soft delete + partial unique index filtered on `deleted` absent (the `company.slug_unique` pattern, same collection) | Retired VAT number becomes registrable again; symmetric with how `slug` behaves on this same collection | Weakens "one VAT number is one company, whoever registered it and whenever they stopped trading" to "one *live* VAT number" — two different companies could hold the same VAT number across time, and nothing downstream distinguishes that from data corruption |
 | D. Push a `deleted`-filter into the delete write itself (`funCompanyDelete`), uniform across both tiers, instead of leaving it to the ownership guard | One code path, one answer, same status for both tiers | Conflates two different questions — "is this document still live" (a read/existence concern) with "should this write happen" (idempotency of the delete verb itself); would make the Admin tier's moderation ability depend on liveness, which it deliberately does not need |
 
 ---
@@ -54,11 +52,11 @@ hand for this exact collection and chose not to point it at `vatNumber`/`certifi
 Row B, plus the tier split that falls out of where row D was rejected. `companyDel` stamps `deleted`
 (a date, never a bool — `BEs/marketplace-db-setup/lib/schemas/account.js` `DELETED` shape) rather than
 removing the document, matching `shopOwner`/`item`/`itemCategory`. `vatNumber_unique` and
-`certifiedEmail_unique` stay plain global uniques with no `partialFilterExpression`
-(`BEs/marketplace-db-setup/migrations/20260803000000-create-company.js:70-88`) — same shape as
-`shopOwner.login.email_unique`, deliberately not the shape `company.slug_unique` uses one migration
-later, because a VAT number is a legal identity and a slug is a URL segment: reusing a retired URL is
-harmless, reusing a retired VAT number is not.
+`certifiedEmail_unique` are plain global uniques with no `partialFilterExpression`
+(`BEs/marketplace-db-setup/migrations/20260301000200-create-company.js`) — the same shape as
+`shopOwner.login.email_unique`, and deliberately not the shape `company.slug_unique` uses on the same
+collection, because a VAT number is a legal identity and a slug is a URL segment: reusing a retired URL
+is harmless, reusing a retired VAT number is not.
 
 Row D was rejected on the reasoning, not just the outcome: liveness filtering belongs on read paths
 and on existence/ownership guards, never on the delete write itself. That single rule produces both
@@ -108,10 +106,10 @@ operator most needs to reach. Both answers are correct for what each guard check
 
 ## Compliance
 
-Verify the index shape hasn't drifted: `grep -n "vatNumber_unique\|certifiedEmail_unique" -A3
-BEs/marketplace-db-setup/migrations/20260803000000-create-company.js` must show no
-`partialFilterExpression` on either block. A violation is a **new** migration adding one to either
-index (migrations are immutable — the fix is always additive, never an edit to this file).
+Verify the index shape has not drifted: `grep -n "vatNumber_unique\|certifiedEmail_unique" -A3
+BEs/marketplace-db-setup/migrations/20260301000200-create-company.js` must show no
+`partialFilterExpression` on either block, while `slug_unique` in the same file must keep the one it
+has. Changing either is a schema change and carries the full-rebuild rule of ADR-014.
 
 Verify the tier split: `BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts`
 must still filter `deleted: trusted({ $exists: false })` inside its `countDocuments`; `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`

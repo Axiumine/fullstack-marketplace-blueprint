@@ -27,12 +27,13 @@ config files (`eslint.config.js`, `stryker.config.mjs`) and yaml. Those categori
 as long as the narrow glob stood.
 
 Third, a silent-failure mode in eslint's flat config: a path matching no `files` glob is linted by
-**nothing**, and eslint reports that as **success** (exit 0), not as "no config found". This is how
-`eslint.config.js` itself and `stryker.config.mjs` went unchecked in the backend repos — `@axiumine/eslint-config-be`
-scopes its JS block to `src/**/*.{js,cjs,mjs}` (`BEs/dev/marketplace-dev-public-authorization/eslint.config.js`
-line 53: `files: ['*.js', '*.mjs', '*.cjs']` is the fix, not the original state), and no repo here has JS
-under `src/`. The same hole hit `marketplace-common`'s test files and vitest configs — the library never
-got a `test/**/*.mts` block the services already had.
+**nothing**, and eslint reports that as **success** (exit 0), not as "no config found". It is how a repo's own
+`eslint.config.js` and `stryker.config.mjs` go unchecked: `@axiumine/eslint-config-be` scopes its JS block
+to `src/**/*.{js,cjs,mjs}`, and no repo here has JS under `src/`, so every root-level JS file matches
+nothing and passes. The same hole swallows `marketplace-common`'s test files and vitest configs unless the
+library carries the `test/**/*.mts` block the services have. Each repo therefore adds a root-level
+`files: ['*.js', '*.mjs', '*.cjs']` block of its own — `BEs/dev/marketplace-dev-public-authorization/eslint.config.js`
+is the reference — and that block is load-bearing rather than decorative.
 
 All thirteen repos' `lint` / `lint:check` scripts are identical in shape (`marketplace-admin/package.json`
 line 22-23: `"lint": "eslint --fix . && prettier --write .", "lint:check": "eslint . && prettier --check ."`;

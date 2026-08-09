@@ -1,21 +1,20 @@
-# The fifteen sub-projects are NOT listed here any more. Each is still its own
-# independent git repo with its own history, and its files are still versioned
-# there and never here — but since ADR-031 the parent tracks each one as a
-# submodule, so it records a gitlink (a pinned commit SHA) and nothing else.
-# Ignoring those paths now would make `git submodule add` refuse them.
+# The fifteen sub-projects are deliberately NOT listed here. Each is its own
+# independent git repo with its own history, and its files are versioned there
+# and never here — the parent tracks each one as a submodule (ADR-031), so it
+# records a gitlink (a pinned commit SHA) and nothing else. Ignoring those paths
+# would make `git submodule add` refuse them.
 # See "This directory is the parent workspace" in CLAUDE.md.
 
 # Not a repo and not a service — the empty directory the resource services write
-# uploads into (docs/workflow.md §Repo layout). It was covered by the old /BEs/
-# entry; without this line an upload made in local dev shows up as untracked
-# here.
+# uploads into (docs/workflow.md §Repo layout). Without this line an upload made
+# in local dev shows up as untracked here.
 /BEs/dev/upload-local/
 
 /.idea/
 
-# Secrets never enter this repo. Every sub-repo already ignores these; the parent
-# did not, which was the one gap. `env` (no dot) is the committed placeholder
-# template and stays tracked.
+# Secrets never enter this repo — the parent ignores these exactly as every
+# sub-repo does. `env` (no dot) is the committed placeholder template and stays
+# tracked.
 .env
 .env.*
 .envrc

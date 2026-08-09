@@ -16,12 +16,13 @@ Nine backend services, three tiers (`Admin`, `ShopOwner`, `User`), one Redis ins
 (`BEs/dev/marketplace-dev-authenticated-logout`, port 4030) deletes a session by token content alone and
 never asks which collection minted it (`docs/architecture.md` §Services, logout row).
 
-Before 2026-08-05, `authorizationAuthenticatedResourceHandler.mts` in each resource service did
-`redisClient.hGetAll(REDIS_KEY + accessToken)` and accepted any non-empty hash as proof of auth. Session
-hashes carried no discriminator. Consequence: an Admin access token, looked up under the shared prefix,
-authenticated cleanly against the ShopOwner resource service — and the reverse. No collection check, no
-tier check, nothing. `ctx.state.user` got set from `makeAuthCtx(redData)` regardless of which collection
-issued the token
+With no discriminator in the session hash, the only thing
+`authorizationAuthenticatedResourceHandler.mts` in a resource service can do is
+`redisClient.hGetAll(REDIS_KEY + accessToken)` and accept any non-empty hash as proof of auth. Under a
+shared prefix that is a cross-tier hole by construction: an Admin access token, looked up under the same
+prefix, authenticates cleanly against the ShopOwner resource service — and the reverse. No collection
+check, no tier check, nothing; `ctx.state.user` is set from `makeAuthCtx(redData)` regardless of which
+collection issued the token
 (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:52-61`).
 
 Forces: the shared prefix cannot be un-shared (logout depends on it structurally, CON-05). Sessions
@@ -37,7 +38,7 @@ implicitly trusted stays exploitable for up to that whole window.
 |---|---|---|
 | Per-tier `REDIS_KEY` prefix (e.g. `marketplaceDev:admin:`, `marketplaceDev:shopOwner:`) | Isolation without a check — wrong-tier lookup finds nothing at the key | Breaks the single logout service, which deletes by token content and does not know the tier at delete time (CON-05); would require either a 4th/per-tier logout service (rejected, see ADR on logout) or a fan-out delete across 3 prefixes per logout call |
 | Session hash gains `tier`; each resource service calls `assertTier(actual, expected)`, missing/mismatched tier → 403 | Closes the hole at the one call site every resource service already has; REDIS_KEY stays shared, logout untouched; explicit fail-closed behavior for pre-existing sessions | Every one-time cross-tier session existing when this ships is force-logged-out (accepted cost, one re-login) |
-| Session hash gains `tier`, but treat missing `tier` as trusted (wildcard) for backward compatibility | No forced re-login for existing sessions | Leaves the hole open for every session minted before the fix, for up to 90 days (`REFRESH_TOKEN_EXPIRY`) — defeats the purpose of the fix |
+| Session hash gains `tier`, but treat missing `tier` as trusted (wildcard) for backward compatibility | No forced re-login for a session written without the field | A missing `tier` is exactly the state the hole lives in, so trusting it leaves the hole open for up to 90 days (`REFRESH_TOKEN_EXPIRY`) — it adopts the discriminator and declines to use it |
 | Mismatch → 401 instead of 403 | Reuses an existing generic "unauthorized" error path, less new error-handling code | 401 tells the client "refresh and retry," which is exactly wrong here — the caller has a valid, undamaged session, just for the wrong tier; a refresh cannot fix that and the client would loop |
 
 ---
@@ -51,10 +52,10 @@ answer 403 on mismatch, leave `REDIS_KEY` shared.
 | 'user'`) written once as data specifically so a session can carry it and a service can check it.
 `assertTier` (`BEs/marketplace-common/src/others/assertTier.mts:21-23`) is `if (actual !== expected) throw
 throwForbiddenError()` — no branch for `undefined`, so an old session without the field is rejected by the
-same comparison as a wrong-tier one. This was chosen over row 3 (treat missing as wildcard) because the
-missing-tier case is exactly the pre-fix vulnerable population; trusting it would mean shipping the fix
-without closing the hole for anyone already logged in, for up to `REFRESH_TOKEN_EXPIRY`. The cost — one
-forced re-login per stale session — was judged cheaper than a 90-day live hole.
+same comparison as a wrong-tier one. Chosen over row 3 (treat missing as wildcard) because a session with no
+`tier` is precisely the state this decision exists to refuse; trusting it would carry the hole for up to
+`REFRESH_TOKEN_EXPIRY` for anyone already holding such a session. The cost — one forced re-login per
+session without the field — is cheaper than a 90-day live hole.
 
 403 over 401 (row 4 rejected) because the caller did authenticate, correctly, just against the wrong
 collection — a 401 signals "your credentials are stale, refresh," and a refresh changes nothing about
@@ -93,9 +94,9 @@ sessions this way:
   session produces a rejected session, not a silently-trusted one.
 
 ### Negative
-- Every session minted before 2026-08-05 is invalidated on first resource-service call after the fix —
-  one forced re-login per affected user, accepted as the cost of closing the window immediately instead of
-  waiting out `REFRESH_TOKEN_EXPIRY`.
+- Any session hash without a `tier` is invalidated on its first resource-service call — one forced
+  re-login, accepted as the cost of failing closed instead of treating a missing discriminator as a
+  wildcard for the remaining `REFRESH_TOKEN_EXPIRY`.
 - `makeAuthCtx` deliberately drops `tier` from the `ForNode` context shape it builds
   (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:56-59`),
   so `assertTier` at the handler is the *only* place the check happens — nothing downstream re-derives or

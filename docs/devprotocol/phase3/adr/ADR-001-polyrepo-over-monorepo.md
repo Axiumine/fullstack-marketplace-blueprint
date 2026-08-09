@@ -5,30 +5,19 @@
 **Date:** 2026-08-04
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
-**Superseded by:** ADR-031, in part — the *no submodules* clause of the Decision only. Polyrepo over
-monorepo, sixteen independent histories, and the sub-repo boundary all stand exactly as written here.
-**Amended:** 2026-08-09 — `nginx/`, until then a plain directory of the parent, became the sub-repo
-`marketplace-nginx`. Fifteen sub-repos plus the parent, sixteen in total. The decision is unchanged; the
-counts below are the current ones, and the alternatives weighed in §Options are as they stood in 2026-08-04.
-**Amended:** 2026-08-09 — the parent no longer `.gitignore`s the five sub-repo paths; it tracks all fifteen
-as submodules (ADR-031), so every §Options, §Decision and §Compliance passage below that turns on those
-`.gitignore` lines describes the arrangement up to this date and not the current one. What replaced each is
-in ADR-031 §Decision and §Compliance. The submodule row in §Options was rejected on costs that ADR-031
-accepts rather than disputes — it weighs them against reconstruction from one clone, which this ADR did not
-consider.
+**Superseded by:** —
 
 ---
 
 ## Context
 
 Platform split across 3 tiers (ShopOwner, Admin, User) × 9 backend services + `marketplace-common` lib
-+ `marketplace-db-setup` migrations + 3 frontend SPAs/SSR apps. 2026-08-04: a platform-wide naming sweep landed
-across the whole workspace (`CLAUDE.md` §Two naming rules, ADR-013).
-Same day, source layout decision needed for the tree it produced.
++ `marketplace-db-setup` migrations + `marketplace-nginx` edge + 3 frontend SPA/SSR apps. Fifteen
+packages, one workspace directory, and a source-layout decision owed before any of it is committed.
 
-Origin constraint: no existing per-repo commit history to split. So the choice was not
-"split an existing monorepo" — it was "commit 14 independently-versioned packages plus a parent, from
-scratch, in one sweep."
+Origin constraint: there is no existing commit history to split. So the choice is not "split an existing
+monorepo" — it is "commit 15 independently-versioned packages plus a parent, from scratch, in one
+sweep."
 
 Forces:
 - 9 backend services each own a Koa 3 + Apollo Server 5 process, own port, own `.env`, own
@@ -41,6 +30,8 @@ Forces:
   from source-tree shape before this ADR.
 - 3 frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) are independent Vite
   apps, different rendering models (2 SPA, 1 SSR via TanStack Start), different ports (3043/3044/3045).
+- `marketplace-nginx` has no `package.json` at all — its gates are a shell suite of its own (ADR-030),
+  which no JS-package tooling would run.
 - Quality gates are heavy and per-package: 100% coverage + 100 mutation score + lint + `tsc --noEmit` +
   Qodana, enforced via `.githooks/pre-commit` and `.githooks/pre-push` (CON-08). Each repo needs its
   own Qodana cloud project — tokens are per-project, a shared token would corrupt baselines
@@ -54,41 +45,47 @@ Forces:
 
 | Option | Pros | Cons |
 |---|---|---|
-| Single monorepo (all 14 packages + parent in one `.git`) | One commit spans every affected repo — atomic cross-cutting change; one set of hooks/CI to wire; one Qodana project | 9 services need independent deploy/restart cadence with no shared release train; per-service `.githooks` gates (100/100 coverage+mutation, own Qodana token) don't map onto one repo's CI without inventing path-filtering from scratch; `marketplace-common` is already consumed by package name via `deploy-local.sh`, so folding it into the same tree buys nothing the sync script doesn't already give |
-| Polyrepo, 15 independent repos (14 sub-repos + parent), no atomic cross-repo commit | Each service/lib/app keeps its own git history, hooks, gates, Qodana project untangled from the other 13; matches the existing per-service `.env`/port/deploy-local.sh boundary that already existed pre-rename; parent stays thin (docs + `.claude/` + workspace `CLAUDE.md`), `.gitignore`s the 4 heavy dirs so `git status` at the top level stays fast | One logical change (e.g. a `marketplace-common` field rename) becomes N separate commits across N repos with no atomic transaction — `git diff`/`git log` at the top level answers nothing about a cross-repo change; branch discipline must be re-applied 15 times (`docs/workflow.md` §Git rules, "never commit on main") |
-| Git submodules (parent repo, 14 submodule pointers) | Gets partial atomicity — parent commit pins exact sub-repo SHAs, so a cross-repo state can be captured in one parent commit | Submodule pointer bumps are still N+1 commits (14 subs + 1 parent) for any real cross-cutting change, so the coordination cost is not actually smaller than plain polyrepo; adds submodule-init/update friction to every `dev.sh` and CI run for no offsetting atomicity gain, since sub-repos still commit independently between parent syncs |
+| Single monorepo (all 15 packages + parent in one `.git`) | One commit spans every affected package — atomic cross-cutting change; one set of hooks/CI to wire; one Qodana project | 9 services need independent deploy/restart cadence with no shared release train; per-package `.githooks` gates (100/100 coverage+mutation, own Qodana token) don't map onto one repo's CI without inventing path-filtering from scratch; `marketplace-common` is already consumed by package name via `deploy-local.sh`, so folding it into the same tree buys nothing the sync script doesn't already give; `marketplace-nginx` has no `package.json` and would sit inside a JS monorepo as an exception to every rule |
+| Hybrid — one repo for the 9 backend services, separate repos for the lib, the migrations, the edge and the 3 frontends | The 9 services are the most alike of the packages, so one release train covers the largest group; cuts the repo count from 16 to 7 | The 9 services are exactly where the per-package gate stack is heaviest — 9 Qodana projects, 9 mutation runs, 9 `.env` files, 9 ports — so it collapses the group whose boundaries carry the most, and buys atomicity only *within* it while the `marketplace-common` change that actually spans repos still crosses the boundary; picks an arbitrary line ("services are one thing, apps are another") that nothing in the deploy model supports |
+| Polyrepo — 16 independent repos, one per package plus the parent workspace (**chosen**) | Each service/lib/app/edge keeps its own git history, hooks, gates and Qodana project untangled from the other 14; matches the per-package `.env`/port/`deploy-local.sh` boundary that already exists; the parent stays thin — docs, `.claude/`, workspace `CLAUDE.md` — and one clone of it is a workspace, not a code drop | One logical change (e.g. a `marketplace-common` field rename) becomes N separate commits across N repos with no atomic transaction; branch discipline must be re-applied 16 times (`docs/workflow.md` §Git rules, "never commit on main") |
 
 ---
 
 ## Decision
 
-Polyrepo, 16 independent repos, no submodules, no monorepo. Chosen over the monorepo row because the
-package-name coupling for `marketplace-common` (`deploy-local.sh` sync, CON-09) already gives cross-repo
-propagation without a shared tree, and the per-repo gate stack (100/100 coverage+mutation, own Qodana
-token) maps directly onto "one repo = one hook set = one cloud project" — collapsing to a monorepo would
-mean inventing path-scoped CI to recover what git-repo boundaries give for free. Chosen over submodules
-because pointer-bump commits do not reduce the N-commits-per-change cost the polyrepo already pays, so
-submodules add tooling friction (init/update on every clone, every `dev.sh` run) without buying back
-atomicity that matters.
+Polyrepo, 16 independent repos, no monorepo. Chosen over the monorepo row because the package-name
+coupling for `marketplace-common` (`deploy-local.sh` sync, CON-09) already gives cross-repo propagation
+without a shared tree, and the per-repo gate stack (100/100 coverage+mutation, own Qodana token) maps
+directly onto "one repo = one hook set = one cloud project" — collapsing to a monorepo would mean
+inventing path-scoped CI to recover what git-repo boundaries give for free. Chosen over the hybrid row
+because the group it merges is the one whose per-package boundaries carry the most weight, and the
+cross-repo change it fails to make atomic is the only one that happens often.
 
-Parent (`fullstack-marketplace-blueprint`, this repo) tracks only workspace files (`CLAUDE.md`,
-`.claude/`, `.agents/`) and `.gitignore`s `/BEs/`, `/marketplace-admin/`, `/marketplace-nginx/`,
-`/marketplace-shopowner/`, `/marketplace-user/` (verified on disk — `.gitignore` line-for-line matches). `services-status` is the
-deliberate exception: it has no repo of its own and is tracked directly by the parent
-(`git ls-files services-status` returns real paths — `coverage`, `dist`, `env`, `services-status/.gitignore`,
-`.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto the parent's own
-`.githooks/pre-commit` rather than living in a repo-local hook (`docs/frontends.md` §services-status).
+Sixteen histories is the whole of this decision. **How the parent workspace *references* the fifteen
+sub-repos is a separate question, decided in ADR-031: it tracks each as a submodule, recording a pinned
+commit SHA and nothing else.** A gitlink is a pointer, not a merge — sub-repo files are versioned in the
+sub-repo and never in the parent, and every commit, branch, hook and gate stays where it is. The two
+decisions compose: ADR-001 says the histories are separate, ADR-031 says the parent can name a consistent
+set of them.
+
+`services-status` is the deliberate exception to the count: it has no repo of its own and is tracked
+directly by the parent (`git ls-files services-status` returns real paths — `coverage`, `dist`, `env`,
+`services-status/.gitignore`, `.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto
+the parent's own `.githooks/pre-commit` rather than living in a repo-local hook (ADR-025,
+`docs/frontends.md` §services-status). `docker-DBs/` is tracked by the parent for the same reason — it is
+compose files and scripts, not a package.
 
 ```
 BEs/
-├── marketplace-common/    # own .git
-├── marketplace-db-setup/  # own .git
-└── dev/                   # 9 service dirs, each own .git
-marketplace-admin/         # own .git — gitignored by parent
-marketplace-nginx/         # own .git — gitignored by parent, no package.json, own gates (ADR-030)
-marketplace-shopowner/     # own .git — gitignored by parent
-marketplace-user/          # own .git — gitignored by parent
+├── marketplace-common/    # own .git — submodule of the parent
+├── marketplace-db-setup/  # own .git — submodule of the parent
+└── dev/                   # 9 service dirs, each own .git, each a submodule
+marketplace-admin/         # own .git — submodule
+marketplace-nginx/         # own .git — submodule, no package.json, own gates (ADR-030)
+marketplace-shopowner/     # own .git — submodule
+marketplace-user/          # own .git — submodule
 services-status/           # NO own .git — tracked by parent directly
+docker-DBs/                # NO own .git — tracked by parent directly
 ```
 
 ---
@@ -108,20 +105,23 @@ services-status/           # NO own .git — tracked by parent directly
   `services-status`'s `xPKXD`).
 - Rollback/blame at the sub-repo level works normally — `git log`, `git bisect`, `git blame` inside any
   one of the 16 answer real questions about that package's history.
+- `marketplace-nginx` needs no place in a JS toolchain it does not belong to: its own repo, its own shell
+  gates, no `package.json` anywhere in the argument.
 
 ### Negative
 - No atomic cross-repo commit. A `marketplace-common` schema field change that must land in a service's
   resolver too is N separate commits with no transaction boundary — `docs/workflow.md` §Repo layout states
-  this outright: "There is no atomic cross-repo commit."
-- Coordination is manual and convention-only, not tool-enforced: "one logical change = N separate `git`
-  commits, one per affected repo," landing dependencies first (`marketplace-common` →
-  `deploy-local.sh` → bump consumers) is a sequencing rule a human/agent must remember every time, not
-  something git or CI verifies.
+  this outright: "There is no atomic cross-repo commit." The parent's submodule pointers record the
+  resulting state (ADR-031); they do not make the change atomic.
+- Coordination is manual and convention-only, not tool-enforced: "one logical change = N+1 `git`
+  commits, one per affected repo plus the parent pointer bump," landing dependencies first
+  (`marketplace-common` → `deploy-local.sh` → bump consumers) is a sequencing rule a human/agent must
+  remember every time, not something git or CI verifies.
 - Branch-first discipline ("never commit on `main`") must be independently re-applied in all 16 repos;
   nothing propagates a branch decision made in one repo to the others.
 - Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is
-  unenforced by construction — no test spans two repos, so drift between them (documented: the
-  2026-08-07 `*-user-authenticated-*` `.env` mismatch) is invisible until a manual fingerprint sweep.
+  unenforced by construction — no test spans two repos, so drift between them is invisible until a manual
+  fingerprint sweep.
 
 ### Risks
 - **Risk:** a change spanning `marketplace-common` + N services gets committed in some repos but not
@@ -129,25 +129,35 @@ services-status/           # NO own .git — tracked by parent directly
   Revisit trigger: two or more such partial-rollout incidents traced to missing atomicity within one
   quarter — would argue for either a cross-repo commit-orchestration script or the monorepo option
   re-opened at that specific pain point (not wholesale).
-- **Risk:** merged-branch cleanup (`git branch -d`) is a manual per-repo habit; already observed to
-  fail at scale once (`chore/qodana-severity-gate` survived in 8 repos before the branch-deletion rule
-  was written, per `docs/workflow.md` §Git rules). Revisit trigger: dead-branch count crossing double digits
-  again would argue for a repo-local `post-merge` hook doing the deletion automatically.
+- **Risk:** merged-branch cleanup (`git branch -d`) is a manual per-repo habit, and at sixteen repos a
+  missed one is invisible. Revisit trigger: dead-branch count crossing double digits would argue for a
+  repo-local `post-merge` hook doing the deletion automatically.
 - **Risk:** 16 separate repos means 16 separate "where does this get published" decisions
-  deferred to the user (`docs/workflow.md` §Repo layout: "Where these sixteen repos get published, and
-  under which org, is the platform owner's open call and has not been made"). Revisit trigger: first
-  actual publish request — at that point org/forge topology needs answering for all 16 at once, not one
-  at a time, or the polyrepo boundary drifts from the publish boundary.
+  deferred to the user (`docs/workflow.md` §Repo layout). Revisit trigger: first actual publish request —
+  at that point org/forge topology needs answering for all 16 at once, not one at a time, or the polyrepo
+  boundary drifts from the publish boundary.
 
 ---
 
 ## Compliance
 
-From the workspace root, verify repo count and boundary: `find . -maxdepth 3 -name .git -type d | wc -l` must return 15 (sub-repos only; parent's own `.git` is at depth 1 and is the 16th). Verify parent ignores the 5 heavy dirs: `git check-ignore -v BEs marketplace-admin marketplace-nginx marketplace-shopowner marketplace-user` must each resolve to the `.gitignore` lines shown above. Verify `services-status` is the one tracked exception: `git ls-files services-status | wc -l` must be nonzero while the same command for `BEs`/`marketplace-admin`/etc must be zero.
+From the workspace root, verify repo count and boundary:
 
-A violation looks like: a `.git` directory appearing inside `BEs/` or one of the 3 frontend dirs (nested
-repo, breaks the gitignore boundary); a cross-repo change landing as a single commit message spanning
-two repo paths (impossible under separate `.git`s, but a symptom if someone re-monorepos by merging
-histories); or a new backend/frontend package added without its own `.git` + `.githooks/` +
-`core.hooksPath` config (silently ungated, as `services-status` was before 2026-08-07 — `docs/frontends.md`
-§services-status).
+```bash
+find . -maxdepth 4 -name .git -type d -not -path './node_modules/*' | wc -l   # 16 — parent plus 15 sub-repos
+git ls-files -s | grep -c '^160000'                                          # 15 — one gitlink each (ADR-031)
+git ls-files services-status | wc -l                                         # nonzero — the tracked exception
+```
+
+The boundary check is that the parent records **only** gitlinks under the sub-repo paths — a submodule
+pins a sub-repo, it does not absorb it:
+
+```bash
+git ls-files -s $(git config -f .gitmodules --get-regexp 'submodule\..*\.path' | awk '{print $2}') \
+  | grep -vc '^160000'          # must be 0 — anything else is a sub-repo's files committed into the parent
+```
+
+A violation looks like: a sub-repo's ordinary files appearing in the parent's index rather than a single
+gitlink; two packages sharing one `.git` (a re-monorepo by merging histories); or a new backend/frontend
+package added without its own `.git` + `.githooks/` + `core.hooksPath` config, which is silently ungated —
+the state `services-status` was in before ADR-025 (`docs/frontends.md` §services-status).
