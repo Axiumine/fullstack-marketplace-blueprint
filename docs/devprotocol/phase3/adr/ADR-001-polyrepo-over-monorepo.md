@@ -1,4 +1,4 @@
-# ADR-001 — Polyrepo — fifteen independent git repos under one parent workspace
+# ADR-001 — Polyrepo — sixteen independent git repos under one parent workspace
 # Marketplace
 
 **Status:** accepted
@@ -6,6 +6,9 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
+**Amended:** 2026-08-09 — `nginx/`, until then a plain directory of the parent, became the sub-repo
+`marketplace-nginx`. Fifteen sub-repos plus the parent, sixteen in total. The decision is unchanged; the
+counts below are the current ones, and the alternatives weighed in §Options are as they stood in 2026-08-04.
 
 ---
 
@@ -52,7 +55,7 @@ Forces:
 
 ## Decision
 
-Polyrepo, 15 independent repos, no submodules, no monorepo. Chosen over the monorepo row because the
+Polyrepo, 16 independent repos, no submodules, no monorepo. Chosen over the monorepo row because the
 package-name coupling for `marketplace-common` (`deploy-local.sh` sync, CON-09) already gives cross-repo
 propagation without a shared tree, and the per-repo gate stack (100/100 coverage+mutation, own Qodana
 token) maps directly onto "one repo = one hook set = one cloud project" — collapsing to a monorepo would
@@ -62,8 +65,8 @@ submodules add tooling friction (init/update on every clone, every `dev.sh` run)
 atomicity that matters.
 
 Parent (`fullstack-marketplace-blueprint`, this repo) tracks only workspace files (`CLAUDE.md`,
-`.claude/`, `.agents/`) and `.gitignore`s `/BEs/`, `/marketplace-admin/`, `/marketplace-shopowner/`,
-`/marketplace-user/` (verified on disk — `.gitignore` line-for-line matches). `services-status` is the
+`.claude/`, `.agents/`) and `.gitignore`s `/BEs/`, `/marketplace-admin/`, `/marketplace-nginx/`,
+`/marketplace-shopowner/`, `/marketplace-user/` (verified on disk — `.gitignore` line-for-line matches). `services-status` is the
 deliberate exception: it has no repo of its own and is tracked directly by the parent
 (`git ls-files services-status` returns real paths — `coverage`, `dist`, `env`, `services-status/.gitignore`,
 `.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto the parent's own
@@ -75,6 +78,7 @@ BEs/
 ├── marketplace-db-setup/  # own .git
 └── dev/                   # 9 service dirs, each own .git
 marketplace-admin/         # own .git — gitignored by parent
+marketplace-nginx/         # own .git — gitignored by parent, no package.json, no gates
 marketplace-shopowner/     # own .git — gitignored by parent
 marketplace-user/          # own .git — gitignored by parent
 services-status/           # NO own .git — tracked by parent directly
@@ -96,7 +100,7 @@ services-status/           # NO own .git — tracked by parent directly
   baseline (`docs/frontends.md` explicitly names this risk for `marketplace-admin`'s `1rylx` project and
   `services-status`'s `xPKXD`).
 - Rollback/blame at the sub-repo level works normally — `git log`, `git bisect`, `git blame` inside any
-  one of the 15 answer real questions about that package's history.
+  one of the 16 answer real questions about that package's history.
 
 ### Negative
 - No atomic cross-repo commit. A `marketplace-common` schema field change that must land in a service's
@@ -106,7 +110,7 @@ services-status/           # NO own .git — tracked by parent directly
   commits, one per affected repo," landing dependencies first (`marketplace-common` →
   `deploy-local.sh` → bump consumers) is a sequencing rule a human/agent must remember every time, not
   something git or CI verifies.
-- Branch-first discipline ("never commit on `main`") must be independently re-applied in all 15 repos;
+- Branch-first discipline ("never commit on `main`") must be independently re-applied in all 16 repos;
   nothing propagates a branch decision made in one repo to the others.
 - Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is
   unenforced by construction — no test spans two repos, so drift between them (documented: the
@@ -122,17 +126,17 @@ services-status/           # NO own .git — tracked by parent directly
   fail at scale once (`chore/qodana-severity-gate` survived in 8 repos before the branch-deletion rule
   was written, per `docs/workflow.md` §Git rules). Revisit trigger: dead-branch count crossing double digits
   again would argue for a repo-local `post-merge` hook doing the deletion automatically.
-- **Risk:** 15 separate repos means 15 separate "where does this get published" decisions
-  deferred to the user (`docs/workflow.md` §Repo layout: "Deciding where these fifteen repos get published...
-  has not been made"). Revisit trigger: first actual publish request — at that point org/forge topology
-  needs answering for all 15 at once, not one at a time, or the polyrepo boundary drifts from the
-  publish boundary.
+- **Risk:** 16 separate repos means 16 separate "where does this get published" decisions
+  deferred to the user (`docs/workflow.md` §Repo layout: "Where these sixteen repos get published, and
+  under which org, is the platform owner's open call and has not been made"). Revisit trigger: first
+  actual publish request — at that point org/forge topology needs answering for all 16 at once, not one
+  at a time, or the polyrepo boundary drifts from the publish boundary.
 
 ---
 
 ## Compliance
 
-From the workspace root, verify repo count and boundary: `find . -maxdepth 3 -name .git -type d | wc -l` must return 14 (sub-repos only; parent's own `.git` is at depth 1 and is the 15th). Verify parent ignores the 4 heavy dirs: `git check-ignore -v BEs marketplace-admin marketplace-shopowner marketplace-user` must each resolve to the `.gitignore` lines shown above. Verify `services-status` is the one tracked exception: `git ls-files services-status | wc -l` must be nonzero while the same command for `BEs`/`marketplace-admin`/etc must be zero.
+From the workspace root, verify repo count and boundary: `find . -maxdepth 3 -name .git -type d | wc -l` must return 15 (sub-repos only; parent's own `.git` is at depth 1 and is the 16th). Verify parent ignores the 5 heavy dirs: `git check-ignore -v BEs marketplace-admin marketplace-nginx marketplace-shopowner marketplace-user` must each resolve to the `.gitignore` lines shown above. Verify `services-status` is the one tracked exception: `git ls-files services-status | wc -l` must be nonzero while the same command for `BEs`/`marketplace-admin`/etc must be zero.
 
 A violation looks like: a `.git` directory appearing inside `BEs/` or one of the 3 frontend dirs (nested
 repo, breaks the gitignore boundary); a cross-repo change landing as a single commit message spanning

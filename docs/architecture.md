@@ -56,14 +56,15 @@ front of it.
 ### nginx
 
 **No nginx is installed on this machine** (no `/etc/nginx`, no binary in `PATH`), but the configuration
-it would run is checked in, at the **workspace root**: `marketplace-nginx/`. Read `marketplace-nginx/README.md` before touching
-it.
+it would run is checked in, in its own repo at the **workspace root**: `marketplace-nginx/`. Read
+`marketplace-nginx/README.md` before touching it.
 
 One instance, three hostnames, one vhost each — the apex for the public site and the customer account
 area, `shopowner.` and `admin.` for the two panels. TLS terminates there and only there; the eleven
-upstream processes speak plain HTTP on loopback ports. It lives above the repos rather than inside one
-because it is the only artefact that is not per-repo: the three vhosts share the upstream table and the
-rate-limit zones, and the same `logout` service answers on all three hosts.
+upstream processes speak plain HTTP on loopback ports. It is a repo of its own rather than a directory
+inside one of the service repos because it is the only artefact that is not per-service: the three vhosts
+share the upstream table and the rate-limit zones, and the same `logout` service answers on all three
+hosts. It carries no `package.json`, so it carries no hooks and no gates either.
 
 ⚠️ **`proxy_cookie_flags ~ secure httponly samesite=strict;` in `marketplace-nginx/snippets/proxy-backend.conf` is
 the only thing on the platform that sets `Secure` on the session cookie.** koa-utils ships

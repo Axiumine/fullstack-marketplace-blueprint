@@ -8,8 +8,8 @@ lives on the maintainer's network. A clone does not get it, and neither does a c
 gitignored because it carries live credentials.
 
 This directory is the replacement for both: a three-node replica set in Docker, plus a script that
-creates every account the fifteen repos expect, under names and passwords you choose. The Redis the
-nine services keep their sessions in lives here too, behind `./up.sh --with-redis`.
+creates every account the nine backend services expect, under names and passwords you choose. The Redis
+those nine keep their sessions in lives here too, behind `./up.sh --with-redis`.
 
 **A replica set, not a single `mongod`, and that is not optional.** Transactions, change streams and
 `readConcern: majority` all require one, and a standalone server rejects them outright. A single-node

@@ -181,7 +181,7 @@ document is that doctrine in checklist form.
 ## 5. Sprint DoD
 - [ ] Every repo touched this sprint has its work on a branch created BEFORE the first edit
   (`git switch -c <type>/<slug>`) — never a bare commit landing on `main`, which is the checked-out branch
-  in 12 of 15 repos (`docs/workflow.md` §Git rules, "Never commit on main. Ever.").
+  in every one of the 16 repos (`docs/workflow.md` §Git rules, "Never commit on main. Ever.").
 - [ ] One logical change = N separate commits, one per affected repo — no atomic cross-repo commit exists on
   this platform (BCON-05).
 - [ ] Any `marketplace-common` change is followed by `./deploy-local.sh` in the SAME piece of work — an

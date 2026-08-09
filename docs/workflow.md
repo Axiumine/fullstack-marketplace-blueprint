@@ -16,8 +16,8 @@ more services, and queries in the frontends.
 
 ## Repo layout
 
-Polyrepo, **not** a monorepo (ADR-001). **Fifteen independent git repos**: this parent dir plus
-fourteen sub-repos.
+Polyrepo, **not** a monorepo (ADR-001). **Sixteen independent git repos**: this parent dir plus
+fifteen sub-repos.
 
 ```
 fullstack-marketplace-blueprint/     # git repo — workspace files only
@@ -26,27 +26,30 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 │   ├── marketplace-db-setup/        # MongoDB migrations — own CLAUDE.md, read before editing
 │   └── dev/                         # 9 backend services, one git repo each
 ├── marketplace-admin/               # React + Vite operator SPA (Admin)
+├── marketplace-nginx/               # the edge — nginx config + its test container, no package.json
 ├── marketplace-shopowner/           # React + Vite shop-owner SPA (ShopOwner)
 ├── marketplace-user/                # TanStack Start SSR app (User + anonymous)
 └── services-status/                 # tracked by THIS repo, not a repo of its own
 ```
 
-The parent's `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-shopowner/` and
-`/marketplace-user/`, so the sub-repos nest without conflict — and so **anything written under those
-paths is tracked by that sub-repo, never by the parent.**
+The parent's `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-nginx/`,
+`/marketplace-shopowner/` and `/marketplace-user/`, so the sub-repos nest without conflict — and so
+**anything written under those paths is tracked by that sub-repo, never by the parent.**
 
 `BEs/dev/upload-local/` is **not** a repo and not a service — an empty directory the resource services
 write uploads into. Do not count it, do not `git init` it.
 
 ### Current state
 
-- **All fifteen repos have a `main`, and it is the checked-out branch in fourteen of them.**
-- **All fifteen have `core.hooksPath=.githooks` set.** No CI/CD pipeline is configured today — every
-  gate is a local git hook.
+- **All sixteen repos have a `main`, and it is normally the checked-out branch.**
+- **Fifteen of the sixteen have `core.hooksPath=.githooks` set.** The exception is `marketplace-nginx`:
+  it holds nginx config and shell tests, has no `package.json` and carries no hooks, so nothing gates a
+  commit there — including the secret guard. No CI/CD pipeline is configured today either; every gate on
+  the platform is a local git hook.
 - History is shallow: `git diff`, `git stash` and `git reset` work, but `git log` answers almost nothing
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
-Where these fifteen repos get published, and under which org, is the platform owner's open call and has
+Where these sixteen repos get published, and under which org, is the platform owner's open call and has
 not been made.
 
 ⚠️ **Note the npm/git split.** `@axiumine/marketplace-common` and `@axiumine/koa-utils` are
@@ -61,8 +64,8 @@ Purging with `git filter-repo` is free before the first push and expensive after
 ## Git rules
 
 - **Never commit on `main`. Ever.** Before the first edit of any task, `git switch -c <type>/<slug>` and
-  commit there. Being on `main` is not permission to commit to it. This holds in all fifteen repos here
-  and in `@axiumine/koa-utils`, a sixteenth repo outside
+  commit there. Being on `main` is not permission to commit to it. This holds in all sixteen repos here
+  and in `@axiumine/koa-utils`, a seventeenth repo outside
   this workspace. Nothing downstream catches the mistake — the only guard is discipline.
 - **Merging into `main` is the user's decision alone** — do not merge, fast-forward, squash or rebase
   onto `main` unless the user says so in that message. One exception, below.
@@ -89,8 +92,9 @@ Purging with `git filter-repo` is free before the first push and expensive after
 reads `.git/hooks/` unless told otherwise; a repo without that setting runs no gate at all and says
 nothing about it.
 
-- The fourteen sub-repos carry `"prepare": "git config core.hooksPath .githooks || true"` in
-  `package.json`, so `yarn install` restores it.
+- The fourteen sub-repos that are packages carry `"prepare": "git config core.hooksPath .githooks ||
+  true"` in `package.json`, so `yarn install` restores it. `marketplace-nginx`, the fifteenth, has no
+  `package.json` and no hooks at all.
 - ⚠️ **The parent workspace has no `package.json`**, so it has no such mechanism. After a fresh clone of
   this directory, run `git config core.hooksPath .githooks` by hand — or the secret guard and all of
   `services-status`'s coverage, mutation and Qodana gates are off.
@@ -185,7 +189,7 @@ Node **v24.18.0** via nvm, **yarn** everywhere.
 because coverage is a pre-commit gate. The platform's own cluster is external and does not travel
 with a clone, and neither does `marketplace-db-setup/setup/mongodb.js`, the gitignored runbook that
 provisions its users. `docker-DBs/` is the stand-in: `cp env .env && ./up.sh` brings up a
-three-node `rs0` with every account the fifteen repos expect, an optional Redis, and a CSFLE master
+three-node `rs0` with every account the backend services expect, an optional Redis, and a CSFLE master
 key. Its `README.md` also carries the boot order for the whole platform and the per-repo
 `MONGO_TEST_DB` table.
 

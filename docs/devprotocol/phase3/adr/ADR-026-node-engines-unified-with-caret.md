@@ -11,7 +11,7 @@
 
 ## Context
 
-Polyrepo, 15 repos (`docs/workflow.md` §Repo layout), 15 `package.json` on disk under this workspace — 14 sub-repos
+Polyrepo, 16 repos (`docs/workflow.md` §Repo layout), 15 `package.json` on disk under this workspace — 14 sub-repos
 plus `services-status/package.json` (parent-tracked, no repo of its own). Node pinned via `engines.node` in
 14 of them; the parent workspace has none.
 

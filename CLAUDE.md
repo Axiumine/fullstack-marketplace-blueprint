@@ -1,7 +1,7 @@
 # Marketplace
 
 Multi-tenant marketplace. Customers order from many independent shops; each shop is run by its owner;
-the platform vendor (thedoctorweb) operates it. **This directory is the parent workspace of fifteen
+the platform vendor (thedoctorweb) operates it. **This directory is the parent workspace of sixteen
 independent git repos — work from here, not from inside one repo.**
 
 ## Where to read next
@@ -54,7 +54,7 @@ the session → a service pair of its own → resolvers → a frontend.
 
 ⚠️ **Everything is English, with no exception** — domain names, identifiers, function names, collection
 and field names, UI text, routes, comments, test fixtures, migrations. There is no second language
-anywhere in these fifteen repos, and adding one word of one is a regression rather than a style nit: the
+anywhere in these sixteen repos, and adding one word of one is a regression rather than a style nit: the
 same name has to spell identically in a migration, a `$jsonSchema`, a model, a resolver, a GraphQL field
 and three frontends, and nothing maps between those layers.
 
@@ -121,7 +121,7 @@ admin, user — outside the chain
 
 ## Rules that apply to every task
 
-- **Never commit on `main`.** Branch first — `git switch -c <type>/<slug>` — in all fifteen repos.
+- **Never commit on `main`.** Branch first — `git switch -c <type>/<slug>` — in all sixteen repos.
   Merging into `main` is the user's decision alone.
 - **`marketplace-common` is the only repo that may be committed, merged, pushed and published without
   asking. Every other repo is push-on-request, always.**

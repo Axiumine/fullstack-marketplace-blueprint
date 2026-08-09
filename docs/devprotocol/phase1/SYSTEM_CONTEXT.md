@@ -34,7 +34,7 @@ verified this session; a path in backticks was opened, not guessed.
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-15 git working trees total (`docs/workflow.md` §Repo layout), per
+16 git working trees total (`docs/workflow.md` §Repo layout), per
 `docs/devprotocol/phase1/PDR.md` §1, no `git` command run to re-verify (HARD RULE — never run git commands
 in this doc's authoring). Outside the box above = external actor or system.
 
@@ -50,7 +50,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything — `item.js:12-14` has no price field|
 |Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
 |Platform operator|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
-|Platform developer (thedoctorweb)|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 15 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
+|Platform developer (thedoctorweb)|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
 
 No `role` field, no permission enum. Actor identity = which MongoDB collection the session authenticated
 against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a role check.
@@ -524,4 +524,4 @@ error at the call site.
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|Who creates the 4 missing Qodana Cloud projects (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
 |5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, `PDR.md` §8 item 5|
-|6|Where do the 15 repos get published, and under which forge org?|platform owner|open, `PDR.md` §8 item 1|
+|6|Where do the 16 repos get published, and under which forge org?|platform owner|open, `PDR.md` §8 item 1|

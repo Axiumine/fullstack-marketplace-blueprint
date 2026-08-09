@@ -23,9 +23,9 @@
 # reaches a remote, and it is the one no pre-commit scan has ever inspected.
 #
 # ⚠️ This repo has no package.json, so nothing restores `core.hooksPath` for it.
-# The fourteen sub-repos each carry a `prepare` script that does; here it is a
-# manual `git config core.hooksPath .githooks` after a fresh clone, or this hook
-# and the secret guard in pre-commit are both simply off.
+# The fourteen sub-repos that are packages each carry a `prepare` script that
+# does; here it is a manual `git config core.hooksPath .githooks` after a fresh
+# clone, or this hook and the secret guard in pre-commit are both simply off.
 #
 # Bypass: `SKIP_QODANA=1 git push` (the coverage and mutation gates still run).
 set -uo pipefail
@@ -287,7 +287,7 @@ fi
 
 echo "pre-push [3/3]: $APP — enforcing the Qodana gate ($LINTER)…"
 
-# SKIP_TESTS=1, exactly as the fourteen sub-repos pass it: qodana.sh would
+# SKIP_TESTS=1, exactly as the fourteen gated packages pass it: qodana.sh would
 # otherwise regenerate coverage as `yarn test:cov || true`, with the exit code
 # swallowed. Gate 1 above has already written coverage/lcov.info.
 if ! SKIP_TESTS=1 "$APP_DIR/qodana.sh" --results-dir "$APP_DIR/.qodana/results"; then
