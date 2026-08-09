@@ -17,7 +17,7 @@ string at `^1.0.0` — a real npm-scoped package name. **The package is not publ
 `registry.npmjs.org/@axiumine/marketplace-common` 404s.
 
 Polyrepo, and no workspace tool (`yarn workspaces`, `pnpm`, Nx) links the repos — each is its own
-independent git checkout with its own `node_modules` (ADR-001, `docs/workflow.md` §Repo layout). A plain
+independent git checkout with its own `node_modules` (ADR-001, [`docs/workflow.md`](../../../workflow.md) §Repo layout). A plain
 `yarn install` in a consumer cannot find the package: nothing resolves the name to source. Something has
 to put built code where node expects it, on every machine, after every edit.
 
@@ -98,7 +98,7 @@ dependencies is the ordinary case and needs no argument.
 They are tracked directories of the parent (ADR-025 for the first), so the parent's `LICENSE` already
 covers them and a second copy is redundant *inside this workspace*. It is not redundant outside it: both
 are self-contained enough to be lifted out — a systemd monitor and a Docker compose cluster — and a
-directory copied without the file it points at travels with no licence at all. `services-status/README.md`
+directory copied without the file it points at travels with no licence at all. [`services-status/README.md`](../../../../services-status/README.md)
 links `./LICENSE` rather than `../LICENSE` for the same reason.
 
 ---

@@ -62,7 +62,7 @@ collection — a 401 signals "your credentials are stale, refresh," and a refres
 which tier the token belongs to; the client would retry forever against the wrong service.
 
 Per-tier `REDIS_KEY` (row 1 rejected) was not viable at all: logout is one service for three tiers by
-design (CON-05, `docs/architecture.md` §Services), and it identifies a session purely by the token value it
+design (CON-05, [`docs/architecture.md`](../../../architecture.md) §Services), and it identifies a session purely by the token value it
 is asked to delete. Splitting the prefix means logout can no longer find a session without first knowing
 its tier, which it structurally does not.
 

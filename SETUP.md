@@ -7,7 +7,7 @@ Everything here is **development only**. There is no staging or production confi
 these sixteen repos: only a `Dev` environment exists, every port binds `127.0.0.1`, and nothing carries
 TLS except the nginx configuration in step 10, which is not needed to run the platform locally.
 
-**Read `README.md` first if you want to know what this is.** This file assumes you already do and only
+**Read [`README.md`](./README.md) first if you want to know what this is.** This file assumes you already do and only
 tells you how to start it.
 
 ## What you will and will not get
@@ -15,7 +15,7 @@ tells you how to start it.
 ⚠️ **This platform has no commerce.** A customer can register, confirm their email, log in and keep
 addresses. There is no cart, no order, no delivery and no payment — no collection, no resolver, no UI,
 and `item` carries no price for that reason. When the storefront shows no "buy" button, nothing is
-broken. Full state of each surface: `CLAUDE.md` §Build state.
+broken. Full state of each surface: [`CLAUDE.md`](./CLAUDE.md) §Build state.
 
 At the end of this you have a three-node MongoDB replica set, a Redis, six collections with their
 validators and indexes, one demo operator, one demo shop owner, one demo company, nine backend services
@@ -257,7 +257,7 @@ SEED_DEMO=true
 **The `MONGO_TEST_*` block**, in every repo that runs integration tests. Three variables name the same
 database and all three must agree — the suite refuses to build a URL otherwise. Each repo's own test
 database name is already filled into its template, and the full table is in
-`docker-DBs/README.md` §Wiring the repos. `marketplace-dev-authenticated-logout` has no such block on
+[`docker-DBs/README.md`](./docker-DBs/README.md) §Wiring the repos. `marketplace-dev-authenticated-logout` has no such block on
 purpose: its integration suite never touches MongoDB.
 
 **Email**, in `marketplace-dev-public-resource` only — it is the one service that sends mail:
@@ -419,7 +419,7 @@ sudo certbot certonly --webroot -w /var/www/acme -d admin.marketplace-domain.com
 Three hosts and not one, because the session cookie has no `Domain` attribute and is therefore
 host-only — one host for all three tiers would put every tier's cookie in one jar. The full path →
 service → port matrix, the seven nginx traps and the live-deployment verification commands are in
-`marketplace-nginx/README.md`.
+[`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md).
 
 ---
 
@@ -479,7 +479,7 @@ With the `MONGO_TEST_*` block filled in, `yarn test` and `yarn test:cov` work in
 pre-commit gate in fourteen repos. Everything is at 100% on all four coverage metrics and mutation score
 100. A failing threshold means a missing test, never a threshold to lower.
 
-Which gate runs when: `README.md` §Test quality gates. Bypasses exist (`SKIP_QODANA=1`, `--no-verify`)
+Which gate runs when: [`README.md`](./README.md) §Test quality gates. Bypasses exist (`SKIP_QODANA=1`, `--no-verify`)
 and are gate removals — use them only when you have decided to.
 
 ---
@@ -507,12 +507,12 @@ and are gate removals — use them only when you have decided to.
 
 | Topic | File |
 |---|---|
-| services, ports, auth model, resolver layout | `docs/architecture.md` |
-| the cluster, per-repo `.env` wiring, the full test-database table | `docker-DBs/README.md` |
-| collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
-| git rules, secrets, hooks, the full command list | `docs/workflow.md` |
-| the edge — three vhosts, TLS, the `Secure` rewrite | `marketplace-nginx/README.md` |
-| **why** any of this is the way it is | `docs/devprotocol/phase3/adr/ADR-INDEX.md` |
+| services, ports, auth model, resolver layout | [`docs/architecture.md`](./docs/architecture.md) |
+| the cluster, per-repo `.env` wiring, the full test-database table | [`docker-DBs/README.md`](./docker-DBs/README.md) |
+| collections, validators, indexes, migrations, PII encryption | [`docs/data-model.md`](./docs/data-model.md) |
+| git rules, secrets, hooks, the full command list | [`docs/workflow.md`](./docs/workflow.md) |
+| the edge — three vhosts, TLS, the `Secure` rewrite | [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) |
+| **why** any of this is the way it is | [`docs/devprotocol/phase3/adr/ADR-INDEX.md`](./docs/devprotocol/phase3/adr/ADR-INDEX.md) |
 
 ## License
 

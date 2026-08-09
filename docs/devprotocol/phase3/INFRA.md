@@ -17,7 +17,7 @@ workstation running 12 Node processes plus MongoDB and a Redis cluster, started 
 `dev.sh`. No staging, no cloud, no container orchestration, no forge, no pipeline anywhere in this
 tree — every claim below cites a real path or is marked open in §14. Production topology is not
 designed; §14 lists what it would need to decide, it does not decide it (per
-`docs/devprotocol/phase3/CONSTRAINTS.md` §5 — out of scope for Phase 3 to invent shape for anything
+[`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) §5 — out of scope for Phase 3 to invent shape for anything
 undesigned).
 
 ---
@@ -203,7 +203,7 @@ do not assume one script name means the same thing across types.
 "prepare:all": "echo 'read REAMDE' && rm -rf dist && yarn run build:all"
 ```
 `yarn build` (ESM only) is the supported path. `build:all`/`prepare:all` are **broken** — missing
-`tsconfig.cjs.json` — per `docs/workflow.md` §Commands; do not run them expecting a CJS build. After `yarn
+`tsconfig.cjs.json` — per [`docs/workflow.md`](../../workflow.md) §Commands; do not run them expecting a CJS build. After `yarn
 build`, `./deploy-local.sh` globs this workspace and syncs `dist/` + `package.json` into every consumer's
 `node_modules/@axiumine/marketplace-common/` — re-run it after every edit, or all 9 services
 keep resolving the previous build with no error at the call site (§CON-09 in
@@ -217,7 +217,7 @@ keep resolving the previous build with no error at the call site (§CON-09 in
 "migrate:create": "migrate-mongo create"
 ```
 No `dev`/`build`/`start` — this repo ships migrations, not a running process. `yarn test:seed` runs the
-same suites with `SEED_DEMO=true` (2 tests skip without it, per `docs/workflow.md` §Commands).
+same suites with `SEED_DEMO=true` (2 tests skip without it, per [`docs/workflow.md`](../../workflow.md) §Commands).
 
 **Frontends — `marketplace-admin` / `marketplace-shopowner`** (SPA) —
 `marketplace-admin/package.json:16-21`:
@@ -440,7 +440,7 @@ any of these as built.
 **There is none.** State this plainly rather than implying a pipeline exists somewhere unseen.
 
 No forge (no GitHub Actions, no GitLab CI, no Jenkins config) is configured across the 16 repos — no
-CI/CD pipeline exists today, per `docs/workflow.md` §Repo layout and re-stated in `PDR.md` §6 Constraints.
+CI/CD pipeline exists today, per [`docs/workflow.md`](../../workflow.md) §Repo layout and re-stated in `PDR.md` §6 Constraints.
 
 The entire delivery/quality-gate mechanism is **local git hooks**, wired via `core.hooksPath` to
 `.githooks/` in each repo:
@@ -459,7 +459,7 @@ workspace and `marketplace-nginx`**; both must be set by hand
 
 This is an open question, not a gap this document closes — `PDR.md` §8 Open questions and `NFR.md` §4
 both leave "what CI/CD exists" and "where would these repos be pushed" undecided, and
-`docs/devprotocol/phase3/CONSTRAINTS.md` §5 marks "publishing any repo to a forge / choosing an org" as
+[`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) §5 marks "publishing any repo to a forge / choosing an org" as
 explicitly out of scope for Phase 3 — the user's undecided call.
 
 ---
@@ -474,7 +474,7 @@ alone:
 header policies), and one vhost per hostname in `sites-available/` — `marketplace-domain.com`,
 `shopowner.`, `admin.`. It terminates TLS for all three, proxies eleven loopback upstreams, serves both
 SPAs and the SSR app's static output off disk, and rewrites both session cookies to `Secure`.
-`marketplace-nginx/README.md` is the operator
+[`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) is the operator
 document; the four customer-only files this section used to cite,
 `marketplace-user/docs/nginx/*.conf`, are deleted.
 
@@ -589,23 +589,23 @@ stronger of the two, since one of them is keyed on the email address and no edge
 ## 14. Open questions — production topology (not designed)
 
 This section lists decisions a production topology would need. It does not make them. Per
-`docs/devprotocol/phase3/CONSTRAINTS.md` §5, Phase 3 may document and diagram what exists and record why
+[`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) §5, Phase 3 may document and diagram what exists and record why
 it exists; it may not invent shape for anything undesigned. Every row below is a question, not a proposal.
 
 | # | Question | Why it's open |
 |---|---|---|
-| 1 | Where do the 16 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — `docs/workflow.md` §Repo layout, `PDR.md` §4 Out of scope. |
+| 1 | Where do the 16 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
 | 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | No forge today means no pipeline can exist today — sequencing depends on question 1. |
 | 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | §11 — the config exists, is container-tested and is installed nowhere; installing it is out of scope for Phase 3 doc work (`CONSTRAINTS.md` §5). `INTROSPECTION_CODE` is honoured wherever a service port is reachable, so port closure is the security-relevant half. |
 | 4 | ~~Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost?~~ | **Answered** — both do: `marketplace-nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |
 | 5 | What is the production MongoDB topology — single instance, replica set, sharded? | Nothing in this tree specifies beyond "connect via `MONGODB_URI`"; dev topology (§2) is a single unreplicated instance. |
 | 6 | What is the production Redis cluster's node count, placement, and failover story? | Dev topology (§2) is 3 nodes reachable directly by hostname/port; production sizing/placement is unspecified. |
-| 7 | Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`? | `PDR.md` §4 Out of scope marks this a standing gap, not a future-phase item with a date; `CONSTRAINTS.md` §5 marks it out of scope for Phase 3. |
+| 7 | Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`? | `PDR.md` §4 Out of scope marks this a standing gap, not a future-phase item with a date; [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5 marks it out of scope for Phase 3. |
 | 8 | Where do `QODANA_TOKEN`, `MONGODB_URI`, `REDIS_PASSWORD`, `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE` and the other secrets get provisioned outside a developer's local `.env`? | No secrets manager, vault, or provisioning script for production values exists anywhere in this tree — only local `.env` templates and the `mongodb.js` test-user loop (§8). |
 | 9 | Does process supervision (systemd units, pm2, container orchestration) get added for the 9 backend services and 3 frontends themselves? | `services-status` (§9) monitors named systemd units but nothing in this tree defines those units for these 12 processes — it presumes they already exist. |
 | 10 | Is TLS terminated at the nginx in `marketplace-nginx/`, or somewhere else (load balancer, CDN) with nginx behind it? | §13 — no TLS exists in Topology A. `marketplace-nginx/conf.d/40-tls.conf` is the only TLS design on disk and it assumes it is the termination point: it pins TLS 1.2/1.3, staples nothing (Let's Encrypt retired OCSP), and refuses unknown `Host` with `ssl_reject_handshake`. Putting a terminator in front changes the rate-limit keying too — every zone keys on `$binary_remote_addr`, which would become the proxy's. |
 
 **Do not treat any row above as answered by this document.** A future ADR or a Phase-1/2 change-control
-cycle (per `docs/devprotocol/phase3/CONSTRAINTS.md` §6 conflict resolution order) is the place to resolve
+cycle (per [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) §6 conflict resolution order) is the place to resolve
 them, not a Phase 3 infra retrofit.
 

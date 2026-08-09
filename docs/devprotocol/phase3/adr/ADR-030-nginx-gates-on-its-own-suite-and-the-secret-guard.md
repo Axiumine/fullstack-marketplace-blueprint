@@ -28,7 +28,7 @@ That is not the same as the repo being low-risk. It is:
 
 - the **only** place on the platform that sets `Secure` on the session cookie
   (`snippets/proxy-backend.conf`, `proxy_cookie_flags ~ secure httponly samesite=strict;`, closing §3.1
-  🔴 Critical of `docs/report/token-handling-security-audit.md` — koa-utils ships `secure: false` with a
+  🔴 Critical of [`docs/report/token-handling-security-audit.md`](../../../report/token-handling-security-audit.md) — koa-utils ships `secure: false` with a
   comment saying to rewrite it at the edge);
 - the only place the three tiers' login rate-limit budgets are separated at all, since all three logins
   reach the same process on 4028 and only the edge still knows which hostname was asked for;
@@ -49,7 +49,7 @@ Two further constraints shaped the option that was picked:
   histories (ADR-031): a commit or a push inside `marketplace-nginx` is an event in `marketplace-nginx`,
   so ADR-025's answer for `services-status` — gate it from the parent — has nothing to hang on.
 
-Separately, `.claude/SECRETS.md` §3 lists the `pre-commit` secret guard as layer 3 of four: check 0 (a
+Separately, [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) §3 lists the `pre-commit` secret guard as layer 3 of four: check 0 (a
 working-tree env value split across two physical lines, R05b) plus two staged-secret scans. A repo with no
 `pre-commit` is a repo where a staged credential is caught by nothing, and the argument above rules out
 every mechanism that puts one here by default.
@@ -60,9 +60,9 @@ every mechanism that puts one here by default.
 
 | Option | Pros | Cons |
 |---|---|---|
-| A — no hooks; run `test/run.sh` by hand before pushing | Zero setup; the suite is a single command with no arguments | "Documentation of intent, not a running control" is exactly what ADR-017 exists to end; it also leaves the repo outside `.claude/SECRETS.md` layer 3 entirely |
+| A — no hooks; run `test/run.sh` by hand before pushing | Zero setup; the suite is a single command with no arguments | "Documentation of intent, not a running control" is exactly what ADR-017 exists to end; it also leaves the repo outside [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) layer 3 entirely |
 | B — one `pre-commit` and one `pre-push`, both running `test/run.sh` | Symmetric with the other fifteen; the suite runs as early as possible | The suite needs a container engine and an image, and this repo's ordinary commit is one directive in one file — paying a container run per commit is exactly how a hook gets bypassed out of habit, the reasoning ADR-025 already applied to keep mutation push-only |
-| C — `pre-push` runs `test/run.sh`; `pre-commit` runs the secret guard and stops | Each gate is paid where its cost is worth it; the secret guard is cheap and belongs at commit, the container suite is not and belongs at push; `.claude/SECRETS.md` layer 3 becomes exceptionless | Two hooks in one repo doing unrelated jobs, neither shaped like any other repo's; a sixth variant of the secret-guard body to keep in sync |
+| C — `pre-push` runs `test/run.sh`; `pre-commit` runs the secret guard and stops | Each gate is paid where its cost is worth it; the secret guard is cheap and belongs at commit, the container suite is not and belongs at push; [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) layer 3 becomes exceptionless | Two hooks in one repo doing unrelated jobs, neither shaped like any other repo's; a sixth variant of the secret-guard body to keep in sync |
 | D — add a `package.json` purely to get `prepare` and a script chain | `core.hooksPath` would self-arm on `yarn install`, matching the fourteen packages | Invents a JavaScript toolchain to host one line of git config, and makes `yarn install` a prerequisite for editing an nginx conf; it also invites a `lint`/`test` script with nothing behind it, which is the appearance of a gate that ADR-025 spent a whole decision removing |
 | E — gate it from the parent workspace's hooks, as ADR-025 does for `services-status` | Reuses hooks that already exist and are already armed | Structurally impossible: `services-status` has no `.git`, so its changes *are* parent commits. `marketplace-nginx` has its own `.git`, and the parent's gitlink records its SHA rather than its commits, so no parent hook ever fires for a change made here |
 
@@ -94,7 +94,7 @@ and blocking instead keeps a slow or unreachable registry from becoming a failed
 `set -uo pipefail` through the abort block is **verbatim** the one the other fifteen repos carry: check 0
 (working-tree env value split across two lines, R05b), the staged-path scan, the staged-added-lines value
 scan, and the declared-placeholder filter that keeps the committed `env` / `npmrc` templates passing.
-Then `exit 0`. This is the sixth variant in `.claude/SECRETS.md` §3's table, and the only one
+Then `exit 0`. This is the sixth variant in [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) §3's table, and the only one
 distinguished by having **no tail at all** — the other five differ by which of lint / type check /
 coverage / Qodana they go on to run, and this repo can run none of them. With it, layer 3 covers sixteen
 repos of sixteen and has no exception.
@@ -107,7 +107,7 @@ repos of sixteen and has no exception.
 - Every revision that reaches `origin` has had `nginx -t` and 168 behavioural assertions run against it.
   Without the gate nothing would have: there is no nginx on the machine, so the configuration's first
   execution would be on a host where a failed reload is an outage.
-- `.claude/SECRETS.md` layer 3 has no exception. All sixteen repos carry check 0 and both staged scans.
+- [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) layer 3 has no exception. All sixteen repos carry check 0 and both staged scans.
 - Splitting the two gates by cost keeps the ordinary commit here — one directive, one file — as fast as a
   commit with no hook at all, which is the difference between a hook that runs and a hook that gets
   `--no-verify`d out of habit.

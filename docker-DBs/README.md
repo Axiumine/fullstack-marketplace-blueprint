@@ -151,7 +151,7 @@ MONGO_TEST_PWDDBRW=<rwPwd>
 truncated prefix and reads the tail as a variable of its own — silently, in both halves. The
 connection strings above are long enough for an editor to wrap them, which is exactly how ten
 `KEYGRIP_KEY_*` values were found broken. `.githooks/pre-commit` check 0 blocks a commit in a repo
-whose `.env` has that shape; the background is `docs/workflow.md` §Environment files.
+whose `.env` has that shape; the background is [`docs/workflow.md`](../docs/workflow.md) §Environment files.
 
 ### CSFLE
 

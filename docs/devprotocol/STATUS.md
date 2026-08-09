@@ -8,7 +8,7 @@
 
 *Updated: 2026-08-07*
 
-Read this file first (RULES.md §12), then `phase1/PDR.md`, then `phase2/UBIQUITOUS_LANGUAGE.md`. Nothing else until you need it.
+Read this file first (RULES.md §12), then [`phase1/PDR.md`](./phase1/PDR.md), then [`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md). Nothing else until you need it.
 
 ---
 
@@ -16,11 +16,11 @@ Read this file first (RULES.md §12), then `phase1/PDR.md`, then `phase2/UBIQUIT
 
 | Phase | Status | Gate | Conflict report | Artefacts |
 |---|---|---|---|---|
-| Phase 1 — Discovery | ✅ Complete | closed, no checker run | none — see §7 | `phase1/PDR.md`, `phase1/SYSTEM_CONTEXT.md`, `phase1/NFR.md` |
-| Phase 2 — Domain Modelling | ✅ Complete | closed, no checker run | none — see §7 | `phase2/EVENT_STORMING.md`, `phase2/UBIQUITOUS_LANGUAGE.md`, `phase2/BOUNDED_CONTEXT.md` |
-| Phase 3 — Architecture | ✅ Complete | **pass** | `phase3/CONFLICT_REPORT.md` v1.1 | `phase3/C4_CONTEXT.md`, `phase3/C4_CONTAINER.md`, `phase3/adr/` (29 ADRs + index + template), `phase3/SECURITY_AUTH.md`, `phase3/INFRA.md` |
-| Phase 4 — Design | ✅ Complete | **pass** | `phase4/CONFLICT_REPORT.md` v1.1 | `phase4/DDD_AGGREGATES.md`, `phase4/ERD.md`, `phase4/API_CONTRACTS.md`, `phase4/ERROR_HANDLING.md` |
-| Phase 5 — Behaviour | ✅ Complete | **pass** | `phase5/CONFLICT_REPORT.md` v1.2 | `phase5/SEQUENCE_DIAGRAMS.md`, `phase5/EPICS_STORIES.md`, `phase5/epics/E01..E11.md`, `phase5/RISK_REGISTER.md`, `phase5/DEFINITION_OF_DONE.md` |
+| Phase 1 — Discovery | ✅ Complete | closed, no checker run | none — see §7 | [`phase1/PDR.md`](./phase1/PDR.md), [`phase1/SYSTEM_CONTEXT.md`](./phase1/SYSTEM_CONTEXT.md), [`phase1/NFR.md`](./phase1/NFR.md) |
+| Phase 2 — Domain Modelling | ✅ Complete | closed, no checker run | none — see §7 | [`phase2/EVENT_STORMING.md`](./phase2/EVENT_STORMING.md), [`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md), [`phase2/BOUNDED_CONTEXT.md`](./phase2/BOUNDED_CONTEXT.md) |
+| Phase 3 — Architecture | ✅ Complete | **pass** | [`phase3/CONFLICT_REPORT.md`](./phase3/CONFLICT_REPORT.md) v1.1 | [`phase3/C4_CONTEXT.md`](./phase3/C4_CONTEXT.md), [`phase3/C4_CONTAINER.md`](./phase3/C4_CONTAINER.md), `phase3/adr/` (29 ADRs + index + template), [`phase3/SECURITY_AUTH.md`](./phase3/SECURITY_AUTH.md), [`phase3/INFRA.md`](./phase3/INFRA.md) |
+| Phase 4 — Design | ✅ Complete | **pass** | [`phase4/CONFLICT_REPORT.md`](./phase4/CONFLICT_REPORT.md) v1.1 | [`phase4/DDD_AGGREGATES.md`](./phase4/DDD_AGGREGATES.md), [`phase4/ERD.md`](./phase4/ERD.md), [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md), [`phase4/ERROR_HANDLING.md`](./phase4/ERROR_HANDLING.md) |
+| Phase 5 — Behaviour | ✅ Complete | **pass** | [`phase5/CONFLICT_REPORT.md`](./phase5/CONFLICT_REPORT.md) v1.2 | [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md), [`phase5/EPICS_STORIES.md`](./phase5/EPICS_STORIES.md), `phase5/epics/E01..E11.md`, [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md), [`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) |
 | Phase 6 — Code | ⬜ Open | — | — | pre-code phases are the gate; see §9 |
 
 **Pre-flight:** not run — no `PREFLIGHT_REPORT.md` exists, and that is deliberate. See §7.
@@ -47,9 +47,9 @@ Injected into every parallel agent of the phase that owns them.
 
 | Phase | Document | Ids |
 |---|---|---|
-| Phase 3 | `phase3/CONSTRAINTS.md` | CON-01..CON-11 |
-| Phase 4 | `phase4/CONSTRAINTS.md` | DCON-01..DCON-09 |
-| Phase 5 | `phase5/CONSTRAINTS.md` | BCON-01..BCON-09 |
+| Phase 3 | [`phase3/CONSTRAINTS.md`](./phase3/CONSTRAINTS.md) | CON-01..CON-11 |
+| Phase 4 | [`phase4/CONSTRAINTS.md`](./phase4/CONSTRAINTS.md) | DCON-01..DCON-09 |
+| Phase 5 | [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) | BCON-01..BCON-09 |
 
 Phases 1 and 2 carry none — see §7.
 
@@ -61,33 +61,33 @@ All attempts `1`. **0 retries, 0 errors, 0 empty results across every phase.**
 
 | Agent | Phase | Artefact | Lines | Attempt |
 |---|---|---|---|---|
-| `pdr-agent` | 1 | `phase1/PDR.md` | 195 | 1 |
-| `system-context-agent` | 1 | `phase1/SYSTEM_CONTEXT.md` | 468 | 1 |
-| `nfr-agent` | 1 | `phase1/NFR.md` | 164 | 1 |
-| `event-storming-agent` | 2 | `phase2/EVENT_STORMING.md` | 371 | 1 |
-| `ubiquitous-language-agent` | 2 | `phase2/UBIQUITOUS_LANGUAGE.md` | 673 | 1 |
-| `bounded-context-agent` | 2 | `phase2/BOUNDED_CONTEXT.md` | 332 | 1 |
-| `brainy-agent` | 3 | `phase3/CONSTRAINTS.md` | 102 | 1 |
-| `c4-agent` | 3 | `phase3/C4_CONTEXT.md` | 136 | 1 |
-| `c4-agent` | 3 | `phase3/C4_CONTAINER.md` | 320 | 1 |
+| `pdr-agent` | 1 | [`phase1/PDR.md`](./phase1/PDR.md) | 195 | 1 |
+| `system-context-agent` | 1 | [`phase1/SYSTEM_CONTEXT.md`](./phase1/SYSTEM_CONTEXT.md) | 468 | 1 |
+| `nfr-agent` | 1 | [`phase1/NFR.md`](./phase1/NFR.md) | 164 | 1 |
+| `event-storming-agent` | 2 | [`phase2/EVENT_STORMING.md`](./phase2/EVENT_STORMING.md) | 371 | 1 |
+| `ubiquitous-language-agent` | 2 | [`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md) | 673 | 1 |
+| `bounded-context-agent` | 2 | [`phase2/BOUNDED_CONTEXT.md`](./phase2/BOUNDED_CONTEXT.md) | 332 | 1 |
+| `brainy-agent` | 3 | [`phase3/CONSTRAINTS.md`](./phase3/CONSTRAINTS.md) | 102 | 1 |
+| `c4-agent` | 3 | [`phase3/C4_CONTEXT.md`](./phase3/C4_CONTEXT.md) | 136 | 1 |
+| `c4-agent` | 3 | [`phase3/C4_CONTAINER.md`](./phase3/C4_CONTAINER.md) | 320 | 1 |
 | `adr-agent` ×28 | 3 | `phase3/adr/ADR-001..028` | 3120 | 1 |
-| `adr-agent` | 3 | `phase3/adr/ADR-INDEX.md` | 87 | 1 |
-| `security-agent` | 3 | `phase3/SECURITY_AUTH.md` | 392 | 1 |
-| `infra-agent` | 3 | `phase3/INFRA.md` | 571 | 1 |
-| `conflict-checker-agent` | 3 | `phase3/CONFLICT_REPORT.md` | 62 | 1 |
-| `brainy-agent` | 4 | `phase4/CONSTRAINTS.md` | 127 | 1 |
-| `ddd-agent` | 4 | `phase4/DDD_AGGREGATES.md` | 407 | 1 |
-| `erd-agent` | 4 | `phase4/ERD.md` | 456 | 1 |
-| `api-contracts-agent` | 4 | `phase4/API_CONTRACTS.md` | 519 | 1 |
-| `error-handling-agent` | 4 | `phase4/ERROR_HANDLING.md` | 521 | 1 |
-| `conflict-checker-agent` | 4 | `phase4/CONFLICT_REPORT.md` | 70 | 1 |
-| `brainy-agent` | 5 | `phase5/CONSTRAINTS.md` | 120 | 1 |
-| `sequence-agent` | 5 | `phase5/SEQUENCE_DIAGRAMS.md` | 566 | 1 |
-| `epics-agent` | 5 | `phase5/EPICS_STORIES.md` | 115 | 1 |
+| `adr-agent` | 3 | [`phase3/adr/ADR-INDEX.md`](./phase3/adr/ADR-INDEX.md) | 87 | 1 |
+| `security-agent` | 3 | [`phase3/SECURITY_AUTH.md`](./phase3/SECURITY_AUTH.md) | 392 | 1 |
+| `infra-agent` | 3 | [`phase3/INFRA.md`](./phase3/INFRA.md) | 571 | 1 |
+| `conflict-checker-agent` | 3 | [`phase3/CONFLICT_REPORT.md`](./phase3/CONFLICT_REPORT.md) | 62 | 1 |
+| `brainy-agent` | 4 | [`phase4/CONSTRAINTS.md`](./phase4/CONSTRAINTS.md) | 127 | 1 |
+| `ddd-agent` | 4 | [`phase4/DDD_AGGREGATES.md`](./phase4/DDD_AGGREGATES.md) | 407 | 1 |
+| `erd-agent` | 4 | [`phase4/ERD.md`](./phase4/ERD.md) | 456 | 1 |
+| `api-contracts-agent` | 4 | [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md) | 519 | 1 |
+| `error-handling-agent` | 4 | [`phase4/ERROR_HANDLING.md`](./phase4/ERROR_HANDLING.md) | 521 | 1 |
+| `conflict-checker-agent` | 4 | [`phase4/CONFLICT_REPORT.md`](./phase4/CONFLICT_REPORT.md) | 70 | 1 |
+| `brainy-agent` | 5 | [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) | 120 | 1 |
+| `sequence-agent` | 5 | [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md) | 566 | 1 |
+| `epics-agent` | 5 | [`phase5/EPICS_STORIES.md`](./phase5/EPICS_STORIES.md) | 115 | 1 |
 | `epics-agent` ×4 | 5 | `phase5/epics/E01..E11.md` | 1618 | 1 |
-| `risk-agent` | 5 | `phase5/RISK_REGISTER.md` | 141 | 1 |
-| `dod-agent` | 5 | `phase5/DEFINITION_OF_DONE.md` | 250 | 1 |
-| `conflict-checker-agent` | 5 | `phase5/CONFLICT_REPORT.md` | 107 | 1 |
+| `risk-agent` | 5 | [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md) | 141 | 1 |
+| `dod-agent` | 5 | [`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) | 250 | 1 |
+| `conflict-checker-agent` | 5 | [`phase5/CONFLICT_REPORT.md`](./phase5/CONFLICT_REPORT.md) | 107 | 1 |
 
 Epic ids were **hard-coded in the Phase 5 run script** (`E01`↔`BC-01` … `E11`↔`BC-11`), so the index agent and the four file agents could not disagree on a mapping. That is the fix for a class of drift, not a convenience.
 
@@ -117,12 +117,12 @@ These documents describe the working tree **as of 2026-08-07**. They go stale on
 
 | Change on disk | Stales |
 |---|---|
-| New collection, or a `$jsonSchema` edit under `BEs/marketplace-db-setup/lib/schemas/` | `phase4/ERD.md`, `phase4/DDD_AGGREGATES.md`, the migration section of `phase3/INFRA.md` |
-| New or changed resolver | `phase4/API_CONTRACTS.md`, `phase5/SEQUENCE_DIAGRAMS.md` |
-| New service, or a port change | `phase3/C4_CONTAINER.md`, `phase3/INFRA.md`, `phase4/API_CONTRACTS.md` |
-| Any auth-middleware edit | `phase3/SECURITY_AUTH.md`, `phase5/RISK_REGISTER.md` R01-R04, `E01` |
+| New collection, or a `$jsonSchema` edit under `BEs/marketplace-db-setup/lib/schemas/` | [`phase4/ERD.md`](./phase4/ERD.md), [`phase4/DDD_AGGREGATES.md`](./phase4/DDD_AGGREGATES.md), the migration section of [`phase3/INFRA.md`](./phase3/INFRA.md) |
+| New or changed resolver | [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md), [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md) |
+| New service, or a port change | [`phase3/C4_CONTAINER.md`](./phase3/C4_CONTAINER.md), [`phase3/INFRA.md`](./phase3/INFRA.md), [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md) |
+| Any auth-middleware edit | [`phase3/SECURITY_AUTH.md`](./phase3/SECURITY_AUTH.md), [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md) R01-R04, `E01` |
 | A decision reversed | a **superseding** ADR — never an edit to an accepted one (RULES.md §10) |
-| The first commerce collection (cart/order) | `E11`, `phase5/CONSTRAINTS.md` §6, and every "out of scope" claim in phases 3-5 |
+| The first commerce collection (cart/order) | `E11`, [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) §6, and every "out of scope" claim in phases 3-5 |
 
 ---
 
@@ -149,7 +149,7 @@ Phases 1-5 are the pre-code protocol; Phase 6 is code. The entry condition is me
 
 Two things bind any code written from here:
 
-1. **`phase5/DEFINITION_OF_DONE.md` is the exit criterion for every story**, not a suggestion. It restates the platform's real gates — 100% coverage on all four metrics and a 100 mutation score, `lint:check`, `tsc --noEmit` and Qodana, in `.githooks/pre-commit` and `.githooks/pre-push`. Never lower a threshold; add the test.
-2. **`phase2/UBIQUITOUS_LANGUAGE.md` §19 is the banned-term list.** Any non-English identifier or string, every product-type term the domain-neutral catalogue must not reintroduce, and the four commerce concepts that have no design yet. Check a name against it before writing it.
+1. **[`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) is the exit criterion for every story**, not a suggestion. It restates the platform's real gates — 100% coverage on all four metrics and a 100 mutation score, `lint:check`, `tsc --noEmit` and Qodana, in `.githooks/pre-commit` and `.githooks/pre-push`. Never lower a threshold; add the test.
+2. **[`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md) §19 is the banned-term list.** Any non-English identifier or string, every product-type term the domain-neutral catalogue must not reintroduce, and the four commerce concepts that have no design yet. Check a name against it before writing it.
 
 Ordering, cart, delivery and payment (`E11`) are **genuinely new design with no existing model to copy**. They do not enter Phase 6 by inference from these documents — they need their own ADRs first.

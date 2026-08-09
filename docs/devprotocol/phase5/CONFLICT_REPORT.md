@@ -5,7 +5,7 @@
 **Version:** 1.2
 **Date:** 2026-08-07
 **Author:** conflict-checker-agent
-**Changelog:** v1.2 — two of this report's own counts corrected against disk: §7 said "5 full diagrams" where `SEQUENCE_DIAGRAMS.md` §3-§9 holds 7 (7 ```mermaid blocks), and §10 said "91 stories" where the 11 epic files hold 77 unique `ENN-SNN` ids. Verdict unchanged.
+**Changelog:** v1.2 — two of this report's own counts corrected against disk: §7 said "5 full diagrams" where [`SEQUENCE_DIAGRAMS.md`](./SEQUENCE_DIAGRAMS.md) §3-§9 holds 7 (7 ```mermaid blocks), and §10 said "91 stories" where the 11 epic files hold 77 unique `ENN-SNN` ids. Verdict unchanged.
 v1.1 — C01, C02 and the NFR-SE03 traceability gap all fixed at source; verdict raised from *pass with warnings* to *pass*.
 v1.0 — initial Phase 5 conflict sweep
 
@@ -33,7 +33,7 @@ Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only �
 
 | ID | Severity | Status | Documents | Contradiction | Resolution |
 |---|---|---|---|---|---|
-| C01 | warning | **fixed** | SEQUENCE_DIAGRAMS.md (internal) | §1 Purpose says the commerce out-of-scope table is "(§9)"; the actual out-of-scope section is numbered §10 (§9 is "Sequence diagram 7 — item publish/unpublish"). Applied: `SEQUENCE_DIAGRAMS.md:22` now reads "(§10)". |
+| C01 | warning | **fixed** | SEQUENCE_DIAGRAMS.md (internal) | §1 Purpose says the commerce out-of-scope table is "(§9)"; the actual out-of-scope section is numbered §10 (§9 is "Sequence diagram 7 — item publish/unpublish"). Applied: [`SEQUENCE_DIAGRAMS.md:22`](./SEQUENCE_DIAGRAMS.md#L22) now reads "(§10)". |
 | C02 | warning | **fixed** | CONSTRAINTS.md §5 vs EPICS_STORIES.md §3 / actual story IDs | CONSTRAINTS.md §5 documents the story-id format as `BC-0N-01`, `BC-0N-02`; every actual story everywhere uses `ENN-SNN` (`E01-S01` etc, confirmed sequential, no gaps, no dupes in all 11 epics). CONSTRAINTS.md itself is never violated in practice — only its own stated naming convention disagrees with what the other 7 agents actually wrote. Applied: `CONSTRAINTS.md:78` now states `ENN-SNN` (`E01-S01`, `E01-S02`, …) and says explicitly that the prefix is the **epic** id, not the bounded-context id it maps to — which is where the wrong spelling came from. No story was renamed; none was wrong. |
 
 No blocking conflict found: no incompatible fact pair, no contradicted baseline decision, no missing epic, no orphaned Critical NFR (see §6d).
@@ -78,7 +78,7 @@ None. Grepped `price`, `cart`, `order`, `delivery`, `payment` across all 17 file
 
 **NFR-SE03 ("Access token must be validated as `Authorization: Bearer access:<token>` against Redis on every resource-service call") appeared as an acceptance criterion in zero stories** — the one orphan of the 17 Critical NFRs, and the one CONSTRAINTS.md §5 explicitly warned to cross-check for. It was never a functional gap: E01-S04 and every `assertTier` call site assume the Bearer lookup already happened, and SE01/SE02/SE05/SE06 cover the behaviour end to end. It was an uncited traceability line.
 
-**Fixed.** `epics/E01.md` §E01-S04 gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
+**Fixed.** [`epics/E01.md`](./epics/E01.md) §E01-S04 gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
 
 **All 17 Critical NFRs now land on at least one story.**
 

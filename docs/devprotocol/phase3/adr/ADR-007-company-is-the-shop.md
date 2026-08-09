@@ -26,7 +26,7 @@ statement about collections, not about fields.
 
 The same question decides what a *shop* is on this platform. Given a `company` collection that already
 carries the legal record, a separate shop entity would be a second document per shop holding a name, a
-URL and a description — and nothing else that `company` cannot hold. Per `CLAUDE.md` §Terminology and
+URL and a description — and nothing else that `company` cannot hold. Per [`CLAUDE.md`](../../../../CLAUDE.md) §Terminology and
 `CONSTRAINTS.md` CON-02, **a shop is a company**: the storefront-facing fields (`publicName`, `slug`,
 `description`, `published`) live on `company` itself.
 

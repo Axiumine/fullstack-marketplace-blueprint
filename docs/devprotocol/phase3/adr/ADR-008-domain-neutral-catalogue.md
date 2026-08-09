@@ -17,7 +17,7 @@ collection, with its own migration, mongoose model, resolver set and test file. 
 then means a new collection top to bottom, and the collections differ in their *category*, not in their
 shape.
 
-Platform target is a domain-neutral marketplace — "not tied to any one product domain" per `CLAUDE.md`
+Platform target is a domain-neutral marketplace — "not tied to any one product domain" per [`CLAUDE.md`](../../../../CLAUDE.md)
 §Two naming rules, restated twice. Forces: the catalogue has to (1) let a shop sell anything without a
 schema migration per product type, (2) keep category/subcategory browse, (3) not smuggle
 domain-specific vocabulary back in — CON-11/vocab-lock bans it — and (4) not invent commerce fields
@@ -32,7 +32,7 @@ domain-specific vocabulary back in — CON-11/vocab-lock bans it — and (4) not
 | Keep per-type collections, one collection per product type (previous approach, extended) | No migration risk on existing data; matches an already-built per-type mental model | Every new product type = new collection + migration + model + resolver + test, forever; base shape stays domain-shaped; does not solve "domain-neutral" — bakes the assumption deeper |
 | One generic `item` collection, flat, no category at all | Simplest possible write path; one model, one resolver set | No browse/filter axis — public catalogue page becomes one long unstructured list; loses the category browse UX the platform needs; punts a real requirement instead of solving it |
 | One generic `item` collection + separate `itemCategory` two-level self-referencing tree, `item.idCategory` FK (chosen) | New product type = new `idCategory` value, no migration in the common case; category browse preserved and generalized past any single product type; depth cap enforced in resolver keeps the tree from becoming an unbounded taxonomy nobody asked for | Genuinely new product *type* (not just new category) still needs a real new collection — this doesn't eliminate the extension seam, it narrows how often it's hit; two-level cap is a resolver-level guard, not database-enforced (`$jsonSchema` cannot read a parent document) |
-| Generic `item` with a free-form `type` string field instead of `itemCategory` collection | No second collection, no self-FK, no depth-cap logic | `type` as arbitrary string is exactly the shape `CLAUDE.md` bans elsewhere for role (`no role field, no permission enum, ever` — CON-01) applied to a sibling problem: uncontrolled strings drift, can't be edited/renamed/reordered by an Admin, no `position` for menu ordering, no tree for subcategories |
+| Generic `item` with a free-form `type` string field instead of `itemCategory` collection | No second collection, no self-FK, no depth-cap logic | `type` as arbitrary string is exactly the shape [`CLAUDE.md`](../../../../CLAUDE.md) bans elsewhere for role (`no role field, no permission enum, ever` — CON-01) applied to a sibling problem: uncontrolled strings drift, can't be edited/renamed/reordered by an Admin, no `position` for menu ordering, no tree for subcategories |
 
 ---
 
@@ -69,7 +69,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
   under `itemCategory`, not a migration — usually an item with a different idCategory, not a new
   collection.
 - One resolver set (`itemAdd.mts`, `itemUpdate.mts` in ShopOwner resource service, per
-  `docs/architecture.md` §Resolver layout) replaces what would otherwise be a near-duplicate
+  [`docs/architecture.md`](../../../architecture.md) §Resolver layout) replaces what would otherwise be a near-duplicate
   `*Add.mts`/`*Update.mts` pair per product type.
 - One `$jsonSchema` validator (`lib/schemas/item.js`) replaces what would otherwise be one near-identical
   validator per product type, removing the `DuplicatedCode` Qodana finding class repeated per-type
@@ -79,7 +79,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
 
 ### Negative
 - A genuinely new product *type* — not just a new category — is not free. It still needs its own
-  collection, migration, model and resolvers per `docs/data-model.md`'s closing paragraph: "check
+  collection, migration, model and resolvers per [`docs/data-model.md`](../../../data-model.md)'s closing paragraph: "check
   first whether it is genuinely a new type or just an item with a different idCategory." The ADR narrows
   the seam, it does not remove it.
 - Depth cap on `itemCategory` (max 2 levels) is enforced only in the Admin resolver

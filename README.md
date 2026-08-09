@@ -8,15 +8,15 @@ comments.
 This directory is the parent workspace of all Marketplace repos (polyrepo, sixteen of them), published at
 <https://github.com/Axiumine/fullstack-marketplace-blueprint>. Since ADR-031 it tracks the fifteen
 sub-repos as submodules with relative URLs, so `git clone --recurse-submodules` rebuilds the whole
-workspace over whichever transport you clone with — see `docs/workflow.md` §Cloning the workspace, which
+workspace over whichever transport you clone with — see [`docs/workflow.md`](./docs/workflow.md) §Cloning the workspace, which
 also covers the detached-HEAD trap that follows every `git submodule update`, and what is not yet pushed.
 **Running it for the first time: [`SETUP.md`](./SETUP.md)** — prerequisites, the database cluster, the
 CSFLE key, the shared secrets, migrations and demo data, the nine services, the three frontends, nginx.
 
-Start from `CLAUDE.md`; it
-routes to `docs/architecture.md`, `docs/data-model.md`, `docs/frontends.md`, `docs/testing.md`,
-`docs/workflow.md`, `docs/conventions.md` and `docs/gitnexus.md`, and to
-`docs/devprotocol/phase3/adr/ADR-INDEX.md` for the rationale behind every decision below.
+Start from [`CLAUDE.md`](./CLAUDE.md); it
+routes to [`docs/architecture.md`](./docs/architecture.md), [`docs/data-model.md`](./docs/data-model.md), [`docs/frontends.md`](./docs/frontends.md), [`docs/testing.md`](./docs/testing.md),
+[`docs/workflow.md`](./docs/workflow.md), [`docs/conventions.md`](./docs/conventions.md) and [`docs/gitnexus.md`](./docs/gitnexus.md), and to
+[`docs/devprotocol/phase3/adr/ADR-INDEX.md`](./docs/devprotocol/phase3/adr/ADR-INDEX.md) for the rationale behind every decision below.
 
 **This file is the gate policy** — which layer blocks what, and what the mutation rollout found.
 
@@ -44,7 +44,7 @@ The **Port** column is reproducible: `grep -m1 '^PORT=' <repo>/env` in each serv
 number above.
 
 ⚠️ The services do **not** bind `127.0.0.1` — they bind every interface (`::`), on purpose; see
-`docs/architecture.md`, *Ports and binding*.
+[`docs/architecture.md`](./docs/architecture.md), *Ports and binding*.
 
 Support packages (not servers):
 

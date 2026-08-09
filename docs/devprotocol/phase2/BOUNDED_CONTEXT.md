@@ -6,7 +6,7 @@
 **Date:** 2026-08-07
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
-**Depends on:** PDR.md ✅ `docs/devprotocol/phase1/PDR.md` · EVENT_STORMING.md ✅ `docs/devprotocol/phase2/EVENT_STORMING.md` · UBIQUITOUS_LANGUAGE.md ✅ `docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`
+**Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
 **Mutability:** requires team sign-off to modify - splitting or merging contexts is a major refactor
 
 ---
@@ -284,7 +284,7 @@ Solid arrows carry a real GraphQL command or FK read at runtime. Dashed arrows a
 
 ## 5. Shared kernel
 
-Terms and shapes multiple contexts use identically, with zero translation at the boundary - every one defined once in code and imported, never re-typed per context. All defined fully in `UBIQUITOUS_LANGUAGE.md`.
+Terms and shapes multiple contexts use identically, with zero translation at the boundary - every one defined once in code and imported, never re-typed per context. All defined fully in [`UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md).
 
 | Shared term | Defined in | Shared by (contexts) | UL section |
 |---|---|---|---|
@@ -299,7 +299,7 @@ Terms and shapes multiple contexts use identically, with zero translation at the
 | `OnlyIdType` return convention on ShopOwner-tier creates | `BEs/dev/marketplace-dev-authenticated-resource/.../companyAdd.mts:1,27` | BC-04, BC-05 (ShopOwner tier only - Admin tier returns plain `Boolean` for the same mutations) | §14 |
 | Mongoose models (`Company`, `Item`, `ItemCategory`, `ShopOwner`, `User`, `Admin`) | `BEs/marketplace-common` | BC-01, BC-03, BC-04, BC-05, BC-06, BC-07, BC-08 | §13 (`deploy-local.sh`) |
 
-Two field names deliberately mean **different things** in different contexts and must never be conflated across this shared vocabulary - `position` is GeoJSON coordinates on `company.address`/`user.addresses[]` (BC-04, BC-07) but a plain sort-order integer on `itemCategory` (BC-06); `UBIQUITOUS_LANGUAGE.md` §8 and §10 both carry an explicit "Not to be confused with" cross-reference for this reason.
+Two field names deliberately mean **different things** in different contexts and must never be conflated across this shared vocabulary - `position` is GeoJSON coordinates on `company.address`/`user.addresses[]` (BC-04, BC-07) but a plain sort-order integer on `itemCategory` (BC-06); [`UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md) §8 and §10 both carry an explicit "Not to be confused with" cross-reference for this reason.
 
 ---
 
@@ -313,7 +313,7 @@ Two field names deliberately mean **different things** in different contexts and
 | BC-07 Customer Account writing `user.personalData`/`addresses`, BC-01 reading `user.login`/`emailVerify` | Same gap as above, on the `user` collection | Same - `BEs/marketplace-db-setup/lib/schemas/user.js` is the only shared discipline |
 | BC-10 Shared Kernel package boundary | An edit to `marketplace-common` is invisible to every consumer until synced - the package is not on any registry (`@axiumine/marketplace-common` 404s on `registry.npmjs.org`) | `BEs/marketplace-common/deploy-local.sh` (must be re-run after every edit), `yarn test:contract` (verifies the `exports` map against actual files) |
 | BC-08's SSR half (`/`, public routes) vs `/account/*` on `marketplace-user` | Rendering authenticated HTML behind a shared `proxy_cache` could serve one customer's data to the next visitor | Two halves of one mechanism: `/account/*` is `ssr: false` (never rendered server-side) and the cache bypasses on the session cookie - weakening either alone is enough to leak |
-| BC-11 Ordering & Fulfilment [PLANNED] against everything else | None yet - the risk of designing an ACL prematurely, before the aggregate exists, is why `item` still has no price field | `CLAUDE.md` §Build state: "ask before inventing them" - the protection here is refusing to build the boundary until the context itself is designed |
+| BC-11 Ordering & Fulfilment [PLANNED] against everything else | None yet - the risk of designing an ACL prematurely, before the aggregate exists, is why `item` still has no price field | [`CLAUDE.md`](../../../CLAUDE.md) §Build state: "ask before inventing them" - the protection here is refusing to build the boundary until the context itself is designed |
 
 ---
 

@@ -32,7 +32,7 @@ Two on-disk failure classes made the gap concrete rather than theoretical:
   report rather than listed at 0% — so a 100% threshold can pass while a whole file goes unexercised.
   Checking the percentage alone hides this; checking the file list in the coverage report does not.
 
-Constraint from `docs/devprotocol/phase3/CONSTRAINTS.md` CON-08: 100/100 applies to every package that
+Constraint from [`docs/devprotocol/phase3/CONSTRAINTS.md`](../CONSTRAINTS.md) CON-08: 100/100 applies to every package that
 ships code, threshold reduction and gate removal are both explicitly forbidden, and `phase1/NFR.md` marks
 the maintainability requirements behind this (NFR-MA01/MA02/MA05) 🔴 Critical, requiring full team sign-off
 to touch.
@@ -46,7 +46,7 @@ to touch.
 | Coverage-only gate (status quo before this decision) | Cheap to run, already wired in all 15 packages, fast feedback | Proven blind to real bugs — `marketplace-common` and `marketplace-db-setup` both sat at 100% coverage while entire classes of logic (schema builders, several guard branches) could be silently inverted and no test would notice |
 | Mutation gate with a threshold below 100 (e.g. `break: 90`) | Tolerates equivalent/near-equivalent mutants without per-case suppression comments, less friction on large diffs | A threshold under 100 is a standing exception with no owner — CON-08 forbids it outright, and every survivor left under the line is an untested behavior nobody has to name or justify |
 | Coverage 100% + mutation 100%, enforced four times over (vitest `thresholds`, `qodana.yaml` `testCoverageThresholds`, `test:cov` in both `.githooks/pre-commit` and `pre-push`, `stryker.config.mjs` `thresholds.break: 100` as the second `pre-push` step) — **chosen** | Closes the exact gap the 45.95%/52.92% numbers exposed; every survivor is either killed by a new test, a dead branch deleted, or a documented `// Stryker disable next-line <Mutator>: <reason>` — never a silent pass | Slower CI, forces two load-bearing test-authoring patterns (`evictLib`-style module eviction for top-level consts, checking the coverage file list rather than only its percentage) that are easy to get wrong on a first pass |
-| `ignoreStatic` on Stryker config to silence hard-to-kill survivors | Fastest path to a green mutation report | Masks real gaps rather than closing them — `docs/testing.md` §Mutation testing traps names this explicitly as the wrong fix, because the survivor it appears to clear is usually a load-time mutant needing a dynamic `await import()` inside `beforeEach`, not a static exemption |
+| `ignoreStatic` on Stryker config to silence hard-to-kill survivors | Fastest path to a green mutation report | Masks real gaps rather than closing them — [`docs/testing.md`](../../../testing.md) §Mutation testing traps names this explicitly as the wrong fix, because the survivor it appears to clear is usually a load-time mutant needing a dynamic `await import()` inside `beforeEach`, not a static exemption |
 
 ---
 
@@ -87,7 +87,7 @@ now house convention rather than a one-off discovery.
 - `services-status` is the standing illustration of a gate that exists on paper: it carries
   `stryker.config.mjs` and a 100% threshold, and it has no `.githooks/` of its own to invoke either —
   a config with no runner is an appearance of a gate rather than a gate, which is why its steps live in
-  the parent's hooks instead (ADR-025, `docs/frontends.md` §services-status).
+  the parent's hooks instead (ADR-025, [`docs/frontends.md`](../../../frontends.md) §services-status).
 
 ### Risks
 - **Equivalent-mutant creep.** A contributor under deadline pressure reaches for `ignoreStatic` or a
@@ -96,7 +96,7 @@ now house convention rather than a one-off discovery.
   names this exact failure mode.
 - **Hooks silently not firing.** The gate depends on `core.hooksPath` being set locally; it is not global
   git config and does not travel with a clone, so a fresh clone of any of the 15 gated repos starts
-  ungated until `git config core.hooksPath .githooks` runs there (ADR-017, `docs/workflow.md` §Git hooks).
+  ungated until `git config core.hooksPath .githooks` runs there (ADR-017, [`docs/workflow.md`](../../../workflow.md) §Git hooks).
   `git hook run pre-commit` is what proves it is wired. Revisit trigger: a merge lands on `main` with a
   coverage or mutation regression that no hook caught.
 - **A gate with no invoking mechanism reads identically to a passing one from outside**, exactly the

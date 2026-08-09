@@ -112,4 +112,4 @@ Every mandatory Phase 1-4 document has at least one implementing epic.
 No story anywhere under `epics/` designs order, cart, delivery, or payment. E11 records the BC-11 gap and
 its blocking open questions from `phase2/BOUNDED_CONTEXT.md` BC-11 - never a schema, a resolver signature,
 a field, or a checkout sequence diagram. A risk-register row naming the gap is in scope for a sibling
-Phase 5 doc; a story designing the fix is not in scope for `epics/E11.md`.
+Phase 5 doc; a story designing the fix is not in scope for [`epics/E11.md`](./epics/E11.md).

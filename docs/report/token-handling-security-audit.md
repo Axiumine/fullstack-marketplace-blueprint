@@ -9,9 +9,9 @@ authorization and the unbuilt Order/Cart/Delivery/Payment surface are out of sco
 **Method:** static audit. Six independent security lenses over `docs/devprotocol/**`, each finding then
 adversarially refuted by a separate reviewer against the cited source; 25 of 26 findings survived
 refutation. Every finding marked ✅ below was re-verified by hand at the cited source before publication.
-**Reads against:** `docs/devprotocol/phase1/NFR.md` · `phase3/SECURITY_AUTH.md` ·
+**Reads against:** [`docs/devprotocol/phase1/NFR.md`](../devprotocol/phase1/NFR.md) · `phase3/SECURITY_AUTH.md` ·
 `phase3/adr/ADR-003`, `ADR-004`, `ADR-005`, `ADR-018`, `ADR-021` · `phase4/API_CONTRACTS.md` ·
-`phase5/SEQUENCE_DIAGRAMS.md` · `phase5/RISK_REGISTER.md` · `docs/architecture.md` §Auth model
+`phase5/SEQUENCE_DIAGRAMS.md` · `phase5/RISK_REGISTER.md` · [`docs/architecture.md`](../architecture.md) §Auth model
 
 ---
 
@@ -92,7 +92,7 @@ SameSite=Strict`.
 `/etc/nginx`, no nginx binary in this workspace — so the flag is set by a file nothing is currently
 serving. It is also now the single point of failure this audit warned about from the other direction:
 `koa-utils` still ships `secure: false`, so any deployment that serves an authorization endpoint without
-that snippet in front of it puts a session cookie on the wire in cleartext. `marketplace-nginx/README.md` §Verifying a
+that snippet in front of it puts a session cookie on the wire in cleartext. [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) §Verifying a
 live deployment carries the `curl` that checks it on a real host.
 
 Why this outranks everything else: Keygrip's constant-time signature stops an attacker who wants to

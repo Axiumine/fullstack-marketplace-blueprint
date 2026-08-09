@@ -47,7 +47,7 @@ Forces:
 |---|---|---|
 | Single monorepo (all 15 packages + parent in one `.git`) | One commit spans every affected package — atomic cross-cutting change; one set of hooks/CI to wire; one Qodana project | 9 services need independent deploy/restart cadence with no shared release train; per-package `.githooks` gates (100/100 coverage+mutation, own Qodana token) don't map onto one repo's CI without inventing path-filtering from scratch; `marketplace-common` is already consumed by package name via `deploy-local.sh`, so folding it into the same tree buys nothing the sync script doesn't already give; `marketplace-nginx` has no `package.json` and would sit inside a JS monorepo as an exception to every rule |
 | Hybrid — one repo for the 9 backend services, separate repos for the lib, the migrations, the edge and the 3 frontends | The 9 services are the most alike of the packages, so one release train covers the largest group; cuts the repo count from 16 to 7 | The 9 services are exactly where the per-package gate stack is heaviest — 9 Qodana projects, 9 mutation runs, 9 `.env` files, 9 ports — so it collapses the group whose boundaries carry the most, and buys atomicity only *within* it while the `marketplace-common` change that actually spans repos still crosses the boundary; picks an arbitrary line ("services are one thing, apps are another") that nothing in the deploy model supports |
-| Polyrepo — 16 independent repos, one per package plus the parent workspace (**chosen**) | Each service/lib/app/edge keeps its own git history, hooks, gates and Qodana project untangled from the other 14; matches the per-package `.env`/port/`deploy-local.sh` boundary that already exists; the parent stays thin — docs, `.claude/`, workspace `CLAUDE.md` — and one clone of it is a workspace, not a code drop | One logical change (e.g. a `marketplace-common` field rename) becomes N separate commits across N repos with no atomic transaction; branch discipline must be re-applied 16 times (`docs/workflow.md` §Git rules, "never commit on main") |
+| Polyrepo — 16 independent repos, one per package plus the parent workspace (**chosen**) | Each service/lib/app/edge keeps its own git history, hooks, gates and Qodana project untangled from the other 14; matches the per-package `.env`/port/`deploy-local.sh` boundary that already exists; the parent stays thin — docs, `.claude/`, workspace [`CLAUDE.md`](../../../../CLAUDE.md) — and one clone of it is a workspace, not a code drop | One logical change (e.g. a `marketplace-common` field rename) becomes N separate commits across N repos with no atomic transaction; branch discipline must be re-applied 16 times (`docs/workflow.md` §Git rules, "never commit on main") |
 
 ---
 
@@ -72,7 +72,7 @@ set of them.
 directly by the parent (`git ls-files services-status` returns real paths — `coverage`, `dist`, `env`,
 `services-status/.gitignore`, `.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto
 the parent's own `.githooks/pre-commit` rather than living in a repo-local hook (ADR-025,
-`docs/frontends.md` §services-status). `docker-DBs/` is tracked by the parent for the same reason — it is
+[`docs/frontends.md`](../../../frontends.md) §services-status). `docker-DBs/` is tracked by the parent for the same reason — it is
 compose files and scripts, not a package.
 
 ```
@@ -110,7 +110,7 @@ docker-DBs/                # NO own .git — tracked by parent directly
 
 ### Negative
 - No atomic cross-repo commit. A `marketplace-common` schema field change that must land in a service's
-  resolver too is N separate commits with no transaction boundary — `docs/workflow.md` §Repo layout states
+  resolver too is N separate commits with no transaction boundary — [`docs/workflow.md`](../../../workflow.md) §Repo layout states
   this outright: "There is no atomic cross-repo commit." The parent's submodule pointers record the
   resulting state (ADR-031); they do not make the change atomic.
 - Coordination is manual and convention-only, not tool-enforced: "one logical change = N+1 `git`

@@ -57,7 +57,7 @@ front of it.
 
 **No nginx is installed on this machine** (no `/etc/nginx`, no binary in `PATH`), but the configuration
 it would run is checked in, in its own repo at the **workspace root**: `marketplace-nginx/`. Read
-`marketplace-nginx/README.md` before touching it.
+[`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) before touching it.
 
 One instance, three hostnames, one vhost each — the apex for the public site and the customer account
 area, `shopowner.` and `admin.` for the two panels. TLS terminates there and only there; the eleven

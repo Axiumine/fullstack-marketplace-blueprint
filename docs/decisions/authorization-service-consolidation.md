@@ -34,7 +34,7 @@ survey said no.
 
 ## Why logout can be one service and authorization cannot, trivially
 
-The doctrine in `CLAUDE.md` draws the line at one property: the logout resolver "deletes the Redis keys
+The doctrine in [`CLAUDE.md`](../../CLAUDE.md) draws the line at one property: the logout resolver "deletes the Redis keys
 by token *content* and never asks which collection minted them". Its `start()` connects Redis and
 nothing else — there is no Mongo connection in that repo at all. Tier-blindness is not a convenience
 there, it is the entire reason one service can serve three tiers.
@@ -75,7 +75,7 @@ logout topology; a fifth tier is one map entry.
 
 **Cons — this option is blocked. Two independent blockers:**
 
-1. **Doctrine.** `TIER_STRATEGY[redData.tier]` is textually the pattern `CLAUDE.md` names and rejects:
+1. **Doctrine.** `TIER_STRATEGY[redData.tier]` is textually the pattern [`CLAUDE.md`](../../CLAUDE.md) names and rejects:
    *"A fifth role means a fifth collection and a fifth service pair, **not a role check bolted onto the
    existing ones**."* It also breaks the "each role has its own service pair" invariant — authorization
    would merge 3→1 while resource stays 1:3. And it thins the 2026-08-05 `REDIS_KEY` fix: that fix's
@@ -156,7 +156,7 @@ and only (c) removes the first without buying the second.
 
 Recorded so it is not re-litigated: (b) remains a legitimate design and could be revisited if the ops
 cost of three deployables ever becomes the binding constraint. (a) does not — it would need the doctrine
-in `CLAUDE.md` changed first, which is a separate decision.
+in [`CLAUDE.md`](../../CLAUDE.md) changed first, which is a separate decision.
 
 ## What (c) does not change
 

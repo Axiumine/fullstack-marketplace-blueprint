@@ -15,7 +15,7 @@ supersession exists — each decision stands as written, and none contradicts an
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
 
-New ADR: copy `ADR-000-template.md`, next free number, fill in `Status`, `Date`, `Deciders`.
+New ADR: copy [`ADR-000-template.md`](./ADR-000-template.md), next free number, fill in `Status`, `Date`, `Deciders`.
 
 Enterprise fields (Security Review, Privacy Review, Cost Estimate, Compliance Impact) are **not**
 required in this repo's ADRs — there is no `agents.config.yaml`, so `compliance.profile` is `none`.
@@ -94,5 +94,5 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 Decisions this platform still owes an ADR, once taken:
 
 - **Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.
-- **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see `docs/workflow.md`, *Repo layout*).
+- **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*).
 - **Production topology.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus 168 behavioural assertions, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, and how the service ports are closed to everything but it — `INTROSPECTION_CODE` is reachable wherever a service port is.

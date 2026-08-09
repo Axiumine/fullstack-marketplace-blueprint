@@ -170,7 +170,7 @@ data back — so it refuses to start.
 self-contained: the `$jsonSchema` shapes live in `marketplace-db-setup/lib/schemas/`, and each migration
 is a call rather than a copy. Current builders: `account.js`, `collection.js`, `encrypted.js`,
 `geo.js`, `admin.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`, plus its
-`README.md`.
+[`README.md`](../README.md).
 
 Seven migrations, six of which create a collection in its final shape and one of which seeds demo data.
 There is no `collMod` and no `<ts>-alter-<coll>.js`: a collection is declared once, so `migrations/` reads

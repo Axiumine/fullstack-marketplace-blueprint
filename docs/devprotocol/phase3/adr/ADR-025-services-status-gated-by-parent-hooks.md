@@ -15,7 +15,7 @@
 `services-status/package.json` `description`) is not one of the fifteen sub-repos under
 `BEs/`, `marketplace-admin/`, `marketplace-nginx/`, `marketplace-shopowner/`, `marketplace-user/`. It is a
 plain subdirectory tracked by the **parent** workspace repo (`fullstack-marketplace-blueprint`), the same
-repo that also holds `CLAUDE.md` and `.claude/`.
+repo that also holds [`CLAUDE.md`](../../../../CLAUDE.md) and `.claude/`.
 
 Every other package on the platform lives in its own git repo and carries its own `.githooks/pre-commit` /
 `pre-push`, so its gates fire on its own commits (`docs/workflow.md` §Git hooks — Qodana runs in
@@ -30,7 +30,7 @@ enforcement, and this is the one package on the platform where that gap opens by
 
 Two further constraints from the parent repo, both load-bearing for the option that was picked:
 
-- The parent's ordinary commit is a docs edit — `CLAUDE.md`, `README.md`, `.claude/` — and building + testing
+- The parent's ordinary commit is a docs edit — [`CLAUDE.md`](../../../../CLAUDE.md), [`README.md`](../../../../README.md), `.claude/` — and building + testing
   a Node server on every prose change is exactly how a hook gets bypassed out of habit
   (`.githooks/pre-commit` comment block, "services-status — the one piece of application code this repo
   tracks").
@@ -117,7 +117,7 @@ if ! yarn test:cov; then
 - The parent has no `package.json`, so nothing restores `core.hooksPath` after a fresh clone the way the
   fourteen packaged sub-repos' `"prepare": "git config core.hooksPath .githooks || true"` does (ADR-017).
   A clone that skips the manual `git config core.hooksPath .githooks` step silently loses this gate along
-  with the secret guard documented in `CLAUDE.md`.
+  with the secret guard documented in [`CLAUDE.md`](../../../../CLAUDE.md).
 - ⚠️ The gate depends on `services-status/qodana.sh` being mode `100755`. Committed at `100644` it dies
   with `Permission denied` before reaching Qodana, and the hook then reports "Qodana failed on
   services-status" pointing at a SARIF that was never written — a chmod bug rendered as an apparent scan

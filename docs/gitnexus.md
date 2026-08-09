@@ -116,7 +116,7 @@ automatic. A repo indexed but not added answers single-repo queries while being 
 
 ### `.gitnexusrc` — committed per repo, no flags to remember
 
-`analyze` rewrites `AGENTS.md` / `CLAUDE.md` on every run, and the generated header carries live symbol
+`analyze` rewrites [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md) on every run, and the generated header carries live symbol
 counts that change whenever anything is edited — so the files came back dirty after every index. Every
 repo commits a `.gitnexusrc` at its root (JSON only, read from the repo root — **not** from
 `.gitnexus/`, which is gitignored index storage):
@@ -124,13 +124,13 @@ repo commits a `.gitnexusrc` at its root (JSON only, read from the repo root —
 | Where | `.gitnexusrc` | Effect |
 |---|---|---|
 | the 14 indexed sub-repos | `{"analyze": {"noStats": true}}` | generated block keeps its guidance, drops the volatile counts — byte-identical across runs |
-| this parent dir | `{"analyze": {"skipContextFiles": true}}` | no block written at all, so the hand-written `AGENTS.md` block is never appended over |
+| this parent dir | `{"analyze": {"skipContextFiles": true}}` | no block written at all, so the hand-written [`AGENTS.md`](../AGENTS.md) block is never appended over |
 
 Scope is a separate file. `.gitnexusrc` tunes what `analyze` *writes*; **`.gitnexusignore`** decides what it
 *reads*, and only the parent has one — the fifteen sub-repos each index their own tree and have nothing to
 exclude.
 
-`skipContextFiles` suppresses only the `AGENTS.md` / `CLAUDE.md` block — the index is still built and the
+`skipContextFiles` suppresses only the [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md) block — the index is still built and the
 skill files are still written. CLI flags override the file (`--no-stats`, `--skip-agents-md`), and the
 loader fails closed: an unknown key or wrong value type aborts before analysis rather than silently
 no-opping. Both settings are verified idempotent.
@@ -153,9 +153,9 @@ an index belonging to another workspace.
 
 | Task | Read |
 |---|---|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Understand architecture / "How does X work?" | [`.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`](../.claude/skills/gitnexus/gitnexus-exploring/SKILL.md) |
+| Blast radius / "What breaks if I change X?" | [`.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md`](../.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md) |
+| Trace bugs / "Why is X failing?" | [`.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`](../.claude/skills/gitnexus/gitnexus-debugging/SKILL.md) |
+| Rename / extract / split / refactor | [`.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`](../.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md) |
+| Tools, resources, schema reference | [`.claude/skills/gitnexus/gitnexus-guide/SKILL.md`](../.claude/skills/gitnexus/gitnexus-guide/SKILL.md) |
+| Index, status, clean, wiki CLI commands | [`.claude/skills/gitnexus/gitnexus-cli/SKILL.md`](../.claude/skills/gitnexus/gitnexus-cli/SKILL.md) |

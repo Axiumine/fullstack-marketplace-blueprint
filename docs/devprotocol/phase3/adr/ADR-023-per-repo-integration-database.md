@@ -13,7 +13,7 @@
 
 10 repos run integration suites against real Mongo: `marketplace-common`, `marketplace-db-setup`, and 8 of
 the 9 backend services (`marketplace-dev-authenticated-logout` excluded — its suite never touches Mongo,
-per `docs/testing.md` §Per-repo integration database). Each `globalSetup.mts` DROPS its test database and replays
+per [`docs/testing.md`](../../../testing.md) §Per-repo integration database). Each `globalSetup.mts` DROPS its test database and replays
 migrations before the suite runs — verified at
 `BEs/dev/marketplace-dev-authenticated-resource/test/integration/globalSetup.mts:60`
 (`await db.dropDatabase()`).
@@ -49,7 +49,7 @@ Found only by a salted-hash fingerprint sweep across all 9 `.env` files, not by 
 |---|---|---|
 | Assert 3-var agreement at `globalSetup` time, fail closed (chosen) | Catches a mismatch before any drop; error names which var disagrees (`vitest.mongo.mts:73-85`) | Only covers same-repo agreement — a wrong-but-internally-consistent trio still passes; adds a required check every repo must call |
 | Silently rebuild the URL from `MONGO_TEST_DB` alone (the prior behavior) | Fewer required vars to keep in sync, no throw to handle | Exactly the bug it replaced — a divergent `MONGO_TEST_CONN_STRING` drops the wrong database with no error, discoverable only by noticing data loss after the fact |
-| One shared test database across all repos | 1 db, 1 pair of users to provision, no per-repo naming discipline | `fileParallelism: false` only serializes tests *within* one repo's run — nothing stops repo A's `globalSetup.dropDatabase()` firing mid-run of repo B's suite; this is the isolation `docs/testing.md` §Per-repo integration database says the distinct-name convention exists to prevent |
+| One shared test database across all repos | 1 db, 1 pair of users to provision, no per-repo naming discipline | `fileParallelism: false` only serializes tests *within* one repo's run — nothing stops repo A's `globalSetup.dropDatabase()` firing mid-run of repo B's suite; this is the isolation [`docs/testing.md`](../../../testing.md) §Per-repo integration database says the distinct-name convention exists to prevent |
 | Doc-only convention, no runtime assertion | Zero code | The exact failure class that actually happened: an env file copied wholesale from an unrelated project passes every local check because nothing compares it against anything else — required a manual fingerprint sweep to find, not a gate |
 
 ---
@@ -111,7 +111,7 @@ fingerprint sweep, not a per-repo assertion — recorded here so it is not re-di
 Verify per-repo: run that repo's `yarn test:int` (or `test:cov` for suites that fold integration in) and
 confirm a deliberately mismatched `MONGO_TEST_CONN_STRING` throws from `assertTestMongoDbNames` rather than
 connecting. The throw site is `BEs/marketplace-common/vitest.mongo.mts:73-85`; every consuming repo's own
-`vitest.mongo.mts` copy is the same file, near-duplicated per `docs/workflow.md` §This directory is the parent workspace ("Cross-
+`vitest.mongo.mts` copy is the same file, near-duplicated per [`docs/workflow.md`](../../../workflow.md) §This directory is the parent workspace ("Cross-
 service shell scripts are near-duplicates").
 
 Verify cross-repo uniqueness by name, not by running anything:
@@ -120,4 +120,4 @@ must return nothing. A violation on disk looks like: a repo's `env` template wit
 `MONGO_TEST_AUTH_ADMIN` and the path segment of `MONGO_TEST_CONN_STRING` not all equal (the case the
 assertion throws on), or two repos' `env` templates sharing one `MONGO_TEST_DB` value (the case nothing
 throws on — grep is the only check). Cross-repo secret agreement (KEYGRIP, INTROSPECTION_CODE) is not
-verified by any of the above — that requires the salted-hash fingerprint sweep described in `docs/workflow.md` §Environment files, re-run by hand, not by a committed script as of this date.
+verified by any of the above — that requires the salted-hash fingerprint sweep described in [`docs/workflow.md`](../../../workflow.md) §Environment files, re-run by hand, not by a committed script as of this date.

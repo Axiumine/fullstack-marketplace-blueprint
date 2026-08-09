@@ -28,7 +28,7 @@ document is that doctrine in checklist form.
 - [ ] Story maps to exactly one bounded context (`BC-01`..`BC-11`, `phase2/BOUNDED_CONTEXT.md`), carries id
   `BC-0N-0X` numbered sequentially inside that epic — never a global counter (`phase5/CONSTRAINTS.md` §5).
 - [ ] Story for already-running code is marked BUILT and cites the path proving it — never phrased as
-  still-to-build. Built-vs-planned split follows `CLAUDE.md`'s §Build state table exactly
+  still-to-build. Built-vs-planned split follows [`CLAUDE.md`](../../../CLAUDE.md)'s §Build state table exactly
   (`phase5/CONSTRAINTS.md` §5).
 - [ ] Story never designs order, cart, delivery or payment shape. `item` deliberately carries no `price`
   field (ADR-009). A gap here is a risk-register row, never a story with acceptance criteria

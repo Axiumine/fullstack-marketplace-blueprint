@@ -7,7 +7,7 @@
 | `marketplace-user` | `User` + anonymous | 3045 | **SSR** public, `ssr: false` for `/account/*` | 4027 / 4028 / 4030 / 4031 / 4032 |
 
 One app per tier, not one app that switches on role (ADR-027). All three are Vite 8 + React 19 +
-TypeScript strict, and each has its own `CLAUDE.md`, `README.md` and `COVERAGE.md` — **read them before
+TypeScript strict, and each has its own [`CLAUDE.md`](../CLAUDE.md), [`README.md`](../README.md) and `COVERAGE.md` — **read them before
 editing that app.**
 
 ## Traps common to all three
@@ -61,7 +61,7 @@ The customer app, and the only server-rendered thing on the platform. TanStack S
 + TanStack Router SSR) · urql · graphql-codegen `client-preset` · react-hook-form + zod · Tailwind 4 ·
 MapLibre GL 6 + Protomaps PMTiles as a dynamically-imported island · Sentry.
 
-Its own `CLAUDE.md` carries the full trap list. The four that matter from outside:
+Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The four that matter from outside:
 
 - ⚠️ **Public routes are SSR, `/account/*` is `ssr: false`, and that pairing is a security boundary**
   (ADR-018). Rendering authenticated HTML on a server behind a shared `proxy_cache` is how one

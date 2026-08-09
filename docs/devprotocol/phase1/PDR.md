@@ -11,7 +11,7 @@
 
 ## 1. What are we building?
 
-Multi-tenant marketplace platform. Many independent shops, one operator (thedoctorweb). Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see `CLAUDE.md` §Build state.
+Multi-tenant marketplace platform. Many independent shops, one operator (thedoctorweb). Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state.
 
 Polyrepo, 16 independent git repos, no monorepo tooling. Verified: `find . -maxdepth 4 -name ".git" -type d` returns 16 dirs (parent + `BEs/marketplace-common` + `BEs/marketplace-db-setup` + 9 under `BEs/dev/marketplace-dev-*` + `marketplace-admin` + `marketplace-nginx` + `marketplace-shopowner` + `marketplace-user`).
 
@@ -103,9 +103,9 @@ graph TD
 ### Out of scope
 
 - **Orders, cart, delivery, payment** — no collection, no resolver, no design. `item` has no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js`). Not a backlog item with an owner — genuinely undesigned, "ask before inventing them" per `CLAUDE.md` §Build state.
-- **A separate shop collection** — will not exist. A shop IS a `company`. `CLAUDE.md` states this twice, deliberately, as a thing not to re-propose.
+- **A separate shop collection** — will not exist. A shop IS a `company`. [`CLAUDE.md`](../../../CLAUDE.md) states this twice, deliberately, as a thing not to re-propose.
 - **Vocabulary that presumes a specific product domain** — the catalogue (`item` + `itemCategory`) is domain-neutral by design. Reintroducing domain-presuming vocabulary in a new product type is a regression, not a feature.
-- **`role` field or permission enum** — role = which collection you authenticate against, by design. A dispatcher on `redData.tier` was explicitly evaluated and rejected for the authorization-consolidation question — see option (a) in `docs/decisions/authorization-service-consolidation.md`, blocked on doctrine grounds, not merely deferred.
+- **`role` field or permission enum** — role = which collection you authenticate against, by design. A dispatcher on `redData.tier` was explicitly evaluated and rejected for the authorization-consolidation question — see option (a) in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md), blocked on doctrine grounds, not merely deferred.
 - **Merging the 3 `*-authenticated-authorization` services into 1** — decided against, 2026-08-07, same decision doc. Crash-domain coupling (`process.exit(1)` on any uncaught exception) taking 3 tiers down for 1 bug is an availability cost the platform owner ranked above deduplication.
 - **Installing nginx configs anywhere** — the edge lives in its own repo at `marketplace-nginx/`, in the workspace root: three vhosts (apex, `shopowner.`, `admin.`), shared `conf.d/` and `snippets/`, and `test/` which runs the lot in a container. Written and exercised, not deployed: no `/etc/nginx` and no nginx binary exist in this workspace or on this machine. ⚠️ Until it is installed, nothing sets `Secure` on the session cookie — koa-utils ships `secure: false` and the rewrite is the edge's.
 - **Publishing any of the 16 repos to a forge** — deciding where/under-which-org is explicitly the user's undecided call (`docs/workflow.md` §Repo layout).
@@ -173,7 +173,7 @@ Complete when a developer or operator can:
 | 6 | ~~Is there an admin-facing nginx vhost for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner | **closed** — there was not, and one had never been written. `marketplace-nginx/sites-available/admin.marketplace-domain.com.conf` and `shopowner.marketplace-domain.com.conf` now exist, each terminating TLS for its own hostname |
 | 7 | `marketplace-dev-public-resource/package.json` pins `@axiumine/koa-utils: ^5.9.0` (verified `BEs/dev/marketplace-dev-public-resource/package.json:38`) while `koa-utils` 5.9.0 is committed but unpushed by user instruction (`TODO`) — `yarn install` fails there until it is published. Publish timeline? | platform owner | open, blocking |
 | 8 | 4 repos (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have a `qodana.yaml` and no Cloud project — Qodana step blocks on missing `QODANA_TOKEN`, bypassed today with `SKIP_QODANA=1`. Who creates the 4 projects? | platform owner | open |
-| 9 | Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application-layer check? | platform owner / DBA | not verified, explicitly logged as such in `docs/decisions/authorization-service-consolidation.md` §Not verified |
+| 9 | Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application-layer check? | platform owner / DBA | not verified, explicitly logged as such in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) §Not verified |
 
 ---
 
