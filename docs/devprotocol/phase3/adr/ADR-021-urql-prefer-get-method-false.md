@@ -65,7 +65,7 @@ instead of new logic per client.
 
 ### Negative
 - Queries lose URL-based GET caching. Not exercised today: `marketplace-user`'s `proxy_cache`
-  (`nginx/conf.d/30-cache.conf`) bypasses on the session cookie per CON-10, so client-GET
+  (`marketplace-nginx/conf.d/30-cache.conf`) bypasses on the session cookie per CON-10, so client-GET
   cacheability was never the mechanism carrying public-route performance.
 
 ### Risks

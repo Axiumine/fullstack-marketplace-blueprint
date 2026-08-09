@@ -34,7 +34,7 @@ topology where the reverse proxy is not the same process.
 One frontend does the opposite. `marketplace-user/serve.mjs:34,45` sets
 `const HOSTNAME = '127.0.0.1'` and calls `serve({ fetch: handler.fetch, port, hostname: HOSTNAME })`.
 That SSR process has no authentication layer of its own — see `docs/frontends.md` §marketplace-user — and
-sits behind nginx for TLS, rate limiting (`nginx/conf.d/20-rate-limit.conf`) and the
+sits behind nginx for TLS, rate limiting (`marketplace-nginx/conf.d/20-rate-limit.conf`) and the
 `proxy_cache` bypass keyed on the session cookie (CON-10, `phase3/CONSTRAINTS.md:33`). A wildcard
 bind on that one process would let a caller who can reach the box on `3045` skip every one of those
 nginx layers directly, including the cache-bypass-on-cookie mechanism that CON-10 calls a security
@@ -60,7 +60,7 @@ in favor of wide binding for them because nothing about their design assumes co-
 nginx, and the integration suites already exercise `127.0.0.1` reachability so nothing regresses.
 `marketplace-user/serve.mjs` keeps its explicit `hostname: '127.0.0.1'` — row C's reasoning applies
 in the opposite direction here: that one process is unauthenticated by design and sits directly
-behind the nginx configs in `nginx/` at the workspace root, so binding wide would be a direct bypass
+behind the nginx configs in `marketplace-nginx/` at the workspace root, so binding wide would be a direct bypass
 of rate-limit and cache-bypass rules that CON-10 treats as load-bearing security, not tuning.
 Option D is rejected outright: it is the shape of the bug this ADR documents the fix for, not an
 alternative to it — the code already tried a host-from-env pattern (`hostname:`) and it silently
@@ -92,8 +92,8 @@ did nothing.
   a new unauthenticated user-facing process and reopens the exact bypass this ADR closes for
   `marketplace-user`. Revisit if a tenth backend service or a second SSR-style process is added —
   decide its bind explicitly against this ADR's reasoning rather than by nearest-neighbor copy.
-- **Risk:** the nginx config that fronts this process (`nginx/sites-available/marketplace-domain.com.conf`,
-  upstream `mkt_user_ssr` in `nginx/conf.d/10-upstreams.conf:24`) is installed on no host —
+- **Risk:** the nginx config that fronts this process (`marketplace-nginx/sites-available/marketplace-domain.com.conf`,
+  upstream `mkt_user_ssr` in `marketplace-nginx/conf.d/10-upstreams.conf:24`) is installed on no host —
   `docs/architecture.md` §nginx states no nginx binary and no `/etc/nginx` exist in this
   workspace or on this machine. Revisit if that config is ever deployed and the actual upstream
   bind does not match `127.0.0.1:3045`, since nothing here verifies the deployed nginx target

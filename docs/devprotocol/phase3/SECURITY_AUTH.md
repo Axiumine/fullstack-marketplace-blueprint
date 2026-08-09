@@ -61,7 +61,7 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 | Password compromise via DB dump | bcrypt via `@node-rs/bcrypt`, `SALT_ROUNDS=14` | `BEs/marketplace-common/src/models/MongoDB/Admin.mts:46`, `.../User.mts:174`, `.../sub/LoginSubDocSchema.mts:44` | Cost factor fixed platform-wide at 14; raising it later needs a lazy re-hash-on-login migration, not designed |
 | Deleted/disabled account still authenticating | `checkUserAuthorizationDisDel` gate | `BEs/marketplace-common/src/others/checkUserAuthorizationDisDel.mts:4`, invoked from `findAccountForSession.mts:48` on **every** refresh, not login-only | Disable takes effect within one access-token lifetime rather than up to the 90-day refresh expiry |
 | ShopOwner logging in before manual approval | `waitApprov` read at login | `BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117` | **Open, unresolved on disk**: whether a freshly created `ShopOwner` starts gated or ungated — `phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 1, no mutation confirmed to set the initial value |
-| Authenticated HTML leaking cross-customer via shared HTML cache | `/account/*` is `ssr:false` + nginx cache bypasses on session-cookie presence | `marketplace-user/src/routeOptions/account.tsx:59`; `nginx/conf.d/30-cache.conf:32-35` | The nginx half is written and exercised by `nginx/test/run.sh` in a container, but installed on no host — see §5 |
+| Authenticated HTML leaking cross-customer via shared HTML cache | `/account/*` is `ssr:false` + nginx cache bypasses on session-cookie presence | `marketplace-user/src/routeOptions/account.tsx:59`; `marketplace-nginx/conf.d/30-cache.conf:32-35` | The nginx half is written and exercised by `marketplace-nginx/test/run.sh` in a container, but installed on no host — see §5 |
 | Malicious file upload (malware, spoofed image type) | `sharp` (reprocess), `clamscan` (AV scan), `file-type` (magic-byte check, not extension), via `graphql-upload` | resource services' `package.json`, e.g. `BEs/dev/marketplace-dev-authenticated-resource/package.json:42,44,49,56` | Only resource services carry these deps by convention — nothing structural stops a future resource service shipping without one |
 | `itemCategory` depth escaping the 2-level cap | Resolver-level check, not a validator (`$jsonSchema` cannot see a parent's parent) | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:24` (`throwIfParentNotTopLevel`) | Writes exist only in the Admin-tier resource service by convention — adding a second write path elsewhere silently removes the cap |
 | Draft/unpublished `company` or `item` exposed to anonymous traffic | Single shared `livePublic` / `LIVE_PUBLIC_PIPELINE` filter stage, applied once | `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` | A new public query that forgets to compose this stage bypasses the protection entirely — no test enforces every future public query uses it |
@@ -201,7 +201,7 @@ This is the platform's only application-level auth-path rate limiting. The nginx
 Public routes (`/`, `/shops`, `/shop/:slug`, `/category/:slug`) render server-side; `/account/*` never does. Pairs with the nginx cache-bypass decision, keyed on session-cookie **presence**, never parsed:
 
 ```conf
-# nginx/conf.d/30-cache.conf:32-35
+# marketplace-nginx/conf.d/30-cache.conf:32-35
 map $http_cookie $mkt_user_no_cache {
 	default                            0;
 	"~*(^|;\s*)refresh_token(\.sig)?=" 1;
@@ -273,11 +273,11 @@ It has no authentication of its own — reaching it directly bypasses every ngin
 
 ### nginx security surface — written and tested, installed nowhere
 
-`nginx/` at the workspace root is the edge: `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the proxy body and two header policies) and a vhost per hostname in `sites-available/` — apex, `shopowner.`, `admin.`. The customer-only copy this section used to cite, `marketplace-user/docs/nginx/*.conf`, is deleted.
+`marketplace-nginx/` at the workspace root is the edge: `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the proxy body and two header policies) and a vhost per hostname in `sites-available/` — apex, `shopowner.`, `admin.`. The customer-only copy this section used to cite, `marketplace-user/docs/nginx/*.conf`, is deleted.
 
-**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `nginx/test/run.sh` starts a container, runs `nginx -t`, then drives 168 behavioural assertions against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; `nginx/README.md` lists them.
+**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `marketplace-nginx/test/run.sh` starts a container, runs `nginx -t`, then drives 168 behavioural assertions against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; `marketplace-nginx/README.md` lists them.
 
-Upstream map, all loopback, matching the port table in `docs/architecture.md` §Services (`nginx/conf.d/10-upstreams.conf:24-56`, comments elided):
+Upstream map, all loopback, matching the port table in `docs/architecture.md` §Services (`marketplace-nginx/conf.d/10-upstreams.conf:24-56`, comments elided):
 
 ```conf
 upstream mkt_user_ssr        { server 127.0.0.1:3045; keepalive 32; }
@@ -293,9 +293,9 @@ upstream mkt_logout          { server 127.0.0.1:4030; keepalive 8;  }
 upstream mkt_nominatim       { server 127.0.0.1:8080; keepalive 8;  }
 ```
 
-⚠️ **The `Secure` flag on both auth cookies is set here and nowhere else.** `@axiumine/koa-utils` ships `secure: false` with a comment saying to rewrite it at the edge; `nginx/snippets/proxy-backend.conf` does it with `proxy_cookie_flags ~ secure httponly samesite=strict;` (`~` is the empty regex — it matches every cookie name). Serving any authorization endpoint without that snippet in front of it puts a session cookie on the wire without `Secure`.
+⚠️ **The `Secure` flag on both auth cookies is set here and nowhere else.** `@axiumine/koa-utils` ships `secure: false` with a comment saying to rewrite it at the edge; `marketplace-nginx/snippets/proxy-backend.conf` does it with `proxy_cookie_flags ~ secure httponly samesite=strict;` (`~` is the empty regex — it matches every cookie name). Serving any authorization endpoint without that snippet in front of it puts a session cookie on the wire without `Secure`.
 
-**TLS + HSTS + response headers** (`nginx/snippets/security-headers-public.conf:26-31`):
+**TLS + HSTS + response headers** (`marketplace-nginx/snippets/security-headers-public.conf:26-31`):
 
 ```conf
 add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
@@ -306,9 +306,9 @@ add_header Cross-Origin-Resource-Policy "same-origin" always;
 add_header Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()" always;
 ```
 
-Plus a `Content-Security-Policy` (`nginx/snippets/security-headers-public.conf`; the panels get a strictly tighter one from `security-headers-private.conf`). Two load-bearing nginx traps recorded in the files themselves. The value must sit on **one line**: nginx does no backslash line-continuation inside a quoted string, so the readable one-directive-per-line form embeds a literal LF and the header is dropped entirely — silently, with every other header in the same block still working. And `add_header` does **not** merge — any `location` block declaring even one `add_header` of its own discards every header inherited from the `server` block, so every location that needs these headers must repeat them, not assume inheritance.
+Plus a `Content-Security-Policy` (`marketplace-nginx/snippets/security-headers-public.conf`; the panels get a strictly tighter one from `security-headers-private.conf`). Two load-bearing nginx traps recorded in the files themselves. The value must sit on **one line**: nginx does no backslash line-continuation inside a quoted string, so the readable one-directive-per-line form embeds a literal LF and the header is dropped entirely — silently, with every other header in the same block still working. And `add_header` does **not** merge — any `location` block declaring even one `add_header` of its own discards every header inherited from the `server` block, so every location that needs these headers must repeat them, not assume inheritance.
 
-**Auth-path rate-limit zones**, edge layer independent of the application-level limiter in §3.7 (`nginx/conf.d/20-rate-limit.conf`):
+**Auth-path rate-limit zones**, edge layer independent of the application-level limiter in §3.7 (`marketplace-nginx/conf.d/20-rate-limit.conf`):
 
 ```conf
 limit_req_zone $binary_remote_addr zone=mkt_auth:10m       rate=20r/m;   # customer login / reset
@@ -321,13 +321,13 @@ limit_req_zone $binary_remote_addr zone=mkt_admin_auth:10m rate=10r/m;   # admin
 limit_req_zone $binary_remote_addr zone=mkt_admin_api:10m  rate=300r/m;
 ```
 
-⚠️ **Zone name = counter, so the three logins need three zones.** All of them reach the same process (public-authorization, 4028) and the edge is the only layer that still knows which hostname was asked for; sharing one zone would let a credential-stuffing run against operator accounts spend the customers' allowance. `nginx/test/suite.sh` asserts each budget engages independently.
+⚠️ **Zone name = counter, so the three logins need three zones.** All of them reach the same process (public-authorization, 4028) and the edge is the only layer that still knows which hostname was asked for; sharing one zone would let a credential-stuffing run against operator accounts spend the customers' allowance. `marketplace-nginx/test/suite.sh` asserts each budget engages independently.
 
 ⚠️ **There is deliberately no registration zone**, and this is the one place where the app-layer limiter is the stronger control rather than a redundant one. A `mkt_register` zone at 5r/m existed, attached to an `/api/register` location the application has never had, and it metered nothing. It was removed rather than repointed: registration is a GraphQL POST with no URL of its own, so at the edge it is bounded by `mkt_public` like every other public write, and the real limit is `guardPublicWrite` (§3.7) — two Redis counters per hour, one on `ctx.ip` and one on **the email address**. A zone keyed on `$binary_remote_addr` never sees the address, so no edge configuration can stop a distributed source mail-bombing a single inbox.
 
-**Cache bypass on session cookie** — the nginx half of the §3.8 mechanism, `nginx/conf.d/30-cache.conf:32-35` (quoted there in full). PMTiles range requests and the Nominatim proxy topology are documented in `phase1/SYSTEM_CONTEXT.md` §5.8-5.9 and are out of Phase-3 auth scope.
+**Cache bypass on session cookie** — the nginx half of the §3.8 mechanism, `marketplace-nginx/conf.d/30-cache.conf:32-35` (quoted there in full). PMTiles range requests and the Nominatim proxy topology are documented in `phase1/SYSTEM_CONTEXT.md` §5.8-5.9 and are out of Phase-3 auth scope.
 
-~~Two gaps surfaced by cross-checking the docs against the actual `marketplace-user` tree.~~ **Both closed since this was written, in opposite directions.** The `/api/register` proxy was an unbuilt route, not a stale doc, and the block was deleted rather than the route built — registration is client → GraphQL `userRegister` straight to `/public-resource`, and the guard that matters (`guardPublicWrite`, per IP and per email) is one nginx cannot replicate. The missing admin-facing vhost was also real: nothing under `marketplace-user/docs/nginx/` described ports 4024/4025, because only the customer surface had ever been written. All three vhosts now live in `nginx/sites-available/` at the workspace root and the duplicate directory in `marketplace-user` is gone.
+~~Two gaps surfaced by cross-checking the docs against the actual `marketplace-user` tree.~~ **Both closed since this was written, in opposite directions.** The `/api/register` proxy was an unbuilt route, not a stale doc, and the block was deleted rather than the route built — registration is client → GraphQL `userRegister` straight to `/public-resource`, and the guard that matters (`guardPublicWrite`, per IP and per email) is one nginx cannot replicate. The missing admin-facing vhost was also real: nothing under `marketplace-user/docs/nginx/` described ports 4024/4025, because only the customer surface had ever been written. All three vhosts now live in `marketplace-nginx/sites-available/` at the workspace root and the duplicate directory in `marketplace-user` is gone.
 
 ### Upload handling
 
@@ -406,7 +406,7 @@ When any of these get built, this document requires a new version — per its ow
 | 2 | Whether a freshly created `ShopOwner` starts `waitApprov`-gated or ungated — no mutation confirmed to set the initial value | platform owner | open — `phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 1 |
 | 3 | What advances `onboardingStep`/`onboardingDone` — no mutation on the platform writes either field | platform owner | open — `phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 2 |
 | 4 | ~~Is the documented `/api/register` SSR proxy route stale doc, or an unbuilt route?~~ | platform owner | **closed** — unbuilt, and deleted rather than built; it would have weakened both controls it claimed to add. `phase1/SYSTEM_CONTEXT.md` §5.11 |
-| 5 | ~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner / ops | **closed** — it did not, and now all three do: `nginx/sites-available/`, `nginx/README.md` |
+| 5 | ~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner / ops | **closed** — it did not, and now all three do: `marketplace-nginx/sites-available/`, `marketplace-nginx/README.md` |
 | 6 | No automated dependency-audit gate found for npm supply-chain risk (§7) — should one be added to `.githooks/pre-push`? | platform owner | open, raised this session |
 | 7 | No key-rotation schedule found for `SOCKETLABS_SERVER_APIKEY`, `QODANA_TOKEN`, or Keygrip pairs — is rotation cadence a requirement? | platform owner | open, raised this session |
 | 8 | `BEs/marketplace-db-setup/setup/mongodb.js` still carries live-looking, unrotated credentials in tracked source (§4) | platform owner | open, carried from `.claude/SECRETS.md` §Not fixed here |
