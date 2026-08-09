@@ -467,8 +467,9 @@ explicitly out of scope for Phase 3 — the user's undecided call.
 ## 11. nginx — the whole edge, written and container-tested, installed nowhere
 
 The edge lives in `marketplace-nginx/` at the **workspace root** — its own git repo since 2026-08-09,
-remote `Axiumine/marketplace-nginx`, with no `package.json` and therefore one gate only — a `pre-push`
-running its own test suite, and no `pre-commit`:
+remote `Axiumine/marketplace-nginx`, with no `package.json` and therefore two gates unlike any other
+repo's (ADR-030) — a `pre-push` running its own test suite, and a `pre-commit` that is the secret guard
+alone:
 `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the shared proxy body and two
 header policies), and one vhost per hostname in `sites-available/` — `marketplace-domain.com`,
 `shopowner.`, `admin.`. It terminates TLS for all three, proxies eleven loopback upstreams, serves both
