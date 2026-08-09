@@ -12,6 +12,7 @@ Load the file that matches the task. Do not guess from this page alone.
 
 | Topic | File |
 |---|---|
+| bringing the whole platform up from nothing, in order | `SETUP.md` |
 | services, ports, auth model, resolver layout | `docs/architecture.md` |
 | the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | `marketplace-nginx/CLAUDE.md` |
 | collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
