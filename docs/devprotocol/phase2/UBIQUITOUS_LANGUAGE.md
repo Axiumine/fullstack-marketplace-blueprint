@@ -474,7 +474,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### Parent workspace
-**Definition:** `/media/nvme/websites/fullstack-marketplace-blueprint` on the dev machine, <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online — a 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
+**Definition:** the directory the fifteen sub-repos are checked out under — `fullstack-marketplace-blueprint` by default, wherever a clone puts it; <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online. A 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
 **Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### deploy-local.sh
