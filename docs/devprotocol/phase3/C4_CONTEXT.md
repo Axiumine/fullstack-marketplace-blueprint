@@ -100,7 +100,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Sentry | yes, DSN-gated | error/perf events from all 9 backend services and all 3 frontends |
 | Nominatim — self-hosted | yes | `marketplace-user` browser → nginx `/geocode/` → on-prem instance, address search-as-you-type |
 | Nominatim — public OSM | yes | `marketplace-admin` / `marketplace-shopowner` browser → `nominatim.openstreetmap.org`, low-volume internal-panel use |
-| Cloudflare Turnstile | yes | anti-bot token, browser-issued, verified server-side by `marketplace-dev-public-resource` against `siteverify` |
+| Cloudflare Turnstile | yes | anti-bot token, browser-issued, verified server-side against `siteverify` by `marketplace-dev-public-resource` (registration, resend, password reset) **and** `marketplace-dev-public-authorization` (all three tier logins) |
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `nginx/` in the workspace root and are exercised by `nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
@@ -124,7 +124,7 @@ Full contract detail, direction and payload: `docs/devprotocol/phase1/SYSTEM_CON
 | Marketplace | SocketLabs | verify-email / reset-password transactional email |
 | Marketplace | Sentry | error and perf telemetry, opt-in via DSN presence |
 | Marketplace | Nominatim (two topologies) | address geocode/search — self-hosted, proxied for `marketplace-user`; public OSM, direct for the two operator SPAs |
-| Marketplace | Cloudflare Turnstile | anti-bot verification on public-resource writes |
+| Marketplace | Cloudflare Turnstile | anti-bot verification on public-resource writes and on all three logins |
 | Marketplace | Protomaps PMTiles | static map tile source for the customer-facing map island |
 | Marketplace | nginx | documented reverse-proxy / cache boundary, not installed in this workspace |
 | Marketplace | Qodana Cloud | static-analysis gate, one project + token per repo |

@@ -213,7 +213,7 @@ document is that doctrine in checklist form.
   is never a DoD claim.
 - No nginx is installed anywhere in this workspace or on this machine — no `/etc/nginx`, no nginx binary on
   `PATH`. The edge under `nginx/` at the workspace root (three vhosts, five `conf.d/` files, three snippets)
-  is deployable, real, and passes `nginx -t` plus 150 behavioural assertions in `nginx/test/run.sh` — which
+  is deployable, real, and passes `nginx -t` plus 168 behavioural assertions in `nginx/test/run.sh` — which
   makes "nginx config written" *and* "nginx config tested" claimable, and neither of them is "nginx config
   live" (`phase3/SECURITY_AUTH.md` §5, `nginx/README.md`). ⚠️ The suite runs against stand-in backends in a
   container, so it proves the configuration's behaviour, never the platform's.

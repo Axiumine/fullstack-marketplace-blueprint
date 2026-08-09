@@ -40,9 +40,10 @@ event `Shop Owner Account Created` / `Duplicate Login Email Rejected` per
 `phase2/UBIQUITOUS_LANGUAGE.md` §14-15.
 
 ### 2.2 — `loginAdmin`
-Same three-step shape as ShopOwner login (§3 below) minus rate-limit/Turnstile (not yet wired for this
-tier — see §3's failure-path note) and minus `waitApprov`/onboarding (Admin owns nothing, is gated only by
-existence). `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginAdmin.mts`.
+Same three-step shape as ShopOwner login (§3 below), with the same `guardPublicLogin` in front of it but
+tighter ceilings — `PER_IP_PER_HOUR=10`, `PER_EMAIL_PER_HOUR=30` — and minus `waitApprov`/onboarding
+(Admin owns nothing, is gated only by existence).
+`BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginAdmin.mts`.
 Not diagrammed separately: identical mechanism to §3, only the collection and the `TIER.admin` stamp
 differ.
 
@@ -98,7 +99,11 @@ sequenceDiagram
     participant Mongo as MongoDB (shopOwner)
     participant AR as authenticated-resource :4026
 
-    SO->>PA: login(email, password, rememberMe)
+    SO->>PA: login(email, password, rememberMe, turnstileToken)
+    PA->>PA: guardPublicLogin — PER_IP_PER_HOUR=20, PER_EMAIL_PER_HOUR=60, Turnstile verify
+    alt rate limit exceeded / Turnstile fails
+        PA-->>SO: GraphQL error — no session opened, Mongo never touched
+    end
     PA->>Mongo: tryLoginShopOwner(email, password, session)
     alt bad credential / disabled / deleted / waitApprov
         Mongo-->>PA: throw
@@ -126,23 +131,27 @@ sequenceDiagram
 
 **Narrative**
 
+0. `guardPublicLogin` runs first, before the transaction opens: two Redis counters (per IP, then per
+   normalised email address) and then `assertTurnstile`. A refused attempt costs one INCR and never
+   reaches bcrypt — which is the point, since bcrypt is the expensive half of a stuffing run.
+   `BEs/dev/marketplace-dev-public-authorization/src/lib/access/guardPublicLogin.mts`
 1. `login` resolves inside one `mongoose.startSession()` transaction — `session.withTransaction`, so no
    Redis session mints for a document that failed to load.
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts:41-71`
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts`
 2. `tryLoginShopOwner` (bcrypt compare, `checkUserAuthorizationDisDel` for `deleted`/`disabled`, plus
    ShopOwner-only `waitApprov` gate) throws on any failure; transaction aborts, `tryCatchRethrow` rethrows —
    nothing partial left in Redis or Mongo.
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts:46,72-82`
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts`
 3. Session hash stamped `tier: TIER.shopOwner` at mint time, from service's own constant — never copied
    from caller input.
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts:56-65`
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts`
    ```ts
    const redisData: IRedisDataShopOwner = { _id: id.toString(), email, tier: TIER.shopOwner }
    ```
 4. `accessToken`/`refreshToken` opaque random strings, not JWTs — `generateAccessToken` /
    `generateRefreshToken`. Refresh token goes only into Keygrip-signed httpOnly cookie
    (`setLoginCookies`); access token goes only into mutation response body.
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts:64-70`
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/login.mts`
 5. Resource call: auth middleware does one Redis read (`hGetAll`) + one assertion — never a signature check.
    `BEs/marketplace-common/src/others/assertTier.mts:21-23`
    ```ts
@@ -338,15 +347,15 @@ sequenceDiagram
 4. `userVerifyEmailResend` (§2.7) reuses the same `setEmailHashUser` helper on the "restart" branch, so a
    lost email does not require a fresh registration.
    `BEs/dev/marketplace-dev-public-resource/src/lib/access/verifyEmailFlowUser.mts:74-82`
-5. **`loginUser` is the one login mutation gated by rate limit + Turnstile** — `PER_IP_PER_HOUR=20` and
-   `PER_EMAIL_PER_HOUR=60`, checked before the credential lookup. `login`/`loginAdmin` carry no such guard
-   yet (§2.2).
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts:1-40`
+5. **All three login mutations are gated by rate limit + Turnstile**, checked before the credential
+   lookup. `loginUser` and `login` use `PER_IP_PER_HOUR=20` / `PER_EMAIL_PER_HOUR=60`; `loginAdmin` is
+   tighter at 10/30 (§2.2). Same helper in all three: `src/lib/access/guardPublicLogin.mts`.
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`
 6. **Failure path — anti-enumeration is deliberate.** `loginUser` refuses an account whose
    `emailVerify.valid` is `false`, but returns the exact same generic error shape as a wrong password or a
    nonexistent email — an attacker cannot use the response to learn whether an address is registered,
    registered-but-unverified, or simply wrong.
-   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts:41-134`
+   `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`
 
 ---
 

@@ -23,6 +23,13 @@ editing that app.**
   change — an infinite refetch loop.
 - **Create/delete mutations answer a bare `Boolean`**, so the document cache invalidates nothing unless
   the call site passes `additionalTypenames`.
+- **All three login pages render Cloudflare Turnstile**, each from its own copy of
+  `src/components/ui/Turnstile.tsx`. `VITE_TURNSTILE_SITE_KEY` is the public half of the key pair and an
+  empty value renders no widget — the normal state of a developer box and of every suite. That is safe
+  because the server decides: `guardPublicLogin` on 4028 verifies a token only where `TURNSTILE_SECRET`
+  is set. ⚠️ The token variable must still be *sent* (`turnstileToken: null` is the correct request
+  locally); a form that drops it looks identical on screen and fails only against a deployment that
+  holds the secret.
 - Gated at **100% coverage and 100% mutation score**, plus `yarn lint:check`, `tsc --noEmit` and
   Qodana — all five in `.githooks/pre-push`, all but mutation in `.githooks/pre-commit`.
 
@@ -96,7 +103,7 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 
 | App | Test files | Tests | Mutants killed / timed out / survived |
 |---|---|---|---|
-| `marketplace-admin` | 49 | 729 | 1783 / 6 / 0 |
-| `marketplace-shopowner` | 38 | 497 | 1083 / 5 / 0 |
-| `marketplace-user` | 66 | 1165 | 2028 / 6 / 0 |
+| `marketplace-admin` | 51 | 765 | 1783 / 6 / 0 |
+| `marketplace-shopowner` | 40 | 533 | 1083 / 5 / 0 |
+| `marketplace-user` | 67 | 1170 | 2028 / 6 / 0 |
 | `services-status` | 7 | 379 | 1102 / 1 / 0 |

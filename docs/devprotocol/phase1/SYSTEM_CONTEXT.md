@@ -65,7 +65,7 @@ against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a
 |Sentry|error/perf monitoring SaaS|Marketplace → Sentry|exception events + traces from every backend service and all 3 frontends, opt-in via DSN presence|
 |Nominatim — self-hosted|geocoding API|`marketplace-user` browser → nginx `/geocode/` → on-prem Nominatim|address search-as-you-type, proxied, never public|
 |Nominatim — public OSM|geocoding API|`marketplace-admin` / `marketplace-shopowner` browser → `nominatim.openstreetmap.org`|address search, low-volume internal-panel traffic only|
-|Cloudflare Turnstile|bot-mitigation / CAPTCHA|browser → Cloudflare (widget script) **and** `marketplace-dev-public-resource` → Cloudflare `siteverify`|anti-bot token issued client-side, verified server-side over HTTPS|
+|Cloudflare Turnstile|bot-mitigation / CAPTCHA|browser → Cloudflare (widget script) **and** `marketplace-dev-public-resource` / `marketplace-dev-public-authorization` → Cloudflare `siteverify`|anti-bot token issued client-side, verified server-side over HTTPS; all three frontends render the widget on their login page|
 |Protomaps PMTiles archive|static basemap tile source|`marketplace-user` browser ↔ nginx `/tiles/` (self-hosted static file)|vector map tiles via HTTP range requests — not a live 3rd-party tile server|
 |nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|three vhosts at `nginx/` in the workspace root, exercised by `nginx/test/run.sh`; still installed on no host|
 |Qodana Cloud (JetBrains)|static-analysis SaaS|every repo's `pre-commit`/`pre-push` hook → Qodana Cloud|SARIF-shaped scan report, one project + token per repo|
@@ -331,15 +331,17 @@ would put ~950 KB in every catalogue page's entry chunk.
 
 ### 5.10 Browser ↔ Cloudflare Turnstile, and Marketplace → Cloudflare `siteverify`
 
-Two separate crossings, not one. Browser loads Cloudflare's widget script directly:
+Two separate crossings, not one. Browser loads Cloudflare's widget script directly — the same component
+in all three frontends, each with its own copy:
 
 ```ts
-// marketplace-user/src/components/ui/Turnstile.tsx:22
+// marketplace-user/src/components/ui/Turnstile.tsx  (also marketplace-admin, marketplace-shopowner)
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 ```
 
-`marketplace-dev-public-resource` verifies the resulting token server-side, over HTTPS, before rate
-limiting:
+`marketplace-dev-public-resource` (registration, resend, the customer reset pair) and
+`marketplace-dev-public-authorization` (all three logins) verify the resulting token server-side, over
+HTTPS, after rate limiting:
 
 ```ts
 // BEs/marketplace-common/src/others/assertTurnstile.mts:3,26,29-32
@@ -355,8 +357,14 @@ export async function assertTurnstile(token: string | undefined, remoteIp?: stri
 
 Fails **closed** in production with no secret configured, bypasses everywhere else — a missing secret
 reads as "the gate is broken", not "the gate is off" (comment, `assertTurnstile.mts:14-20`). Called from
-`guardPublicWrite` (`BEs/dev/marketplace-dev-public-resource/src/lib/access/guardPublicWrite.mts:43-50`),
-**after** the Redis rate-limit counter, so a tokenless flood never reaches the Cloudflare round trip.
+two guards of the same shape — `guardPublicWrite`
+(`BEs/dev/marketplace-dev-public-resource/src/lib/access/guardPublicWrite.mts`) and `guardPublicLogin`
+(`BEs/dev/marketplace-dev-public-authorization/src/lib/access/guardPublicLogin.mts`) — and in both cases
+**after** the Redis rate-limit counters, so a tokenless flood never reaches the Cloudflare round trip.
+
+⚠️ The CSP has to allow it on every surface that renders it: `challenges.cloudflare.com` in both
+`script-src` and `frame-src`, in `nginx/snippets/security-headers-public.conf` *and* in
+`security-headers-private.conf`. `nginx/test/suite.sh` asserts both entries on all nine header probes.
 
 ### 5.11 nginx — TLS termination + cache (written and tested, not installed)
 
@@ -368,7 +376,7 @@ rate-limit file and one TLS file.
 
 Still nothing installed on this machine (no `/etc/nginx`, no binary in `PATH`), but "documentation only"
 now understates it: `nginx/test/run.sh` runs the whole configuration in a throwaway container —
-`nginx -t` as a hard gate, then 150 assertions through a live nginx against stand-in backends. The
+`nginx -t` as a hard gate, then 168 assertions through a live nginx against stand-in backends. The
 directives below are executed, not merely written.
 
 Upstream map, all loopback, now eleven rather than seven — the two panels' tiers were never in the old
