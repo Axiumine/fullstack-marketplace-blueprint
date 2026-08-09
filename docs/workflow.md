@@ -146,8 +146,17 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   value ends the value there; the tail lands on the next line with no `KEY=` in front of it, and dotenv
   reads that tail as its own variable named after its first token. Both halves are silent. This is how
   all 5 `.env` files holding `KEYGRIP_KEY_1`/`_2` were found broken on 2026-08-09: 88-char keys wrapped
-  after 76 chars, and one file had the 12-char tail duplicated on a further line. **Detector — the
-  key-name listing you are already allowed to run:**
+  after 76 chars, and one file had the 12-char tail duplicated on a further line.
+
+  **This is a gate, not a convention.** `.githooks/pre-commit` **check 0** reads the working tree — the
+  only check that does, because a `.env` is git-ignored and never staged — and refuses the commit when
+  any `.env`, `.env.*` or `env` in that repo holds a non-blank, non-comment line that is not `KEY=VALUE`,
+  or a value that opens a quote the line never closes. It reports file, line and key name, never a value.
+  A deliberate multi-line value would trip it; none exists here, and the escape hatch is
+  `git commit --no-verify`.
+
+  **Detector, to check by hand before you get that far — the key-name listing you are already allowed to
+  run:**
 
   ```bash
   grep -oE '^[A-Za-z_0-9]+' .env
