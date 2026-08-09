@@ -1,6 +1,6 @@
 # A three-node MongoDB replica set for local development, plus an optional Redis.
 #
-# Member hostnames are db1/db2/db3 and each node listens on its OWN port. That is not decoration:
+# Member hostnames are mdb1/mdb2/mdb3 and each node listens on its OWN port. That is not decoration:
 # a replica set advertises its members by the host:port written into its config, and the driver
 # dials those, not the address you handed it. With all three on 27017 the host could not tell them
 # apart through 127.0.0.1, so the second and third members would be unreachable from outside Docker
@@ -19,12 +19,12 @@ x-mongod: &mongod
   networks: [rs0]
 
 services:
-  db1:
+  mdb1:
     <<: *mongod
-    container_name: marketplace-db1
+    container_name: marketplace-mdb1
     command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27017']
     ports: ['127.0.0.1:27017:27017']
-    volumes: [db1:/data/db]
+    volumes: [mdb1:/data/db]
     healthcheck:
       test: [CMD, mongosh, --quiet, --port, '27017', --eval, "db.adminCommand({ ping: 1 }).ok"]
       interval: 5s
@@ -32,19 +32,19 @@ services:
       retries: 24
       start_period: 10s
 
-  db2:
+  mdb2:
     <<: *mongod
-    container_name: marketplace-db2
+    container_name: marketplace-mdb2
     command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27018']
     ports: ['127.0.0.1:27018:27018']
-    volumes: [db2:/data/db]
+    volumes: [mdb2:/data/db]
 
-  db3:
+  mdb3:
     <<: *mongod
-    container_name: marketplace-db3
+    container_name: marketplace-mdb3
     command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27019']
     ports: ['127.0.0.1:27019:27019']
-    volumes: [db3:/data/db]
+    volumes: [mdb3:/data/db]
 
   # Opt-in: `./up.sh --with-redis`. The nine services keep their sessions here, so the platform does
   # not boot without one — but a dev who already has a Redis wants this container to stay down.
@@ -66,7 +66,7 @@ networks:
     name: marketplace-rs0
 
 volumes:
-  db1:
-  db2:
-  db3:
+  mdb1:
+  mdb2:
+  mdb3:
   redis:

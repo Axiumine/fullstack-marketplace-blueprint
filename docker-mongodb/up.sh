@@ -116,40 +116,95 @@ wait_for_node() {
 }
 
 echo 'up.sh: waiting for the three nodes...'
-wait_for_node db1 27017
-wait_for_node db2 27018
-wait_for_node db3 27019
+wait_for_node mdb1 27017
+wait_for_node mdb2 27018
+wait_for_node mdb3 27019
+
+# Answering a ping is not the same as having loaded the replica-set config. A node restarted into an
+# existing set spends its first seconds in STARTUP: it takes connections, and `hello()` reports neither
+# a `setName` nor anything else about the set. Reading that as "no set here" is what made a second
+# `./up.sh` call rs.initiate() on a healthy cluster and die on Unauthorized — the localhost exception
+# is long gone once the root user exists.
+#
+# `isreplicaset: true` is the marker that separates the two. mongod sets it only when it was started
+# with --replSet and holds no config at all, which is exactly the case initiate() is for. So: a
+# setName means initiated, `isreplicaset` means genuinely empty, and neither means still loading —
+# wait and ask again rather than guess.
+replica_set_state() {
+	local i state
+	for i in $(seq 1 30); do
+		# ⚠️ The match is unanchored on purpose. mongosh prints its `rs0 [direct: secondary] test>`
+		# prompt even when stdin is a pipe, so the answer never starts the line it lands on.
+		state="$(
+			echo 'const h = db.hello(); print(h.setName ? "already" : h.isreplicaset ? "absent" : "loading")' |
+				run_local mdb1 27017 2> /dev/null | tr -d '\r' | grep -woE 'already|absent|loading' | tail -1
+		)"
+		case "$state" in
+			already | absent)
+				printf '%s' "$state"
+
+				return 0
+				;;
+		esac
+		sleep 2
+	done
+
+	echo 'up.sh: mdb1 never reported whether it belongs to a replica set.' >&2
+
+	return 1
+}
 
 # ---------------------------------------------------------------- replica set
 #
 # rs.initiate() and the first createUser() both go through the LOCALHOST EXCEPTION: with a keyfile
 # in place and no user yet existing, MongoDB allows exactly these from a loopback connection. That
-# is why both run inside db1 via `exec` instead of from a separate init container — the exception is
+# is why both run inside mdb1 via `exec` instead of from a separate init container — the exception is
 # about the client's address, and a container on the compose network is not localhost.
 
-if echo 'print(db.hello().setName ? "rs:already" : "rs:absent")' | run_local db1 27017 | grep -q 'rs:already'; then
+# Read into a variable first: inside `if [ "$(…)" = … ]` a failing substitution is invisible, and
+# "could not tell" would silently become "not initiated" — which is the branch that calls initiate()
+# on a live cluster.
+RS_STATE="$(replica_set_state)"
+
+if [ "$RS_STATE" = already ]; then
 	echo 'up.sh: replica set rs0 already initiated'
 else
-	run_local db1 27017 << 'JS'
+	run_local mdb1 27017 << 'JS'
 rs.initiate({
 	_id: 'rs0',
 	members: [
-		{ _id: 0, host: 'db1:27017' },
-		{ _id: 1, host: 'db2:27018' },
-		{ _id: 2, host: 'db3:27019' }
+		{ _id: 0, host: 'mdb1:27017' },
+		{ _id: 1, host: 'mdb2:27018' },
+		{ _id: 2, host: 'mdb3:27019' }
 	]
 })
 print('rs:initiated')
 JS
 fi
 
+# ⚠️ Asked of the SET, not of mdb1. Which member wins an election is not decided here — after a
+# restart it is routinely mdb2 or mdb3 — and polling one node for `isWritablePrimary` reported "no
+# primary" for a cluster that had one and was perfectly healthy. The driver behind a replicaSet URI
+# does the discovery itself and lands on whoever is primary, which is the same thing every service
+# does. `hello` needs no credentials, so this works before the root user exists as well as after.
+#
+# ⚠️ The answer is captured and then matched, never piped into `grep -q`. This script runs under
+# `set -o pipefail`, and `grep -q` exits the moment it matches: mongosh is still writing its prompt,
+# takes SIGPIPE, and the pipeline reports failure for a check that in fact just succeeded. Whether it
+# bites depends on which of the two processes finishes first, so it fails intermittently — the worst
+# kind. `|| true` because a node that is not up yet makes `exec` itself exit non-zero.
 echo 'up.sh: waiting for a primary...'
 for i in $(seq 1 60); do
-	if echo 'db.hello().isWritablePrimary' | run_local db1 27017 2> /dev/null | grep -q true; then
-		break
-	fi
+	answer="$(
+		echo 'print(db.hello().isWritablePrimary)' |
+			dc exec -T mdb1 mongosh --quiet 'mongodb://mdb1:27017,mdb2:27018,mdb3:27019/?replicaSet=rs0' 2> /dev/null || true
+	)"
+	case "$answer" in
+		*true*) break ;;
+	esac
 	if [ "$i" -eq 60 ]; then
-		echo 'up.sh: no primary was elected. `./down.sh --purge` and try again.' >&2
+		echo 'up.sh: no primary was elected in two minutes. `docker compose logs mdb1 mdb2 mdb3` says why;' >&2
+		echo '       `./down.sh --purge` starts over, and throws away every database on this cluster.' >&2
 		exit 1
 	fi
 	sleep 2
@@ -167,7 +222,10 @@ root_script() {
 const admin = db.getSiblingDB('admin')
 let authed = false
 try {
-	authed = admin.auth(U, P) === 1
+	// ⚠️ `.ok`, not the return value. The legacy shell's db.auth() answered 1; mongosh answers
+	// { ok: 1 }, so `=== 1` is false even on a successful login — and this script then tried to
+	// create a root user that already existed, which fails and takes the whole run down with it.
+	authed = admin.auth(U, P).ok === 1
 } catch (e) {
 	authed = false
 }
@@ -182,7 +240,7 @@ if (authed) {
 JS
 }
 
-root_script | run_local db1 27017
+root_script | run_local mdb1 27017
 
 # The provisioning pass dials the replica set as a whole, so it always lands on the primary whatever
 # the election decided. Credentials go through auth() inside the script, not into the URI.
@@ -200,13 +258,53 @@ root_script | run_local db1 27017
 	printf '}\n'
 	printf 'db.getSiblingDB("admin").auth(%s, %s)\n' "$(jsq "$MONGO_ROOT_USER")" "$(jsq "$MONGO_ROOT_PWD")"
 	cat init/provision.js
-} | dc exec -T db1 mongosh --quiet 'mongodb://db1:27017,db2:27018,db3:27019/?replicaSet=rs0'
+} | dc exec -T mdb1 mongosh --quiet 'mongodb://mdb1:27017,mdb2:27018,mdb3:27019/?replicaSet=rs0'
+
+# ---------------------------------------------------------------- host names
+
+# The set advertises its members as mdb1/mdb2/mdb3, so every driver outside Docker re-dials those three
+# names whatever seed list it was handed. This only reports what they currently resolve to — editing
+# /etc/hosts is the operator's call, not a script's.
+host_name_notice() {
+	local name addresses unresolved=() elsewhere=()
+
+	command -v getent > /dev/null 2>&1 || return 0
+
+	for name in mdb1 mdb2 mdb3; do
+		addresses="$(getent ahostsv4 "$name" 2> /dev/null | awk '{ print $1 }' | sort -u | tr '\n' ' ' || true)"
+		addresses="${addresses% }"
+		if [ -z "$addresses" ]; then
+			unresolved+=("$name")
+		elif [ "$addresses" != '127.0.0.1' ]; then
+			elsewhere+=("$name -> $addresses")
+		fi
+	done
+
+	if [ "${#unresolved[@]}" -ne 0 ]; then
+		echo
+		echo "up.sh: ${unresolved[*]} do not resolve on this machine, so only processes inside the Docker"
+		echo '       network can use this cluster. Add the /etc/hosts line from README.md to fix it:'
+		echo '         127.0.0.1   mdb1 mdb2 mdb3'
+	fi
+
+	if [ "${#elsewhere[@]}" -ne 0 ]; then
+		echo
+		echo 'up.sh: these names already point somewhere other than loopback —'
+		printf '         %s\n' "${elsewhere[@]}"
+		echo '       That is another replica set, most likely the real external rs0. Adding the loopback'
+		echo '       line from README.md would redirect every process on this machine to these containers,'
+		echo '       not only this project. Leave it out unless that is what you want.'
+	fi
+}
 
 echo
 echo 'up.sh: ready.'
-echo "       replica set  rs0  ->  db1:27017, db2:27018, db3:27019"
+echo "       replica set  rs0  ->  mdb1:27017, mdb2:27018, mdb3:27019"
 echo "       CSFLE master key  ->  $(pwd)/secrets/csfle-master-key"
 if [ "$WITH_REDIS" -eq 1 ]; then
 	echo '       redis             ->  127.0.0.1:6379'
 fi
+
 echo '       Connection strings for each repo .env: README.md §Wiring the repos.'
+
+host_name_notice
