@@ -31,14 +31,25 @@ application code. It is not the platform index and never will be. GitNexus names
 directory, which is why the entry follows the folder rather than the product. Keep it current so the
 staleness hook stays quiet; never query it expecting application code.
 
-⚠️ **What kept application code out of that index was the parent's `.gitignore`, and since ADR-031 it no
-longer lists the sub-repo paths** — they are submodules, and an ignored path is one `git submodule add`
-refuses. The fifteen sub-repos' files are physically present under this directory, so whether the next
-`gitnexus analyze` here still produces a docs-only index depends entirely on whether it skips gitlinked
-directories, which is **unverified**. Check the symbol count after the first `analyze` run following the
-conversion: a parent index that suddenly holds resolvers or React components has swallowed the sub-repos
-and must be rebuilt with them excluded. Do not guess an exclude key into `.gitnexusrc` — the loader fails
-closed, so an unknown key aborts the analysis rather than no-opping.
+⚠️ **What keeps application code out of that index is now `.gitnexusignore`, not `.gitignore`.** Until
+ADR-031 the two were the same thing: the parent ignored `/BEs/` and the four sibling directories, so
+`analyze` never saw them. Submodule paths cannot stay in `.gitignore` — an ignored path is one
+`git submodule add` refuses — and the first `analyze` after the conversion pulled all fifteen codebases
+into the parent index: **143 files / 1651 nodes became 1480 files / 9567 nodes**, one index holding the
+whole platform under the one registry name that is documented as never holding any of it.
+
+The fix is `.gitnexusignore` at the workspace root, which GitNexus reads *in addition to* `.gitignore` and
+which git itself ignores entirely. It lists the five sub-repo paths. Re-running `analyze -f` restored the
+index to 146 files / 1678 nodes, 38 clusters, 78 flows.
+
+⚠️ **A new sub-repo needs a line in `.gitnexusignore` as well as a submodule entry.** Verify after any
+`analyze` here: `stats.files` in `.gitnexus/meta.json` must stay in the low hundreds — thousands means a
+sub-repo got in, and the fix is the ignore line plus `analyze -f`, since an incremental run adds rows and
+never removes them.
+
+`.gitnexusignore` supports `.gitignore`-style negation (`!__tests__/` to re-include a directory the
+default filters drop). Do **not** try to express this as a `.gitnexusrc` key instead — the loader fails
+closed, so a guessed key aborts the analysis rather than no-opping.
 
 ⚠️ **The registry also holds indexes from other workspaces on this machine.** `list_repos` returns
 entries rooted outside this tree, some of them near-identical in shape to the fourteen above — they
@@ -114,6 +125,10 @@ repo commits a `.gitnexusrc` at its root (JSON only, read from the repo root —
 |---|---|---|
 | the 14 indexed sub-repos | `{"analyze": {"noStats": true}}` | generated block keeps its guidance, drops the volatile counts — byte-identical across runs |
 | this parent dir | `{"analyze": {"skipContextFiles": true}}` | no block written at all, so the hand-written `AGENTS.md` block is never appended over |
+
+Scope is a separate file. `.gitnexusrc` tunes what `analyze` *writes*; **`.gitnexusignore`** decides what it
+*reads*, and only the parent has one — the fifteen sub-repos each index their own tree and have nothing to
+exclude.
 
 `skipContextFiles` suppresses only the `AGENTS.md` / `CLAUDE.md` block — the index is still built and the
 skill files are still written. CLI flags override the file (`--no-stats`, `--skip-agents-md`), and the

@@ -5,10 +5,12 @@ nothing in `item` / `itemCategory` presumes what is sold, and no vocabulary that
 type belongs in it. Everything is named in English — identifiers, collections, routes, UI text,
 comments.
 
-This directory is the parent workspace of all Marketplace repos (polyrepo, sixteen of them). Since
-ADR-031 it tracks the fifteen sub-repos as submodules, so `git clone --recurse-submodules` rebuilds the
-whole workspace — see `docs/workflow.md` §Cloning the workspace, including the detached-HEAD trap that
-follows every `git submodule update`. Start from `CLAUDE.md`; it
+This directory is the parent workspace of all Marketplace repos (polyrepo, sixteen of them), published at
+<https://github.com/Axiumine/fullstack-marketplace-blueprint>. Since ADR-031 it tracks the fifteen
+sub-repos as submodules with relative URLs, so `git clone --recurse-submodules` rebuilds the whole
+workspace over whichever transport you clone with — see `docs/workflow.md` §Cloning the workspace, which
+also covers the detached-HEAD trap that follows every `git submodule update`, and what is not yet pushed.
+Start from `CLAUDE.md`; it
 routes to `docs/architecture.md`, `docs/data-model.md`, `docs/frontends.md`, `docs/testing.md`,
 `docs/workflow.md`, `docs/conventions.md` and `docs/gitnexus.md`, and to
 `docs/devprotocol/phase3/adr/ADR-INDEX.md` for the rationale behind every decision below.

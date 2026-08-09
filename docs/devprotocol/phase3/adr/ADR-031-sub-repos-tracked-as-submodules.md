@@ -6,6 +6,27 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** ADR-001, in part — the *no submodules* clause of its Decision only
 **Superseded by:** —
+**Amended:** 2026-08-09 — three things below were written before the parent had a remote, and are now out
+of date rather than wrong.
+
+1. **The parent has an `origin`:** `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`. It
+   exists on GitHub and is empty — `git ls-remote` returns zero refs. So do `marketplace-common`,
+   `marketplace-db-setup` and `marketplace-nginx`; the other **twelve sub-repo repositories do not exist
+   yet**. Nothing has still ever been pushed, so §Decision's closing paragraph holds unchanged.
+2. **`.gitmodules` now uses relative URLs** — `url = ../<repo-name>.git`, not the absolute
+   `git@github.com:…` form recorded in §Decision. An absolute `ssh` URL under an `https` parent origin
+   makes a clone switch transport halfway through; a relative URL resolves against whatever the parent was
+   actually cloned with. Verified both ways: under the `https` origin it resolves to
+   `https://github.com/Axiumine/marketplace-nginx.git`, and under an `ssh` origin to
+   `git@github.com:Axiumine/marketplace-nginx.git`. Both transports reach the three repositories that
+   exist. This also retires the reason §Decision gives for moving `marketplace-db-setup` to `ssh` — one
+   transport is now guaranteed by construction rather than by keeping fifteen lines in step.
+3. **The conversion broke the GitNexus parent index, and the fix is a new file.** `.gitignore` was what
+   kept `analyze` from reading the sub-repos, and submodule paths cannot live there. The first `analyze`
+   after the conversion took the parent index from 143 files / 1651 nodes to 1480 / 9567 — the whole
+   platform under the one registry name documented as holding none of it. `.gitnexusignore` at the
+   workspace root now lists the five paths; `analyze -f` restored 146 files / 1678 nodes. See
+   `docs/gitnexus.md`.
 
 ---
 
@@ -150,9 +171,19 @@ From the workspace root:
 
 ```bash
 git ls-files -s | grep -c '^160000'                    # must be 15 — one gitlink per sub-repo
-git config -f .gitmodules --get-regexp 'submodule\..*\.url' | wc -l   # must be 15
+git config -f .gitmodules --get-regexp 'submodule\..*\.url' | grep -c ' \.\./'   # must be 15 — all relative
 git config -f .gitmodules --get-regexp 'submodule\..*\.branch'        # all 15 must read main
 git submodule status                                   # no + or - prefix on a clean tree
+```
+
+An absolute URL creeping back into `.gitmodules` is a violation even when it works, because it works only
+for whoever added it: it pins one transport under a parent origin that may use the other.
+
+The index boundary has its own check, because nothing about it is enforced by git — `.gitnexusignore` is
+what replaced the `.gitignore` entries, and only `analyze` reads it:
+
+```bash
+node -e "console.log(require('./.gitnexus/meta.json').stats.files)"   # low hundreds; thousands = a sub-repo got in
 ```
 
 Verify each gitlink actually matches the sub-repo it points at — a pinned SHA that has drifted from the
