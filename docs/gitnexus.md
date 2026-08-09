@@ -27,10 +27,18 @@ tests, no code — has no index and is not in the group.
 ## Two registry names that will mislead you
 
 ⚠️ **`fullstack-marketplace-blueprint` is this parent dir only** — its docs and skill files, no
-application code, because the `.gitignore` hides every sub-repo from it. It is not the platform index
-and never will be. GitNexus names an index after the directory, which is why the entry follows the
-folder rather than the product. Keep it current so the staleness hook stays quiet; never query it
-expecting application code.
+application code. It is not the platform index and never will be. GitNexus names an index after the
+directory, which is why the entry follows the folder rather than the product. Keep it current so the
+staleness hook stays quiet; never query it expecting application code.
+
+⚠️ **What kept application code out of that index was the parent's `.gitignore`, and since ADR-031 it no
+longer lists the sub-repo paths** — they are submodules, and an ignored path is one `git submodule add`
+refuses. The fifteen sub-repos' files are physically present under this directory, so whether the next
+`gitnexus analyze` here still produces a docs-only index depends entirely on whether it skips gitlinked
+directories, which is **unverified**. Check the symbol count after the first `analyze` run following the
+conversion: a parent index that suddenly holds resolvers or React components has swallowed the sub-repos
+and must be rebuilt with them excluded. Do not guess an exclude key into `.gitnexusrc` — the loader fails
+closed, so an unknown key aborts the analysis rather than no-opping.
 
 ⚠️ **The registry also holds indexes from other workspaces on this machine.** `list_repos` returns
 entries rooted outside this tree, some of them near-identical in shape to the fourteen above — they

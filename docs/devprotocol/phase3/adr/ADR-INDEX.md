@@ -10,10 +10,11 @@
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
-`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted` and none has
-been superseded yet. The ones marked *amended* carry a dated `**Amended:**` header recording a later fact
-the decision has to live with — an amendment never changes what was decided, and the §2 row says which
-ones have one.
+`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`. One
+supersession exists so far and it is partial — ADR-031 reverses a single clause of ADR-001 and leaves the
+rest standing, which both §2 rows say as *(in part)* and both ADRs spell out in their headers. The ones
+marked *amended* carry a dated `**Amended:**` header recording a later fact the decision has to live with;
+an amendment never changes what was decided, and the §2 row says which ones have one.
 
 New ADR: copy `ADR-000-template.md`, next free number, fill in `Status`, `Date`, `Deciders`.
 
@@ -24,7 +25,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 
 | ADR | Title | Status | Date | Supersedes | Superseded by | Area |
 |---|---|---|---|---|---|---|
-| ADR-001 | Polyrepo over monorepo | accepted, amended 2026-08-09 | 2026-08-04 | — | — | Infrastructure and delivery |
+| ADR-001 | Polyrepo over monorepo | accepted, amended 2026-08-09 | 2026-08-04 | — | ADR-031 (in part) | Infrastructure and delivery |
 | ADR-002 | Role is the authentication collection | accepted | 2026-08-04 | — | — | Identity and access |
 | ADR-003 | Opaque tokens, Redis sessions, not JWT | accepted | 2026-08-04 | — | — | Identity and access |
 | ADR-004 | Per-tier session assertion (fail closed, 403, shared REDIS_KEY) | accepted | 2026-08-05 | — | — | Identity and access |
@@ -53,7 +54,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-027 | One frontend app per tier, not one app that switches on role | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-028 | GraphQL is the whole API; three REST endpoints serve email verify only | accepted | 2026-08-05 | — | — | Infrastructure and delivery |
 | ADR-029 | PII at rest: explicit CSFLE, deterministic on the five lookup keys | accepted | 2026-08-08 | — | — | Data model |
-| ADR-030 | marketplace-nginx gates on its own suite at push, on the secret guard at commit | accepted | 2026-08-09 | — | — | Build and quality gates |
+| ADR-030 | marketplace-nginx gates on its own suite at push, on the secret guard at commit | accepted, amended 2026-08-09 | 2026-08-09 | — | — | Build and quality gates |
+| ADR-031 | The fifteen sub-repos are tracked as submodules of the parent workspace | accepted | 2026-08-09 | ADR-001 (in part) | — | Infrastructure and delivery |
 
 ## 3. By area
 
@@ -67,7 +69,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030
 
-**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028
+**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031
 
 ## 4. Decisions deliberately NOT re-opened
 
@@ -81,6 +83,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
+| Collapse the sixteen repos into a monorepo | ADR-001, ADR-031 | sixteen separate histories, hook sets, gates and Qodana projects would have to merge, and path-scoped CI would have to be invented to recover what repo boundaries give for free; ADR-031 solved reconstruction without touching this |
+| Put the sub-repo paths back in the parent's `.gitignore`, or commit a sub-repo's files into the parent | ADR-031 | the first makes `git submodule add` refuse the path and un-tracks fifteen gitlinks; the second dissolves the boundary ADR-001 set — a submodule pins a sub-repo, it never absorbs one |
 | Give `marketplace-nginx` a `package.json` so its hooks self-arm | ADR-030 | it ships no JavaScript, so the file would exist to hold one line of git config and would invite a `lint`/`test` script with nothing behind it — the appearance of a gate, which is what ADR-025 removed from `services-status` |
 | Move `marketplace-nginx`'s test suite into its `pre-commit`, or add a skip variable to its `pre-push` | ADR-030 | the suite needs a container engine and an image, and the ordinary commit there is one directive; a per-commit container run is how a hook gets `--no-verify`d out of habit |
 | Encrypt `shopOwner.personalData.firstName` / `lastName` / `address.city` too | ADR-029 | they are the sort keys and `/^term/i` targets of the operator's shop-owner table, and neither CSFLE algorithm survives a sort or a prefix match; encrypting them makes that table silently wrong rather than slow |

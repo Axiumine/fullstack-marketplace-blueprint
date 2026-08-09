@@ -1,12 +1,16 @@
-# Each sub-project is its own independent git repo and is versioned there, not
-# here. This root repo tracks only the parent-workspace files (CLAUDE.md, etc.)
-# — see "This directory is the parent workspace" in CLAUDE.md.
+# The fifteen sub-projects are NOT listed here any more. Each is still its own
+# independent git repo with its own history, and its files are still versioned
+# there and never here — but since ADR-031 the parent tracks each one as a
+# submodule, so it records a gitlink (a pinned commit SHA) and nothing else.
+# Ignoring those paths now would make `git submodule add` refuse them.
+# See "This directory is the parent workspace" in CLAUDE.md.
 
-/BEs/
-/marketplace-admin/
-/marketplace-nginx/
-/marketplace-shopowner/
-/marketplace-user/
+# Not a repo and not a service — the empty directory the resource services write
+# uploads into (docs/workflow.md §Repo layout). It was covered by the old /BEs/
+# entry; without this line an upload made in local dev shows up as untracked
+# here.
+/BEs/dev/upload-local/
+
 /.idea/
 
 # Secrets never enter this repo. Every sub-repo already ignores these; the parent

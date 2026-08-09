@@ -32,27 +32,70 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 └── services-status/                 # tracked by THIS repo, not a repo of its own
 ```
 
-The parent's `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-nginx/`,
-`/marketplace-shopowner/` and `/marketplace-user/`, so the sub-repos nest without conflict — and so
-**anything written under those paths is tracked by that sub-repo, never by the parent.**
+The parent tracks each of the fifteen as a **submodule** (ADR-031): a gitlink pinning one commit SHA, and
+nothing else. **Anything written under those paths is still tracked by that sub-repo and never by the
+parent** — a submodule pins a sub-repo, it does not absorb one. `git ls-files BEs/marketplace-common`
+returns nothing, and if it ever returns files the boundary has been broken.
+
+`.gitmodules` is the tracked list of all fifteen: path, `git@github.com:Axiumine/<repo-name>.git`, and
+`branch = main`. One transport for all fifteen, deliberately — a `.gitmodules` mixing `ssh` and `https`
+makes a clone's authentication depend on which line it is reading.
 
 `BEs/dev/upload-local/` is **not** a repo and not a service — an empty directory the resource services
-write uploads into. Do not count it, do not `git init` it.
+write uploads into. Do not count it, do not `git init` it. It is the one path under `BEs/` the parent
+still ignores, because the old blanket `/BEs/` entry used to cover it.
+
+### Cloning the workspace
+
+```bash
+git clone --recurse-submodules git@github.com:Axiumine/fullstack-marketplace-blueprint.git
+```
+
+⚠️ **This does not work yet.** The parent has no `origin` at all, and nothing in any of the sixteen repos
+has ever been pushed — so the SHAs `.gitmodules` pins exist on no remote. The recipe is what the layout is
+*for*; it becomes true when the repositories are created.
+
+In an existing checkout, or after a clone that forgot `--recurse-submodules`:
+
+```bash
+git submodule update --init --recursive
+git submodule foreach 'git switch main'    # ⚠️ not optional — see below
+git config core.hooksPath .githooks                          # parent: no package.json, no prepare
+git -C marketplace-nginx config core.hooksPath .githooks     # same reason (ADR-025, ADR-030)
+git config push.recurseSubmodules check                      # refuse to push a pointer to an unpushed commit
+```
+
+⚠️ **`git submodule update` leaves every sub-repo on a detached HEAD.** That collides head-on with *never
+commit on `main`, branch first*: a commit made there is reachable from nothing and disappears at the next
+checkout, looking entirely normal until it does. Run the `foreach` line before touching anything.
+
+Neither `core.hooksPath` line nor `push.recurseSubmodules` can be committed — local config is per-worktree
+— so all three survive exactly as long as the checkout does.
+
+To move every sub-repo to the tip of its `main`: `git submodule update --remote --merge`, which is what
+the `branch = main` entries are recorded for.
 
 ### Current state
 
 - **All sixteen repos have a `main`, and it is normally the checked-out branch.**
-- **All sixteen have `core.hooksPath=.githooks` set and a `.githooks/` of their own**, but they do not
-  all hold the same gates. Fifteen gate on **commit and push**. `marketplace-nginx` gates on **push
-  only** — it has no `package.json`, so there is no lint, coverage, mutation or Qodana step for it to
-  run; its single `pre-push` gate runs `test/run.sh` and blocks on any failed check. It has no
-  `pre-commit`, so ⚠️ **the secret guard does not run there.** No CI/CD pipeline is configured either;
-  every gate on the platform is a local git hook.
+- **All sixteen have `core.hooksPath=.githooks` set and a `.githooks/` of their own**, and all sixteen
+  carry both a `pre-commit` and a `pre-push` — but they do not all hold the same gates.
+  `marketplace-nginx` has no `package.json`, so there is no lint, coverage, mutation or Qodana step for
+  it to run: its `pre-push` runs `test/run.sh` and blocks on any failed check, and its `pre-commit` is
+  the secret guard and nothing after it (ADR-030). The secret guard itself runs in **all sixteen**. No
+  CI/CD pipeline is configured; every gate on the platform is a local git hook.
+- **The parent's own commits now include pointer bumps.** One logical change is N+1 commits, not N: one
+  per affected sub-repo, plus one in the parent moving the gitlinks. Skipping the parent commit leaves it
+  describing a cross-repo state that no longer exists (ADR-031).
 - History is shallow: `git diff`, `git stash` and `git reset` work, but `git log` answers almost nothing
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
-Where these sixteen repos get published, and under which org, is the platform owner's open call and has
-not been made.
+Whether and when these sixteen repos get published is still the platform owner's open call and has not
+been made — **nothing has ever been pushed**, and no branch in any of the sixteen has an upstream. What
+*is* settled is the naming: `.gitmodules` records all fifteen sub-repos as
+`git@github.com:Axiumine/<repo-name>.git`, extending the convention the three pre-existing remotes already
+followed (ADR-031). Changing the org is cheap while nothing is pushed — edit `.gitmodules`, then
+`git submodule sync --recursive` — and progressively less so afterwards.
 
 ⚠️ **Note the npm/git split.** `@axiumine/marketplace-common` and `@axiumine/koa-utils` are
 *npm package* names, unrelated to where the git repo lives. Renaming a git remote never implies renaming
