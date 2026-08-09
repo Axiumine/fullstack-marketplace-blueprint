@@ -23,7 +23,7 @@ Boundary enforcement note, load-bearing for every entry below: on this platform 
 
 ### BC-01 - Identity & Access
 **Responsibility:** Authenticates a caller against exactly one of three collections and mints/rotates/validates the opaque token pair that proves it for the rest of a session. One instance of this responsibility per tier - never a single service branching on a role.
-**Owns:** `admin`, `shopOwner`, `user` collections' `login`/`resetPwd`/`emailVerify` sub-documents (shared shape `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY`, `BEs/marketplace-db-setup/lib/schemas/account.js:18-125`); the Redis session hash keyed `${REDIS_KEY}${token}`; the `TIER` constant and `assertTier` guard (`BEs/marketplace-common/src/others/Tier.mts:12-18`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`); the three `*-authenticated-authorization` services (`BEs/dev/marketplace-dev-authenticated-authorization`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `BEs/dev/marketplace-dev-user-authenticated-authorization`) plus `marketplace-dev-public-authorization` for first login (`login`/`loginAdmin`/`loginUser`).
+**Owns:** `admin`, `shopOwner`, `user` collections' `login`/`resetPwd`/`emailVerify` sub-documents (shared shape `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY`, `BEs/marketplace-db-setup/lib/schemas/account.js`); the Redis session hash keyed `${REDIS_KEY}${token}`; the `TIER` constant and `assertTier` guard (`BEs/marketplace-common/src/others/Tier.mts:12-18`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`); the three `*-authenticated-authorization` services (`BEs/dev/marketplace-dev-authenticated-authorization`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `BEs/dev/marketplace-dev-user-authenticated-authorization`) plus `marketplace-dev-public-authorization` for first login (`login`/`loginAdmin`/`loginUser`).
 **Produces:** Customer Logged In / Shop Owner Logged In / Admin Logged In, Login Refused (per-tier reason, generic error shape outward), Access Token Rotated, Refresh Refused - Foreign Tier, Verification Email Sent, Email Verified (`UBIQUITOUS_LANGUAGE.md` §15).
 **Consumes:** bcrypt-hashed credentials from each collection (`SALT_ROUNDS=14`), the Keygrip-signed refresh cookie, `x-introspectioncode` for service-to-service bypass (`resolveAuthorizationSession`, `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`).
 **Does not own:** logout (BC-02, separate context on purpose), `waitApprov`/onboarding gate content (BC-03 writes it, this context only reads it to refuse a login), `personalData`/`addresses` (BC-07).
@@ -71,7 +71,7 @@ args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
 
 Two writers by design, not overlap - and they diverge on delete semantics for an already-retired company, which is the platform's canonical example of "liveness belongs on read/ownership guards, never on the delete write itself" (`docs/data-model.md`):
 ```js
-// BEs/marketplace-db-setup/lib/schemas/company.js:88-100
+// BEs/marketplace-db-setup/lib/schemas/company.js
 const PUBLISHED_IMPLIES_LINKABLE = {
   $expr: { $or: [
     { $ne: ['$published', true] },
@@ -126,7 +126,7 @@ export async function funItemCategoryAdd(data: IItemCategoryValidated) {
 
 The "at most one default" invariant is a shape, not a checked rule - a single root pointer instead of a per-element boolean makes a second default inexpressible, enforced by the collection's own `$expr`:
 ```js
-// BEs/marketplace-db-setup/lib/schemas/user.js:70-82
+// BEs/marketplace-db-setup/lib/schemas/user.js
 const DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES = {
   $expr: { $or: [
     { $eq: [{ $type: '$defaultAddress' }, 'missing'] },
@@ -189,7 +189,7 @@ reaching Qodana -> exited non-zero with no results directory -> both hooks repor
 **Responsibility:** Would own cart, order, delivery and payment - the commerce flow a customer needs to actually buy an `item`. Named here for glossary and boundary readiness only.
 **Owns:** nothing. No collection, no migration, no model, no resolver, no schema builder exists anywhere in the 16 repos (`EVENT_STORMING.md` §2.9, verified: no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching `cart`/`order`/`payment`/`delivery`).
 **Produces:** nothing real. Hypothetical, unimplemented events named for vocabulary readiness: Cart Item Added, Order Placed, Payment Authorised, Delivery Dispatched - none exists in code.
-**Consumes:** would need BC-05's `item` (still with no price - `BEs/marketplace-db-setup/lib/schemas/item.js:12-17` states a price "would be a guess at a design decision nobody has made"), BC-07's `addresses` for delivery, BC-04's `company` for fulfilment ownership.
+**Consumes:** would need BC-05's `item` (still with no price - `BEs/marketplace-db-setup/lib/schemas/item.js` states a price "would be a guess at a design decision nobody has made"), BC-07's `addresses` for delivery, BC-04's `company` for fulfilment ownership.
 **Does not own:** anything yet. **Ask before inventing any part of this** (`CLAUDE.md` §Build state) - designing it requires operator sign-off, not an agent's inference from the shape of the other ten contexts.
 
 ---
@@ -292,10 +292,10 @@ Terms and shapes multiple contexts use identically, with zero translation at the
 | `assertTier` | `BEs/marketplace-common/src/others/assertTier.mts:21-23` | Every resource/authorization service except BC-02's logout | §4 |
 | `checkUserAuthorizationDisDel` | `BEs/marketplace-common` | BC-01, BC-03, BC-04, BC-05, BC-06, BC-07 | §4 |
 | `REDIS_KEY` prefix (`marketplaceDev:`) | shared across all 9 services' env | BC-01, BC-02 | §4 |
-| `LOGIN` / `RESET_PWD` / `EMAIL_VERIFY` sub-document shapes | `BEs/marketplace-db-setup/lib/schemas/account.js:18-125` | BC-01 (all three collections it authenticates against) | §11 |
-| `DELETED` / `DISABLED` soft-delete convention (`deleted`: date, never removed; `disabled`: bool) | `BEs/marketplace-db-setup/lib/schemas/account.js:127-135` | BC-01, BC-03, BC-04, BC-05, BC-06, BC-07 - every collection on the platform | §11, §13 |
-| shared `address` block | `BEs/marketplace-db-setup/lib/schemas/geo.js:89-123` | BC-04 (`company.address`, `position` required), BC-07 (`user.addresses[]`, `position` optional) | §11 |
-| GeoJSON `position` builder + `COORDINATE_TUPLE` | `BEs/marketplace-db-setup/lib/schemas/geo.js:16-69` | BC-04, BC-07, BC-08 (reads the `2dsphere` index both produce) | §11 |
+| `LOGIN` / `RESET_PWD` / `EMAIL_VERIFY` sub-document shapes | `BEs/marketplace-db-setup/lib/schemas/account.js` | BC-01 (all three collections it authenticates against) | §11 |
+| `DELETED` / `DISABLED` soft-delete convention (`deleted`: date, never removed; `disabled`: bool) | `BEs/marketplace-db-setup/lib/schemas/account.js` | BC-01, BC-03, BC-04, BC-05, BC-06, BC-07 - every collection on the platform | §11, §13 |
+| shared `address` block | `BEs/marketplace-db-setup/lib/schemas/geo.js` | BC-04 (`company.address`, `position` required), BC-07 (`user.addresses[]`, `position` optional) | §11 |
+| GeoJSON `position` builder + `COORDINATE_TUPLE` | `BEs/marketplace-db-setup/lib/schemas/geo.js` | BC-04, BC-07, BC-08 (reads the `2dsphere` index both produce) | §11 |
 | `OnlyIdType` return convention on ShopOwner-tier creates | `BEs/dev/marketplace-dev-authenticated-resource/.../companyAdd.mts:1,27` | BC-04, BC-05 (ShopOwner tier only - Admin tier returns plain `Boolean` for the same mutations) | §14 |
 | Mongoose models (`Company`, `Item`, `ItemCategory`, `ShopOwner`, `User`, `Admin`) | `BEs/marketplace-common` | BC-01, BC-03, BC-04, BC-05, BC-06, BC-07, BC-08 | §13 (`deploy-local.sh`) |
 
@@ -323,7 +323,7 @@ Two field names deliberately mean **different things** in different contexts and
 |---|---|---|---|
 | 1 | Does self-service shop-owner registration ever get built, or does Admin-provisioning (BC-03) stay permanent? | Product | Open |
 | 2 | What advances `shopOwner.onboardingStep`/`onboardingDone` (BC-01/BC-03 boundary), and where does that write live? No mutation under any `mutations/` directory on the platform was found to write either field. | Platform dev | Open |
-| 3 | Is `waitApprov` (BC-03) true or false/absent by default at account creation? Schema comment conflates "awaiting approval" with "deleted" in one field's own doc comment (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js:117-120`). | Platform dev | Open |
+| 3 | Is `waitApprov` (BC-03) true or false/absent by default at account creation? Schema comment conflates "awaiting approval" with "deleted" in one field's own doc comment (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js`). | Platform dev | Open |
 | 4 | When BC-11 Ordering & Fulfilment design work starts, who signs off the first schema - and does it become one context or split (Cart / Order / Delivery / Payment each their own)? | Product + platform dev | Open |
 | 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item? | Platform dev | Open |
 | 6 | What `idShopOwner` does an Admin-created `company` document (BC-04) get, absent an owning ShopOwner having created it first via BC-03? | Platform dev | Open |

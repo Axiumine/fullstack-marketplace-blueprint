@@ -167,14 +167,18 @@ data back — so it refuses to start.
 ## Migrations (ADR-014)
 
 **Migrations are immutable — never edit an applied migration, add a new one.** But they are not
-self-contained: the `$jsonSchema` shapes live in `marketplace-db-setup/lib/schemas/`, shared by every
-migration that restates them. Current builders: `account.js`, `collection.js`, `encrypted.js`,
+self-contained: the `$jsonSchema` shapes live in `marketplace-db-setup/lib/schemas/`, and each migration
+is a call rather than a copy. Current builders: `account.js`, `collection.js`, `encrypted.js`,
 `geo.js`, `admin.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`, plus its
 `README.md`.
 
-A new product type gets a builder there rather than an inline validator.
+Seven migrations, six of which create a collection in its final shape and one of which seeds demo data.
+There is no `collMod` and no `<ts>-alter-<coll>.js`: a collection is declared once, so `migrations/` reads
+as the schema rather than as its diff history. A new collection gets a builder under `lib/schemas/` and one
+`<ts>-create-<coll>.js` that calls it — never an inline validator.
 
 ⚠️ **A change under `lib/schemas/` is followed by a full rebuild of every database that has run these
-migrations, in the same piece of work.** Each builder carries *every* historical shape of its
-collection, so deleting an unused branch breaks some older migration's `down`. Read
-`lib/schemas/README.md` before editing it.
+migrations, in the same piece of work.** A builder carries one shape per collection, so editing it changes
+what the migration that calls it *would* create — which the databases already created from the old shape
+do not know about. There is no database on this platform that cannot be dropped and replayed, and that
+licence is what buys the single-shape rule. Read `lib/schemas/README.md` before editing it.
