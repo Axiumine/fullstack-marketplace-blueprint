@@ -39,7 +39,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, applied migrations rewritten in place | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
-| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, amended 2026-08-08 | 2026-08-04 | — | — | Build and quality gates |
+| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, amended 2026-08-08 and 2026-08-09 | 2026-08-04 | — | — | Build and quality gates |
 | ADR-016 | 100% coverage on all four metrics + 100 mutation score, everywhere | accepted | 2026-08-06 | — | — | Build and quality gates |
 | ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted, amended 2026-08-09 | 2026-08-07 | — | — | Build and quality gates |
 | ADR-018 | SSR public routes, CSR-only /account/*, cache bypasses on session cookie | accepted | 2026-08-05 | — | — | Frontend |

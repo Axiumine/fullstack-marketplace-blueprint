@@ -218,3 +218,7 @@ This page starts and stops processes, so its threat model is stricter than a rea
 
 No code change is needed anywhere else: the server, the unit generator and the frontend all derive their
 service list from `services.json` at runtime/generation time.
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](../LICENSE).
