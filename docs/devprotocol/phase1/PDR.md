@@ -134,7 +134,7 @@ graph TD
 | Polyrepo, no atomic cross-repo commit | 1 logical change = N separate commits, one per affected repo — no tooling catches a cross-repo mistake automatically |
 | Shallow history | history starts here; the working trees predate the first commit in each repo, so `git log` explains little |
 | Node `^24.18.0` hard gate under yarn classic | `.nvmrc` = `24.18.0`; a mismatch is `exit 1` with "The engine node is incompatible", not a warning — bump all 14 `package.json` in one sweep if it ever moves |
-| yarn everywhere, but `packageManager` pinned in only 6 of 14 | `marketplace-db-setup`, the 2 `*-user-authenticated-*` services, and the 3 frontends carry `yarn@1.22.22+sha512.…`; the other 8 resolve to whatever yarn is on `PATH` under Corepack |
+| yarn everywhere, `packageManager` pinned in all 15 packages | the same `yarn@1.22.22+sha512.…` string in every `package.json`. It used to be in 7 of them, with the other 8 — `marketplace-common` and the seven original backend services — resolving to whatever yarn Corepack found on `PATH` |
 | `marketplace-common` unpublished, package-name-consumed | bridged by `BEs/marketplace-common/deploy-local.sh`; a fresh `yarn install` in any service still 404s until real publish |
 | Migrations immutable | never edit an applied migration; `$jsonSchema` shapes live in `BEs/marketplace-db-setup/lib/schemas/`, shared across migrations that restate them — a schema change means a full rebuild of every DB that ran the migrations |
 | English-only naming, no exception | Identifiers, routes, UI text, comments, fixtures and migrations. The `en-GB` locale the SPAs format dates with is a market choice, not a name |

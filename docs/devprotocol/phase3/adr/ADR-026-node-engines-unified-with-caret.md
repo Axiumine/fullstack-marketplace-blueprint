@@ -31,12 +31,14 @@ Every gate shells out to yarn, and `engines.node` is a…") and `:33` (`REQUIRED
 'require("./package.json").engines.node' …)"`), `:70` (`does not satisfy engines.node ^$REQUIRED_NODE —
 switching via nvm`).
 
-`packageManager` is a separate, narrower pin — present in only 6 of the 14 sub-repos
-(`marketplace-db-setup`, the two `*-user-authenticated-*` services, the three frontends) plus
-`services-status`, verified via `grep -l '"packageManager"' */package.json BEs/*/package.json
-BEs/dev/*/package.json` returning 7 files. It is orthogonal to this ADR: `packageManager` fixes the yarn
-binary via Corepack, `engines.node` fixes the Node runtime the gates and the app run under. Not addressed
-here.
+`packageManager` is a separate, narrower pin, and it is now in **all 15 packages** — the same
+`yarn@1.22.22+sha512.…` string everywhere, verified via `grep -l '"packageManager"' */package.json
+BEs/*/package.json BEs/dev/*/package.json` returning 15 files. It was in 7 when this ADR was written
+(`marketplace-db-setup`, the two `*-user-authenticated-*` services, the three frontends and
+`services-status`); `marketplace-common` and the seven original backend services resolved to whatever
+yarn Corepack found on `PATH`, which is a different yarn per developer for the repos that publish and
+consume `@axiumine/marketplace-common`. It stays orthogonal to this ADR: `packageManager` fixes the
+yarn binary, `engines.node` fixes the Node runtime the gates and the app run under.
 
 ---
 
