@@ -15,11 +15,11 @@ Nine Koa 3 services (`BEs/dev/*`) each call `httpServer.listen(...)` with no `ho
 `marketplace-dev-public-authorization/src/index.mts:204-211`. No host means Node binds the
 unspecified address — every interface, `::` — not just loopback.
 
-This used to be a `hostname:` key instead of no key at all. `hostname` is not a `net.Server.listen`
-option. Node silently ignored the unknown key and bound wide anyway, so the `HOSTNAME` env var read
-by the old code path had zero effect regardless of what it was set to. The dead key was removed
-rather than converted to `host:` — see the comment left in its place at
-`marketplace-dev-public-authorization/src/index.mts:206-208`.
+**No key at all is written deliberately, and a comment sits where a key would go.** The spelling that
+looks right is `hostname:` — and `hostname` is not a `net.Server.listen` option at all. Node silently
+ignores the unknown key and binds wide anyway, so a `HOSTNAME` env var read into it has exactly zero
+effect regardless of what it is set to, while reading as though the bind address were configured. An
+absent key states the bind honestly; a `hostname:` key states a lie that nothing reports.
 
 Forcing loopback would look like the "safer" default. It is not available here: all nine
 integration suites open a real socket and fetch it back over `http://127.0.0.1:<port>` —
@@ -49,7 +49,7 @@ boundary, not a perf choice.
 | A — wildcard bind everywhere (all 9 services + SSR) | one bind policy, no per-repo exception to remember | SSR has no auth of its own; a wildcard bind lets any LAN caller reach `/account/*` HTML directly, skipping nginx rate-limit and cache-bypass-on-cookie (CON-10) |
 | B — loopback bind everywhere (all 9 services + SSR) | narrowest attack surface, matches SSR's own choice | breaks reachability from nginx/other hosts for the 9 services in any topology where the proxy is not co-located; nothing in the 9 services' integration suites would catch this at dev time since `127.0.0.1` still resolves loopback-side |
 | C (chosen) — wildcard on the 9 services, loopback only on `marketplace-user`'s SSR process | matches each process's actual trust boundary: the 9 are meant to be reached across the box, the SSR process is meant to be reached only through nginx | two policies to remember instead of one; a new service added later must consciously pick, not copy either existing pattern blindly |
-| D — configurable host via env var (`HOSTNAME` revived as `host:`) | flexible per-deployment | this is what the code used to look like via the dead `hostname:` key, and it hid a real bug (key silently ignored) rather than solving one; adds an env var whose wrong value fails the same way — silently — unless someone tests the actual bound interface |
+| D — configurable host via env var (`HOSTNAME` as a real `host:`) | flexible per-deployment | an env var whose wrong value fails silently — nothing reports a bind on the wrong interface unless someone tests the actual socket; and it is one typo (`hostname:`) away from the ignored-key trap in Context, which looks identical in a diff |
 
 ---
 
@@ -62,9 +62,9 @@ nginx, and the integration suites already exercise `127.0.0.1` reachability so n
 in the opposite direction here: that one process is unauthenticated by design and sits directly
 behind the nginx configs in `marketplace-nginx/` at the workspace root, so binding wide would be a direct bypass
 of rate-limit and cache-bypass rules that CON-10 treats as load-bearing security, not tuning.
-Option D is rejected outright: it is the shape of the bug this ADR documents the fix for, not an
-alternative to it — the code already tried a host-from-env pattern (`hostname:`) and it silently
-did nothing.
+Option D is rejected outright: a host-from-env pattern is one `hostname:` typo away from configuring
+nothing at all and reporting nothing about it, which is the trap Context describes rather than an
+alternative to this decision.
 
 ---
 

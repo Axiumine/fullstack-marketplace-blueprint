@@ -24,10 +24,11 @@ Forces:
 - 9 backend services, 1 shared `REDIS_KEY=marketplaceDev:` prefix across all of them, on purpose — one
   `marketplace-dev-authenticated-logout` (port 4030) serves all 3 tiers and deletes a session by token
   content alone, asking no collection which minted it (CON-05).
-- 2026-08-05: a real cross-tier hole existed — `authorizationAuthenticatedResourceHandler.mts` accepted
-  any non-empty Redis hash as valid, so an `Admin` access token authenticated against the `ShopOwner`
-  resource service. Fixed with `TIER` constant + `assertTier` (CON-04). Whatever token scheme this ADR
-  picks has to carry that discriminator and let a service refuse a foreign one, cheaply, per request.
+- The shared prefix makes cross-tier acceptance the default failure rather than an edge case: a resource
+  service that accepts any non-empty Redis hash as valid authenticates an `Admin` access token against the
+  `ShopOwner` resource service. The answer is a `TIER` constant plus `assertTier` (CON-04, ADR-004), so
+  whatever token scheme this ADR picks has to carry that discriminator and let a service refuse a foreign
+  one, cheaply, per request.
 - Immediate logout matters — `marketplace-dev-authenticated-logout` exists as its own service; whatever
   the token is, revoking it before natural expiry cannot require a second piece of infrastructure bolted
   on afterward.
@@ -42,7 +43,7 @@ Forces:
 | Option | Pros | Cons |
 |---|---|---|
 | JWT (self-contained, signed claims) | No DB/cache round trip to validate — verify signature locally. Standard libraries, standard `exp` claim. | Revocation before `exp` needs a blocklist — which is a session store again, just a second one, with none of the read-latency win kept. Embedding `tier` in a claim does not make it cheaper to assert; it makes tampering a signature question instead of a lookup question. Immediate logout (already a shipped service) becomes "add to blocklist," an extra moving part for a state the platform can already delete outright. |
-| Opaque token + Redis-backed session (chosen) | `logout` deletes one hash, no other party needs to know — exactly what the 1-service-3-tiers logout design (CON-05) needs. `tier` is one more hash field, asserted server-side per request (`assertTier`), not trusted from the token itself. Session is mutable in place — `refresh` rotates access+refresh tokens without re-deriving anything from a signed claim. | Every resource-service request costs a Redis `hGetAll`. Redis becomes a hard auth dependency — an outage there is a full-platform login/verify outage, no local-signature fallback. Shared `REDIS_KEY` prefix across all 9 services (kept on purpose, CON-04) means the tier check is the *only* boundary — get `assertTier` wrong once and every service is wrong the same way, which is exactly what happened before 2026-08-05. |
+| Opaque token + Redis-backed session (chosen) | `logout` deletes one hash, no other party needs to know — exactly what the 1-service-3-tiers logout design (CON-05) needs. `tier` is one more hash field, asserted server-side per request (`assertTier`), not trusted from the token itself. Session is mutable in place — `refresh` rotates access+refresh tokens without re-deriving anything from a signed claim. | Every resource-service request costs a Redis `hGetAll`. Redis becomes a hard auth dependency — an outage there is a full-platform login/verify outage, no local-signature fallback. Shared `REDIS_KEY` prefix across all 9 services (kept on purpose, CON-04) means the tier check is the *only* boundary — get `assertTier` wrong once and every service is wrong the same way, which is exactly the hole ADR-004 exists to close. |
 | Opaque token + DB-backed session (session doc in MongoDB) | Same revocability as Redis, no second datastore to operate. | Adds a 7th collection against an architecture that has exactly 6 (`admin`, `shopOwner`, `company`, `user`, `item`, `itemCategory` — `phase3/CONSTRAINTS.md` §4 architectural invariants) and a `$jsonSchema` validator to define for pure ephemeral state. No native TTL as cheap as Redis `EXPIRE` — would need a background reaper or a query filter on every read. Every access-token check becomes a primary-database read, adding load to the store that also carries `company`/`item` catalogue traffic instead of isolating session churn to its own tier.
 
 ---
@@ -80,7 +81,7 @@ this handler — not a role field, a per-request assertion against session state
 - Revocation is immediate and free of a second store — no blocklist, no `exp`-window exposure window
   after a user logs out.
 - `tier` travels as ordinary session data, asserted per request server-side (`assertTier`), not trusted
-  from client-supplied claims — closes the class of bug fixed 2026-08-05.
+  from client-supplied claims — closes that class of bug at the source (ADR-004).
 - `refresh` mutates the session in place (rotates tokens) instead of minting a new signed artifact whose
   old copy must separately be invalidated.
 
@@ -115,6 +116,6 @@ Verify: every resource service's `src/lib/db/authorizationAuthenticatedResourceH
 resource service, none with the check commented out or replaced by a truthy check on the hash alone.
 
 Violation looks like: a resource service reading `redisClient.hGetAll` and setting `ctx.state.user` on
-any non-empty result without an `assertTier` call in between (the exact shape of the pre-2026-08-05 bug,
+any non-empty result without an `assertTier` call in between (the exact shape ADR-004 exists to prevent,
 per `docs/architecture.md` §Auth model) — or a new mutation/service that mints or verifies a `jsonwebtoken`/`jose`
 signed token instead of writing/reading a Redis hash under `REDIS_KEY`.

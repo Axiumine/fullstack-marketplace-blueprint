@@ -4,70 +4,40 @@
 **Status:** accepted
 **Date:** 2026-08-09
 **Deciders:** platform owner (thedoctorweb)
-**Supersedes:** ADR-001, in part — the *no submodules* clause of its Decision only
+**Supersedes:** —
 **Superseded by:** —
-**Amended:** 2026-08-09 — three things below were written before the parent had a remote, and are now out
-of date rather than wrong.
-
-1. **All sixteen repositories now exist under `github.com/Axiumine`, all public, all empty.** The parent's
-   `origin` is `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`; the twelve sub-repos that
-   had no repository were created the same day, matching the public visibility of the four that already
-   existed. Every one of the fifteen resolved submodule URLs is reachable. **Nothing has still ever been
-   pushed** and no branch has an upstream, so §Decision's closing paragraph holds unchanged: the pinned
-   SHAs exist on no remote and a `--recurse-submodules` clone still fails. Public repositories also make
-   the pre-first-push history scan (`docs/workflow.md`) the last gate before sixteen histories are
-   world-readable.
-2. **`.gitmodules` now uses relative URLs** — `url = ../<repo-name>.git`, not the absolute
-   `git@github.com:…` form recorded in §Decision. An absolute `ssh` URL under an `https` parent origin
-   makes a clone switch transport halfway through; a relative URL resolves against whatever the parent was
-   actually cloned with. Verified both ways: under the `https` origin it resolves to
-   `https://github.com/Axiumine/marketplace-nginx.git`, and under an `ssh` origin to
-   `git@github.com:Axiumine/marketplace-nginx.git`. Both transports reach the three repositories that
-   exist. This also retires the reason §Decision gives for moving `marketplace-db-setup` to `ssh` — one
-   transport is now guaranteed by construction rather than by keeping fifteen lines in step.
-3. **The conversion broke the GitNexus parent index, and the fix is a new file.** `.gitignore` was what
-   kept `analyze` from reading the sub-repos, and submodule paths cannot live there. The first `analyze`
-   after the conversion took the parent index from 143 files / 1651 nodes to 1480 / 9567 — the whole
-   platform under the one registry name documented as holding none of it. `.gitnexusignore` at the
-   workspace root now lists the five paths; `analyze -f` restored 146 files / 1678 nodes. See
-   `docs/gitnexus.md`.
 
 ---
 
 ## Context
 
-ADR-001 chose polyrepo and rejected submodules in the same sentence: *"Polyrepo, 16 independent repos, no
-submodules, no monorepo."* Its rejection reasons were that a pointer bump makes any cross-cutting change
-N+1 commits rather than N, and that `init`/`update` friction is added to every clone and every `dev.sh`
-run without buying atomicity back, since sub-repos still commit independently between parent syncs.
+ADR-001 settles that this is sixteen repositories with sixteen independent histories, hook sets, gates and
+Qodana projects. It leaves one question open: **what the parent workspace records about the fifteen
+sub-repos it contains.**
 
-Both reasons are still true. What changed is the requirement they were weighed against. ADR-001 weighed
-submodules purely as an *atomicity* mechanism and found them a poor one. The requirement now on the table
-is **reconstruction**: one `git clone` of the parent must produce the whole workspace, with all fifteen
-sub-repos at their correct paths. Under plain polyrepo that is impossible in principle, not merely
-inconvenient — the parent's `.gitignore` excluded `/BEs/`, `/marketplace-admin/`, `/marketplace-nginx/`,
-`/marketplace-shopowner/` and `/marketplace-user/`, so a clone of the parent produced `docs/`,
-`services-status/`, `docker-DBs/`, `scripts/` and the workspace files, and fifteen absent directories.
-Nothing in any tracked file even recorded where the missing repos lived or what they were called.
+Two requirements answer it, and neither is atomicity — that was weighed and given up in ADR-001.
 
-The second thing ADR-001 did not weigh is that the parent tracks **no** cross-repo state at all. There is
-no record anywhere of which `marketplace-common` commit the nine services were working against when a
-given migration landed. `git log` at the top level, as ADR-001's own Consequences say, "answers nothing
-about a cross-repo change."
+**Reconstruction.** One `git clone` of the parent must produce the whole workspace, with all fifteen
+sub-repos at their correct paths. If the parent merely ignores those paths, a clone yields `docs/`,
+`services-status/`, `docker-DBs/`, `scripts/` and the workspace files, plus fifteen absent directories —
+and no tracked file anywhere even records where the missing repos live or what they are called. "Clone the
+project" is then not a thing that can be done; the list exists only in someone's memory of this directory.
+
+**Cross-repo state.** With sixteen histories and no shared one, there is no record anywhere of which
+`marketplace-common` commit the nine services were working against when a given migration landed. `git
+log` at the top level, as ADR-001's own Consequences say, answers nothing about a cross-repo change. A
+working combination of sixteen repos cannot be named, diffed, or returned to.
 
 State at the time of this decision, which shapes what is and is not yet true of it:
 
-- The parent workspace has **no remote configured at all** — no `origin`, nothing to clone.
-- Twelve of the fifteen sub-repos had no `origin` either; only `marketplace-common`,
-  `marketplace-db-setup` and `marketplace-nginx` had one, and `marketplace-db-setup`'s was `https` while
-  the other two were `ssh`.
-- No branch in any of the sixteen repos has an upstream. **Nothing has ever been pushed.**
+- All sixteen repositories exist under `github.com/Axiumine/<repo-name>`, all public, all empty. The
+  parent's `origin` is `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`.
+- **No branch in any of the sixteen repos has an upstream. Nothing has ever been pushed.**
 
-So the publishing question `ADR-INDEX.md` §5 records as an open gap — *where the sixteen repos get
-published, and under which org* — is answered here only as far as naming: the three existing remotes
-already follow `github.com/Axiumine/<repo-name>`, and this ADR extends that convention to the other
-twelve. Whether and when those repositories are created and pushed to remains the owner's call and is
-outside this decision.
+So the publishing question `ADR-INDEX.md` §5 records as an open gap — *when* the sixteen repos get
+published — is answered here only as far as naming and topology. Whether and when anything is pushed
+remains the owner's call and is outside this decision. Public repositories also make the pre-first-push
+history scan (`docs/workflow.md`) the last gate before sixteen histories are world-readable.
 
 ---
 
@@ -75,51 +45,59 @@ outside this decision.
 
 | Option | Pros | Cons |
 |---|---|---|
-| A — keep plain polyrepo, clone each repo by hand | Status quo; zero mechanism | The paths and names exist in no tracked file, so "clone the project" is not a thing that can be done; the fifteen repos are reconstructible only from someone's memory of this directory |
-| B — bootstrap script plus a manifest in the parent (`scripts/clone-all.sh` + `repos.tsv`) | Keeps ADR-001 exactly as written; the manifest gives the repo list one home; the script can also arm `core.hooksPath` in the two repos with no `package.json` and run `deploy-local.sh` | Home-grown, and pins nothing — the manifest records *where* each repo is, never *which commit*, so the cross-repo-state gap stays open and a fresh clone always lands on whatever `main` happens to be |
-| C — git submodules, one gitlink per sub-repo (**chosen**) | `git clone --recurse-submodules` reconstructs the workspace in one command; `.gitmodules` is the tracked manifest; each parent commit pins an exact SHA per sub-repo, so a cross-repo state becomes a thing that can be recorded, diffed and returned to | Reverses ADR-001's clause; a cross-cutting change becomes N+1 commits; a fresh `submodule update` leaves every sub-repo on a **detached HEAD**, which collides with the branch-first rule; `git status` in the parent now reports sub-repo dirtiness |
+| A — parent ignores the sub-repo paths, each repo cloned by hand | Zero mechanism; `git status` in the parent stays purely about workspace files | The paths and names exist in no tracked file, so the workspace is reconstructible only from memory; pins nothing, so the cross-repo-state gap stays open permanently |
+| B — bootstrap script plus a manifest in the parent (`scripts/clone-all.sh` + `repos.tsv`) | Gives the repo list one tracked home; the script can also arm `core.hooksPath` in the two repos with no `package.json` and run `deploy-local.sh` | Home-grown, and pins nothing — the manifest records *where* each repo is, never *which commit*, so a fresh clone always lands on whatever `main` happens to be, and the cross-repo-state requirement is unmet |
+| C — git submodules, one gitlink per sub-repo (**chosen**) | `git clone --recurse-submodules` reconstructs the workspace in one command; `.gitmodules` is the tracked manifest; each parent commit pins an exact SHA per sub-repo, so a cross-repo state becomes a thing that can be recorded, diffed and returned to | A cross-cutting change becomes N+1 commits; a fresh `submodule update` leaves every sub-repo on a **detached HEAD**, which collides with the branch-first rule; `git status` in the parent now reports sub-repo dirtiness |
 | D — third-party multi-repo tool (`meta`, `vcstool`, `mu-repo`, `google repo`) | Purpose-built for exactly this; some pin revisions too | Adds a runtime dependency and a second config format for what git does natively; nothing here needs the extra features, and the tool becomes one more thing a fresh machine must install before it can check out the code |
-| E — collapse to a monorepo | Reconstruction and atomicity both solved outright | Rejected by ADR-001 on grounds this ADR does not reopen: sixteen separate histories, hook sets, gates and Qodana projects would have to merge, and path-scoped CI would have to be invented to recover what repo boundaries give for free |
+| E — collapse to a monorepo | Reconstruction and cross-repo state both solved outright | Rejected by ADR-001 on grounds this ADR does not reopen: sixteen separate histories, hook sets, gates and Qodana projects would have to merge, and path-scoped CI would have to be invented to recover what repo boundaries give for free |
 
 ---
 
 ## Decision
 
-Option **C**. The fifteen sub-repos become submodules of the parent. `.gitmodules` is committed and lists
-all fifteen, sorted by path, each with `path`, `url` and `branch = main`. The five sub-repo paths are
-removed from the parent's `.gitignore` — an ignored path is one `git submodule add` refuses — and
-`/BEs/dev/upload-local/` is added in their place, because that directory is not a repo and was covered by
-the old blanket `/BEs/` entry.
+Option **C**. The fifteen sub-repos are submodules of the parent. `.gitmodules` is committed and lists all
+fifteen, sorted by path, each with `path`, `url` and `branch = main`. The parent's `.gitignore` therefore
+lists none of the five sub-repo paths — an ignored path is one `git submodule add` refuses — and carries
+`/BEs/dev/upload-local/` instead, because that directory is not a repo and would otherwise show up as
+untracked the first time local dev writes an upload into it.
 
-All fifteen URLs are `git@github.com:Axiumine/<repo-name>.git`, where `<repo-name>` is the directory's own
-basename. `marketplace-db-setup`'s `origin` is changed from `https` to `ssh` so that one transport is used
-throughout; a `.gitmodules` mixing the two makes a clone's authentication depend on which line it is
-reading.
+**URLs are relative: `url = ../<repo-name>.git`**, where `<repo-name>` is the directory's own basename. An
+absolute URL pins a transport, and a `.gitmodules` full of `git@github.com:…` under an `https` parent
+origin makes a clone switch transport halfway through and authenticate differently per line. A relative
+URL resolves against whatever the parent was actually cloned with: under the `https` origin it becomes
+`https://github.com/Axiumine/marketplace-nginx.git`, under an `ssh` origin
+`git@github.com:Axiumine/marketplace-nginx.git`. One transport throughout, by construction rather than by
+keeping fifteen lines in step.
 
 `branch = main` is recorded for every submodule so that `git submodule update --remote` is meaningful —
 without it, `--remote` falls back to `HEAD` on the remote, and following each sub-repo's `main` is exactly
 what the branch-first workflow already assumes.
 
-**What ADR-001 decided still stands and is not reopened.** These are sixteen independent repos with
-sixteen independent histories, hook sets, gates and Qodana projects. A submodule is a pointer, not a merge
-of histories: sub-repo commits are still made in the sub-repo, still gated by that repo's own hooks, still
-branched and merged there under the same rules. Only the parent's *reference* to them changed.
+**What ADR-001 decided is untouched.** A submodule is a pointer, not a merge of histories: sub-repo commits
+are still made in the sub-repo, still gated by that repo's own hooks, still branched and merged there
+under the same rules. Only the parent's *reference* to them exists here.
 
 Two consequences that follow are workflow rules, not side effects:
 
-- **One logical change is now N+1 commits**, not N: one per affected sub-repo, plus one in the parent
-  bumping the pointers. The parent commit is what makes the cross-repo state recordable, so it is the
-  point of the exercise rather than overhead — but it is a commit that must actually be made, and a
-  pointer left un-bumped is a parent that describes a state which no longer exists.
+- **One logical change is N+1 commits**: one per affected sub-repo, plus one in the parent bumping the
+  pointers. The parent commit is what makes the cross-repo state recordable, so it is the point of the
+  exercise rather than overhead — but it is a commit that must actually be made, and a pointer left
+  un-bumped is a parent that describes a state which no longer exists.
 - ⚠️ **`git submodule update` checks out a detached HEAD.** Every sub-repo lands on the pinned SHA with no
   branch, which collides directly with *never commit on `main`, branch first*: committing there produces
   a commit reachable from nothing. After any init or update, run
   `git submodule foreach 'git switch main'` before touching anything.
 
-Because nothing has been pushed, a parent commit today pins SHAs that exist on no remote. Any clone of
-the parent will fail its `submodule update` until the sub-repos are published. That is a known, accepted
-state of this decision and not a defect in it — the pointers are correct locally and become resolvable
-the moment the repositories exist.
+One boundary needs restoring by hand, because it was `.gitignore` that held it. GitNexus reads
+`.gitignore` to decide what `analyze` sees, and with the five paths gone the parent's index would take in
+all fifteen codebases — the whole platform under the one registry name documented as holding none of it.
+**`.gitnexusignore` at the workspace root lists the five paths** and keeps the parent index to the parent's
+own files; each sub-repo has its own index under its own registry name (`docs/gitnexus.md`).
+
+Because nothing has been pushed, a parent commit today pins SHAs that exist on no remote. Any clone of the
+parent will fail its `submodule update` until the sub-repos are published. That is a known, accepted state
+of this decision and not a defect in it — the pointers are correct locally and become resolvable the
+moment the first push happens.
 
 ---
 
@@ -127,30 +105,29 @@ the moment the repositories exist.
 
 ### Positive
 - The workspace is reconstructible from one command. `git clone --recurse-submodules` produces all
-  sixteen repos at their correct paths, once the remotes exist.
-- `.gitmodules` is the first tracked record of what the fifteen sub-repos are and where they belong.
-  Until now that list lived only in prose, and every count of it had to be swept by hand when it changed.
-- A parent commit now captures a cross-repo state — which `marketplace-common`, which nine services,
-  which migrations — so a working combination can be returned to. This is the gap ADR-001 named in its
-  own Consequences and accepted; it is now closable, one parent commit at a time.
+  sixteen repos at their correct paths, once anything has been pushed.
+- `.gitmodules` is the tracked record of what the fifteen sub-repos are and where they belong. Without it
+  that list lives only in prose, and every count of it has to be swept by hand when it changes.
+- A parent commit captures a cross-repo state — which `marketplace-common`, which nine services, which
+  migrations — so a working combination can be returned to. This is the gap ADR-001 names in its own
+  Consequences and accepts; it closes one parent commit at a time.
 - `push.recurseSubmodules=check` becomes available: git can refuse to push a parent that points at
   sub-repo commits which are not themselves pushed, which is the main way a submodule setup goes wrong.
 
 ### Negative
-- **N+1 commits per cross-cutting change**, exactly as ADR-001 predicted. That cost was not argued away;
-  it was accepted in exchange for reconstruction and pinning.
+- **N+1 commits per cross-cutting change.** ADR-001 already pays N; the pointer bump is the extra one, and
+  it is the price of pinning rather than a defect of it.
 - **Detached HEADs after every init or update**, needing `git submodule foreach 'git switch main'`. This
-  is the sharpest edge of the change, because a commit made on a detached HEAD looks completely normal
-  until the next checkout orphans it.
-- `git status` in the parent is no longer purely workspace files — it now reports every sub-repo that has
-  uncommitted work or has moved off its pinned SHA. ADR-001 explicitly wanted "`git status` at the top
-  level stays fast"; with fifteen submodules it stays fast but stops being quiet.
-- A stale pointer is a new failure mode with no gate behind it. Nothing checks that the parent's SHAs
-  match the sub-repos' `main`, so a parent that pins last week's state looks exactly like one that pins
-  today's.
-- Two local configs still cannot be committed and so still must be set by hand after a clone:
-  `core.hooksPath` in the parent and `marketplace-nginx` (ADR-025, ADR-030), and now
-  `push.recurseSubmodules` in the parent.
+  is the sharpest edge of the arrangement, because a commit made on a detached HEAD looks completely
+  normal until the next checkout orphans it.
+- `git status` in the parent is no longer purely workspace files — it reports every sub-repo that has
+  uncommitted work or has moved off its pinned SHA. It stays fast; it stops being quiet.
+- A stale pointer is a failure mode with no gate behind it. Nothing checks that the parent's SHAs match the
+  sub-repos' `main`, so a parent that pins last week's state looks exactly like one that pins today's.
+- The GitNexus boundary now depends on `.gitnexusignore`, a file only `analyze` reads. A new sub-repo needs
+  a line there as well as a submodule entry, and nothing enforces the pairing.
+- Two local configs still cannot be committed and so must be set by hand after a clone: `core.hooksPath`
+  in the parent and `marketplace-nginx` (ADR-025, ADR-030), and `push.recurseSubmodules` in the parent.
 
 ### Risks
 - **Risk:** the parent is pushed while sub-repo commits are not, leaving a published pointer to a SHA
@@ -180,11 +157,11 @@ git config -f .gitmodules --get-regexp 'submodule\..*\.branch'        # all 15 m
 git submodule status                                   # no + or - prefix on a clean tree
 ```
 
-An absolute URL creeping back into `.gitmodules` is a violation even when it works, because it works only
-for whoever added it: it pins one transport under a parent origin that may use the other.
+An absolute URL in `.gitmodules` is a violation even when it works, because it works only for whoever
+added it: it pins one transport under a parent origin that may use the other.
 
 The index boundary has its own check, because nothing about it is enforced by git — `.gitnexusignore` is
-what replaced the `.gitignore` entries, and only `analyze` reads it:
+what holds it, and only `analyze` reads it:
 
 ```bash
 node -e "console.log(require('./.gitnexus/meta.json').stats.files)"   # low hundreds; thousands = a sub-repo got in
@@ -199,7 +176,7 @@ git ls-files -s | awk '$1=="160000"{print $2, $4}' | while read -r sha path; do
 done
 ```
 
-Verify the boundary ADR-001 set is still intact — a submodule pins a sub-repo, it does not absorb it.
+Verify the boundary ADR-001 sets is intact — a submodule pins a sub-repo, it does not absorb it.
 Note that `git ls-files <submodule-path>` returns **one** entry, the gitlink itself, so the check is that
 there is nothing *besides* gitlinks under those paths:
 
@@ -209,7 +186,7 @@ git ls-files -s $(git config -f .gitmodules --get-regexp 'submodule\..*\.path' |
 git ls-files services-status | wc -l   # must stay nonzero: the one directory the parent really does track
 ```
 
-A violation looks like: a sub-repo path appearing in the parent's `.gitignore` again; a `.gitmodules` URL
-on a different transport or org from the other fourteen; a sub-repo committed on a detached HEAD; or a
-parent commit that touches only its own files while the sub-repo commits it describes went in without a
-pointer bump.
+A violation looks like: a sub-repo path appearing in the parent's `.gitignore`; a `.gitmodules` URL on a
+different transport or org from the other fourteen; a sub-repo committed on a detached HEAD; or a parent
+commit that touches only its own files while the sub-repo commits it describes went in without a pointer
+bump.
