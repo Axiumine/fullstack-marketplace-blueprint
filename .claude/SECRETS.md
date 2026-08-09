@@ -81,9 +81,10 @@ carrying check 0), each setting `core.hooksPath=.githooks`. The 14 repos that ha
 it from their `prepare` script, so installing dependencies arms the guard and a fresh clone is protected
 without anyone remembering to install it by hand.
 
-⚠️ **`marketplace-nginx` is the sixteenth and has no hook at all** — no `package.json`, no `.githooks/`,
-so no guard runs on a commit there. It holds nginx config and shell tests and no credential today; a
-secret added to it is caught by nothing.
+⚠️ **`marketplace-nginx` is the sixteenth and carries `pre-push` only** — its gate runs the edge test
+suite, and there is no `pre-commit`, so **no secret guard runs on a commit there**. It holds nginx
+config and shell tests and no credential today; a secret added to it is caught by nothing, including by
+its own hook, which never inspects a diff.
 
 ⚠️ This parent workspace has no `package.json`, so nothing runs `prepare` here. The hook file is tracked
 and travels with the clone, but after cloning the parent you must arm it once by hand:

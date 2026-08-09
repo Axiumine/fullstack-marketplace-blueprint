@@ -447,13 +447,14 @@ The entire delivery/quality-gate mechanism is **local git hooks**, wired via `co
 
 - `.githooks/pre-commit` — lint, `tsc`, coverage (scoped to staged paths in some repos).
 - `.githooks/pre-push` — `lint:check` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14
-  sub-repos that ship code (`docs/workflow.md` §Git hooks). `marketplace-nginx`, the fifteenth, has no
-  hooks at all.
+  sub-repos that ship code (`docs/workflow.md` §Git hooks). `marketplace-nginx`, the fifteenth, ships
+  configuration rather than code and gates on `test/run.sh` instead — one hook, `pre-push`, and no
+  `pre-commit`, so no secret guard.
 
 `core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos that is a package
 self-arms it via a `"prepare": "git config core.hooksPath .githooks || true"` script that `yarn install`
-runs. **The parent workspace has no `package.json`**, so nothing re-arms it here after a fresh clone; it
-must be set by hand
+runs. **Two repos have no `package.json` and so nothing re-arms them after a fresh clone — this parent
+workspace and `marketplace-nginx`**; both must be set by hand
 (`git config core.hooksPath .githooks`).
 
 This is an open question, not a gap this document closes — `PDR.md` §8 Open questions and `NFR.md` §4
@@ -466,7 +467,8 @@ explicitly out of scope for Phase 3 — the user's undecided call.
 ## 11. nginx — the whole edge, written and container-tested, installed nowhere
 
 The edge lives in `marketplace-nginx/` at the **workspace root** — its own git repo since 2026-08-09,
-remote `Axiumine/marketplace-nginx`, with no `package.json` and therefore no hooks and no gates:
+remote `Axiumine/marketplace-nginx`, with no `package.json` and therefore one gate only — a `pre-push`
+running its own test suite, and no `pre-commit`:
 `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the shared proxy body and two
 header policies), and one vhost per hostname in `sites-available/` — `marketplace-domain.com`,
 `shopowner.`, `admin.`. It terminates TLS for all three, proxies eleven loopback upstreams, serves both

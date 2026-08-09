@@ -78,7 +78,7 @@ BEs/
 ├── marketplace-db-setup/  # own .git
 └── dev/                   # 9 service dirs, each own .git
 marketplace-admin/         # own .git — gitignored by parent
-marketplace-nginx/         # own .git — gitignored by parent, no package.json, no gates
+marketplace-nginx/         # own .git — gitignored by parent, no package.json, pre-push gate only
 marketplace-shopowner/     # own .git — gitignored by parent
 marketplace-user/          # own .git — gitignored by parent
 services-status/           # NO own .git — tracked by parent directly

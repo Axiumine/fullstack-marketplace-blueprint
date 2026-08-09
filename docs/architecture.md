@@ -64,7 +64,9 @@ area, `shopowner.` and `admin.` for the two panels. TLS terminates there and onl
 upstream processes speak plain HTTP on loopback ports. It is a repo of its own rather than a directory
 inside one of the service repos because it is the only artefact that is not per-service: the three vhosts
 share the upstream table and the rate-limit zones, and the same `logout` service answers on all three
-hosts. It carries no `package.json`, so it carries no hooks and no gates either.
+hosts. It carries no `package.json`, so it has no lint, coverage, mutation or Qodana gate; its one
+`.githooks/pre-push` runs `test/run.sh` and blocks the push on any failure, and there is no `pre-commit`
+there at all.
 
 ⚠️ **`proxy_cookie_flags ~ secure httponly samesite=strict;` in `marketplace-nginx/snippets/proxy-backend.conf` is
 the only thing on the platform that sets `Secure` on the session cookie.** koa-utils ships
