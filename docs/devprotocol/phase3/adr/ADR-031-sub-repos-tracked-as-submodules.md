@@ -9,10 +9,14 @@
 **Amended:** 2026-08-09 — three things below were written before the parent had a remote, and are now out
 of date rather than wrong.
 
-1. **The parent has an `origin`:** `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`. It
-   exists on GitHub and is empty — `git ls-remote` returns zero refs. So do `marketplace-common`,
-   `marketplace-db-setup` and `marketplace-nginx`; the other **twelve sub-repo repositories do not exist
-   yet**. Nothing has still ever been pushed, so §Decision's closing paragraph holds unchanged.
+1. **All sixteen repositories now exist under `github.com/Axiumine`, all public, all empty.** The parent's
+   `origin` is `https://github.com/Axiumine/fullstack-marketplace-blueprint.git`; the twelve sub-repos that
+   had no repository were created the same day, matching the public visibility of the four that already
+   existed. Every one of the fifteen resolved submodule URLs is reachable. **Nothing has still ever been
+   pushed** and no branch has an upstream, so §Decision's closing paragraph holds unchanged: the pinned
+   SHAs exist on no remote and a `--recurse-submodules` clone still fails. Public repositories also make
+   the pre-first-push history scan (`docs/workflow.md`) the last gate before sixteen histories are
+   world-readable.
 2. **`.gitmodules` now uses relative URLs** — `url = ../<repo-name>.git`, not the absolute
    `git@github.com:…` form recorded in §Decision. An absolute `ssh` URL under an `https` parent origin
    makes a clone switch transport halfway through; a relative URL resolves against whatever the parent was

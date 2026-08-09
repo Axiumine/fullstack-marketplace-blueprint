@@ -56,11 +56,10 @@ git clone --recurse-submodules https://github.com/Axiumine/fullstack-marketplace
 # the submodule URLs are relative, so they follow whichever you use.
 ```
 
-⚠️ **This does not work yet.** The parent repository exists on GitHub and is **empty**; so are
-`marketplace-common`, `marketplace-db-setup` and `marketplace-nginx`; and the **other twelve sub-repo
-repositories have not been created**. Nothing in any of the sixteen has ever been pushed, so every SHA
-`.gitmodules` pins exists on no remote. The recipe is what the layout is *for*; it becomes true when the
-repositories exist and have been pushed to.
+⚠️ **This does not work yet.** All sixteen repositories exist on GitHub and every one of them is
+**empty** — nothing has ever been pushed, so every SHA `.gitmodules` pins exists on no remote and the
+`--recurse-submodules` step fails on the first one it tries. The recipe becomes true on the first push,
+not before.
 
 In an existing checkout, or after a clone that forgot `--recurse-submodules`:
 
@@ -98,17 +97,16 @@ the `branch = main` entries are recorded for.
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
 The org is settled — `github.com/Axiumine` — and so is the naming: every repo is published under its own
-directory basename. **When** they get published is still the owner's call and has not been made.
-Verified 2026-08-09:
+directory basename. Verified 2026-08-09: **all sixteen repositories exist, all sixteen are public, and all
+sixteen are empty.** No branch in any of them has an upstream, and **nothing has ever been pushed.**
 
-|State|Repos|
-|---|---|
-|exists on GitHub, zero refs|the parent, `marketplace-common`, `marketplace-db-setup`, `marketplace-nginx`|
-|not created yet|the other twelve sub-repos|
-|has an upstream branch|none of the sixteen|
+⚠️ **Public, and empty is the only reason that is currently safe.** Every one of these becomes
+world-readable the moment it is pushed to, so `docs/workflow.md` §*Scan history for secrets before the
+first push of any new repo* below is not a formality — it is the last gate before sixteen histories are
+public. A filename check is not enough; scan every blob.
 
-**Nothing has ever been pushed.** Moving the whole platform to another org is still cheap: change the
-parent's `origin` and every submodule URL follows it, because they are relative.
+Moving the whole platform to another org is still cheap while they are empty: change the parent's `origin`
+and every submodule URL follows it, because they are relative.
 
 ⚠️ **Note the npm/git split.** `@axiumine/marketplace-common` and `@axiumine/koa-utils` are
 *npm package* names, unrelated to where the git repo lives. Renaming a git remote never implies renaming
