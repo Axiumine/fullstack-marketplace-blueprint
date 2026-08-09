@@ -127,9 +127,7 @@ GraphQL contracts and needs its own ADR, not a silent PR.
 ## Compliance
 
 Verify: 3 separate git repos exist and build independently —
-`ls -d /media/nvme/websites/fullstack-marketplace-blueprint/marketplace-admin
-/media/nvme/websites/fullstack-marketplace-blueprint/marketplace-shopowner
-/media/nvme/websites/fullstack-marketplace-blueprint/marketplace-user`, each with its own `package.json`,
+`ls -d marketplace-admin marketplace-shopowner marketplace-user`, each with its own `package.json`,
 `.githooks/`, `env` (ports 3043/3044/3045 respectively — `grep -m1 '^PORT=' <app>/env`). Each app's `env`
 or `src/api/endpoints.ts`/equivalent should reference only its own tier's service ports (Admin: 4024/4025;
 ShopOwner: 4026/4029; User: 4027/4031/4032; all 3: 4030 logout) — a reference to another tier's resource

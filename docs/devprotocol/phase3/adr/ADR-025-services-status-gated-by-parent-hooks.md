@@ -144,7 +144,7 @@ if ! yarn test:cov; then
 
 ## Compliance
 
-Verify the gate is live: `git -C /media/nvme/websites/fullstack-marketplace-blueprint config core.hooksPath`
+Verify the gate is live, from the workspace root: `git config core.hooksPath`
 must print `.githooks`. `git hook run pre-commit` from the parent repo root, with a staged non-markdown
 change under `services-status/`, must print `pre-commit: services-status — building, testing and holding
 100% coverage`.
