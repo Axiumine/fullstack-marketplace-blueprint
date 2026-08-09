@@ -10,6 +10,9 @@ This directory is the parent workspace of all Marketplace repos (polyrepo, sixte
 sub-repos as submodules with relative URLs, so `git clone --recurse-submodules` rebuilds the whole
 workspace over whichever transport you clone with — see `docs/workflow.md` §Cloning the workspace, which
 also covers the detached-HEAD trap that follows every `git submodule update`, and what is not yet pushed.
+**Running it for the first time: [`SETUP.md`](./SETUP.md)** — prerequisites, the database cluster, the
+CSFLE key, the shared secrets, migrations and demo data, the nine services, the three frontends, nginx.
+
 Start from `CLAUDE.md`; it
 routes to `docs/architecture.md`, `docs/data-model.md`, `docs/frontends.md`, `docs/testing.md`,
 `docs/workflow.md`, `docs/conventions.md` and `docs/gitnexus.md`, and to
