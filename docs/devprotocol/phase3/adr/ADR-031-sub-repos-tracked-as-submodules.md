@@ -164,10 +164,15 @@ git ls-files -s | awk '$1=="160000"{print $2, $4}' | while read -r sha path; do
 done
 ```
 
-Verify the boundary ADR-001 set is still intact — a submodule pins a sub-repo, it does not absorb it:
-`git ls-files BEs/marketplace-common | wc -l` must be `0` while `git ls-files services-status | wc -l`
-stays nonzero. If the first ever returns a real file list, a sub-repo's contents have been committed into
-the parent and the polyrepo boundary is gone.
+Verify the boundary ADR-001 set is still intact — a submodule pins a sub-repo, it does not absorb it.
+Note that `git ls-files <submodule-path>` returns **one** entry, the gitlink itself, so the check is that
+there is nothing *besides* gitlinks under those paths:
+
+```bash
+git ls-files -s $(git config -f .gitmodules --get-regexp 'submodule\..*\.path' | awk '{print $2}') \
+  | grep -vc '^160000'          # must be 0 — anything else is a sub-repo's files committed into the parent
+git ls-files services-status | wc -l   # must stay nonzero: the one directory the parent really does track
+```
 
 A violation looks like: a sub-repo path appearing in the parent's `.gitignore` again; a `.gitmodules` URL
 on a different transport or org from the other fourteen; a sub-repo committed on a detached HEAD; or a
