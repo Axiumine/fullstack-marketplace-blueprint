@@ -1,0 +1,60 @@
+[submodule "BEs/marketplace-common"]
+	path = BEs/marketplace-common
+	url = git@github.com:Axiumine/marketplace-common.git
+	branch = main
+[submodule "BEs/marketplace-db-setup"]
+	path = BEs/marketplace-db-setup
+	url = git@github.com:Axiumine/marketplace-db-setup.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-admin-authenticated-authorization"]
+	path = BEs/dev/marketplace-dev-admin-authenticated-authorization
+	url = git@github.com:Axiumine/marketplace-dev-admin-authenticated-authorization.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-admin-authenticated-resource"]
+	path = BEs/dev/marketplace-dev-admin-authenticated-resource
+	url = git@github.com:Axiumine/marketplace-dev-admin-authenticated-resource.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-authenticated-authorization"]
+	path = BEs/dev/marketplace-dev-authenticated-authorization
+	url = git@github.com:Axiumine/marketplace-dev-authenticated-authorization.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-authenticated-logout"]
+	path = BEs/dev/marketplace-dev-authenticated-logout
+	url = git@github.com:Axiumine/marketplace-dev-authenticated-logout.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-authenticated-resource"]
+	path = BEs/dev/marketplace-dev-authenticated-resource
+	url = git@github.com:Axiumine/marketplace-dev-authenticated-resource.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-public-authorization"]
+	path = BEs/dev/marketplace-dev-public-authorization
+	url = git@github.com:Axiumine/marketplace-dev-public-authorization.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-public-resource"]
+	path = BEs/dev/marketplace-dev-public-resource
+	url = git@github.com:Axiumine/marketplace-dev-public-resource.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-user-authenticated-authorization"]
+	path = BEs/dev/marketplace-dev-user-authenticated-authorization
+	url = git@github.com:Axiumine/marketplace-dev-user-authenticated-authorization.git
+	branch = main
+[submodule "BEs/dev/marketplace-dev-user-authenticated-resource"]
+	path = BEs/dev/marketplace-dev-user-authenticated-resource
+	url = git@github.com:Axiumine/marketplace-dev-user-authenticated-resource.git
+	branch = main
+[submodule "marketplace-admin"]
+	path = marketplace-admin
+	url = git@github.com:Axiumine/marketplace-admin.git
+	branch = main
+[submodule "marketplace-nginx"]
+	path = marketplace-nginx
+	url = git@github.com:Axiumine/marketplace-nginx.git
+	branch = main
+[submodule "marketplace-shopowner"]
+	path = marketplace-shopowner
+	url = git@github.com:Axiumine/marketplace-shopowner.git
+	branch = main
+[submodule "marketplace-user"]
+	path = marketplace-user
+	url = git@github.com:Axiumine/marketplace-user.git
+	branch = main

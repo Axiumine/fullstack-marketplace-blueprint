@@ -2,7 +2,9 @@
 
 Multi-tenant marketplace. Customers order from many independent shops; each shop is run by its owner;
 the platform vendor (thedoctorweb) operates it. **This directory is the parent workspace of sixteen
-independent git repos — work from here, not from inside one repo.**
+independent git repos — work from here, not from inside one repo.** The fifteen sub-repos are tracked
+here as submodules (ADR-031): the parent pins a commit per sub-repo and nothing more, so their files stay
+theirs, and `git clone --recurse-submodules` rebuilds the whole workspace.
 
 ## Where to read next
 
@@ -15,7 +17,7 @@ Load the file that matches the task. Do not guess from this page alone.
 | collections, validators, indexes, migrations, PII encryption | `docs/data-model.md` |
 | the three apps + `services-status` | `docs/frontends.md` |
 | vitest layout, integration + mutation traps | `docs/testing.md` |
-| repos, git rules, secrets, `.env`, commands | `docs/workflow.md` |
+| repos, git rules, cloning the workspace, secrets, `.env`, commands | `docs/workflow.md` |
 | lint, formatting, engines, package plumbing | `docs/conventions.md` |
 | GitNexus MCP + CLI | `docs/gitnexus.md` |
 | no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | `docker-DBs/CLAUDE.md` |
@@ -127,8 +129,12 @@ admin, user — outside the chain
   asking. Every other repo is push-on-request, always.**
 - **After every edit to `marketplace-common`, run `./deploy-local.sh`** — it is unpublished and
   consumed by package name, so an undeployed edit is invisible and fails at the call site.
-- **One logical change = N commits**, one per affected repo. Land dependencies first; say which repos
-  you touched.
+- **One logical change = N+1 commits**: one per affected sub-repo, plus one in the parent bumping the
+  submodule pointers (ADR-031). Land dependencies first; say which repos you touched. A sub-repo commit
+  with no pointer bump leaves the parent describing a state that no longer exists.
+- ⚠️ **`git submodule update` leaves sub-repos on a detached HEAD.** After any init or update, run
+  `git submodule foreach 'git switch main'` before editing anything — a commit on a detached HEAD is
+  reachable from nothing and looks entirely normal until the next checkout drops it.
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on
   all four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a
   test.

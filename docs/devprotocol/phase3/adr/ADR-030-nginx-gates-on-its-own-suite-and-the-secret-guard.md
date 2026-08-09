@@ -6,6 +6,13 @@
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
 **Superseded by:** —
+**Amended:** 2026-08-09 — later the same day the parent stopped `.gitignore`ing this repo and began
+tracking it as a submodule (ADR-031), so the half-sentence "is gitignored by the parent and is not a
+submodule" in §Context and in option E is no longer the current arrangement. **Option E stays rejected on
+the surviving half of its reason**: a submodule is a pointer, not a merge of histories, so a commit or a
+push made inside `marketplace-nginx` still fires this repo's hooks and no parent hook — there is still no
+parent event to gate on. What the change does add is a sixteenth thing to remember at clone time; see
+ADR-031 §Consequences.
 
 ---
 

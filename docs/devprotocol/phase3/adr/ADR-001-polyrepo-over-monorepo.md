@@ -5,10 +5,17 @@
 **Date:** 2026-08-04
 **Deciders:** platform owner (thedoctorweb)
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** ADR-031, in part — the *no submodules* clause of the Decision only. Polyrepo over
+monorepo, sixteen independent histories, and the sub-repo boundary all stand exactly as written here.
 **Amended:** 2026-08-09 — `nginx/`, until then a plain directory of the parent, became the sub-repo
 `marketplace-nginx`. Fifteen sub-repos plus the parent, sixteen in total. The decision is unchanged; the
 counts below are the current ones, and the alternatives weighed in §Options are as they stood in 2026-08-04.
+**Amended:** 2026-08-09 — the parent no longer `.gitignore`s the five sub-repo paths; it tracks all fifteen
+as submodules (ADR-031), so every §Options, §Decision and §Compliance passage below that turns on those
+`.gitignore` lines describes the arrangement up to this date and not the current one. What replaced each is
+in ADR-031 §Decision and §Compliance. The submodule row in §Options was rejected on costs that ADR-031
+accepts rather than disputes — it weighs them against reconstruction from one clone, which this ADR did not
+consider.
 
 ---
 

@@ -470,11 +470,11 @@ These five fields on `company` all look like "some official string about the bus
 ## 13. Platform / infra vocabulary
 
 ### Polyrepo
-**Definition:** 15 independent sub-repos + 1 parent workspace repo tracking only workspace files. NOT a monorepo — no shared tooling spans repos, one logical change = N separate commits, N separate pushes.
+**Definition:** 15 independent sub-repos + 1 parent workspace repo tracking only workspace files and one submodule gitlink per sub-repo. NOT a monorepo — no shared tooling spans repos, and one logical change = N separate commits and N separate pushes, plus one parent commit bumping the pointers (ADR-031).
 **Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### Parent workspace
-**Definition:** `/media/nvme/websites/fullstack-marketplace-blueprint` on the dev machine, <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online — a 15th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. `.gitignore` excludes `/BEs/`, `/marketplace-admin/`, `/marketplace-shopowner/`, `/marketplace-user/` so sub-repos nest without conflict.
+**Definition:** `/media/nvme/websites/fullstack-marketplace-blueprint` on the dev machine, <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online — a 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
 **Used in:** `docs/workflow.md` §This directory is the parent workspace.
 
 ### deploy-local.sh
