@@ -7,16 +7,19 @@
 # and every read with a non-primary preference would hang. Distinct ports let one /etc/hosts line
 # per name resolve correctly on both sides of the network boundary — see README.md §Prerequisites.
 
-name: marketplace-mongo
+# ⚠️ The project name prefixes the volumes (marketplace-dbs_mdb1 …) and the network. Changing it does
+# not migrate them: compose simply stops seeing the old ones, and a cluster that had data comes back
+# empty with its users gone. Purge first, or move the volumes by hand.
+name: marketplace-dbs
 
 x-mongod: &mongod
-  image: marketplace-mongo:${MONGO_TAG:-8.0}
+  image: marketplace-mongod:${MONGO_TAG:-8.0}
   build:
     context: .
     args:
       MONGO_TAG: ${MONGO_TAG:-8.0}
   restart: unless-stopped
-  networks: [rs0]
+  networks: [dbs]
 
 services:
   mdb1:
@@ -59,11 +62,11 @@ services:
     command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:-unset}']
     ports: ['127.0.0.1:6379:6379']
     volumes: [redis:/data]
-    networks: [rs0]
+    networks: [dbs]
 
 networks:
-  rs0:
-    name: marketplace-rs0
+  dbs:
+    name: marketplace-dbs
 
 volumes:
   mdb1:

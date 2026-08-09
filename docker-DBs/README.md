@@ -1,4 +1,6 @@
-# docker-DBs — a local replica set, and how to run the platform on it
+# docker-DBs — the local databases, and how to run the platform on them
+
+Part of the **Marketplace** project — <https://github.com/Axiumine/fullstack-marketplace-blueprint>.
 
 Marketplace talks to an **external MongoDB replica set** (`rs0`, members `db1` / `db2` / `db3`) that
 lives on the maintainer's network. A clone does not get it, and neither does a clone get
@@ -6,7 +8,8 @@ lives on the maintainer's network. A clone does not get it, and neither does a c
 gitignored because it carries live credentials.
 
 This directory is the replacement for both: a three-node replica set in Docker, plus a script that
-creates every account the fifteen repos expect, under names and passwords you choose.
+creates every account the fifteen repos expect, under names and passwords you choose. The Redis the
+nine services keep their sessions in lives here too, behind `./up.sh --with-redis`.
 
 **A replica set, not a single `mongod`, and that is not optional.** Transactions, change streams and
 `readConcern: majority` all require one, and a standalone server rejects them outright. A single-node
