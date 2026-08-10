@@ -168,7 +168,7 @@ openssl rand -hex 24                   # INTROSPECTION_CODE
 | Value | Goes in | Why it must match |
 |---|---|---|
 | `KEYGRIP_KEY_1` / `_2` | the four `*-authorization` services **and** `marketplace-dev-authenticated-logout` — 5 of 9 | `public-authorization` signs the refresh cookie at login; the tier's own authorization service verifies it. Different keys = 401 on every refresh |
-| `INTROSPECTION_CODE` | all nine services | the header that lets schema introspection through without a session |
+| `INTROSPECTION_CODE` | all nine services | the header that lets schema introspection through without a session — **on a development or test machine only**, see below |
 | `REDIS_KEY` | all nine services, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session |
 
 The four `*-resource` services sign no cookie and **must not** carry the Keygrip keys.
@@ -186,6 +186,20 @@ grep -oE '^[A-Za-z_0-9]+' .env
 
 Also quote any value containing whitespace, with **single** quotes — dotenv expands `\n` and `\r` inside
 double quotes.
+
+⚠️ **`INTROSPECTION_CODE` does nothing in production, and that is enforced rather than assumed.** The
+`x-introspectioncode` header lets a caller reach the schema with no cookie and no `Authorization`
+header at all — a development convenience, and since E13-S11 an allowlisted one: every comparison site
+asks `isIntrospectionBypassAllowed()` (`marketplace-common`) first, which is true only when `NODE_ENV`
+is exactly `development` or `test`. Under any other value — unset, empty, `staging`, `Production`, a
+typo — the configured code is never even read, and a request carrying the right header is answered
+exactly like one carrying nothing. So a staging box that "stopped accepting the code" is the gate
+working; the fix is to label the environment, never to restore the old behaviour.
+
+It is still **required at boot in all nine services**, and removing it from `REQUIRED_ENV_VARS` is the
+tidy-up to refuse: the comparison interpolates the variable, so an unset one stringifies to the literal
+`'undefined'` and a service mislabelled as `development` would hand the bypass to anyone sending that
+word. Two independent things have to be wrong before it opens.
 
 ---
 
@@ -274,6 +288,44 @@ fallback is a working link to the wrong panel rather than a broken one — set b
 
 Without SocketLabs credentials, registration still succeeds and the confirmation mail is not sent — see
 step 12 for how to confirm an account without one.
+
+**Error reporting** is opt-in and has three supported shapes. Every backend service reads `DSN`, every
+frontend reads `VITE_SENTRY_DSN`, and nothing leaves the machine while those are empty.
+
+**A — no error reporting. This is the default, and the right choice unless you want a collector.** Leave
+`DSN` empty in the nine backend `.env` files and `VITE_SENTRY_DSN` empty in the three frontends. The SDK is
+never initialised, no event is sent, and there is no certificate for anything to verify.
+
+**B — the online Sentry service.** [`sentry.io`](https://sentry.io) run by Sentry themselves, nothing
+installed on your side: create a project there, paste the DSN it hands you into `DSN`, done. Its certificate
+chains to a public CA that Node already trusts, so there is nothing further to configure. ⚠️ Your exception
+events leave your machine and land with a third party — read the scrubbing configuration in each `instrument`
+file before pointing a real deployment at it, and treat the choice as a data-protection decision rather than
+a setup step.
+
+**C — a collector you run yourself.** [Bugsink](https://www.bugsink.com/) speaks the Sentry protocol and
+runs locally; put the project DSN it gives you in `DSN`. Nothing leaves your machine. If you front it with
+TLS using a certificate your system does not already trust, trust that certificate's CA — do not switch
+verification off:
+
+```bash
+NODE_EXTRA_CA_CERTS=/path/to/dev-ca.pem yarn dev
+```
+
+⚠️ `NODE_EXTRA_CA_CERTS` appends to Node's **root** store, so it wants a CA certificate. A bare
+`openssl req -x509` leaf is rejected by OpenSSL 3 as self-signed unless it carries
+`basicConstraints=critical,CA:TRUE`. `mkcert` mints a proper local CA and is the shorter road.
+
+> **Never disable certificate verification to make a collector reachable** — not with
+> `NODE_TLS_REJECT_UNAUTHORIZED=0`, not with a `rejectUnauthorized: false` patch, not behind an
+> `INSECURE=true` flag of your own. A boolean toggle travels inside a copied `.env` and downgrades a real
+> deployment silently, with nothing failing to warn you; a path-valued variable either names a certificate
+> that exists or the process refuses to start. The nine services do ship such a patch today —
+> `src/instrument.mts` forces `rejectUnauthorized = false` on the Sentry transport — and removing it is
+> [`docs/devprotocol/phase5/epics/E12.md`](./docs/devprotocol/phase5/epics/E12.md) E12-S01.
+
+Either way, this is the only outbound HTTPS these repos own besides SocketLabs mail, which verifies
+certificates normally and is unaffected by both choices.
 
 **The frontends** need almost nothing changed: the `VITE_GRAPHQL_ENDPOINT_*` paths in their templates
 are already the `ENDPOINT` constants each service exports, and the vite proxy table maps them to the

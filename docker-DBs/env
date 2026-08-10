@@ -9,6 +9,8 @@
 # tail as its own variable: docs/workflow.md §Environment files.
 
 # Image tags. Pin them when you want a rebuild to be reproducible.
+# ⚠️ REDIS_TAG must stay at 7.4 or higher: the session index needs hash-field TTLs (HEXPIRE),
+# which exist in no release before 7.4.0 — README.md §Redis. Lowering it is a breaking change.
 MONGO_TAG=8.0
 REDIS_TAG=7.4-alpine
 
