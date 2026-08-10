@@ -2,8 +2,9 @@
 # Marketplace
 
 **Status:** review finding — not baselined, not a requirement document
-**Version:** 1.0
-**Date:** 2026-08-08
+**Version:** 1.1
+**Date:** 2026-08-10 (v1.0 2026-08-08; v1.1 drops the two findings `marketplace-nginx` closed — the
+v1.0 🔴 Critical on `Secure` and the v1.0 §3.7g on the two private vhosts — and renumbers §3 accordingly)
 **Scope:** access token + refresh token handling only. Password hashing, upload scanning, catalogue
 authorization and the unbuilt Order/Cart/Delivery/Payment surface are out of scope.
 **Method:** static audit. Six independent security lenses over `docs/devprotocol/**`, each finding then
@@ -23,18 +24,17 @@ and the reasoning recorded in ADR-003/ADR-004 holds up under adversarial reading
 rollback, `assertTier` failing closed, the access token living in browser memory only, and a single
 content-addressed logout service are all genuinely implemented, not merely claimed.
 
-The **handling around that model** is where it falls short. Four gaps that 2026 practice (OAuth 2.1 /
+The **handling around that model** is where it falls short. Three gaps that 2026 practice (OAuth 2.1 /
 RFC 9700 session management, adapted to a first-party opaque-token design) treats as baseline are absent,
-and — this is the material point — **none of the four is an argued tradeoff in any ADR.** They are
+and — this is the material point — **none of the three is an argued tradeoff in any ADR.** They are
 unexamined rather than decided. The platform elsewhere is scrupulous about naming its tradeoffs out loud
 (the fixed-window rate limiter's 2× boundary overshoot, the shared `REDIS_KEY` prefix, 403-not-401); these
-four got no such treatment.
+three got no such treatment.
 
 Net: **a strong foundation with most of the refresh-token safety net missing** — not a broken design with
 a good safety net poorly applied.
 
-The single most consequential item is §3.1. Every other control in the session design implicitly assumes
-it is in place.
+The heaviest remaining items are §3.1 and §3.2, which compound each other.
 
 ---
 
@@ -45,6 +45,7 @@ Recorded first, because the gaps below should not be read as a verdict on the wh
 | Control | Where |
 |---|---|
 | `httpOnly: true` and `sameSite: 'Strict'` really enforced — Strict, not the common Lax default | `@axiumine/koa-utils/dist/lib/tokenOptions.mjs:4-5` |
+| `Secure` set at the edge on every cookie, name-agnostically, and asserted by a suite that gates the push | `marketplace-nginx/snippets/proxy-backend.conf:45`, `marketplace-nginx/test/run.sh`, ADR-030 |
 | No `Domain` attribute — cookie is host-only, a sibling-subdomain compromise does not inherit it | same file, attribute absent |
 | Keygrip signature comparison is constant-time (`tsscmp`); a key mismatch fails closed with 401 | `node_modules/keygrip/index.js` |
 | Tokens are CSPRNG-backed — `uuidv4()` → `crypto.randomUUID`, never `Math.random` | `@axiumine/koa-utils/dist/lib/tokens.mjs:4-11` |
@@ -61,61 +62,7 @@ Recorded first, because the gaps below should not be read as a verdict on the wh
 
 ## 3. Gaps, ranked
 
-### 3.1 🔴 Critical — `Secure` is `false`, everywhere, with no compensating control ✅
-
-```js
-// @axiumine/koa-utils/dist/lib/tokenOptions.mjs:3-8
-const baseOptions = {
-	httpOnly: true,
-	sameSite: 'Strict',
-	secure: false, // rewrite a true in Nginx !
-	expirationDate: 0
-}
-```
-
-Both the access-token and refresh-token cookie options derive from this object.
-
-The comment defers the fix to an nginx rewrite **that did not exist when this was written**. All four
-checked-in configs under `marketplace-user/docs/nginx/` were searched: zero `proxy_cookie_flags`, zero
-Secure directive. The only hit for the string was `upgrade-insecure-requests` inside the CSP, which is
-unrelated.
-
-✅ **Closed since.** The rewrite now exists, once, in a snippet every proxying location includes:
-`proxy_cookie_flags ~ secure httponly samesite=strict;` in `marketplace-nginx/snippets/proxy-backend.conf` (`~` is the
-empty regex — it matches every cookie name, so `refresh_token` and its `.sig` companion are both covered
-without naming either). `marketplace-nginx/test/run.sh` asserts it: stand-in backends emit a `Set-Cookie` exactly as
-`tokenOptions.mjs` does today — `secure: false`, no flags — and every one of the seven cookie-minting
-endpoints across the three vhosts, plus the three logout paths, comes back `Secure; HttpOnly;
-SameSite=Strict`.
-
-⚠️ **The finding is closed in configuration, not in production.** nginx is installed on no host — still no
-`/etc/nginx`, no nginx binary in this workspace — so the flag is set by a file nothing is currently
-serving. It is also now the single point of failure this audit warned about from the other direction:
-`koa-utils` still ships `secure: false`, so any deployment that serves an authorization endpoint without
-that snippet in front of it puts a session cookie on the wire in cleartext. [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) §Verifying a
-live deployment carries the `curl` that checks it on a real host.
-
-Why this outranks everything else: Keygrip's constant-time signature stops an attacker who wants to
-**write** a cookie (fixation, injection). It does nothing whatsoever against an on-path attacker who
-**reads** the cookie in cleartext and replays it verbatim, `.sig` companion included. `SameSite=Strict`
-does not help either — it constrains which *sites* may send the cookie, not which *networks* may observe
-it. Without `Secure`, one plaintext HTTP request to the cookie's host is enough.
-
-`NFR-SE02` asks only for "a Keygrip-signed httpOnly cookie" — `Secure` is absent from the requirement
-text, so no gate on the platform would ever flag this. No ADR discusses or excuses it;
-`ADR-INDEX.md:87` records the production network topology as an open, unresolved gap.
-
-**Fix.** Set `secure: true` unconditionally in the shared cookie-options module. Koa's `cookies` package
-already resolves http-vs-https per request via `req.protocol` / `isRequestEncrypted`, so this does not
-require knowing the deployment topology in advance and does not need to wait for the topology ADR.
-
-⚠️ **This code lives in `@axiumine/koa-utils` — the seventeenth repo, outside this workspace.** It is not
-fixable from any of the sixteen repos here, and `koa-utils` is not bridged by `deploy-local.sh` the way
-`marketplace-common` is (`phase3/SECURITY_AUTH.md` §7). Sequencing that edit is part of the work.
-
----
-
-### 3.2 🟠 High — rotation without reuse detection ✅
+### 3.1 🟠 High — rotation without reuse detection ✅
 
 `refreshSessionTokens` rotates correctly: it mints a new pair, writes both keys, then deletes the
 just-consumed refresh key by content (`refreshSessionTokens.mts:99-101`). That is the first half of the
@@ -131,7 +78,7 @@ presented again, and revoke the whole family** — is absent:
 Consequence: an attacker holding a stolen refresh cookie races the legitimate client. Whoever refreshes
 first wins and holds a valid, fully-rotating session. The loser sees a routine-looking error and simply
 logs in again — producing a *second* live session rather than any alarm. The theft is silent, and combined
-with §3.3 it is unbounded in time.
+with §3.2 it is unbounded in time.
 
 **Fix.** Add a `familyId` to the refresh hash, carried unchanged through every rotation. On rotation,
 write a short tombstone for the consumed token (TTL = `REFRESH_TOKEN_EXPIRY`) before deleting the live
@@ -143,7 +90,7 @@ a false-positive reuse signal. Worth resolving during design, not before.
 
 ---
 
-### 3.3 🟠 High — no absolute session lifetime ✅
+### 3.2 🟠 High — no absolute session lifetime ✅
 
 ```js
 // @axiumine/koa-utils/dist/lib/tokens.mjs:2
@@ -158,17 +105,17 @@ So the 90 days is not a session lifetime — it is an inactivity timeout. A sess
 never expires, and never forces re-authentication, no matter how many times the legitimate owner logs in
 elsewhere or changes anything about the account.
 
-This compounds §3.2 exactly: an attacker who wins one refresh race owns the account indefinitely.
+This compounds §3.1 exactly: an attacker who wins one refresh race owns the account indefinitely.
 
 ADR-004 uses the 90-day figure, but only to size a *different*, already-closed vulnerability window (the
 pre-`tier` session population). It was never reasoned about as an absolute-lifetime decision.
 
 **Fix.** Stamp the original-login timestamp into the refresh hash at login; refuse to rotate past
-`originalLogin + N days` regardless of activity. Independent of §3.2 and worth having even alongside it.
+`originalLogin + N days` regardless of activity. Independent of §3.1 and worth having even alongside it.
 
 ---
 
-### 3.4 🟠 High — no credential write invalidates any session ✅
+### 3.3 🟠 High — no credential write invalidates any session ✅
 
 Every password-write path on the platform was checked for a Redis reference. All of them have **zero**:
 
@@ -182,8 +129,8 @@ Every password-write path on the platform was checked for a Redis reference. All
 
 Changing a password is the only remediation a compromised user can perform without contacting an operator,
 and on this platform it remediates nothing. An attacker's established session — including one obtained
-through §3.2 — survives the password change untouched, bounded only by the uncapped sliding window of
-§3.3. `funShopOwnerUpdateEmail.mts:15-19` acknowledges the same shape in its own comment, correctly noting
+through §3.1 — survives the password change untouched, bounded only by the uncapped sliding window of
+§3.2. `funShopOwnerUpdateEmail.mts:15-19` acknowledges the same shape in its own comment, correctly noting
 it as platform-wide behaviour rather than a decision taken there.
 
 `phase3/SECURITY_AUTH.md:331` states "no self-serve *log out everywhere* exists" as a plain fact with no
@@ -191,11 +138,11 @@ risk analysis attached. It is the same gap seen from the feature side.
 
 **Fix.** In the two authenticated change-password paths the account id is already on `ctx.state.user` —
 delete that caller's live session keys as part of the write. The unauthenticated reset-confirm paths cannot
-be fully closed without §3.7 (no account→sessions index), but the authenticated paths close today.
+be fully closed without §3.6 (no account→sessions index), but the authenticated paths close today.
 
 ---
 
-### 3.5 🟠 High — the old access token survives a refresh ✅
+### 3.4 🟠 High — the old access token survives a refresh ✅
 
 `refreshSessionTokens.mts:99-101` deletes the old **refresh** key only. The corresponding pre-rotation
 access key is never touched; it lives out its original 30–90 minute TTL.
@@ -211,7 +158,7 @@ already there.
 
 ---
 
-### 3.6 🟠 High — the Admin service sends more to Sentry than the other eight, over an unverified TLS connection ✅
+### 3.5 🟠 High — the Admin service sends more to Sentry than the other eight, over an unverified TLS connection ✅
 
 ```mts
 // BEs/dev/marketplace-dev-admin-authenticated-resource/src/instrument.mts:16-23
@@ -255,26 +202,25 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
 
 ---
 
-### 3.7 🟡 Medium — the remainder
+### 3.6 🟡 Medium — the remainder
 
 | # | Finding | Evidence | Note |
 |---|---|---|---|
-| a | Redis keys are the **raw** token, not `sha256(token)` | `setRedisLoginSession.mts:15-16`; `authorizationAuthenticatedResourceHandler.mts:51` | An RDB/AOF dump, a misconfigured replica or an over-privileged `SCAN` hands over directly replayable credentials rather than dead hashes. Docs call a Redis compromise "catastrophic" (§2, §3.1) yet no ADR discusses key-hashing. Refresh half is partly mitigated — the Keygrip cookie is a second factor whose keys never reach Redis — so realistic exposure is the access token's 30–90 min window |
+| a | Redis keys are the **raw** token, not `sha256(token)` | `setRedisLoginSession.mts:15-16`; `authorizationAuthenticatedResourceHandler.mts:51` | An RDB/AOF dump, a misconfigured replica or an over-privileged `SCAN` hands over directly replayable credentials rather than dead hashes. Docs call a Redis compromise "catastrophic" (`SECURITY_AUTH.md` §2, §3.1) yet no ADR discusses key-hashing. Refresh half is partly mitigated — the Keygrip cookie is a second factor whose keys never reach Redis — so realistic exposure is the access token's 30–90 min window |
 | b | No account→sessions index exists | `setRedisLoginSession.mts:15-16`; ADR-005 | Sessions are addressable only by token value, so "revoke every session for account X" is structurally impossible. The working lever is `disabled: true` (checked every refresh) — but that nukes the whole account, and there is no self-serve version. An unexamined side effect of the content-addressed design; worth a real ADR decision, accept-or-fix |
-| c | `INTROSPECTION_CODE` is reachable wherever the port is | `SECURITY_AUTH.md:257` (wildcard bind, intentional), `:270` (nginx not installed); plain `===` at `authorizationAuthenticatedResourceHandler.mts:30` and `resolveAuthorizationSession.mts:73` | "Service-to-service only" is enforced by no network control that exists in this workspace. One static, unrotated string is the whole gate, and it has already drifted across repos once (2026-08-07). `ctx.state.user` does stay unset on that path — the bypass grants no identity — but any resolver not itself requiring a session becomes reachable unauthenticated. Blocked on the production-topology ADR that `ADR-INDEX.md:87` already records as owed |
+| c | `INTROSPECTION_CODE` is reachable wherever the port is | `SECURITY_AUTH.md:263` (wildcard bind, intentional), `:278` (nginx written and tested, installed on no host); plain `===` at `authorizationAuthenticatedResourceHandler.mts:30` and `resolveAuthorizationSession.mts:73` | "Service-to-service only" is enforced by no *running* network control. One static, unrotated string is the whole gate, and it has already drifted across repos once (2026-08-07). `ctx.state.user` does stay unset on that path — the bypass grants no identity — but any resolver not itself requiring a session becomes reachable unauthenticated. The edge config does not close this: it fronts the ports, it does not firewall them. Blocked on the production-topology ADR that `ADR-INDEX.md` §5 *Gaps* still records as owed — which host runs the edge and how the service ports are closed to everything but it |
 | d | `assertTier`'s **reject** path is untested in 2 of 3 resource services | admin + shopOwner `test/authorizationAuthenticatedResourceHandler.test.mts:21-26` seed only the accepting tier; reference implementation exists at `marketplace-dev-user-authenticated-resource/test/authorizationAuthenticatedResourceHandler.test.mts:52-89` | The code is correct in all three today. But ADR-004 §Risks:104-108 names this exact regression class as its own unmitigated risk, and 100% coverage plus mutation score 100 would **not** catch a dropped `assertTier` in two of three services, because no assertion exercises the rejecting branch. Port the user-tier tests across; no gate needs lowering |
 | e | `waitApprov` is enforced nowhere — and `SECURITY_AUTH.md` says it is | `checkUserAuthorizationDisDel.mts:4-17` (only `disabled`/`deleted`); `tokenInfoShopOwner.mts:19-25` (not in projection) | `SECURITY_AUTH.md:63` lists "`waitApprov` read at login" as the control. The code disagrees, in a comment at `resetPwdFlow.mts:43`: *"`waitApprov` is deliberately absent. Nothing gates on it anywhere — login neither projects nor reads it."* An Admin calling `shopOwnerUpdateStatus(waitApprov: true)` has no effect on live or future sessions. Already open as `SECURITY_AUTH.md` Q2 / BC-03 hotspot 1 — but the doc's own threat table currently overstates it as mitigated |
 | f | Keygrip's rotation capability is unused | `node_modules/keygrip/index.js` (`sign` uses `keys[0]`, `verify` loops all keys) | The two-key array exists precisely to allow rotate-without-logout; here it is one permanent pair, manually synced across repos, no cadence. Already `RISK_REGISTER.md` R02 (🟠 High) and `SECURITY_AUTH.md` open question #7. One cross-service integration test — mint a cookie on the minting service, verify it on the consuming one — would close the specific gap that let the 2026-08-07 incident through with every suite green |
-| g | No CSP or nginx vhost in-repo for `marketplace-admin` / `marketplace-shopowner` | `SECURITY_AUTH.md:309`, open question #5; both READMEs say the vhost lives on the fronting host | The two higher-privilege SPAs have no checked-in header policy while the public one does. Undocumented rather than proven absent; access token is memory-only in both and no `dangerouslySetInnerHTML` sink was found, so this is a documentation asymmetry on the higher-blast-radius tiers |
 
 ---
 
-### 3.8 🔵 Low
+### 3.7 🔵 Low
 
 | # | Finding | Evidence |
 |---|---|---|
 | a | `rememberMe` is collected, stored, and has zero effect on any lifetime | `login.mts:29,68` (reaches only `updateLoginStats`); `setRedisLoginSession.mts:9-24` (no `rememberMe` parameter, unconditional TTLs). `ERD.md:78,109,196` documents it as a "persistent-session flag" — docs and code disagree. A user leaving the box unchecked on a shared device still gets the standard 90-day sliding cookie. Either wire it to a materially shorter TTL at mint time, or remove the control from the three login forms |
-| b | Redis persistence (RDB/AOF) and Redis-protocol TLS are undocumented | `AOF`, `RDB`, `appendonly`, `snapshot`, `maxmemory` return zero hits across all of `docs/devprotocol/`. `INFRA.md:535` ("no TLS anywhere in Topology A") is scoped to service ports and does not explicitly cover the Redis wire protocol. Documentation void, not a confirmed exploit — current topology is one dev workstation. Interacts with §3.7a: whether a dump exists to leak is currently unstated |
+| b | Redis persistence (RDB/AOF) and Redis-protocol TLS are undocumented | `AOF`, `RDB`, `appendonly`, `snapshot`, `maxmemory` return zero hits across all of `docs/devprotocol/`. `INFRA.md:535` ("no TLS anywhere in Topology A") is scoped to service ports and does not explicitly cover the Redis wire protocol. Documentation void, not a confirmed exploit — current topology is one dev workstation. Interacts with §3.6a: whether a dump exists to leak is currently unstated |
 | c | `SameSite=Strict` is doing real work but is named in no ADR | `grep -rn -i sameSite docs/devprotocol/` returns nothing; the attribute is at `tokenOptions.mjs:5`. ADR-021 credits CSRF protection entirely to `csrfPrevention` + `preferGetMethod: false`. Because it is unnamed, a `koa-utils` bump that relaxed it would trip none of ADR-021's revisit triggers. Redundant defence-in-depth today, not a live exposure — add it as a named control and a revisit trigger |
 | d | Stale docstring at the one site reasoning about key-namespace safety | `resolveAuthorizationSession.mts:21-22` documents `refreshToken` as arriving *unprefixed*; `verifySignedRefreshToken.mjs:35` returns `` `refresh:${refreshToken}` ``. Code is correct today; a maintainer trusting the docstring and re-prepending would double-prefix and silently miss every session |
 
@@ -304,16 +250,17 @@ Checked and deliberately left alone. Listed so a later reader does not re-raise 
 
 Stated so the report is not read as more complete than it is.
 
-- **Static only.** No runtime observation. Whether `Secure` would in fact be set once a real
-  TLS-terminating proxy exists, and precisely which fields Sentry's `sendDefaultPii` gates at runtime
-  (header vs body vs IP), are argued from source reading rather than observed.
+- **Static only.** No runtime observation of the nine services — precisely which fields Sentry's
+  `sendDefaultPii` gates at runtime (header vs body vs IP) is argued from source reading. The edge
+  controls are the one thing observed rather than read, and only in a container: nginx runs on no
+  production host yet (`phase3/SECURITY_AUTH.md` §5).
 - **Application/access logging was not audited.** Whether the nine services' own loggers capture
   `Authorization` or `Cookie` headers to disk is an independent bearer-token leak channel, distinct from
-  §3.6, that no finding here covers.
+  §3.5, that no finding here covers.
 - **Rate limiting on the `refresh` mutation itself was not confirmed either way.** Only login and write
-  mutations were verified as limited. This matters directly to §3.2: a limiter on `refresh` slows an
+  mutations were verified as limited. This matters directly to §3.1: a limiter on `refresh` slows an
   attacker racing for the rotation window.
-- **Multi-tab concurrent-refresh behaviour was not examined.** Relevant to designing §3.2's fix, not to
+- **Multi-tab concurrent-refresh behaviour was not examined.** Relevant to designing §3.1's fix, not to
   the finding itself.
 - **Encryption at rest for the MongoDB collections holding PII and legal-identity fields**
   (`taxCode`, `vatNumber`, `certifiedEmail`) is out of scope for a token audit but is the adjacent
@@ -325,16 +272,14 @@ Stated so the report is not read as more complete than it is.
 
 ## 6. Suggested order of work
 
-1. **§3.1 `Secure`** — needs a `@axiumine/koa-utils` release; start it first because it is the long pole
-   and everything else assumes it.
-2. **§3.4 password-write session teardown** and **§3.5 old access-token deletion** — both small, both
+1. **§3.3 password-write session teardown** and **§3.4 old access-token deletion** — both small, both
    inside `marketplace-common` / the resource services, both independently valuable.
-3. **§3.7d `assertTier` reject-path tests** — pure test work, ports an existing reference implementation,
+2. **§3.6d `assertTier` reject-path tests** — pure test work, ports an existing reference implementation,
    closes a regression class the coverage gate cannot see.
-4. **§3.2 reuse detection** + **§3.3 absolute lifetime** — design together, they share the refresh-hash
+3. **§3.1 reuse detection** + **§3.2 absolute lifetime** — design together, they share the refresh-hash
    schema change.
-5. **§3.6 Sentry** — decide `sendDefaultPii` and `rejectUnauthorized` deliberately, then document.
-6. **§3.7b, §3.7c, §3.7f** — ADR-shaped decisions rather than edits: session index, production network
+4. **§3.5 Sentry** — decide `sendDefaultPii` and `rejectUnauthorized` deliberately, then document.
+5. **§3.6b, §3.6c, §3.6f** — ADR-shaped decisions rather than edits: session index, production network
    topology, key-rotation cadence.
 
 None of the above requires lowering a coverage or mutation threshold, and none removes an existing

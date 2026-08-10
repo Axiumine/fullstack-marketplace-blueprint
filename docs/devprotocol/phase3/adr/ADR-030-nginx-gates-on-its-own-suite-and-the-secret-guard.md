@@ -27,9 +27,9 @@ and ADR-016's thresholds have no metric to be measured against.
 That is not the same as the repo being low-risk. It is:
 
 - the **only** place on the platform that sets `Secure` on the session cookie
-  (`snippets/proxy-backend.conf`, `proxy_cookie_flags ~ secure httponly samesite=strict;`, closing §3.1
-  🔴 Critical of [`docs/report/token-handling-security-audit.md`](../../../report/token-handling-security-audit.md) — koa-utils ships `secure: false` with a
-  comment saying to rewrite it at the edge);
+  (`snippets/proxy-backend.conf`, `proxy_cookie_flags ~ secure httponly samesite=strict;`, closing the
+  🔴 Critical that [`docs/report/token-handling-security-audit.md`](../../../report/token-handling-security-audit.md) carried as §3.1 in v1.0 and dropped
+  in v1.1 as closed — koa-utils ships `secure: false` with a comment saying to rewrite it at the edge);
 - the only place the three tiers' login rate-limit budgets are separated at all, since all three logins
   reach the same process on 4028 and only the edge still knows which hostname was asked for;
 - the only place the Content-Security-Policy for all three surfaces is written.
