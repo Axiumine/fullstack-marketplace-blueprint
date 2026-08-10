@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-07
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -10,6 +10,8 @@ v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-se
 These seven do **not** follow the one-epic-per-BC rule; see §2.2 and [`AMENDMENTS.md`](./AMENDMENTS.md).
 v1.2 - E12, E13 and E14 implemented 2026-08-10; their story markers and the three §1 rows now read per
 story, and each of those epics carries a §7 saying what did not land and what blocks it.
+v1.3 - E14-S09 run the same day against the running Dev stack, closing E14 at 9 of 9. Its finding is
+[`docs/report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md).
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -44,7 +46,7 @@ disagrees with this index. **E12-E18 do not satisfy that rule** - see §2.2, and
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | Not built - no collection, no resolver, no design | none | [E11.md](epics/E11.md) |
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built 2026-08-10 - 13 of 15. E12-S12 and E12-S13 are investigations needing the running Dev stack; E12-S15's config is in the repo but Authenticated Origin Pulls must still be switched on in Cloudflare, **before** the config is deployed. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | Built 2026-08-10 - 10 of 11. E13-S10 removes the dual-read fallback and may not run before `DUAL_READ_REMOVE_AFTER`, whose date is re-stamped at the cutover deploy. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
-| E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 8 of 9. E14-S09 is an investigation needing the running Dev stack, so `GRACE_SECONDS = 10` stands unmeasured. See [E14.md](epics/E14.md) §7 | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
+| E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
 | E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | Not built - and `logout` is a live no-op, see E15-S01 | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-resource` services | [E15.md](epics/E15.md) |
 | E16 | Signing-Key Custody & Rotation | **BC-12 (proposed)** | Admin (operates), all tiers (affected) | Not built - RISK_REGISTER R02 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
 | E17 | Admin Session Console | **BC-12 (proposed)** | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
