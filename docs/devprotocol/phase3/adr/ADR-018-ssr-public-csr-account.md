@@ -13,9 +13,21 @@
 
 `marketplace-user` (port 3045) is the only server-rendered app on the platform — TanStack Start, Vite 8, React 19. It carries two halves in one codebase: an anonymous catalogue meant to be indexed (`/`, `/shops`, `/shop/:slug`, `/category/:slug`, `/search`) and a private account area (`/login`, `/register`, `/reset-password*`, `/account/*`) where a `User` reads and edits personal data and addresses. No order, cart, delivery or payment exists to render — out of scope, `docs/devprotocol/phase3/CONSTRAINTS.md` §5.
 
-The SSR process sits behind a shared nginx layer with `proxy_cache` (`marketplace-nginx/conf.d/30-cache.conf` at the workspace root; when this ADR was written the file was a customer-only copy at `marketplace-user/docs/nginx/cache.conf`, now deleted). A cache exists to serve the same bytes to many visitors — that is its entire value, and it is also the entire danger the moment a page contains one visitor's own data. Auth on this platform is opaque tokens + Redis sessions (`docs/architecture.md` §Auth model): the refresh token is a Keygrip-signed httpOnly cookie scoped to API paths, the access token lives in browser memory only. The SSR pass runs on the server and holds neither.
+The SSR process sits behind a shared nginx layer with `proxy_cache` (`marketplace-nginx/conf.d/30-cache.conf` at the workspace root; when this ADR was written the file was a customer-only copy at `marketplace-user/docs/nginx/cache.conf`, now deleted). A cache exists to serve the same bytes to many visitors — that is its entire value, and it is also the entire danger the moment a page contains one visitor's own data. Auth on this platform is opaque tokens + Redis sessions (`docs/architecture.md` §Auth model): the refresh token is a Keygrip-signed httpOnly cookie sent on **every** path — `path` is left commented out in koa-utils' `tokenOptions.mjs`, so the browser applies the default root scope — and the access token lives in browser memory only. The SSR pass runs on the server and holds neither.
 
 Two failure modes are live at once: (1) server-rendering a page built from `me`/personal-data/addresses caches that HTML and can serve customer A's data to customer B on the next cache hit; (2) even without caching, the SSR pass cannot authenticate — it has no access token to attach, so a would-be SSR'd private page would just 401.
+
+> ⚠️ **The root scope is required, not incidental — do not narrow it without changing the nginx cache rule.**
+> `marketplace-nginx/conf.d/30-cache.conf:32-35` decides whether to bypass the cache by looking for
+> `refresh_token` in `$http_cookie` **on the catalogue request itself**. Give the cookie `path: '/authorization-api'`
+> and the browser stops sending it on `/`, nginx sees an anonymous visitor, and a logged-in customer's
+> personalised HTML is stored and served to the next one — NFR-SE09, closed by exactly this scope.
+>
+> The commented-out `path` lines in koa-utils' `tokenOptions.mjs` therefore read as a leftover and are not one.
+> Earlier revisions of this ADR said the cookie was "scoped to API paths"; that sentence was wrong and the code
+> was right, and the tempting fix — narrowing the scope so the prose becomes true — is the one change that
+> reopens the leak. The nginx file carries the same warning at `30-cache.conf:22-26`, on the other side of the
+> pair.
 
 ## Options considered
 
@@ -32,7 +44,7 @@ Chose the third option: `ssr: false` on the `/account` layout route (`marketplac
 Reasoning stated at the route itself (`account.tsx:11-28`), in order of how badly each one bites:
 
 1. **Cache poisoning is the sharpest failure.** Public HTML is cached by nginx and handed to whoever asks next. Rendering one customer's name and addresses into that HTML is one missing `Vary` away from leaking to a different visitor. A shell with no data in it cannot leak, whatever the cache does — this is why the fix is "don't render the data" rather than "cache it correctly."
-2. **The server literally cannot answer the query.** The access token lives in browser memory; the refresh cookie is httpOnly and scoped to API paths. SSR holds neither, so an SSR'd `me` query 401s on every request — "server-rendered" would mean "server-rendered error state."
+2. **The server literally cannot answer the query.** The access token lives in browser memory; the refresh cookie is httpOnly, so no script can read it and nothing hands it to the SSR pass as a bearer credential. SSR holds neither, so an SSR'd `me` query 401s on every request — "server-rendered" would mean "server-rendered error state." The cookie *is* attached to the SSR request itself, being root-scoped, but that is nginx's cache signal rather than something the renderer can authenticate with.
 3. **Zero SEO upside.** Nothing under `/account` should ever be indexed, so SSR's only remaining justification is absent. `noIndex` plus `robots.txt` disallowing the prefix (`marketplace-user/src/routes/robots[.]txt.ts:9`) back this up independently of the rendering mode, because the two protections fail differently.
 
 The nginx side never parses the cookie's content, only its presence — the comment at `marketplace-nginx/conf.d/30-cache.conf:18-19` is explicit that presence of `refresh_token` or `refresh_token.sig` is read as "this visitor has a session," full stop. That is deliberate: correctness here should not depend on nginx understanding Keygrip signing.

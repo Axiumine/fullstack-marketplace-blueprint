@@ -164,6 +164,59 @@ Both variables are in `REQUIRED_ENV_VARS` on all eight Mongo-using services, and
 them would write plaintext beside ciphertext, and nothing would show that up until someone read the
 data back — so it refuses to start.
 
+## Redis — the session keyspace, and what is on disk
+
+MongoDB is not the only store holding credentials. Redis holds every live session, and all nine services
+read it under **one** `REDIS_KEY` prefix — deliberately (CON-04, CON-05, ADR-005): the single logout
+service on 4030 finds a session by token content alone, so a per-service prefix would leave it unable to
+revoke anything it did not mint. The tier lives *inside* the hash, as a field, and is asserted at every
+call site.
+
+### Key shapes
+
+Everything below is built by `marketplace-common/src/others/sessionKeys.mts` or by
+`assertUnderRateLimit.mts`. **Nothing anywhere else may build a session key out of a template literal.**
+
+| Shape | Holds | Written by | Status |
+|---|---|---|---|
+| `<prefix><sha256('access:'+token)>` | the access session hash — `_id`, `email`, `tier`, never the refresh token | login, rotation | live (E13-S01) |
+| `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier` | login, rotation | live (E13-S01) |
+| `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing — **read-only fallback** | temporary, removed by E13-S10 |
+| `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | temporary, removed by E13-S10 |
+| `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
+| `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | planned, E14-S02 |
+| `<prefix>family:<familyId>` | a set of that family's session keys | rotation | planned, E14-S03 |
+| `<prefix>idx:<tier>:<accountId>` | account → its sessions | login, rotation | planned, E15-S02 |
+
+⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
+login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
+would look like "Redis lost the sessions" rather than like a bug.
+
+### Persistence — AOF is on in both environments
+
+Both environments run Redis with the append-only file **enabled**, and they are configured separately, so
+each is cited on its own — one is not evidence for the other:
+
+- **Dev**: `docker-DBs/docker-compose.yml:62` — `command: [redis-server, --appendonly, 'yes', …]`.
+- **Production**: `appendonly yes` in that host's `redis.conf`, per the platform owner, 2026-08-10. That
+  file is not in this workspace and cannot be verified from it.
+
+The consequence belongs next to the fact. **The AOF is a command log of the session keyspace**: every
+`hSet` that ever wrote a session is in it, with its key, in the order it happened. Before E13-S01 those
+keys were the tokens themselves, so the file was a list of live credentials in plain text. After E13-S01
+new writes carry digests — but **the existing file still holds the old commands until it is rewritten**
+(`BGREWRITEAOF`, or the automatic rewrite when the file grows past its threshold). The rewrite is a step
+of the E13-S02 cutover deploy and again of E13-S10, not something E13-S01 achieves by itself.
+
+⚠️ **Three things are still unknown, and a backup outlives every rewrite.** Each needs an answer from the
+platform owner before this section can claim the keyspace is clean:
+
+| Unknown | Why it matters | Owner |
+|---|---|---|
+| Is RDB snapshotting also on in production? | a `.rdb` written before the cutover holds the raw keys, and no AOF rewrite touches it | platform owner (thedoctorweb) |
+| Where do the AOF and any `.rdb` live on disk? | they cannot be rewritten, moved or destroyed until they are located | platform owner |
+| Is either backed up off-host? | **a backup copy survives every rewrite this epic performs** — it is the one place raw tokens can outlive the whole of E13 | platform owner |
+
 ## Migrations (ADR-014)
 
 **Migrations are immutable — never edit an applied migration, add a new one.** But they are not

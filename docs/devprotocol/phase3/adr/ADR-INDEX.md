@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.0
-**Date:** 2026-08-09
+**Version:** 1.1
+**Date:** 2026-08-10
 **Author:** adr-agent
-**Changelog:** v1.0 - 31 decisions, one per architectural choice this platform stands on
+**Changelog:**
+v1.0 - 31 decisions, one per architectural choice this platform stands on
+v1.1 - ADR-032 (production topology, recorded as owed) and ADR-033 (`SameSite=Strict` on the refresh
+cookie) added from the token-handling security audit; two rows added to §4, and §5's topology gap now
+points at the ADR that owns it
 
 ## 1. How to use this index
 
@@ -55,10 +59,12 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-029 | PII at rest: explicit CSFLE, deterministic on the five lookup keys | accepted | 2026-08-08 | — | — | Data model |
 | ADR-030 | marketplace-nginx gates on its own suite at push, on the secret guard at commit | accepted | 2026-08-09 | — | — | Build and quality gates |
 | ADR-031 | The fifteen sub-repos are tracked as submodules of the parent workspace | accepted | 2026-08-09 | — | — | Infrastructure and delivery |
+| ADR-032 | The production topology is owed, and no control may assume it | accepted | 2026-08-10 | — | — | Infrastructure and delivery |
+| ADR-033 | `SameSite=Strict` on the refresh cookie, enforced twice | accepted | 2026-08-10 | — | — | Identity and access |
 
 ## 3. By area
 
-**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006
+**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033
 
 **Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029
 
@@ -68,7 +74,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030
 
-**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031
+**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032
 
 ## 4. Decisions deliberately NOT re-opened
 
@@ -88,6 +94,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Move `marketplace-nginx`'s test suite into its `pre-commit`, or add a skip variable to its `pre-push` | ADR-030 | the suite needs a container engine and an image, and the ordinary commit there is one directive; a per-commit container run is how a hook gets `--no-verify`d out of habit |
 | Encrypt `shopOwner.personalData.firstName` / `lastName` / `address.city` too | ADR-029 | they are the sort keys and `/^term/i` targets of the operator's shop-owner table, and neither CSFLE algorithm survives a sort or a prefix match; encrypting them makes that table silently wrong rather than slow |
 | Switch another field to deterministic so it can be queried | ADR-029 | equal plaintext gives equal ciphertext, which is an equality oracle for anyone holding a read; the five deterministic fields are the ones a login or a verification link must *find*, and the list does not grow for convenience |
+| Narrow the refresh cookie's `path` to the authorization routes | ADR-018 | the root scope is what makes `conf.d/30-cache.conf:32-35` work: nginx decides whether to cache a public catalogue page by whether the request carries `refresh_token`, and a cookie the browser withholds on that path makes a logged-in customer look anonymous — their personalised HTML is then stored and served to the next visitor (NFR-SE09). ADR-018's prose said "scoped to API paths" and was wrong about it; the sentence was corrected, the scope is not to be |
+| Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
 
 ## 5. Gaps
 
@@ -95,4 +103,4 @@ Decisions this platform still owes an ADR, once taken:
 
 - **Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*).
-- **Production topology.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus 168 behavioural assertions, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, and how the service ports are closed to everything but it — `INTROSPECTION_CODE` is reachable wherever a service port is.
+- **Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus 168 behavioural assertions, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.

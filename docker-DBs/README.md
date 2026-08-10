@@ -26,6 +26,7 @@ election or a stepdown behaves here the way it behaves on the real cluster.
 | `openssl` | mints the replica-set keyfile and the CSFLE master key |
 | three `/etc/hosts` entries | see immediately below — **without them nothing outside Docker can connect** |
 | Node v24.18.0 + yarn | to run the platform itself, not this directory |
+| **Redis 7.4 or newer** | a platform requirement, not a preference — see [§Redis](#redis). The container in this compose file already is; a Redis of your own has to be. |
 
 ### The `/etc/hosts` entries
 
@@ -174,6 +175,33 @@ deliberately leaves `secrets/` alone for that reason. ADR-029 is the rationale.
 
 ### Redis
 
+⚠️ **Version floor: Redis 7.4.0. Anything older is not supported, whoever runs it — and Redis proper,
+not a fork.** **Valkey is not a supported target** (decided 2026-08-10): it is a fork with its own
+release line, and the hash-field TTL commands below are the exact area where fork coverage diverges
+by version. "Redis-compatible" on a managed service's product page is not the same claim. The compose
+service is `image: redis:${REDIS_TAG:-7.4-alpine}` and `env` pins `REDIS_TAG=7.4-alpine`, so
+`./up.sh --with-redis` satisfies the floor without you doing anything — the container currently
+reports `v=7.4.10`. The floor is written down because the pin is the *only* thing enforcing it today
+and a pin is one edit away from being lowered.
+
+**What needs 7.4 specifically: hash-field TTLs.** `HEXPIRE` / `HPEXPIRE` / `HTTL` / `HPERSIST` — a
+TTL on an individual field of a hash rather than on the whole key — were added in Redis 7.4.0 and
+exist in no earlier release. The account→sessions index
+(`docs/devprotocol/phase5/epics/E15.md`, story E15-S03) is one hash per account whose fields are that
+account's live sessions, and fields whose sessions expire without passing through logout or rotation
+have to age out on their own. Without per-field TTLs the index keeps naming sessions that no longer
+exist, which is both a slow memory leak and a lie told to the operator screen that reads it.
+
+**Nothing calls those commands today** — E15 is proposed, not built — but the mechanism is decided:
+E15-S03 takes `HEXPIRE`, with each field's TTL set to the remaining life of the session it names, and
+the lazy-prune alternative was rejected rather than kept as a toggle. The floor is therefore load
+bearing, not aspirational, and is recorded here so a version choice is made deliberately instead of
+being discovered as `ERR unknown command 'HEXPIRE'` somewhere nobody was watching.
+
+**Downgrading `REDIS_TAG` below `7.4` is a breaking change, not a tag bump.** Redis does not refuse
+an unknown command at startup; it refuses it at the first call, inside whichever request happened to
+trigger the write.
+
 The nine services keep their sessions in Redis, so the platform does not boot without one. If you
 have no Redis either, start the one in this compose file:
 
@@ -197,6 +225,38 @@ block in place and empty.
 deliberately: the session document carries a `tier`, and `assertTier` is the only thing separating
 one role's session from another's. A service with a different prefix does not fail loudly — it
 simply never finds a session.
+
+**Persistence is on.** The container runs `redis-server --appendonly yes` — the flag is in
+`docker-compose.yml`, on the `command:` line, not in a `redis.conf`. Sessions therefore survive a
+restart of the container and of the host, which is what makes `./up.sh --with-redis` the normal way
+to come back after a reboot without logging every developer out.
+
+Two consequences worth knowing before you go looking for either:
+
+- **The append-only file is a command log, and it keeps what the keyspace has forgotten.** Every
+  `HSET` that ever created a session key stays in it after that key expires, so `redis:/data`
+  accumulates a history of session keys rather than a snapshot of the live ones. Today a session key
+  *is* the token, so that file is a list of credentials in plain text — the reason
+  `docs/devprotocol/phase5/epics/E13.md` hashes the key namespace, and the reason its cutover carries
+  an explicit `BGREWRITEAOF` step. A rewrite is the only thing that removes what is already written;
+  hashing new writes does not touch a byte of it.
+- ⚠️ **The rate-limiter keys already written are a list of email addresses, and E12-S11 does not
+  remove them.** Until that story the per-email counter was `rl:<bucket>:email:<the address itself>`,
+  so `rl:userRegister:email:mario@example.com` is in the append-only file of every environment that
+  ran the old code. New writes hash the address (SHA-256, `sha256Hex` in `marketplace-common`), which
+  is a change to what is appended from now on and to nothing else. Removing the history is one
+  operational step: wait for the one-hour window to drain — the counters are the only thing that reads
+  those keys and they expire on their own — then `BGREWRITEAOF`. ⚠️ **Per node.** The command is not
+  cluster-wide: in production `REDIS_IS_CLUSTER=1` and each master keeps its own file, so a rewrite
+  run against one of them leaves every other one exactly as it was. On this container there is one
+  node, which is the case that hides the trap rather than the case that matters.
+- **`./down.sh --purge` removes the `redis` volume along with everything else**, so the file is gone
+  with it. Anything you wanted from a session — a reproduction, a stuck key — has to come out before
+  the purge, not after.
+
+Use your own Redis instead and none of *that* applies: the platform reads `REDIS_URL` and asks
+nothing about how that server persists. **The 7.4 floor still applies** — it is a requirement of the
+platform, not of this container. `redis-cli INFO server | grep redis_version` answers it.
 
 ## Running the whole platform
 
@@ -291,6 +351,7 @@ Stated plainly so nobody has to guess:
 | `MONGO_TEST_CONN_STRING names database "x" but MONGO_TEST_DB is "y"` | the three test-database names disagree; the table above has the right one for that repo. |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh`. |
 | the suite drops the wrong database | it refuses to: `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env`. |
+| `ERR unknown command 'HEXPIRE'` | the Redis behind `REDIS_URL` is older than 7.4. Check with `redis-cli INFO server \| grep redis_version`; if it is this compose file's container, `REDIS_TAG` was lowered — see §Redis. |
 
 ## License
 

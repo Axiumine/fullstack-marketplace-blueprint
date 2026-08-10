@@ -75,7 +75,7 @@ Source: `BEs/marketplace-db-setup/lib/schemas/admin.js`, called by `migrations/2
 | `login.lastLogin` | date | no | — | set on every successful login |
 | `login.onboardingStep` | string | no | maxLength 4 | shared `LOGIN` shape field; read by ShopOwner tier only, inert here |
 | `login.onboardingDone` | bool | no | — | shared `LOGIN` shape field; inert here |
-| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `login.rememberMe` | bool | no | — | the operator's last "remember me" choice, stored for the form. The lifetime it decides is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07) — this field is not read at login and does not lengthen or shorten a session already running |
 | `personalData.firstName` | string | yes | maxLength 100 | operator's first name |
 | `personalData.lastName` | string | yes | maxLength 100 | operator's last name |
 | `deleted` | date | no | — | soft-delete stamp; `deleted: {$exists:false}` = live |
@@ -106,7 +106,7 @@ Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, called once by `mig
 | `login.firstLogin` / `login.lastLogin` | date | no | — | login timestamps |
 | `login.onboardingStep` | string | no | maxLength 4 | onboarding wizard step |
 | `login.onboardingDone` | bool | no | — | onboarding wizard complete |
-| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `login.rememberMe` | bool | no | — | the owner's last "remember me" choice, stored for the form and editable by an Admin through `shopOwnerUpdatePreferences`. **Not a revocation control:** the lifetime it names is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07), so an Admin toggling it moves no live session — it changes what the next login defaults to |
 | `personalData.firstName` / `.lastName` | string | yes | maxLength 100 each | owner's name |
 | `personalData.birth.date` | date | yes | — | date of birth |
 | `personalData.address.street` | string | yes | maxLength 250 | home address |
@@ -193,7 +193,7 @@ Source: `BEs/marketplace-db-setup/lib/schemas/user.js`. Mirrors `shopOwner` — 
 | `login.password` | string | yes | exactly 60 chars | bcrypt hash |
 | `login.firstLogin` / `.lastLogin` | date | no | — | login timestamps |
 | `login.onboardingStep` / `.onboardingDone` | string / bool | no | maxLength 4 for the string | shared `LOGIN` shape field; inert here |
-| `login.rememberMe` | bool | no | — | persistent-session flag |
+| `login.rememberMe` | bool | no | — | the customer's last "remember me" choice, stored for the form. The lifetime it decides is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07) — this field is not read at login and does not lengthen or shorten a session already running |
 | `personalData` | object | **no** — whole sub-doc optional | — | filled in after email confirmation, not at registration |
 | `personalData.firstName` / `.lastName` | string | yes if `personalData` present | maxLength 100 each | — |
 | `personalData.birth.date` | date | no | — | — |

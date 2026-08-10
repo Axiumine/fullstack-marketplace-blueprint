@@ -112,6 +112,27 @@ Three properties are load-bearing and must not be "simplified":
   Per-tier prefixes would break the single logout service, which finds a session by token content
   alone. The tier assertion is the layer that holds even if a prefix is ever reused by mistake.
 
+### Session keys are digests, and the transport is not encrypted
+
+Two facts about the Redis leg, stated together because each is only half the picture. The key shapes
+themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Redis.
+
+- **The key is a digest.** Since E13-S01 a session lives under `<REDIS_KEY><sha256('access:'+token)>`,
+  built by `sessionKeys.mts` in `marketplace-common` and nowhere else. Before that the key *was* the
+  token, so a `MONITOR` transcript, a dump or the append-only file was a list of live credentials in
+  plain text. Reads currently fall back to the old shape for sessions minted before the cutover; that
+  fallback and its `dual-read-hits` counter are deleted by E13-S10 on the date in
+  `DUAL_READ_REMOVE_AFTER`.
+- ⚠️ **The connection is plaintext `redis://`, and this workspace cannot change it.** Every service
+  `env` sets `REDIS_IS_CLUSTER=1`, and koa-utils' `dist/dataSources/Redis.mjs` builds its
+  `createCluster` rootNodes with a hardcoded `redis://` scheme — so the session hash, `_id`, `email`
+  and `tier` included, crosses the wire in the clear on every request. The single-node branch reads
+  `REDIS_URL` and would take `rediss://` today, but production does not use it. This is recorded as
+  **R45**, and `test/redisScheme.test.mts` in `marketplace-common` fails the day a koa-utils release
+  makes the cluster scheme configurable, so the position is revisited rather than left true by
+  inertia. Whether the traffic is nonetheless confined to a trusted network is the topology question
+  **ADR-032** records as owed.
+
 ### Shared authorization body (ADR-006)
 
 The three `*-authenticated-authorization` services share their body and keep their ports. Since
@@ -128,6 +149,81 @@ supplies only its own `TIER.*` constant, its own model and its own projection.
   but deployed to all nine — an edit there is wider than it looks. `vitest.mutation.config.mts` must
   inline both `@axiumine/marketplace-common` and `@axiumine/koa-utils`, or a `vi.mock` of a
   koa-utils subpath silently stops intercepting.
+
+## Observability
+
+Sentry, one `src/instrument.mts` per service, loaded through `node --import` so the SDK is installed
+before the modules it wraps. **An empty `DSN` means no `Sentry.init` at all** — the `.env` default, and
+shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
+
+- ⚠️ **Nothing in these repos configures TLS for the collector, and nothing may.** A collector behind a
+  certificate this machine does not already trust is reached with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`,
+  from outside the process. A `rejectUnauthorized: false` — which all nine services carried until
+  E12-S01 — travels inside a copied `.env` and downgrades a real deployment with nothing failing to say
+  so. `no-restricted-syntax` in each `eslint.config.js` refuses the shapes that bring it back.
+- **The SDK's blanket PII flag is absent, not `false`.** Decided 2026-08-10 by the platform owner, on two
+  grounds. `adminUpdatePwd` takes `passwordOld` and `passwordNew` as GraphQL arguments and the flag
+  attaches request bodies — every request here is a GraphQL POST, so the body *is* the envelope carrying
+  both passwords in clear. And `personalData` on `shopOwnerAdd` / `shopOwnerUpdate` is CSFLE-encrypted at
+  rest under ADR-029; attaching bodies would put those values in telemetry in plaintext, defeating
+  encryption at rest from the observability layer. `databaseQueryData` and `stackFrameVariables` are the
+  same leak by other routes — a deterministic CSFLE lookup value is plaintext in the query, and a
+  resolver frame can hold a decrypted document or a live token.
+- **Nothing needed for debugging is lost.** `graphQL.document` stays on, with literal values redacted at
+  collection time, so the exception, the stack, the transaction name and the query *shape* still arrive.
+  `graphQL.variables` does not: on this surface the variables are the passwords and the personal data.
+- ⚠️ **`dataCollection` lists every category on purpose.** `resolveDataCollectionOptions` picks its base
+  as `dataCollection != null ? DEFAULTS : <legacy mapping>`, and `DEFAULTS` is fully permissive — so
+  supplying the option at all flips the base, and **an omitted category is an enabled category**. A short
+  `dataCollection` reads like a tightening while switching request bodies, cookies and unfiltered headers
+  on. Do not shorten it.
+- **No network-derived value reaches telemetry.** `userInfo: false` stops the SDK inferring a client
+  address for `event.user`, and `sentryBeforeSend` (marketplace-common,
+  `src/others/sentryBeforeSend.mts`) is wired as `beforeSend` in all nine services to remove what
+  configuration cannot: `httpServerSpansIntegration` writes the client address straight onto the server
+  span, outside the `dataCollection` machinery entirely. The scrubber also strips both `Authorization`
+  headers and cookies in both directions, in both the header spelling and the `_`-normalised span
+  spelling. The SDK's own sensitive-key filtering is a second layer and a minor-version implementation
+  detail — never a reason to shorten the scrubber's list.
+
+### What each `dataCollection` category replaced
+
+The blanket flag was a two-value shortcut, and the SDK still maps it internally — `@sentry/core`,
+`utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0**. The middle columns are what
+the nine services resolved to before this epic, so the table is the migration path as well as the record:
+
+| Category | Flag absent or `false` | Flag `true` | Configured here |
+|---|---|---|---|
+| `userInfo` | `false` | `true` | `false` |
+| `cookies` | deny-list of PII-ish name snippets | `true` | `false` |
+| `httpHeaders` | the same deny-list, per direction | `true` both directions | `false` both directions |
+| `httpBodies` | `[]` | all four targets | `[]` |
+| `urlQueryParams` | the same deny-list | `true` | `false` |
+| `graphQL` | `{ document: true, variables: true }` | identical | `{ document: true, variables: false }` |
+| `genAI` | `{ inputs: false, outputs: false }` | both `true` | `{ inputs: false, outputs: false }` |
+| `databaseQueryData` | `false` | `true` | `false` |
+| `stackFrameVariables` | `true` | `true` | `false` |
+| `frameContextLines` | `7` | `7` | `7` |
+
+Three rows are worth reading twice. **`graphQL.variables` is on in both branches**, so removing the flag
+would have left the variables — the passwords and the personal data on this surface — arriving as before.
+**`stackFrameVariables` is on in both branches** too, and a resolver frame holds decrypted documents and
+live tokens. And `frameContextLines` is `7` here rather than the `DEFAULTS` `5`, because both legacy
+branches use 7 to match the ContextLines integration: stack context is unchanged by this epic.
+
+⚠️ **The version is pinned by a test, not by a comment.** Every claim above was read out of `node_modules`
+at 10.69.0, none of it is a documented API contract, and the flag is removed outright in v11.
+`test/sentryVersionGuard.test.mts` in each of the nine services and in `marketplace-common` asserts the
+installed `@sentry/node` and `@sentry/core` against that exact version and fails on any bump, naming this
+section in its failure message (E12-S05, risk **R42**). The exact version rather than the major, because
+the sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
+
+**What the application and access logs contain is not yet answered.** The audit was static-only and never
+read either. E12-S12 in [`devprotocol/phase5/epics/E12.md`](./devprotocol/phase5/epics/E12.md) is the
+investigation that answers it, and its finding belongs in this section when it lands. One limitation is
+known already and is not E12-S12's to fix: nginx builds each `error_log` entry with a hard-coded
+`client: <address>` prefix, so no `log_format` reaches it — only the destination and the level are
+configurable.
 
 ## Resolver layout (per resource service)
 
