@@ -34,7 +34,7 @@ Two on-disk failure classes made the gap concrete rather than theoretical:
 
 Constraint from [`docs/devprotocol/phase3/CONSTRAINTS.md`](../CONSTRAINTS.md) CON-08: 100/100 applies to every package that
 ships code, threshold reduction and gate removal are both explicitly forbidden, and `phase1/NFR.md` marks
-the maintainability requirements behind this (NFR-MA01/MA02/MA05) 🔴 Critical, requiring full team sign-off
+the maintainability requirements behind this (NFR-MA01/MA02/MA05) 🔴 Critical, requiring a written owner decision
 to touch.
 
 ---
