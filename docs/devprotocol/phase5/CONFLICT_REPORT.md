@@ -82,7 +82,7 @@ None. Grepped `price`, `cart`, `order`, `delivery`, `payment` across all 17 file
 
 **All 17 Critical NFRs now land on at least one story.**
 
-**e. BC-01..BC-11 ↔ epic 1:1.** EPICS_STORIES.md §4 table and phase2/BOUNDED_CONTEXT.md's BC names cross-checked (grepped the relation table) — every BC name matches its epic's own header exactly (e.g. E07 header "Bounded context: BC-07 — Customer Account & Addresses"). No BC split across two epics, no epic spanning two BCs found in the sample.
+**e. BC-01..BC-11 ↔ epic 1:1.** EPICS_STORIES.md §4 table and phase2/BOUNDED_CONTEXT.md's BC names cross-checked (grepped the relation table) — every BC name matches its epic's own header exactly (e.g. E07 header "Bounded context: BC-07 — Customer Account & Addresses"). No BC split across two epics, no epic spanning two BCs found in the sample. ⚠️ **This check is superseded and is not re-run.** [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5 stopped requiring any epic-to-context relationship on 2026-08-11 and is the record of that decision; the alignment recorded above is a true observation about E01-E11 as written, not a rule anything must satisfy.
 
 ## 7. Citation spot-check
 

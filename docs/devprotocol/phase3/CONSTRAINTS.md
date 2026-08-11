@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-08-07
 **Author:** brainy-agent
-**Changelog:** v1.0 - initial retrofit
+**Changelog:** v1.0 - initial retrofit.
+v1.1 - 2026-08-11: the CON-08 row's quote of `phase1/NFR.md` §4 follows that document to v1.1 — a 🔴 Critical
+change needs a written owner decision, not team sign-off. Single developer; the gate itself is untouched.
 
 ## 1. Purpose
 
@@ -59,7 +61,7 @@ Planned-but-not-built commerce vocab (`Cart`, `Order`, `Delivery`, `Payment`) �
 | One shared `REDIS_KEY` prefix across all 9 services | CON-04/CON-05 above — logout depends on it structurally |
 | 3 authorization services stay 3 deployables | CON-06 above — availability decision already made, argued in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) |
 | No barrel export in `marketplace-common`, per-subpath `exports` map | [`docs/workflow.md`](../../workflow.md) §Repo layout — `yarn test:contract` gates it; Phase 3 doc/ADR is not the place to propose a barrel |
-| Quality gate regime (100/100, lint, tsc, Qodana, hook wiring via `core.hooksPath`) | CON-08 above; `phase1/NFR.md` §3 marks NFR-MA01/MA02/MA05 🔴 Critical, "full team sign-off + new PDR version" to touch |
+| Quality gate regime (100/100, lint, tsc, Qodana, hook wiring via `core.hooksPath`) | CON-08 above; `phase1/NFR.md` §3 marks NFR-MA01/MA02/MA05 🔴 Critical, "a written owner decision + new PDR version" to touch |
 | SSR/CSR split on `marketplace-user` (public SSR, `/account/*` CSR) | CON-10 above — security mechanism, both halves load-bearing |
 | Migration immutability + `lib/schemas/` as single source of `$jsonSchema` shape | CON-07 above |
 | Conformist boundaries BC-01/BC-03 (`shopOwner.waitApprov`) and BC-01/BC-07 (`user.personalData`/`addresses`) stay convention-only, no ACL, for now | `phase2/BOUNDED_CONTEXT.md` §6 — flagged explicit GAP not protection, open question 7; Phase 3 may *discuss* it as open question but building the ACL is a decision, not a default |

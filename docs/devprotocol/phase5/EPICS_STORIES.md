@@ -2,16 +2,32 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-07
+**Version:** 1.7
+**Date:** 2026-08-11
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
-These seven do **not** follow the one-epic-per-BC rule; see §2.2 and [`AMENDMENTS.md`](./AMENDMENTS.md).
+These seven do **not** follow the one-epic-per-BC rule; see §2.2. ⚠️ That rule no longer exists — read the
+v1.4 line below before treating this sentence as a live caveat.
 v1.2 - E12, E13 and E14 implemented 2026-08-10; their story markers and the three §1 rows now read per
 story, and each of those epics carries a §7 saying what did not land and what blocks it.
 v1.3 - E14-S09 run the same day against the running Dev stack, closing E14 at 9 of 9. Its finding is
 [`docs/report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md).
+v1.4 - 2026-08-11: the one-epic-per-BC rule is gone from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which is
+the record of that decision, so the v1.1 note above is history rather than a live caveat — E12-E18 break no
+rule. §1, §2.2 and §4 rewritten accordingly, the index's context column is now marked informational, and the
+BC-12 once proposed for E16 and E17 is withdrawn: it existed only to satisfy the removed rule, so with the
+rule gone there is nothing left for it to do, and `phase2/BOUNDED_CONTEXT.md` keeps its eleven contexts.
+v1.5 - 2026-08-11: E12-S12 and E12-S13 run, closing E12's two investigations. Findings at
+[`docs/report/log-sink-inventory.md`](../../report/log-sink-inventory.md) and
+[`docs/report/sentry-event-capture.md`](../../report/sentry-event-capture.md). They opened E12-S16 … E12-S23,
+so E12 is now 15 of 24 rather than 13 of 15, and one of the eight is 🔴 and live.
+v1.6 - 2026-08-11: E12-S24 added, so E12 reads 15 of 24. E12-S22 claimed the transaction-scrubbing gap was
+latent because no service sets a `tracesSampleRate`; the three frontends set `0.1` and configure no
+`beforeSend`, and none depends on the package holding the scrubber.
+v1.7 - 2026-08-11: the platform owner answered E12 §6 question 1 — raw addresses stay in the nginx
+error log, rotation 14–30 days with `shred`, no personal data in the access log, two lines in a privacy
+policy. E12-S19 stops waiting on it and E12-S25 is added to write the notice, so E12 reads 15 of 25.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -20,18 +36,18 @@ v1.3 - E14-S09 run the same day against the running Dev stack, closing E14 at 9 
 ## 1. Purpose
 
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
-here. This file lists the 18 epics, maps each to its bounded context (`phase2/BOUNDED_CONTEXT.md` §2,
-BC-01..BC-11), states build state against the working tree, and links out.
+here. This file lists the 18 epics, states build state against the working tree, and links out.
 
-E01-E11 are bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written): one epic per BC,
-no epic spans 2 BC, no BC split across 2 epics, conflict order in that doc's §7 governs if any epic file
-disagrees with this index. **E12-E18 do not satisfy that rule** - see §2.2, and §2.1 for why they are numbered as they are.
+Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
+order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
+context**: `phase5/CONSTRAINTS.md` §5 attaches no such rule, an epic never owns a context, and the context
+column above is a reading aid. See §2.1 for why E12-E18 are numbered as they are.
 
 ---
 
 ## 2. Epic overview
 
-| ID | Epic | Bounded Context | Tier(s) served | Build state | Repos | File |
+| ID | Epic | Contexts touched (informational) | Tier(s) served | Build state | Repos | File |
 |---|---|---|---|---|---|---|
 | E01 | Identity & Access | BC-01 | Admin, ShopOwner, User, anonymous (registration) | Built | `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-common` | [E01.md](epics/E01.md) |
 | E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [E02.md](epics/E02.md) |
@@ -44,12 +60,12 @@ disagrees with this index. **E12-E18 do not satisfy that rule** - see §2.2, and
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | Not built - no collection, no resolver, no design | none | [E11.md](epics/E11.md) |
-| E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built 2026-08-10 - 13 of 15. E12-S12 and E12-S13 are investigations needing the running Dev stack; E12-S15's config is in the repo but Authenticated Origin Pulls must still be switched on in Cloudflare, **before** the config is deployed. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx` | [E12.md](epics/E12.md) |
+| E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built 2026-08-10, investigations closed 2026-08-11 - 15 of 25. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, and the owner's answer to §6 question 1 added E12-S25 — **E12-S21 is 🔴 and live**: `event.request.data` ships the raw GraphQL body, plaintext password included, on every service with a `DSN` set. E12-S15's config is in the repo but Authenticated Origin Pulls must still be switched on in Cloudflare, **before** the config is deployed. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `docker-DBs` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | Built 2026-08-10 - 10 of 11. E13-S10 removes the dual-read fallback and may not run before `DUAL_READ_REMOVE_AFTER`, whose date is re-stamped at the cutover deploy. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
 | E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | Not built - and `logout` is a live no-op, see E15-S01 | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-resource` services | [E15.md](epics/E15.md) |
-| E16 | Signing-Key Custody & Rotation | **BC-12 (proposed)** | Admin (operates), all tiers (affected) | Not built - RISK_REGISTER R02 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
-| E17 | Admin Session Console | **BC-12 (proposed)** | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
+| E16 | Signing-Key Custody & Rotation | BC-01, BC-10 | Admin (operates), all tiers (affected) | Not built - RISK_REGISTER R02 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
+| E17 | Admin Session Console | BC-01, BC-10 | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
 | E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | Not built - 1 of 3 resource services tests its reject path | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
 
 ### 2.1 E12-E18 are numbered in landing order
@@ -71,9 +87,11 @@ wrong one:
 This ordering deviates from the audit's own §6 suggested sequence, which put §3.3/§3.4 first. The reason is
 E13: the audit ranked findings by severity, not by which fix makes the next fix safe to build.
 
-### 2.2 Why E12-E18 break the one-epic-per-BC rule
+### 2.2 Why E12-E18 are a separate block
 
-E01-E11 are a **retrofit index**: one epic per bounded context, describing a platform that already exists.
+E01-E11 are a **retrofit index** describing a platform that already exists; each happens to line up with one
+bounded context because that is how the domain map was walked when they were written, one entry at a time.
+
 E12-E18 are a **remediation backlog** against
 [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1, and a
 security finding does not respect context boundaries. Finding §3.5 alone touches all nine services; finding
@@ -82,15 +100,15 @@ security finding does not respect context boundaries. Finding §3.5 alone touche
 Forcing them into the existing eleven would have meant appending unrelated hardening stories to epics that
 currently read as an accurate description of shipped code, which is the more damaging of the two options.
 
-Two of the seven - E16 and E17 - describe genuinely new capability rather than hardening, and are proposed
-under a new **BC-12 — Session Administration & Key Custody**. That context does not exist yet:
-[`phase2/BOUNDED_CONTEXT.md:10`](../phase2/BOUNDED_CONTEXT.md) requires team sign-off to modify and defines
-no procedure for adding a context. The proposed text for BC-12, and the matching change to
-[`phase5/CONSTRAINTS.md`](./CONSTRAINTS.md) §5's "11 epic, one per BC-01..BC-11", are written up in
-[`AMENDMENTS.md`](./AMENDMENTS.md) **for sign-off - neither baselined document has been edited.**
-
-Until that sign-off, E12-E18 are a valid backlog whose §4 stories stand on their own, and §4 below records
-the coverage table as it will read *if* the amendment is accepted.
+They are a separate block because their **source** differs (a dated audit, cited in every one of the seven
+headers) and their **nature** differs (remediation of shipped code rather than description of it) — *not*
+because they fail a context rule. There is no context rule: `phase5/CONSTRAINTS.md` §5 stopped requiring one
+on 2026-08-11, so an epic spanning nine services or naming no context at all is ordinary. E16 and E17, the
+two of the seven that describe genuinely new capability rather than hardening, need no context of their own
+to exist under; the BC-12 once proposed for them is **withdrawn**, because it was only ever proposed to give
+those two epics a context to own under the rule that has since gone. `phase2/BOUNDED_CONTEXT.md` is untouched
+and the eleven contexts stand. If key custody ever earns a context, it earns one as domain modelling, by the
+route that document's Mutability line describes — not because an epic needs somewhere to live.
 
 ---
 
@@ -126,15 +144,18 @@ Brownfield retrofit. Most stories in `epics/*.md` describe work ALREADY SHIPPED,
 
 ---
 
-## 4. Bounded-context coverage
+## 4. Which epics touch which context
 
-Every BC-01..BC-11 gets exactly one **describing** epic, 1:1, source `phase2/BOUNDED_CONTEXT.md` §2. The
-hardening column is additive and does not break that 1:1: E12-E18 change code inside those contexts without
-claiming ownership of them.
+**Informational only. No epic owns a bounded context and none is required to name one**
+(`phase5/CONSTRAINTS.md` §5). This table exists so a reader who knows the domain map can find the epics that
+change code in an area — nothing validates it, nothing fails if an epic is missing from it.
 
-| BC | Describing epic | Hardened by |
+That E01-E11 line up one-for-one with BC-01-BC-11 is a coincidence of how the retrofit index was written,
+not a property of epics. A future epic may span several rows, or appear in none.
+
+| BC | Described by | Also changed by |
 |---|---|---|
-| BC-01 | E01 | E13, E14, E15 |
+| BC-01 | E01 | E13, E14, E15, E16, E17 |
 | BC-02 | E02 | E15 |
 | BC-03 | E03 | E15 (E15-S07 status change revokes sessions) |
 | BC-04 | E04 | - |
@@ -143,14 +164,8 @@ claiming ownership of them.
 | BC-07 | E07 | - |
 | BC-08 | E08 | - |
 | BC-09 | E09 | E12, E13, E18 |
-| BC-10 | E10 | E13, E14, E15, E18 |
+| BC-10 | E10 | E13, E14, E15, E16, E17, E18 |
 | BC-11 | E11 | - |
-| **BC-12 (proposed)** | **E16, E17** | - |
-
-BC-12 is the one genuine exception: two epics, one context, because key custody (E16) and the operator
-surface over it (E17) are separable deliverables with different repos and different landing orders. If the
-amendment is rejected, both fold into E01's context and the 1:1 rule holds with E16 and E17 as hardening
-rows against BC-01.
 
 ---
 
@@ -165,7 +180,7 @@ Every mandatory Phase 1-4 document has at least one implementing epic.
 | `phase1/NFR.md` | All (E01-E11) - critical set NFR-SE01-SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01 must land on ≥1 story each (`phase5/CONSTRAINTS.md` §5) |
 | `phase2/UBIQUITOUS_LANGUAGE.md` | All (E01-E11) - story language must match its glossary, no banned term |
 | `phase2/EVENT_STORMING.md` | E01, E02, E03, E05, E07, E08, E11 - commands/flows map to these |
-| `phase2/BOUNDED_CONTEXT.md` | All (E01-E11) - 1:1 source, §4 above |
+| `phase2/BOUNDED_CONTEXT.md` | All (E01-E11) - the domain map they describe, §4 above; not a rule over epics |
 | `phase3/C4_CONTEXT.md` | E08, E09 - external actors/systems at the boundary |
 | `phase3/C4_CONTAINER.md` | E01, E09, E10 - the 9-service + 3-frontend + common split |
 | `phase3/SECURITY_AUTH.md` | E01, E02 - opaque token + Redis session + tier-assert model |
@@ -199,7 +214,7 @@ Finding-to-epic map, so no audit finding is left unassigned:
 | §3.7c `SameSite` in no ADR | E13 |
 | §3.7d stale docstring | E13 |
 | §4 ADR-018 prose wrong, scope load-bearing | E13-S07 - **prose only, the scope is not touched** |
-| §5 all six blind spots | E12-S12, E12-S13, E14-S09, E16-S09, E18-S04, E18-S05, E18-S09 |
+| §5 all six blind spots | E12-S12, E12-S13, E14-S09, E16-S09, E18-S04, E18-S05, E18-S09 — three now run: E14-S09 ([finding](../../report/multi-tab-refresh-behaviour.md)), E12-S12 ([finding](../../report/log-sink-inventory.md)) and E12-S13 ([finding](../../report/sentry-event-capture.md)) |
 
 ---
 

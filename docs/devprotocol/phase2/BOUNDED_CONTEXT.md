@@ -2,12 +2,23 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-08-07
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
+*adding* a context, which it never described — the gap that left a proposed BC-12 with nowhere to go. That
+BC-12 is **withdrawn** and is not coming: it was proposed only to give E16 and E17 a context to own under an
+epic-to-context rule that `phase5/CONSTRAINTS.md` §5 has since removed. The eleven contexts themselves are
+unchanged.
 **Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
-**Mutability:** requires team sign-off to modify - splitting or merging contexts is a major refactor
+**Mutability:** the platform owner decides and writes the reason down before the edit — **one developer, so no
+vote and no second approver exists.** Splitting or merging contexts is a major refactor. Carving a new context
+out of an existing one is a **split**, not an addition, and takes that same route. A genuine **addition** is the
+rarer case where no existing context's "Owns" list gets shorter — responsibility nothing owned before. It
+carries the full §2 entry, the §3 diagram node and the §4 integration rows in one change, and states why it is
+not an extension of an existing context. No epic needs a context to exist (`phase5/CONSTRAINTS.md` §5), so "an
+epic needs somewhere to live" is never that reason.
 
 ---
 

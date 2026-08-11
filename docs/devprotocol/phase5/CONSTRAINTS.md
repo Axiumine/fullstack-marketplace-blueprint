@@ -2,10 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-08-07
 **Author:** brainy-agent
-**Changelog:** v1.0 - initial retrofit
+**Changelog:** v1.0 - initial retrofit.
+v1.1 - 2026-08-11: the epic-to-bounded-context rule removed from §5 and its inherited-input row in §2. An
+epic no longer requires, owns or maps to a bounded context; the `E01`..`E11` ↔ `BC-01`..`BC-11` alignment is
+recorded as coincidence. Decided by the platform owner on the grounds that the two are unrelated — an epic is
+one coherent deliverable, a bounded context is a piece of the domain map, and nothing was ever enforcing the
+correspondence in the first place. ⚠️ **§5 is the record of that decision.** `DEFINITION_OF_DONE.md`,
+`EPICS_STORIES.md`, `CONFLICT_REPORT.md` and the seven E12-E18 epics cite it rather than restating it, so
+re-opening the rule means editing §5 and then those nine.
 
 ## 1. Purpose
 
@@ -30,7 +37,7 @@ Already settled. Do NOT restate body, point at source.
 | DCON-01..DCON-09 (validator authoritative, additionalProperties false, soft-delete-not-hard-remove, 7 global unique index list, itemCategory depth cap in resolver admin-only, ObjectId coercion into pipeline, updatePipeline per-call, bare Boolean return + 2 named exceptions, no role field anywhere) | `phase4/CONSTRAINTS.md` §3 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3/4 could not redesign | `phase3/CONSTRAINTS.md` §4, `phase4/CONSTRAINTS.md` §4-5 |
-| Bounded contexts, one epic per context | `phase2/BOUNDED_CONTEXT.md` §2, BC-01..BC-11 |
+| Bounded contexts — the domain map, no epic rule attaches to it | `phase2/BOUNDED_CONTEXT.md` §2, BC-01..BC-11 |
 | NFR catalogue + priority matrix, story acceptance criteria must trace here | `phase1/NFR.md` §2-3 |
 | ADR-001..ADR-028, one row each, by area | `phase3/adr/ADR-INDEX.md` §2-3 |
 | Decisions deliberately NOT re-opened (merge 3 authz, per-tier REDIS_KEY, role field, shop collection, price field, lower threshold, ignoreStatic, domain-specific catalogue vocab) | `phase3/adr/ADR-INDEX.md` §4 |
@@ -74,10 +81,10 @@ How a sequence diagram on this platform must be drawn:
 
 | Rule | Detail |
 |---|---|
-| Epic = one bounded context | 11 epic, one per `BC-01`..`BC-11` in `phase2/BOUNDED_CONTEXT.md` §2. No epic spans 2 BC, no BC split across 2 epic. |
-| Story id sequential inside its epic | `ENN-SNN` — `E01-S01`, `E01-S02`, ... Story number restarts per epic, never a global counter; the epic prefix is the epic id (`E01`..`E11`), not the bounded-context id it maps to. |
+| Epic = one coherent deliverable, **not** one bounded context | **An epic does not require a bounded context and never owns one.** `E01`..`E11` each happen to describe one of `BC-01`..`BC-11`, and the matching count is an artefact of how the retrofit index was written — it is a coincidence, not a rule. Nothing enforces it: an epic may span several contexts or none, and no epic is ever split, merged, renumbered or blocked to preserve the alignment. An epic's header states what it changes; naming a context there is a reading aid with no rule behind it. |
+| Story id sequential inside its epic | `ENN-SNN` — `E01-S01`, `E01-S02`, ... Story number restarts per epic, never a global counter; the epic prefix is the epic id (`E01`..`E18`), never a bounded-context id — an epic maps to none. |
 | Every story ≥2 testable acceptance criteria | Each criterion mechanically checkable per BCON-01 — a gate name, a test file, an explain output, not a feeling. |
-| Every 🔴 Critical NFR appears as acceptance criterion somewhere | Critical set (`phase1/NFR.md` §3): NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01. Each must land on ≥1 story across the 11 epics — risk register + DoD writer cross-check this, do not leave one orphaned. |
+| Every 🔴 Critical NFR appears as acceptance criterion somewhere | Critical set (`phase1/NFR.md` §3): NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01. Each must land on ≥1 story somewhere across the epics — risk register + DoD writer cross-check this, do not leave one orphaned. |
 | Story for already-built work marked BUILT, cites path proving it | E.g. "customer can register" cites `BEs/dev/marketplace-dev-public-resource` registration resolver + `marketplace-user` account route, not left as if still to design. Built vs planned split follows [`CLAUDE.md`](../../../CLAUDE.md) §Build state table exactly — do not upgrade a planned piece to built by writing a nice story about it. |
 
 ## 6. Out of scope for Phase 5

@@ -177,7 +177,9 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
   supplying the option at all flips the base, and **an omitted category is an enabled category**. A short
   `dataCollection` reads like a tightening while switching request bodies, cookies and unfiltered headers
   on. Do not shorten it.
-- **No network-derived value reaches telemetry.** `userInfo: false` stops the SDK inferring a client
+- **No network-derived value reaches telemetry** — on error events, which are the only events the shipped
+  configuration produces. Transactions are a different story and it is not a good one; see the corrections
+  below. `userInfo: false` stops the SDK inferring a client
   address for `event.user`, and `sentryBeforeSend` (marketplace-common,
   `src/others/sentryBeforeSend.mts`) is wired as `beforeSend` in all nine services to remove what
   configuration cannot: `httpServerSpansIntegration` writes the client address straight onto the server
@@ -197,7 +199,7 @@ the nine services resolved to before this epic, so the table is the migration pa
 | `userInfo` | `false` | `true` | `false` |
 | `cookies` | deny-list of PII-ish name snippets | `true` | `false` |
 | `httpHeaders` | the same deny-list, per direction | `true` both directions | `false` both directions |
-| `httpBodies` | `[]` | all four targets | `[]` |
+| `httpBodies` | `[]` | all four targets | `[]` — **spans only; see the corrections below** |
 | `urlQueryParams` | the same deny-list | `true` | `false` |
 | `graphQL` | `{ document: true, variables: true }` | identical | `{ document: true, variables: false }` |
 | `genAI` | `{ inputs: false, outputs: false }` | both `true` | `{ inputs: false, outputs: false }` |
@@ -218,12 +220,39 @@ installed `@sentry/node` and `@sentry/core` against that exact version and fails
 section in its failure message (E12-S05, risk **R42**). The exact version rather than the major, because
 the sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
 
-**What the application and access logs contain is not yet answered.** The audit was static-only and never
-read either. E12-S12 in [`devprotocol/phase5/epics/E12.md`](./devprotocol/phase5/epics/E12.md) is the
-investigation that answers it, and its finding belongs in this section when it lands. One limitation is
-known already and is not E12-S12's to fix: nginx builds each `error_log` entry with a hard-coded
-`client: <address>` prefix, so no `log_format` reaches it — only the destination and the level are
-configurable.
+### What the logs actually contain — measured, 2026-08-11
+
+Two investigations ran against the running Dev stack and produced findings. **Read them before trusting the
+rest of this section**, because they correct two of its claims.
+
+- [`report/log-sink-inventory.md`](./report/log-sink-inventory.md) (E12-S12) — every sink, and what a token,
+  a cookie, a signing key or a client IP can do in it. The nine application logs are clean on every planted
+  marker. The nginx access log carries the account email and the one-time verify/reset hash, because both
+  mailed links are GETs with `:email/:hash` in the path. The Redis password is in the container argv. No
+  Docker log driver is bounded and no repo pins nginx's retention. **The `error_log`'s hard-coded
+  `client: <address>` prefix is on five of five request-scoped entries at the shipped `warn` — level is not
+  the discriminator, having a request context is.**
+- [`report/sentry-event-capture.md`](./report/sentry-event-capture.md) (E12-S13) — one real event, built and
+  transmitted by the real transport into a local collector.
+
+⚠️ **Two corrections this section owes to that second finding, both open as of 2026-08-11:**
+
+- **`httpBodies: []` does not keep the request body out of an event.** It gates the
+  `http.request.body.data` *span* attribute only. `@sentry/core` 10.69.0 hard-wires `include.data = true`
+  for events (`integrations/requestdata.js:27-28`) and the write-time gate is `httpIntegration`'s
+  `maxRequestBodySize`, default `"medium"`. A captured event carried a plaintext password in
+  `event.request.data`. The paragraph above about `adminUpdatePwd` describes a live defect, not a prevented
+  one — E12-S21.
+- **`beforeSend` is not called for transaction events**, and `beforeSendTransaction` is configured nowhere.
+  The client address `httpServerSpansIntegration` writes onto the server span therefore ships unredacted the
+  moment a `tracesSampleRate` is set. No **backend** service sets one, which is the only thing keeping the
+  measured shape latent there. `http.user_agent`, `net.peer.ip` and `net.host.ip` are in the same position
+  and are not in the scrubber's key list — E12-S22.
+- ⚠️ **The three frontends are not in that latent position.** All three set `tracesSampleRate: 0.1`
+  (`src/instrument.ts:46`) and none configures `beforeSend` or `beforeSendTransaction`; `sentryBeforeSend`
+  is a `marketplace-common` export and no frontend depends on that package, so **no scrubber runs on any
+  frontend event**. What a browser transaction carries is unmeasured — `@sentry/react` has no
+  `httpServerSpansIntegration`, so the key list above does not transfer — E12-S24.
 
 ## Resolver layout (per resource service)
 

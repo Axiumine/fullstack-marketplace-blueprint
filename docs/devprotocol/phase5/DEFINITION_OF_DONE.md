@@ -2,12 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.2
 **Date:** 2026-08-07
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or an epic to map onto a bounded context — that
+rule was removed from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which records the decision. The same edit
+corrects the story-id spelling from `BC-0N-0X` to the `ENN-SNN` every story has always used, which
+[`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) C02 fixed in `CONSTRAINTS.md` and missed here.
+v1.2 - 2026-08-11: Mutability no longer requires a team vote — single developer.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase4/ERROR_HANDLING.md` ✅ · `phase5/CONSTRAINTS.md` ✅
-**Mutability:** requires team vote to change — affects all open stories
+**Mutability:** the platform owner decides — no vote exists, there is one developer. Record the reason in the
+changelog above; a change here affects all open stories.
 
 ---
 
@@ -25,8 +31,9 @@ document is that doctrine in checklist form.
 ## 2. Story-level DoD
 
 ### 2.1 Functionality
-- [ ] Story maps to exactly one bounded context (`BC-01`..`BC-11`, `phase2/BOUNDED_CONTEXT.md`), carries id
-  `BC-0N-0X` numbered sequentially inside that epic — never a global counter (`phase5/CONSTRAINTS.md` §5).
+- [ ] Story carries id `ENN-SNN` (`E01-S01`, `E01-S02`, …) numbered sequentially inside its epic — never a
+  global counter, and never the bounded-context id (`phase5/CONSTRAINTS.md` §5). A story is **not** required
+  to map onto a bounded context, and naming one is never a criterion.
 - [ ] Story for already-running code is marked BUILT and cites the path proving it — never phrased as
   still-to-build. Built-vs-planned split follows [`CLAUDE.md`](../../../CLAUDE.md)'s §Build state table exactly
   (`phase5/CONSTRAINTS.md` §5).
@@ -151,11 +158,11 @@ document is that doctrine in checklist form.
 ---
 
 ## 3. Epic-level DoD
-- [ ] Every story inside the epic (one epic = one `BC-0N`, `phase5/CONSTRAINTS.md` §5) individually meets
-  §2 in full — no epic closes on a partial story.
-- [ ] Every 🔴 Critical NFR touching this epic's bounded context lands on ≥1 story inside it — cross-checked
-  against the risk register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5).
-- [ ] If the epic is `BC-11` (Ordering & Fulfilment [PLANNED - NOT BUILT]) — it closes with exactly the gap
+- [ ] Every story inside the epic individually meets §2 in full — no epic closes on a partial story.
+- [ ] Every 🔴 Critical NFR the epic touches lands on ≥1 story inside it — cross-checked against the risk
+  register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5). Scope is what the epic changes, not a
+  bounded context it is assigned to; no epic is assigned one.
+- [ ] If the epic is `E11` (Ordering & Fulfilment [PLANNED - NOT BUILT]) — it closes with exactly the gap
   recorded (blocking questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7 Open questions), never a schema,
   resolver, field, or sequence diagram that presumes order/cart/delivery/payment exists
   (`phase5/CONSTRAINTS.md` §6).
