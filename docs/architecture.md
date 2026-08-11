@@ -227,8 +227,10 @@ rest of this section**, because they correct two of its claims.
 
 - [`report/log-sink-inventory.md`](./report/log-sink-inventory.md) (E12-S12) — every sink, and what a token,
   a cookie, a signing key or a client IP can do in it. The nine application logs are clean on every planted
-  marker. The nginx access log carries the account email and the one-time verify/reset hash, because both
-  mailed links are GETs with `:email/:hash` in the path. The Redis password is in the container argv. No
+  marker. The nginx access log carried the account email and the one-time verify/reset hash, because the
+  mailed links are GETs with `:email/:hash` in the path — ✅ **fixed 2026-08-11 by E12-S16**, which redacts
+  the tail of all four link shapes, and the `Referer` beside it, in `conf.d/05-logging.conf`. Four, not the
+  two the probe drove: two of them have no `location` block at all. The Redis password is in the container argv. No
   Docker log driver is bounded and no repo pins nginx's retention. **The `error_log`'s hard-coded
   `client: <address>` prefix is on five of five request-scoped entries at the shipped `warn` — level is not
   the discriminator, having a request context is.**

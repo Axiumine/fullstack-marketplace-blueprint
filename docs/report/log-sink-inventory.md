@@ -3,10 +3,20 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.1
+**Version:** 1.5
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
-first of the two questions it routed. Nothing measured changed.
+first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
+(E12-S16); §10 gains the two corrections that fixing it produced — §5's two link shapes are four, and the
+`Referer` field carried the same pair the request line did. v1.3 — the residual v1.2 recorded is now
+**E12-S26** rather than a note: §10 says per flow whether the credential can leave the URL path, and adds a
+sink nothing here had enumerated — the SSR page dehydrates the address and the hash into an inline `<script>`,
+so the cache holds them as body content, not only as a key. That one is source-level and flagged as such.
+v1.4 — the cache sink is closed the same day (E12-S26's first landed criterion) and §10 records what
+reverting it shows: the second request to a reset link answered `HIT`, so the credential URL was genuinely
+stored rather than merely storable. Nothing else measured changed. v1.5 — §10 stops calling the two questions
+it routed "open": both were answered on 2026-08-11, `E12.md` §6 no longer houses them, and this document now
+points at the story each answer landed on.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -152,6 +162,12 @@ reports the key's *length* and never its bytes, and `requiredEnv` reports the va
 that makes the "no" in the table a no rather than an absence of evidence.
 
 ## 5. The nginx access logs — the format is right and it is not enough
+
+> ✅ **Fixed 2026-08-11 by E12-S16, after this was written.** Everything below is the measured before-state
+> and is kept as such. The format quoted here no longer exists in that shape, and the correction §10 records
+> matters when reading the rest of the section: there are **four** link shapes, not the two driven here, and
+> the `"$http_referer"` field carried the same values as `"$request"` for any request a browser made from
+> the reset page.
 
 `marketplace-nginx/conf.d/05-logging.conf:33` defines the only format the three vhosts use:
 
@@ -313,7 +329,8 @@ this row a "no" rather than an unchecked box.
 
 | Finding | Story | Severity |
 |---|---|---|
-| The mailed links put the address and the one-time hash in the access log, §5 | **E12-S16** | 🔴 |
+| The mailed links put the address and the one-time hash in the access log, §5 | **E12-S16** — ✅ fixed 2026-08-11 | 🔴 |
+| …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **E12-S26** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
 | The Redis password is in the container argv, §7.1 | **E12-S17** | 🔴 |
 | No Docker log driver is bounded, §7.2 | **E12-S18** | 🟠 |
 | nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** | 🟠 |
@@ -336,9 +353,11 @@ sights:**
    standing decision does not speak to it by its own wording — which makes it a question for the same owner
    rather than an answer this finding may give.
 
-Both are recorded in `E12.md` §6 as open questions for the platform owner, alongside
+Both were routed to the platform owner as open questions rather than fixed here, alongside
 `RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability is
-already logged as undecided. Neither is fixed silently and neither is fixed at all.
+already logged as undecided. Both came back answered the same day — see below — and `E12.md` §6 now holds no
+open question at all: each answer lives on the story that carries it out, item 1 on **E12-S19** (with its
+privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stays open.
 
 ### The answer, 2026-08-11
 
@@ -349,9 +368,64 @@ defensible."*
 | Item | Outcome |
 |---|---|
 | 1 — full client address in the error log | **Kept.** The control is lifetime, not content: rotation at 14 days (`shred` on removal), which is what E12-S19 now configures. The level stays `warn` |
-| 2 — account email in the access log | **Direction given, mechanism open.** *"Anonymize access_log"* — measured, that log holds no address to anonymize (§5), so read against what it does hold the instruction says no personal data in it. E12-S16 already removes the one-time hash and now owns the address half too. How is still its choice |
+| 2 — account email in the access log | **Decided and fixed the same day.** *"Anonymize access_log"* — measured, that log holds no address to anonymize (§5), so read against what it does hold the instruction says no personal data in it. Mechanism given next: *"rewrite the logged path — map the two location blocks to a redacted `$request` variable"*. **E12-S16 built it**, at http level rather than per location, because §5's two shapes are four and only two have a `location` block. See below |
 | the public half | Two lines in a privacy policy → **E12-S25**. No privacy policy exists in any of the sixteen repos, so that story writes the first one |
 
 This closes the routing this finding opened. It does **not** close `phase1/NFR.md` open question 1: whether
 GDPR is formally in scope is a wider question than log retention, and one concrete decision inside it is not
 an answer to it.
+
+### What §5 got right, and the two things it missed
+
+Item 2 is fixed in `marketplace-nginx/conf.d/05-logging.conf` (E12-S16). Re-driving §5's probe against the
+new format produces `"GET /check/verify-email-user/[redacted] HTTP/2.0"` — the flow name, no address, no
+hash — and the suite in `test/suite.sh` asserts it. Two corrections to §5, both found while fixing it:
+
+- **§5 measured two link shapes because two is what it drove. There are four.** `/reset-password/:email/:hash`
+  (`resetPwdFlowUser.mts:38`, an SSR route on the apex) and `/x/reset/:email/:hash` (koa-utils' default
+  `linkPath`, taken because `resetPwdFlow.mts:47` passes no mailer) carry the same pair and were never in the
+  probe. Neither has an nginx `location` block, so the mechanism as literally worded — the two `location`
+  blocks — would have left both writing the credential. The map is keyed on the logged value at http level
+  instead, and the suite drives all four.
+- **§5 looked at `"$request"` and stopped there. The next field held the same values.** The customer surface
+  answers `Referrer-Policy: strict-origin-when-cross-origin`, which sends the **full URL** on a same-origin
+  request, so every asset fetch and every GraphQL call made by the page at `/reset-password/:email/:hash`
+  wrote the address and the live hash into `"$http_referer"`. A second map covers it. The probe never saw
+  this because `curl` sends no referer — a browser does.
+
+**Residual, unchanged by the fix:** the credential still travels in the URL. Cloudflare's own logs, any
+middlebox, the browser history and the mail client all still hold it; only moving the token out of the path
+would reach those, and that is the option the platform did not choose. And one sink this finding never
+enumerated: `sites-available/marketplace-domain.com.conf` caches the SSR reset page under
+`proxy_cache_key "$scheme$request_method$host$request_uri"`, writing the whole link into
+`/var/cache/nginx/marketplace-user/` — for up to `inactive=24h` (`conf.d/30-cache.conf:8-13`), which is the
+number that matters rather than the 60s of freshness.
+
+✅ **That sink is closed, 2026-08-11** (E12-S26's cache criterion). `map $request_uri $mkt_credential_uri`
+joins the session-cookie variable on `proxy_cache_bypass` and `proxy_no_cache`, matching the same four
+prefixes the logging maps redact. ⚠️ **It was live, not theoretical**: with the change reverted, the second
+request to `/reset-password/<address>/<hash>` answers `X-Cache-Status: HIT` — the credential URL was being
+stored as a key and served back from it. The session-cookie map could never have caught this: the route has
+no `location` block of its own and whoever follows a reset link is anonymous, so that map read 0 for exactly
+the request that must not be stored. The credential is still **in the URL**, which is the rest of E12-S26.
+
+### Both of those are now a story — E12-S26, opened 2026-08-11
+
+The platform owner read the residual and asked whether the token can be taken out of the path rather than
+accepting that it cannot. It can, for one of the four flows, and the story is scoped to exactly that one:
+
+| Flow | Can the credential leave the path? |
+|---|---|
+| `/reset-password/:email/:hash` — customer reset, an SSR route | **Yes, cheaply.** It moves into the URL **fragment**, which no browser transmits (RFC 3986 §3.5), so it stops reaching the request line, the `Referer`, the cache key and Cloudflare in one move. `@axiumine/koa-utils` needs no change: the builder normalises only `linkPath`'s leading slash and `encodeURI` never escapes `#` (`SocketLabsLib.mjs:280-283`), so a trailing `#` on `RESET_PATH_USER` is the whole backend edit |
+| `/check/verify-email/:email/:hash` and `…-user/…` | **No, not cheaply.** Koa REST `GET`s (`middleware/router/index.mts:16,25`) — a fragment never reaches the server, so moving them means a new frontend page plus a new mutation per surface. And their hash is consumed by the same request that writes the log line, so it is spent before anything stores it. Redaction is proportionate |
+| `/x/reset/:email/:hash` — ShopOwner reset | **Nothing to move it into.** ⚠️ Measured while scoping: the link routes nowhere. No nginx `location` matches it, the panel's SPA fallback answers, and `marketplace-shopowner/src/router.tsx:52-101` has no reset route and no not-found component. An unbuilt screen, not a telemetry defect |
+
+⚠️ **Scoping also found a sink neither §5 nor the paragraph above knew about, and it is the same values in a
+different place.** `/reset-password/$email/$hash` is server-rendered — the only `ssr: false` in
+`marketplace-user` is `src/routeOptions/account.tsx:59` — and TanStack Router dehydrates **every rendered
+match** into an inline `<script>`, keyed by a match id built from the *interpolated* path
+(`@tanstack/router-core` `router.js:715-721`, `ssr/ssr-match-id.js:2-4`,
+`ssr/ssr-server.js:18-32,295-297,346-352`). Read at source that puts the address and the live hash in the
+**HTML body**, so the cached file holds them as content and not only as a key. **Source-level, not measured**
+— E12-S26's first criterion is to `curl` the page and settle it, for the reason §5 of the Sentry capture
+gives: an option's documented behaviour and its real behaviour differed there.
