@@ -23,6 +23,16 @@ write a second script that does part of its job.
 without the dot is the committed template and is safe. To answer "is X set", print key names only:
 `grep -oE '^[A-Za-z_0-9]+' docker-DBs/.env`.
 
+⚠️ **The Redis password lives in `secrets/redis.conf`, which `up.sh` rewrites on every run** (E12-S17).
+It is not in `command:` any more — interpolating it there put it in the container's argv, where
+`docker inspect` and `docker ps --no-trunc` printed it. Three consequences for anyone editing here:
+`.env` stays the single source of truth and a password change needs `./up.sh --with-redis`, not a
+container restart; the file is mode **444 on purpose**, because `redis-server` reads it as uid 999
+through a root-owned bind mount and a 400 host-owned file is `can't open config file` there, with the
+700 on `secrets/` as the real host-side control; and `docker compose --profile redis up` run by hand
+before the script has written the file makes Docker create a *directory* in its place, which then
+kills the container on every start until it is removed.
+
 ⚠️ **`secrets/csfle-master-key` has no escrow.** Every encrypted field on the cluster is unreadable
 the moment it is lost, and every repo must point at that same file — a migration run against a
 different key mints data keys the platform cannot use. `./down.sh --purge` leaves `secrets/` alone
@@ -46,5 +56,11 @@ empty. Rename only with a purge planned, or move the volumes by hand first.
   suite, and the per-repo test database names are the table in [`README.md`](./README.md) §Wiring the repos.
 - **One value, one line in any `.env`.** dotenv truncates at the newline even inside quotes and
   reads the tail as its own variable; the parent `.githooks/pre-commit` check 0 blocks that shape.
+- **Every container carries `logging: *logging` — 20 MiB × 5 files** (E12-S18). Docker's default is
+  `json-file` with an empty options object, which never rotates: `marketplace-mdb1` reached 229 MiB in
+  52 hours of ordinary development. A new service added to this compose file gets the anchor too, or
+  it is the one unbounded log again. ⚠️ **Rotation is not retention.** The pair bounds how big a log
+  gets; nothing here has decided how long its content may be kept, and the 14-day answer of
+  2026-08-11 is the *edge's* (E12-S19), not this stack's.
 - **Dev only, by design.** Ports bind `127.0.0.1`, there is no TLS and only a `Dev` environment
   exists on this platform. Do not add a staging or production profile here.

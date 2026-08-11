@@ -12,6 +12,25 @@
 # empty with its users gone. Purge first, or move the volumes by hand.
 name: marketplace-dbs
 
+# ⚠️ E12-S18. Every service below carries this. Docker's default is `json-file` with an EMPTY options
+# object, which never rotates: `marketplace-mdb1` was measured at 458,129 lines / 229 MiB over 52
+# hours of ordinary development — 4.6 MB/h — and the only thing that would ever have stopped it is
+# the filesystem filling up.
+#
+# 20m x 5 caps one container at 100 MiB and this four-container stack at 400 MiB. At mdb1's measured
+# rate that is roughly the last 22 hours: one working day, which is the window a developer actually
+# reads back. The other three wrote 2.8 MiB, 4.2 MiB and 9 KiB over the same 52 hours, so for them
+# the same numbers mean "never rotates" and cost nothing — the pair is sized for the loud one.
+#
+# ⚠️ Rotation is not retention. This bounds how BIG a log may get; it decides nothing about how long
+# its content may be kept. The 14-day answer of 2026-08-11 is the edge's (E12-S19); no period has
+# been decided for these container logs, and this file does not invent one.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: '5'
+
 x-mongod: &mongod
   image: marketplace-mongod:${MONGO_TAG:-8.0}
   build:
@@ -19,6 +38,7 @@ x-mongod: &mongod
     args:
       MONGO_TAG: ${MONGO_TAG:-8.0}
   restart: unless-stopped
+  logging: *logging
   networks: [dbs]
 
 services:
@@ -56,12 +76,27 @@ services:
     container_name: marketplace-redis
     profiles: [redis]
     restart: unless-stopped
-    # Interpolation happens for the whole file whether or not the profile is active, so this cannot
-    # use `:?` — that would break a plain `./up.sh` on a .env with no Redis password. up.sh checks it
-    # instead, and only when --with-redis was asked for.
-    command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:-unset}']
+    logging: *logging
+    # ⚠️ E12-S17. The password used to be interpolated straight into this `command:`, which put it in
+    # the container's argv — `docker inspect`, `docker ps --no-trunc` and a plain host `ps aux` all
+    # handed it to any user on the machine. It now arrives in a config file that `up.sh` generates
+    # from `.env` into `secrets/` (git-ignored) and that is mounted read-only, so argv is
+    # `redis-server <path>` and nothing else. `appendonly yes` moved into that file with it: one
+    # source for the server's configuration rather than two.
+    #
+    # ⚠️ That file is mode 444, not 400. redis-server reads it as uid 999 inside the container,
+    # through a bind mount the daemon sets up as root, and a 400 file owned by the host user is
+    # `Fatal error, can't open config file` there. What keeps it private on the host is the 700 on
+    # `secrets/` — the container's path does not traverse that directory, so the two do not conflict.
+    #
+    # ⚠️ Do not run `docker compose --profile redis up` by hand before `./up.sh --with-redis` has
+    # written the file: Docker creates a DIRECTORY for a missing bind-mount source, and redis-server
+    # then dies on it every start until that directory is removed.
+    command: [redis-server, /usr/local/etc/redis/redis.conf]
     ports: ['127.0.0.1:6379:6379']
-    volumes: [redis:/data]
+    volumes:
+      - redis:/data
+      - ./secrets/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks: [dbs]
 
 networks:

@@ -226,10 +226,31 @@ deliberately: the session document carries a `tier`, and `assertTier` is the onl
 one role's session from another's. A service with a different prefix does not fail loudly — it
 simply never finds a session.
 
-**Persistence is on.** The container runs `redis-server --appendonly yes` — the flag is in
-`docker-compose.yml`, on the `command:` line, not in a `redis.conf`. Sessions therefore survive a
-restart of the container and of the host, which is what makes `./up.sh --with-redis` the normal way
-to come back after a reboot without logging every developer out.
+**Persistence is on.** `appendonly yes` is set in `secrets/redis.conf` — see the next paragraph for
+why that file exists. Sessions therefore survive a restart of the container and of the host, which is
+what makes `./up.sh --with-redis` the normal way to come back after a reboot without logging every
+developer out.
+
+⚠️ **The password is no longer in the container's command line, and `secrets/redis.conf` is where it
+went** (E12-S17, 2026-08-11). It used to be interpolated into `command:` as
+`--requirepass ${REDIS_PASSWORD}`, which put it where `docker inspect marketplace-redis` and
+`docker ps --no-trunc` printed it to anyone who could reach the daemon. `up.sh` now writes that value
+into `secrets/redis.conf` — regenerated on every run, so `.env` stays the single source of truth —
+and mounts it read-only at `/usr/local/etc/redis/redis.conf`. Three things follow:
+
+- **Never commit it.** `secrets/` is git-ignored and the workspace `pre-commit` hook refuses any path
+  with that segment as well as any line that looks like a `requirepass` directive.
+- **It is mode 444, and that is deliberate.** `redis-server` reads it as uid 999 inside the container,
+  through a bind mount the daemon set up as root, so a 400 file owned by your user gives
+  `Fatal error, can't open config file`. `up.sh` keeps `secrets/` itself at 700, and the container's
+  path never traverses that directory — so the file is world-readable in mode only, not in reach.
+- **Run `./up.sh --with-redis`, not `docker compose --profile redis up`, at least once.** Docker
+  creates a *directory* where a bind-mount source is missing, and `redis-server` then dies on every
+  start until you delete it.
+
+Changing the password is `./up.sh --with-redis` after editing `.env`, plus the same edit in each
+service's `REDIS_URL`. Restarting the container alone is not enough — the file is rewritten by the
+script, not read from `.env` by compose.
 
 Two consequences worth knowing before you go looking for either:
 
@@ -352,6 +373,9 @@ Stated plainly so nobody has to guess:
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh`. |
 | the suite drops the wrong database | it refuses to: `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env`. |
 | `ERR unknown command 'HEXPIRE'` | the Redis behind `REDIS_URL` is older than 7.4. Check with `redis-cli INFO server \| grep redis_version`; if it is this compose file's container, `REDIS_TAG` was lowered — see §Redis. |
+| `Fatal error, can't open config file` from `redis` | `secrets/redis.conf` is missing, or is a directory Docker created for a missing bind mount. `rm -rf secrets/redis.conf && ./up.sh --with-redis`. |
+| `NOAUTH Authentication required` after changing the password | `.env` was edited but `./up.sh --with-redis` was not re-run, so the container still holds the old value. Compose does not read that variable any more — the script writes the config file. |
+| `docker logs` no longer reaches back far enough | expected: every container is capped at 20 MiB × 5 files since E12-S18. `docker inspect -f '{{json .HostConfig.LogConfig}}' <name>` shows the pair; raise `max-size` in `docker-compose.yml` if you need a longer window. |
 
 ## License
 
