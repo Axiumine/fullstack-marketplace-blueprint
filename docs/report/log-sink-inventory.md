@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
@@ -20,6 +20,10 @@ points at the story each answer landed on. v1.6 — §7.1 and §7.2 are closed (
 re-measured while closing. §7.1 **corrects one of its own rows**: host `ps aux` never showed the Redis
 password, because Redis overwrites its `argv` at startup, so the before-state was two surfaces and not three.
 §7.2's line count had moved from 380,144 to 458,129, and that rate is what sized the rotation pair.
+v1.7 — §6.4 is closed (E12-S19): the edge pins its own retention at 14 daily rotations with `shred`, and
+the fix added two measurements the finding had no reason to look for — `shred` degrades to `unlink` on a
+busybox host while still exiting 0, and two `logrotate.d` files matching one glob make logrotate skip the
+whole later-named file. §6.1's answer is unchanged: the address stays and the lifetime is the control.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -280,6 +284,29 @@ So the honest answer to the second delegated question is: **the retention on tho
 happens to do, and this workspace neither states nor enforces it.** With §5 and §6.1 both writing
 credential-grade content into those files, that is a gap rather than a detail. → **E12-S19**.
 
+> ✅ **Fixed 2026-08-11 by E12-S19.** `marketplace-nginx/logrotate.d/nginx` — `daily`, `rotate 14`, `shred`,
+> `compress`/`delaycompress`, `create 0640 www-data adm`, `su root adm`, `USR1` under `sharedscripts` — over
+> `/var/log/nginx/*.log`, which covers the seven destinations this repo names and nginx's own `error.log`
+> besides. The retention is now a property of the repository: `find /src -name '*logrotate*'` returns it, and
+> the container suite fails if it stops parsing, stops covering a destination the configuration names, or
+> stops reading back as fourteen daily rotations.
+>
+> ⚠️ **Two measurements taken while closing this, neither of them in the story.** First, `shred` fails open:
+> logrotate does not run `shred <file>`, it hands the open descriptor to `shred … -`, and busybox's applet
+> cannot open `-`. On `nginx:stable-alpine` every removal printed `error: Failed to shred <file>, trying
+> unlink`, unlinked the file and exited **0**. Debian 13 ships GNU coreutils so the deployment target is
+> fine, but on an Alpine-based host this directive is off with nothing but cron mail to say so — the suite
+> installs `coreutils` and asserts the forced runs are error-free for exactly that reason. Second, two files
+> in `/etc/logrotate.d` matching one glob are not additive: logrotate prints
+> `error: <file>:1 duplicate log entry for …`, skips the **whole** later-named file and exits 1, so this one
+> installs over the packaged `/etc/logrotate.d/nginx` rather than beside it under its own name.
+>
+> The 14 days are the floor of the owner's 14–30 (§10): the only consumer of an nginx error log here is a
+> developer reading back a recent failure. What this does **not** do is make the content unrecoverable —
+> `shred` overwrites the blocks the file occupies now, and a copy-on-write filesystem, ext4 with
+> `data=journal` or SSD wear levelling can keep an earlier copy out of its reach. The lifetime is the
+> control; `shred` raises the cost of the residue.
+
 ## 7. Docker
 
 ### 7.1 The Redis password is in the container's argv
@@ -368,7 +395,7 @@ this row a "no" rather than an unchecked box.
 | …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **E12-S26** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
 | The Redis password is in the container argv, §7.1 | **E12-S17** — ✅ fixed 2026-08-11, and one row of §7.1 corrected with it | 🔴 |
 | No Docker log driver is bounded, §7.2 | **E12-S18** — ✅ fixed 2026-08-11 | 🟠 |
-| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** | 🟠 |
+| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it | 🟠 |
 | `publicHelloArgs` echoes its argument, §4.3 | **E12-S20** — ✅ fixed 2026-08-11 | 🟡 |
 
 All five are written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story, as
