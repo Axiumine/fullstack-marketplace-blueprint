@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-11
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -31,6 +31,10 @@ policy. E12-S19 stops waiting on it and E12-S25 is added to write the notice, so
 v1.8 - 2026-08-11: the owner chose the mechanism for question 2 and **E12-S16 is built** — the mailed
 `:email/:hash` links are redacted out of the nginx access log and out of the `Referer` beside it, at http
 level, because four link shapes carry them and only two have a `location` block. E12 reads 16 of 25.
+v1.9 - 2026-08-11: **E12-S26 added**, from the owner asking whether E12-S16's residual — the credential still
+travelling in the URL — can be closed instead of accepted. It can, for the customer reset flow: the link
+moves into the URL fragment, which no browser sends, so the value stops reaching the log, the `Referer`, the
+cache key and Cloudflare at once. It cannot for the two verify flows, which are REST `GET`s. E12 reads 16 of 26.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -63,7 +67,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | Not built - no collection, no resolver, no design | none | [E11.md](epics/E11.md) |
-| E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built 2026-08-10, investigations closed 2026-08-11 - 16 of 25. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, and the owner's answer to §6 question 1 added E12-S25. **E12-S16 is fixed** — the mailed `:email/:hash` links no longer reach the access log — but **E12-S21 is 🔴 and live**: `event.request.data` ships the raw GraphQL body, plaintext password included, on every service with a `DSN` set. E12-S15's config is in the repo but Authenticated Origin Pulls must still be switched on in Cloudflare, **before** the config is deployed. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `docker-DBs` | [E12.md](epics/E12.md) |
+| E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built 2026-08-10, investigations closed 2026-08-11 - 16 of 26. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's answer to §6 question 1 added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once. **E12-S16 is fixed** — the mailed `:email/:hash` links no longer reach the access log — but **E12-S21 is 🔴 and live**: `event.request.data` ships the raw GraphQL body, plaintext password included, on every service with a `DSN` set. E12-S15's config is in the repo but Authenticated Origin Pulls must still be switched on in Cloudflare, **before** the config is deployed. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `docker-DBs` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | Built 2026-08-10 - 10 of 11. E13-S10 removes the dual-read fallback and may not run before `DUAL_READ_REMOVE_AFTER`, whose date is re-stamped at the cutover deploy. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
 | E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | Not built - and `logout` is a live no-op, see E15-S01 | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-resource` services | [E15.md](epics/E15.md) |

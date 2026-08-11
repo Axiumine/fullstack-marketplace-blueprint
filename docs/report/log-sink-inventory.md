@@ -3,12 +3,15 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
 (E12-S16); §10 gains the two corrections that fixing it produced — §5's two link shapes are four, and the
-`Referer` field carried the same pair the request line did.
+`Referer` field carried the same pair the request line did. v1.3 — the residual v1.2 recorded is now
+**E12-S26** rather than a note: §10 says per flow whether the credential can leave the URL path, and adds a
+sink nothing here had enumerated — the SSR page dehydrates the address and the hash into an inline `<script>`,
+so the cache holds them as body content, not only as a key. That one is source-level and flagged as such.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -322,6 +325,7 @@ this row a "no" rather than an unchecked box.
 | Finding | Story | Severity |
 |---|---|---|
 | The mailed links put the address and the one-time hash in the access log, §5 | **E12-S16** — ✅ fixed 2026-08-11 | 🔴 |
+| …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **E12-S26** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
 | The Redis password is in the container argv, §7.1 | **E12-S17** | 🔴 |
 | No Docker log driver is bounded, §7.2 | **E12-S18** | 🟠 |
 | nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** | 🟠 |
@@ -387,4 +391,26 @@ middlebox, the browser history and the mail client all still hold it; only movin
 would reach those, and that is the option the platform did not choose. And one sink this finding never
 enumerated: `sites-available/marketplace-domain.com.conf` caches the SSR reset page under
 `proxy_cache_key "$scheme$request_method$host$request_uri"`, writing the whole link into
-`/var/cache/nginx/marketplace-user/` for 60s. No story owns that yet.
+`/var/cache/nginx/marketplace-user/` — for up to `inactive=24h` (`conf.d/30-cache.conf:8-13`), which is the
+number that matters rather than the 60s of freshness.
+
+### Both of those are now a story — E12-S26, opened 2026-08-11
+
+The platform owner read the residual and asked whether the token can be taken out of the path rather than
+accepting that it cannot. It can, for one of the four flows, and the story is scoped to exactly that one:
+
+| Flow | Can the credential leave the path? |
+|---|---|
+| `/reset-password/:email/:hash` — customer reset, an SSR route | **Yes, cheaply.** It moves into the URL **fragment**, which no browser transmits (RFC 3986 §3.5), so it stops reaching the request line, the `Referer`, the cache key and Cloudflare in one move. `@axiumine/koa-utils` needs no change: the builder normalises only `linkPath`'s leading slash and `encodeURI` never escapes `#` (`SocketLabsLib.mjs:280-283`), so a trailing `#` on `RESET_PATH_USER` is the whole backend edit |
+| `/check/verify-email/:email/:hash` and `…-user/…` | **No, not cheaply.** Koa REST `GET`s (`middleware/router/index.mts:16,25`) — a fragment never reaches the server, so moving them means a new frontend page plus a new mutation per surface. And their hash is consumed by the same request that writes the log line, so it is spent before anything stores it. Redaction is proportionate |
+| `/x/reset/:email/:hash` — ShopOwner reset | **Nothing to move it into.** ⚠️ Measured while scoping: the link routes nowhere. No nginx `location` matches it, the panel's SPA fallback answers, and `marketplace-shopowner/src/router.tsx:52-101` has no reset route and no not-found component. An unbuilt screen, not a telemetry defect |
+
+⚠️ **Scoping also found a sink neither §5 nor the paragraph above knew about, and it is the same values in a
+different place.** `/reset-password/$email/$hash` is server-rendered — the only `ssr: false` in
+`marketplace-user` is `src/routeOptions/account.tsx:59` — and TanStack Router dehydrates **every rendered
+match** into an inline `<script>`, keyed by a match id built from the *interpolated* path
+(`@tanstack/router-core` `router.js:715-721`, `ssr/ssr-match-id.js:2-4`,
+`ssr/ssr-server.js:18-32,295-297,346-352`). Read at source that puts the address and the live hash in the
+**HTML body**, so the cached file holds them as content and not only as a key. **Source-level, not measured**
+— E12-S26's first criterion is to `curl` the page and settle it, for the reason §5 of the Sentry capture
+gives: an option's documented behaviour and its real behaviour differed there.
