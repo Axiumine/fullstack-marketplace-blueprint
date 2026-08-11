@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.2
+**Date:** 2026-08-11
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-11: §NFR-SE01–SE12 paragraph follows `phase1/NFR.md` to v1.1 — a 🔴 Critical change needs a
+written owner decision, not team sign-off. No requirement changed.
+v1.2 - 2026-08-11: §6 two rows corrected against measurement (E12-S12 / E12-S13 findings) — `httpBodies: []`
+gates the span attribute and not `event.request.data`, and the mailed one-time links are logged by nginx.
+No control changed; two claims that were stronger than the evidence are now qualified.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
 
@@ -354,8 +359,8 @@ Only **resource** services carry the upload/scan toolchain — `sharp` (image re
 | `user.addresses[]` incl. GeoJSON `position` | Embedded in the `user` document, MongoDB | Customer can add/remove/re-label addresses and set `defaultAddress`; no export/download control exists |
 | `company` legal-identity fields (`vatNumber`, `taxCode`, `certifiedEmail`, `legalName`) | MongoDB `company` collection | ShopOwner-entered at company creation; retiring a company (`companyDel`) stamps `deleted` but keeps `vatNumber`/`certifiedEmail` uniqueness occupied permanently — deliberate, one VAT number is one company forever |
 | Password hashes | MongoDB, `login.password`, bcrypt cost 14 | Never exported, never returned by any resolver's projection (not independently re-verified per resolver this session) |
-| Verify-email / reset-password links | Sent via SocketLabs, delivered to the account's own email address | One-time hash-bearing links, `GET /check/verify-email/:email/:hash` and `…-user/:email/:hash` — the only 2 REST endpoints besides the health check |
-| Error/perf traces | Sentry SaaS, opt-in on non-empty `DSN` | `dataCollection` explicitly denies `userInfo`, `cookies`, most `httpHeaders`, `httpBodies`, `urlQueryParams` (`marketplace-user/src/instrument.ts:30-47`) — the app handles customer passwords and a partial block would leak more than the single line it replaced |
+| Verify-email / reset-password links | Sent via SocketLabs, delivered to the account's own email address | One-time hash-bearing links, `GET /check/verify-email/:email/:hash` and `…-user/:email/:hash` — the only 2 REST endpoints besides the health check. ⚠️ **Measured 2026-08-11**: being GETs, both land in the nginx access log's `"$request"` with the address and the live hash in plaintext, on two vhosts — `docs/report/log-sink-inventory.md` §5, story E12-S16 |
+| Error/perf traces | Sentry SaaS, opt-in on non-empty `DSN` | `dataCollection` explicitly denies `userInfo`, `cookies`, most `httpHeaders`, `httpBodies`, `urlQueryParams` (`marketplace-user/src/instrument.ts:30-47`) — the app handles customer passwords and a partial block would leak more than the single line it replaced. ⚠️ **Measured 2026-08-11**: `httpBodies: []` denies the **span attribute** only. The raw GraphQL POST body still reaches `event.request.data` and was observed on the wire with a plaintext `password` in it — `docs/report/sentry-event-capture.md` §5, story E12-S21 |
 | Static analysis reports | Qodana Cloud, one project + token per repo | Platform-internal only, never customer-facing; a misdirected token corrupts another repo's baseline, not a data leak to a third party |
 
 ### Not yet protected — no design exists
@@ -389,7 +394,7 @@ When any of these get built, this document requires a new version — per its ow
 
 ## 8. Compliance
 
-- **NFR-SE01–SE12** (`phase1/NFR.md` §2.4) are the security requirement set this document exists to satisfy — opaque-token sessions, Keygrip-signed cookies, bearer-token validation, bcrypt cost 14, tier assertion with fail-closed missing-tier and 403-not-401, anti-enumeration on `loginUser`, the introspection bypass contract, the SSR/cache boundary, response headers, `$jsonSchema` validation, and the four-layer secret-handling regime. All 12 are 🔴 Critical, non-negotiable per `phase1/NFR.md` §3 priority matrix, requiring full team sign-off + a new `PDR.md` version to change (§4 NFR change control).
+- **NFR-SE01–SE12** (`phase1/NFR.md` §2.4) are the security requirement set this document exists to satisfy — opaque-token sessions, Keygrip-signed cookies, bearer-token validation, bcrypt cost 14, tier assertion with fail-closed missing-tier and 403-not-401, anti-enumeration on `loginUser`, the introspection bypass contract, the SSR/cache boundary, response headers, `$jsonSchema` validation, and the four-layer secret-handling regime. All 12 are 🔴 Critical, non-negotiable per `phase1/NFR.md` §3 priority matrix, requiring a written owner decision + a new `PDR.md` version to change (§4 NFR change control).
 - **NFR-CO01** (secrets) — 🔴 Critical, satisfied by the §4 credential-management layers.
 - **NFR-CO02** (GDPR applicability) — 🟡 Medium, explicitly an **open question, not yet a requirement** (`phase1/NFR.md` §2.7, §3). This document does not claim GDPR compliance; `user.personalData` and `user.addresses[]` are PII by any reasonable reading, and a formal applicability decision is outstanding — deciding it is out of Phase 3 scope (`phase3/CONSTRAINTS.md` §5).
 - **NFR-AV01/AV02** (three-authorization-service topology) — 🔴 Critical, load-bearing for availability under the crash-domain argument in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md): one `process.exit(1)` taking down all three tiers' token lifecycle was ranked worse than the deduplication a merge would buy. Security and availability intersect here — do not re-propose the merge as a security simplification; it was evaluated as one and rejected.

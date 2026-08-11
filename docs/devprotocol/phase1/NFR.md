@@ -2,11 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.2
+**Date:** 2026-08-11
 **Author:** nfr-agent
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.1 - 2026-08-11: §4 no longer requires team sign-off or a second approver — this platform has a single
+developer. The change-control weight is unchanged: a 🔴 Critical change still needs a written reason and a new
+`PDR.md` version.
+v1.2 - 2026-08-11: open question 1 (NFR-CO02) narrowed, not closed. The owner decided nginx log
+retention and a privacy-policy statement; whether the framework is in scope is still open. No requirement
+changed and NFR-CO02 stays 🟡 Medium.
 
 ---
 
@@ -143,11 +149,11 @@ No formal compliance framework (GDPR, HIPAA, SOC2) is named anywhere in [`CLAUDE
 
 ## 4. NFR change control
 
-🔴 Critical → full team sign-off + a new [`PDR.md`](./PDR.md) version before any change. Applies to the tier/token boundary (NFR-SE01–SE12), the three-deployable authorization topology (NFR-AV01, AV02), the 100/100 gate regime (NFR-MA01, MA02, MA05), and secret handling (NFR-CO01) — all five are doctrine positions recorded in [`PDR.md`](./PDR.md) §9 Change control, not implementation defaults.
+🔴 Critical → a written decision by the platform owner + a new [`PDR.md`](./PDR.md) version before any change. **This platform has one developer**, so there is no vote to hold and no second approver to find: the weight of this tier is the *record*, not the quorum — the reason is written down before the change lands, and `PDR.md`'s version moves. Applies to the tier/token boundary (NFR-SE01–SE12), the three-deployable authorization topology (NFR-AV01, AV02), the 100/100 gate regime (NFR-MA01, MA02, MA05), and secret handling (NFR-CO01) — all five are doctrine positions recorded in [`PDR.md`](./PDR.md) §9 Change control, not implementation defaults.
 
 🟠 High → new ADR required. Applies to performance-critical indexes (NFR-PF01, PF02), the Nominatim/rate-limit topology (NFR-SC01–SC03), the Node engine gate (NFR-PO01), and gate-wiring requirements (NFR-AV03–AV05, MA03, MA04, MA06, MA07).
 
-🟡 Medium → PR + one approver. Applies to remaining performance indexes, code-style requirements (NFR-CS01–CS03), portability details (NFR-PO02–PO05), documentation-only infra (NFR-PF08, PF09), and the schema/tier growth path (NFR-SC04, SC05).
+🟡 Medium → a PR whose description states the reason, self-merged; no second approver exists. Applies to remaining performance indexes, code-style requirements (NFR-CS01–CS03), portability details (NFR-PO02–PO05), documentation-only infra (NFR-PF08, PF09), and the schema/tier growth path (NFR-SC04, SC05).
 
 Any NFR change must be reviewed against every Phase 3–5 document for downstream impact before it is accepted, per `RULES.md` §Phase gate rules — NFR sits at the top of that dependency chain.
 
@@ -157,7 +163,7 @@ Any NFR change must be reviewed against every Phase 3–5 document for downstrea
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Is GDPR (or another data-protection framework) formally in scope, given `user`/`shopOwner` store EU-market PII with no documented retention or data-subject-access flow? (NFR-CO02) | platform owner | open |
+| 1 | Is GDPR (or another data-protection framework) formally in scope, given `user`/`shopOwner` store EU-market PII with no documented retention or data-subject-access flow? (NFR-CO02) | platform owner | **open — narrowed 2026-08-11.** The owner took the first concrete decision inside it, for logs only: nginx keeps full client addresses in the error log, rotated at 14–30 days and shredded; the access log carries no personal data; two lines of a privacy policy say so ([`E12.md`](../phase5/epics/E12.md) §6, measured basis in [`log-sink-inventory.md`](../../report/log-sink-inventory.md)). **Framework applicability itself is still undecided** — a retention decision about two files is not one about the platform |
 | 2 | Who installs the nginx configs that carry NFR-PF08, PF09, SE09, SE10, SC01, SC02, and on what host — they live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but there is no `/etc/nginx` anywhere in this workspace | platform owner / ops | open — carried from [`PDR.md`](./PDR.md) §8 item 4; the configs are no longer the blocker, the topology decision is (`ADR-INDEX.md` §5) |
 | 3 | Does MongoDB collection-level RBAC exist beneath the shared application connection, as a defense-in-depth layer under NFR-SE11? | platform owner / DBA | open, explicitly not verified — [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) §Not verified |
 | 4 | 4 repos (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have no Qodana Cloud project — NFR-MA03/MA04 run with `SKIP_QODANA=1` there today. Who provisions the missing projects? | platform owner | open — `PDR.md` §8 item 8 |
