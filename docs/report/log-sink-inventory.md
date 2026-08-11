@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
@@ -12,6 +12,9 @@ first of the two questions it routed. Nothing measured changed. v1.2 — item 2 
 **E12-S26** rather than a note: §10 says per flow whether the credential can leave the URL path, and adds a
 sink nothing here had enumerated — the SSR page dehydrates the address and the hash into an inline `<script>`,
 so the cache holds them as body content, not only as a key. That one is source-level and flagged as such.
+v1.4 — the cache sink is closed the same day (E12-S26's first landed criterion) and §10 records what
+reverting it shows: the second request to a reset link answered `HIT`, so the credential URL was genuinely
+stored rather than merely storable. Nothing else measured changed.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -393,6 +396,14 @@ enumerated: `sites-available/marketplace-domain.com.conf` caches the SSR reset p
 `proxy_cache_key "$scheme$request_method$host$request_uri"`, writing the whole link into
 `/var/cache/nginx/marketplace-user/` — for up to `inactive=24h` (`conf.d/30-cache.conf:8-13`), which is the
 number that matters rather than the 60s of freshness.
+
+✅ **That sink is closed, 2026-08-11** (E12-S26's cache criterion). `map $request_uri $mkt_credential_uri`
+joins the session-cookie variable on `proxy_cache_bypass` and `proxy_no_cache`, matching the same four
+prefixes the logging maps redact. ⚠️ **It was live, not theoretical**: with the change reverted, the second
+request to `/reset-password/<address>/<hash>` answers `X-Cache-Status: HIT` — the credential URL was being
+stored as a key and served back from it. The session-cookie map could never have caught this: the route has
+no `location` block of its own and whoever follows a reset link is anonymous, so that map read 0 for exactly
+the request that must not be stored. The credential is still **in the URL**, which is the rest of E12-S26.
 
 ### Both of those are now a story — E12-S26, opened 2026-08-11
 
