@@ -177,16 +177,28 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
   supplying the option at all flips the base, and **an omitted category is an enabled category**. A short
   `dataCollection` reads like a tightening while switching request bodies, cookies and unfiltered headers
   on. Do not shorten it.
-- **No network-derived value reaches telemetry** — on error events, which are the only events the shipped
-  configuration produces. Transactions are a different story and it is not a good one; see the corrections
-  below. `userInfo: false` stops the SDK inferring a client
-  address for `event.user`, and `sentryBeforeSend` (marketplace-common,
-  `src/others/sentryBeforeSend.mts`) is wired as `beforeSend` in all nine services to remove what
-  configuration cannot: `httpServerSpansIntegration` writes the client address straight onto the server
-  span, outside the `dataCollection` machinery entirely. The scrubber also strips both `Authorization`
+- **No network-derived value reaches telemetry**, on either event type. `userInfo: false` stops the SDK
+  inferring a client address for `event.user`, and `sentryBeforeSend` (marketplace-common,
+  `src/others/sentryBeforeSend.mts`) is wired as **both** `beforeSend` and `beforeSendTransaction` in all
+  nine services to remove what configuration cannot: `httpServerSpansIntegration` writes the client
+  address, the user agent and both peer addresses straight onto the server span, outside the
+  `dataCollection` machinery entirely. ⚠️ **Both hooks or neither** (E12-S22): the SDK routes transaction
+  events to the second one alone, and those attributes are on the transaction, so wiring only `beforeSend`
+  means a `tracesSampleRate` switches the redaction off. The scrubber also strips both `Authorization`
   headers and cookies in both directions, in both the header spelling and the `_`-normalised span
-  spelling. The SDK's own sensitive-key filtering is a second layer and a minor-version implementation
+  spelling, deletes `event.request.data` outright, and clears `message` and `data.arguments` from every
+  breadcrumb. The SDK's own sensitive-key filtering is a second layer and a minor-version implementation
   detail — never a reason to shorten the scrubber's list.
+- ⚠️ **The request body is stopped at capture time, not at send time** (E12-S21). `dataCollection.httpBodies`
+  reaches the `http.request.body.data` span attribute and nothing else; the event field is written by the
+  requestdata integration, which hard-wires `include.data = true`. The gate that works is
+  `httpIntegration({ maxIncomingRequestBodySize: 'none' })`, passed in every service — the option name on the
+  wrapper, forwarded to `httpServerIntegration`'s `maxRequestBodySize`. **The inner spelling on the outer
+  integration is a silent no-op**, since the options object is not validated, so the `"medium"` default
+  simply stays.
+- **`environment` is explicit, `process.env.NODE_ENV ?? 'unknown'`** (E12-S23). Absent, the SDK labels every
+  event `production`, which is what a Dev stack was measured doing. The fallback is not `development`: an
+  unset variable on a deployed box would then be labelled the one thing it is least likely to be.
 
 ### What each `dataCollection` category replaced
 
@@ -199,7 +211,7 @@ the nine services resolved to before this epic, so the table is the migration pa
 | `userInfo` | `false` | `true` | `false` |
 | `cookies` | deny-list of PII-ish name snippets | `true` | `false` |
 | `httpHeaders` | the same deny-list, per direction | `true` both directions | `false` both directions |
-| `httpBodies` | `[]` | all four targets | `[]` — **spans only; see the corrections below** |
+| `httpBodies` | `[]` | all four targets | `[]` — **spans only; the event body is stopped by `maxIncomingRequestBodySize`** |
 | `urlQueryParams` | the same deny-list | `true` | `false` |
 | `graphQL` | `{ document: true, variables: true }` | identical | `{ document: true, variables: false }` |
 | `genAI` | `{ inputs: false, outputs: false }` | both `true` | `{ inputs: false, outputs: false }` |
@@ -216,9 +228,11 @@ branches use 7 to match the ContextLines integration: stack context is unchanged
 ⚠️ **The version is pinned by a test, not by a comment.** Every claim above was read out of `node_modules`
 at 10.69.0, none of it is a documented API contract, and the flag is removed outright in v11.
 `test/sentryVersionGuard.test.mts` in each of the nine services and in `marketplace-common` asserts the
-installed `@sentry/node` and `@sentry/core` against that exact version and fails on any bump, naming this
-section in its failure message (E12-S05, risk **R42**). The exact version rather than the major, because
-the sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
+installed `@sentry/node`, `@sentry/core` and `@sentry/node-core` against that exact version and fails on any
+bump, naming this section in its failure message (E12-S05, risk **R42**). `node-core` joins the two because
+it owns `httpServerIntegration`, where the request-body default lives and where the option the services pass
+is really read; it ships on its own version line. The exact version rather than the major, because the
+sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
 
 ### What the logs actually contain — measured, 2026-08-11
 
@@ -237,19 +251,22 @@ rest of this section**, because they correct two of its claims.
 - [`report/sentry-event-capture.md`](./report/sentry-event-capture.md) (E12-S13) — one real event, built and
   transmitted by the real transport into a local collector.
 
-⚠️ **Two corrections this section owes to that second finding, both open as of 2026-08-11:**
+⚠️ **Three corrections this section owed to that second finding. Two are closed, the third is open:**
 
-- **`httpBodies: []` does not keep the request body out of an event.** It gates the
+- ✅ **`httpBodies: []` does not keep the request body out of an event.** It gates the
   `http.request.body.data` *span* attribute only. `@sentry/core` 10.69.0 hard-wires `include.data = true`
   for events (`integrations/requestdata.js:27-28`) and the write-time gate is `httpIntegration`'s
-  `maxRequestBodySize`, default `"medium"`. A captured event carried a plaintext password in
-  `event.request.data`. The paragraph above about `adminUpdatePwd` describes a live defect, not a prevented
-  one — E12-S21.
-- **`beforeSend` is not called for transaction events**, and `beforeSendTransaction` is configured nowhere.
-  The client address `httpServerSpansIntegration` writes onto the server span therefore ships unredacted the
-  moment a `tracesSampleRate` is set. No **backend** service sets one, which is the only thing keeping the
-  measured shape latent there. `http.user_agent`, `net.peer.ip` and `net.host.ip` are in the same position
-  and are not in the scrubber's key list — E12-S22.
+  `maxIncomingRequestBodySize`, default `"medium"`. A captured event carried a plaintext password in
+  `event.request.data`. **Fixed 2026-08-11 by E12-S21**: the option is passed at `'none'` in all nine
+  services, and the scrubber deletes the field as a second layer. The paragraph above about `adminUpdatePwd`
+  describes what is now prevented.
+- ✅ **`beforeSend` is not called for transaction events**, and `beforeSendTransaction` was configured
+  nowhere. The client address `httpServerSpansIntegration` writes onto the server span therefore shipped
+  unredacted the moment a `tracesSampleRate` was set. No **backend** service sets one, which is the only
+  thing that kept the measured shape latent there. `http.user_agent`, `net.peer.ip` and `net.host.ip` were
+  in the same position and were not in the scrubber's key list. **Fixed 2026-08-11 by E12-S22**: both hooks
+  carry the same function, the three keys joined the list along with both `user-agent` header spellings, and
+  the fixture was rebuilt from the captured transaction's 28 attributes.
 - ⚠️ **The three frontends are not in that latent position.** All three set `tracesSampleRate: 0.1`
   (`src/instrument.ts:46`) and none configures `beforeSend` or `beforeSendTransaction`; `sentryBeforeSend`
   is a `marketplace-common` export and no frontend depends on that package, so **no scrubber runs on any

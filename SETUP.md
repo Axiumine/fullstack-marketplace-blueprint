@@ -320,9 +320,18 @@ NODE_EXTRA_CA_CERTS=/path/to/dev-ca.pem yarn dev
 > `NODE_TLS_REJECT_UNAUTHORIZED=0`, not with a `rejectUnauthorized: false` patch, not behind an
 > `INSECURE=true` flag of your own. A boolean toggle travels inside a copied `.env` and downgrades a real
 > deployment silently, with nothing failing to warn you; a path-valued variable either names a certificate
-> that exists or the process refuses to start. The nine services do ship such a patch today —
-> `src/instrument.mts` forces `rejectUnauthorized = false` on the Sentry transport — and removing it is
-> [`docs/devprotocol/phase5/epics/E12.md`](./docs/devprotocol/phase5/epics/E12.md) E12-S01.
+> that exists or the process refuses to start. The nine services shipped exactly such a patch until
+> E12-S01 — `src/instrument.mts` forced `rejectUnauthorized = false` on the Sentry transport — and the
+> shapes that would bring one back are now refused by the `no-restricted-syntax` block in each service's
+> `eslint.config.js` rather than by review.
+
+⚠️ **`NODE_ENV` is what labels the events, and an unset one is not neutral** (E12-S23). Each
+`instrument.mts` passes `environment: process.env.NODE_ENV ?? 'unknown'`; without that option the SDK
+falls back to `production`, so a Dev machine's events land in the bucket a real deployment's alerts are
+built on. Nothing in `yarn dev` or `yarn start` sets it: the value comes from the `.env` you copied, where
+the template already carries `NODE_ENV=development`. Leave that line in place, and set it deliberately on
+anything deployed. The same variable already decides whether `INTROSPECTION_CODE` is read at all (see
+above), so the two gates agree on what the box is.
 
 Either way, this is the only outbound HTTPS these repos own besides SocketLabs mail, which verifies
 certificates normally and is unaffected by both choices.
