@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
@@ -14,7 +14,9 @@ sink nothing here had enumerated — the SSR page dehydrates the address and the
 so the cache holds them as body content, not only as a key. That one is source-level and flagged as such.
 v1.4 — the cache sink is closed the same day (E12-S26's first landed criterion) and §10 records what
 reverting it shows: the second request to a reset link answered `HIT`, so the credential URL was genuinely
-stored rather than merely storable. Nothing else measured changed.
+stored rather than merely storable. Nothing else measured changed. v1.5 — §10 stops calling the two questions
+it routed "open": both were answered on 2026-08-11, `E12.md` §6 no longer houses them, and this document now
+points at the story each answer landed on.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -351,9 +353,11 @@ sights:**
    standing decision does not speak to it by its own wording — which makes it a question for the same owner
    rather than an answer this finding may give.
 
-Both are recorded in `E12.md` §6 as open questions for the platform owner, alongside
+Both were routed to the platform owner as open questions rather than fixed here, alongside
 `RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability is
-already logged as undecided. Neither is fixed silently and neither is fixed at all.
+already logged as undecided. Both came back answered the same day — see below — and `E12.md` §6 now holds no
+open question at all: each answer lives on the story that carries it out, item 1 on **E12-S19** (with its
+privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stays open.
 
 ### The answer, 2026-08-11
 
