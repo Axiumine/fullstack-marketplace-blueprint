@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
@@ -27,7 +27,14 @@ whole later-named file. §6.1's answer is unchanged: the address stays and the l
 v1.8 — the public half of that answer landed too (E12-S25): `/privacy` in `marketplace-user` states the
 retention where a data subject can read it, and §6.4 and §10 record the one thing writing it corrected —
 `rotate 14` daily lets an entry live into the **fifteenth** day, so "14 days" alone would have been a
-statement this configuration overruns.
+statement this configuration overruns. v1.9 — E12-S26 is closed for the customer flow and §10 gains the
+before/after measurement its first criterion asked for. The dehydrated body is confirmed as read at source,
+and the response carrying it was also labelled `public, s-maxage=60, stale-while-revalidate=600` — the origin
+inviting every shared cache in the path, Cloudflare included, to keep a live one-time credential for ten
+minutes. That is a sink no section of this document had enumerated. After: the credential is in the URL
+fragment, appears zero times in a body served `private, no-store`, and the emailed URL and the bare path
+produce byte-identical answers. One method note joins §2: the SSR body greps as **binary**, so a `grep`
+without `-a` reports a clean result on a page that contains both values.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -89,8 +96,14 @@ disk route to the standing GDPR decision rather than being fixed here. §10.
 | Failure paths | The stack was re-run three more times with the Mongo URI, the Redis credentials and the CSFLE master key each poisoned with a sentinel, to see whether a connection error prints the credential it failed with |
 | nginx | The repo's own `conf.d/`, `snippets/` and `sites-available/` mounted read-only into `nginx:stable-alpine`, with throwaway self-signed certificates generated inside the container; seven probes at `warn`, the same seven at `info`; a second run driving the two mailed link shapes |
 | Docker | `docker logs`, `docker inspect`, `docker ps --no-trunc` and host `ps aux` for each of the five running containers |
+| SSR body (added 2026-08-11, §10) | `marketplace-user` built with `yarn build` and served by `node serve.mjs` on a spare port — a **production** build, since the response the cache stores is not the dev server's; `curl -D` for the headers, `grep -a` for the planted values, before the change and after it |
 
 Only the level was changed in the nginx configuration between passes. Every other directive is the repo's.
+
+⚠️ **`grep -a`, not `grep`, on any SSR response.** The HTML `marketplace-user` returns is classified as
+binary by `file(1)`, and `grep` on a binary file prints "binary file matches" or, piped, nothing at all. A
+credential search run without `-a` therefore reports zero hits on a body that contains the credential — a
+false clean result that looks exactly like a real one.
 
 ## 3. The inventory
 
@@ -495,6 +508,16 @@ accepting that it cannot. It can, for one of the four flows, and the story is sc
 | `/check/verify-email/:email/:hash` and `…-user/…` | **No, not cheaply.** Koa REST `GET`s (`middleware/router/index.mts:16,25`) — a fragment never reaches the server, so moving them means a new frontend page plus a new mutation per surface. And their hash is consumed by the same request that writes the log line, so it is spent before anything stores it. Redaction is proportionate |
 | `/x/reset/:email/:hash` — ShopOwner reset | **Nothing to move it into.** ⚠️ Measured while scoping: the link routes nowhere. No nginx `location` matches it, the panel's SPA fallback answers, and `marketplace-shopowner/src/router.tsx:52-101` has no reset route and no not-found component. An unbuilt screen, not a telemetry defect |
 
+✅ **The customer flow is closed, 2026-08-11** (E12-S26, the rest of it). `RESET_PATH_USER` gained a trailing
+`#`, so the mail now points at `/reset-password/confirm#/<address>/<hash>`; `marketplace-user` replaced the
+param route with a static one, reads the pair from `window.location.hash`, and marks that route `ssr: false`.
+Nothing about the credential is transmitted any more, so the sinks this finding enumerated for that flow —
+the access log's request line and `Referer`, the cache key, the cached body, and Cloudflare's own logs, which
+no configuration in this workspace reaches — all stop receiving it at the same moment. Three residuals stay
+open by nature rather than by choice: mails already sent keep the old shape for up to 60 minutes and now land
+on a 404, the fragment stays in the browser's history entry, and the whole link stays in the mail client's
+copy forever.
+
 ⚠️ **Scoping also found a sink neither §5 nor the paragraph above knew about, and it is the same values in a
 different place.** `/reset-password/$email/$hash` is server-rendered — the only `ssr: false` in
 `marketplace-user` is `src/routeOptions/account.tsx:59` — and TanStack Router dehydrates **every rendered
@@ -504,3 +527,42 @@ match** into an inline `<script>`, keyed by a match id built from the *interpola
 **HTML body**, so the cached file holds them as content and not only as a key. **Source-level, not measured**
 — E12-S26's first criterion is to `curl` the page and settle it, for the reason §5 of the Sentry capture
 gives: an option's documented behaviour and its real behaviour differed there.
+
+### Measured, 2026-08-11 — and the body was only half of it
+
+A production build (`yarn build`, `node serve.mjs`) answering
+`/reset-password/probe%40example.invalid/MKTS26HASHPROBE`:
+
+```
+HTTP/1.1 200
+cache-control: public, s-maxage=60, stale-while-revalidate=600
+vary: cookie
+
+…,$R[10]={i:" reset-password $email $hash reset-password probe%40example.invalid MKTS26HASHPROBE",
+          u:1786471081153,s:"success",ssr:!0}]})
+```
+
+Both planted values appear once each, in the dehydration script, exactly where the source reading said they
+would be — so the paragraph above is confirmed rather than corrected. ⚠️ **The line nobody had read is the
+second one.** The origin was labelling that response `public, s-maxage=60, stale-while-revalidate=600`: an
+instruction to every shared cache between here and the visitor — Cloudflare included, which the nginx bypass
+cannot reach — to store a live one-time credential and serve it for up to ten minutes. The `vary: cookie`
+beside it does not help, since whoever follows a reset link is anonymous and their `Cookie` header is
+identical to the next anonymous visitor's.
+
+⚠️ **The `grep` for this has to be `grep -a`.** The SSR response is classified as binary by `file(1)`, so a
+plain `grep` reports zero matches on a body that contains both values — a measurement that looks like a clean
+result and is a silent failure.
+
+**After**, same build, same probe values:
+
+| Request | Status | `cache-control` | Probe values in body |
+|---|---|---|---|
+| `/reset-password/confirm` | 200, 4505 bytes | `private, no-store` | 0 |
+| `/reset-password/confirm#/probe%40example.invalid/MKTS26HASHPROBE` | 200, byte-identical | `private, no-store` | 0 |
+| `/reset-password/probe%40example.invalid/MKTS26HASHPROBE` (old shape) | **404** | `private, no-store` | 0 |
+
+The match id now reads `" reset-password confirm reset-password confirm"`. The second row is the whole point
+stated as a measurement: the emailed URL and the bare path produce the same bytes, because the server never
+received the difference between them. The third confirms the 404 page does not echo the path it refused, and
+that the `private, no-store` rule is keyed on the request rather than on the outcome.
