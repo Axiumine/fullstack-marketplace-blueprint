@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-11
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -11,6 +11,9 @@ written owner decision, not team sign-off. No requirement changed.
 v1.2 - 2026-08-11: §6 two rows corrected against measurement (E12-S12 / E12-S13 findings) — `httpBodies: []`
 gates the span attribute and not `event.request.data`, and the mailed one-time links are logged by nginx.
 No control changed; two claims that were stronger than the evidence are now qualified.
+v1.3 - 2026-08-11: the mailed-links row follows E12-S16, which fixed it the same day — four link shapes
+rather than the two measured, the `Referer` field as well as the request line, and the residual that the
+credential is still in the URL and therefore still in Cloudflare's logs and the browser history.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
 
@@ -359,7 +362,7 @@ Only **resource** services carry the upload/scan toolchain — `sharp` (image re
 | `user.addresses[]` incl. GeoJSON `position` | Embedded in the `user` document, MongoDB | Customer can add/remove/re-label addresses and set `defaultAddress`; no export/download control exists |
 | `company` legal-identity fields (`vatNumber`, `taxCode`, `certifiedEmail`, `legalName`) | MongoDB `company` collection | ShopOwner-entered at company creation; retiring a company (`companyDel`) stamps `deleted` but keeps `vatNumber`/`certifiedEmail` uniqueness occupied permanently — deliberate, one VAT number is one company forever |
 | Password hashes | MongoDB, `login.password`, bcrypt cost 14 | Never exported, never returned by any resolver's projection (not independently re-verified per resolver this session) |
-| Verify-email / reset-password links | Sent via SocketLabs, delivered to the account's own email address | One-time hash-bearing links, `GET /check/verify-email/:email/:hash` and `…-user/:email/:hash` — the only 2 REST endpoints besides the health check. ⚠️ **Measured 2026-08-11**: being GETs, both land in the nginx access log's `"$request"` with the address and the live hash in plaintext, on two vhosts — `docs/report/log-sink-inventory.md` §5, story E12-S16 |
+| Verify-email / reset-password links | Sent via SocketLabs, delivered to the account's own email address | One-time hash-bearing links, `GET /check/verify-email/:email/:hash` and `…-user/:email/:hash` — the only 2 REST endpoints besides the health check. ⚠️ **Measured 2026-08-11**: being GETs, both landed in the nginx access log's `"$request"` with the address and the live hash in plaintext, on two vhosts — and so did the two reset links, `/reset-password/:email/:hash` and `/x/reset/:email/:hash`, which the probe never drove. ✅ **Fixed the same day** (E12-S16): the format redacts the tail of all four, and the `Referer` beside it, at http level. ⚠️ The credential is still **in the URL** — Cloudflare's logs, the browser history and the mail client keep it — `docs/report/log-sink-inventory.md` §5 + §10 |
 | Error/perf traces | Sentry SaaS, opt-in on non-empty `DSN` | `dataCollection` explicitly denies `userInfo`, `cookies`, most `httpHeaders`, `httpBodies`, `urlQueryParams` (`marketplace-user/src/instrument.ts:30-47`) — the app handles customer passwords and a partial block would leak more than the single line it replaced. ⚠️ **Measured 2026-08-11**: `httpBodies: []` denies the **span attribute** only. The raw GraphQL POST body still reaches `event.request.data` and was observed on the wire with a plaintext `password` in it — `docs/report/sentry-event-capture.md` §5, story E12-S21 |
 | Static analysis reports | Qodana Cloud, one project + token per repo | Platform-internal only, never customer-facing; a misdirected token corrupts another repo's baseline, not a data leak to a third party |
 
