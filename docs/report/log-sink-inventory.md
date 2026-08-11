@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
@@ -24,6 +24,10 @@ v1.7 — §6.4 is closed (E12-S19): the edge pins its own retention at 14 daily 
 the fix added two measurements the finding had no reason to look for — `shred` degrades to `unlink` on a
 busybox host while still exiting 0, and two `logrotate.d` files matching one glob make logrotate skip the
 whole later-named file. §6.1's answer is unchanged: the address stays and the lifetime is the control.
+v1.8 — the public half of that answer landed too (E12-S25): `/privacy` in `marketplace-user` states the
+retention where a data subject can read it, and §6.4 and §10 record the one thing writing it corrected —
+`rotate 14` daily lets an entry live into the **fifteenth** day, so "14 days" alone would have been a
+statement this configuration overruns.
 **Scope:** every sink this platform writes log lines to — the nine backend services' application logs, the
 three nginx access logs, the nginx error logs, and the Docker stack's own container output — and, per sink,
 whether a token, a cookie, a signing key or a client IP can appear in it. It also answers the two questions
@@ -306,6 +310,15 @@ credential-grade content into those files, that is a gap rather than a detail. �
 > `shred` overwrites the blocks the file occupies now, and a copy-on-write filesystem, ext4 with
 > `data=journal` or SSD wear levelling can keep an earlier copy out of its reach. The lifetime is the
 > control; `shred` raises the cost of the residue.
+>
+> ✅ **And stated in public the same day, by E12-S25** — `/privacy` in `marketplace-user`, linked from the
+> footer of every page. ⚠️ **Writing it found the period needs a sentence the configuration does not:**
+> `daily` + `rotate 14` keeps fourteen closed files beside the one being written, so an entry written just
+> after a rotation is destroyed on the **fifteenth** day. "14 days" on its own is a promise this
+> configuration overruns by one, which is why the page states the mechanism and the bound rather than the
+> number alone. Anyone changing `rotate` here changes that page in the same piece of work; the page's
+> assertions are byte-for-byte quotations, so the drift fails a suite rather than sitting in production as a
+> false statement.
 
 ## 7. Docker
 
@@ -395,7 +408,7 @@ this row a "no" rather than an unchecked box.
 | …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **E12-S26** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
 | The Redis password is in the container argv, §7.1 | **E12-S17** — ✅ fixed 2026-08-11, and one row of §7.1 corrected with it | 🔴 |
 | No Docker log driver is bounded, §7.2 | **E12-S18** — ✅ fixed 2026-08-11 | 🟠 |
-| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it | 🟠 |
+| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it · **E12-S25** — ✅ the same period stated in public, `/privacy`, 2026-08-11 | 🟠 |
 | `publicHelloArgs` echoes its argument, §4.3 | **E12-S20** — ✅ fixed 2026-08-11 | 🟡 |
 
 All five are written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story, as
@@ -431,7 +444,7 @@ defensible."*
 |---|---|
 | 1 — full client address in the error log | **Kept.** The control is lifetime, not content: rotation at 14 days (`shred` on removal), which is what E12-S19 now configures. The level stays `warn` |
 | 2 — account email in the access log | **Decided and fixed the same day.** *"Anonymize access_log"* — measured, that log holds no address to anonymize (§5), so read against what it does hold the instruction says no personal data in it. Mechanism given next: *"rewrite the logged path — map the two location blocks to a redacted `$request` variable"*. **E12-S16 built it**, at http level rather than per location, because §5's two shapes are four and only two have a `location` block. See below |
-| the public half | Two lines in a privacy policy → **E12-S25**. No privacy policy exists in any of the sixteen repos, so that story writes the first one |
+| the public half | Two lines in a privacy policy → **E12-S25**, ✅ written 2026-08-11: `/privacy` in `marketplace-user`, the platform's first, footer-linked and indexable. It names which log holds the address and which holds the URL, since neither line is true of both files, and it states the fifteenth-day bound `rotate 14` really produces |
 
 This closes the routing this finding opened. It does **not** close `phase1/NFR.md` open question 1: whether
 GDPR is formally in scope is a wider question than log retention, and one concrete decision inside it is not
