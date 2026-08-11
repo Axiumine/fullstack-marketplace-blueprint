@@ -2,17 +2,21 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E12-S13. Not baselined, not a requirement document
-**Version:** 1.1
+**Status:** investigation finding — closes E12-S13 and E12-S24. Not baselined, not a requirement document
+**Version:** 1.2
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the capture. v1.1 — §6.1 added after reading the three frontends: they set
 `tracesSampleRate: 0.1` and configure no scrubber, so §6's finding is latent on the backend only. Nothing
 measured changed; a scope claim that was too narrow is now stated, and the browser payload is named as
-unmeasured (E12-S24).
+unmeasured (E12-S24). v1.2 — **§9, the browser capture** (E12-S24): nine envelopes from two apps, both event
+kinds. `httpBodies: []` holds and `urlQueryParams: false` does not; the address bar ships in five places on
+both kinds. Corrects §6.1 — with no `browserTracingIntegration` registered, the three apps ship **no**
+transaction at all, so `tracesSampleRate: 0.1` is a rate applied to nothing.
 **Scope:** what a Sentry event built by one of these nine services actually contains when the request that
-produced it carried an `authorization` header, a cookie, forwarding headers and a body. It settles the one
-thing E12-S02 could not: every claim in that story rests on reading `node_modules`, and this one reads an
-event.
+produced it carried an `authorization` header, a cookie, forwarding headers and a body — and, since v1.2,
+what one built by the three browser apps contains when the page carries a credential in its URL. It settles
+the one thing E12-S02 could not: every claim in that story rests on reading `node_modules`, and this one
+reads an event.
 **Method:** measurement, not reading. `marketplace-dev-public-resource` was restarted on port 4098 with its
 own `src/instrument.mts` and a `DSN` pointing at a **local collector on 127.0.0.1:9911** that writes every
 envelope to a file — so a real event was built, serialised and transmitted by the real transport, and nothing
@@ -58,7 +62,16 @@ reached on the one event type that carries it. §6.
 **🟠 Console output becomes payload.** `event.breadcrumbs` carried the service's own `console` calls with
 their arguments. The scrubber does not walk breadcrumbs. §7.
 
-E12-S02's key list and fixture are corrected in §8. Three stories follow in §9.
+**🔴 In a browser the leak is the URL itself, and `urlQueryParams: false` does not stop it.** Measured in
+v1.2 against the same collector with the real `@sentry/react` transport: a page opened at
+`/reset-password/confirm?token=…#/…` shipped that whole address — query string and fragment — on
+`event.request.url`, on `contexts.trace.data['url.full']`, on the `description` of eight browser-metric spans,
+on the `Referer` header and on both `from` and `to` of the navigation breadcrumb, which then carried it onto
+**every later event of the session**. Nothing is added by a misconfiguration: `httpContextIntegration` copies
+`location.href` unconditionally and `urlQueryParams` gates a field the browser never fills in. `httpBodies:
+[]` does hold. §9.
+
+E12-S02's key list and fixture are corrected in §8. Five stories follow in §10.
 
 ## 2. What was run
 
@@ -224,7 +237,13 @@ Three further observations about that shape:
   `graphQL: { document: true }` intends) and `graphql.operation.type`. **No variables**, no headers, no
   address. → **E12-S22**.
 
-### 6.1 The three frontends are not latent — code-read, not measured
+### 6.1 The three frontends — code-read, not measured
+
+⚠️ **Superseded by §9 in v1.2, on both halves.** The table below is still accurate as a reading of the three
+files *as they were*; the conclusion drawn from it was wrong in one direction and right in the other. Wrong:
+"one in ten page loads already ships a transaction" — no `browserTracingIntegration` is registered, so the
+apps shipped none, and §9.1 measures that. Right: no scrubber ran on any browser event, and §9 measures what
+that costs. Both `beforeSend` and `beforeSendTransaction` are now wired in all three apps.
 
 The capture above is the **node** SDK. Reading the three frontends afterwards, because §6 turns on whether
 a sample rate is set anywhere:
@@ -282,7 +301,157 @@ service logged *"Serving http://\*:4098/public-resource for development."* `Sent
 `environment`, so it defaults to `production` regardless of `NODE_ENV`. Every Dev event would land in the
 production bucket of whatever project the DSN names. → **E12-S23**.
 
-## 9. Stories
+## 9. 🔴 The browser, measured — closes E12-S24
+
+§6.1 recorded what reading three `instrument.ts` files establishes and refused to say more. This section is
+the capture that replaces it. Same method as §2, browser side: `marketplace-user` and `marketplace-admin`
+were built for production with a DSN pointing at the same local collector, opened in a real Chromium, and
+every envelope the real `@sentry/react` transport sent was written to a file. **Nine envelopes**, both event
+kinds, two of the three apps. Nothing left this host.
+
+### 9.1 What was run
+
+| | |
+|---|---|
+| Apps | `marketplace-user` (`yarn build` + preview on 3146) and `marketplace-admin` (3147) — production bundles, not `yarn dev` |
+| Instrumentation | each app's own `src/instrument.ts`, with **two** harness-only changes, below |
+| DSN | `http://e12s24publickey…@127.0.0.1:9911/1` — the §2 collector, no egress |
+| Probe URL | `/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid#/probe%40example.invalid/MKTS24HASHPROBE` — a query string **and** a fragment, each with its own sentinel, on the one route that carries a credential |
+| Probe 1 | an uncaught `Error` thrown from a `setTimeout`, the live `GlobalHandlers` path |
+| Probe 2 | a `fetch` POST to `/graphql-user-authorization?probeQuery=E12S24FETCHQUERY` with a JSON body carrying a password sentinel |
+| Probe 3 | a client-side navigation to `/account/addresses?nav=E12S24NAVPROBE#navfragmentprobe`, then a **second** error — to observe what the first page leaves behind on later events |
+| Restored | both patched `instrument.ts` restored from backup; `git status` clean in both repos before any commit |
+
+**The two harness changes, and why the second one is a finding of its own.** `tracesSampleRate` was raised
+from `0.1` to `1` so a transaction was certain rather than one-in-ten. And `browserTracingIntegration()` was
+**added** — because without it there is no transaction to sample at all:
+`@sentry/browser/build/npm/esm/prod/sdk.js:15-31` builds `getDefaultIntegrations()` from `InboundFilters`,
+`FunctionToString`, `BrowserApiErrors`, `Breadcrumbs`, `GlobalHandlers`, `LinkedErrors`, `Dedupe`,
+`HttpContext` and `BrowserSession`, and browser tracing is not on that list. **So §6.1's "one in ten page
+loads already ships a transaction" was wrong**: on the shipped configuration the three apps ship *none*, and
+`tracesSampleRate: 0.1` is a rate applied to nothing. That makes the transaction findings below latent-until-
+integration rather than live — but only that, because the scrubber has to be right before the integration is
+added, not after.
+
+⚠️ One harness trap worth recording: `Dedupe` is a default integration, and a second error with the same
+message is discarded locally as a `client_report` with `reason: "event_processor"` — an empty capture that
+looks like a broken harness. Each probe error carries a distinct message for that reason.
+
+### 9.2 The two acceptance questions, answered from the envelope
+
+| E12-S02 / §6.1 assumption | Measured on the browser transport | Verdict |
+|---|---|---|
+| `httpBodies: []` holds | the `fetch` breadcrumb carried `method`, `url`, `__span` and `status_code` — **no body**, on a POST whose body held a password sentinel | **holds** |
+| `urlQueryParams: false` holds | the full address bar, query string **and** fragment, shipped in **five** distinct places | **does not hold** 🔴 |
+
+`urlQueryParams` is not being ignored — it gates a field the browser never fills in. `event.request.url` is
+written by `httpContextIntegration` (`@sentry/browser/…/integrations/httpcontext.js`), whose `preprocessEvent`
+calls `getHttpRequestData()` and assigns `location.href` with no `dataCollection` gate on the path;
+`@sentry/core/…/integrations/requestdata.js:58` says the same in a comment — *"No dataCollection equivalent —
+URL is always included"*. The option controls `request.query_string`, which the node SDK fills and the browser
+does not.
+
+### 9.3 Where the address bar went, verbatim
+
+Sentinels kept, host as captured. From `envelope-004.txt` (error) and `envelope-003.txt` (pageload
+transaction):
+
+```json
+"request": {
+  "url": "http://127.0.0.1:3146/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+  }
+}
+```
+
+```json
+"contexts": { "trace": { "data": {
+  "sentry.op": "pageload", "sentry.source": "url",
+  "url.path": "/reset-password/confirm",
+  "url.full": "http://127.0.0.1:3146/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
+  "effectiveConnectionType": "4g", "deviceMemory": "32 GB", "hardwareConcurrency": "32",
+  "lcp.element": "div.flex.flex-col.gap-1 > p#password-hint.text-xs.text-tip"
+} } }
+```
+
+```json
+"breadcrumbs": [ { "category": "navigation", "data": {
+  "from": "/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
+  "to": "/account/addresses?nav=E12S24NAVPROBE#navfragmentprobe"
+} } ]
+```
+
+Five places, on **both** event kinds:
+
+| Where | Carries | On |
+|---|---|---|
+| `event.request.url` | `location.href` whole | error **and** transaction |
+| `contexts.trace.data['url.full']` | the same string | transaction |
+| `spans[].description` | the same string, on **eight** `browser.*` metric spans — `domContentLoadedEvent`, `loadEvent`, `connect`, `cache`, `DNS`, `request`, `response`, and the resource spans' own `url.full` | transaction |
+| `breadcrumbs[].data.from` / `.to` | the previous page and the next one, whole | error and transaction |
+| `request.headers.Referer` | the previous page, whole, on a real cross-page load | error and transaction |
+
+⚠️ **The navigation breadcrumb is the one that outlives the page.** Probe 3 navigated *away* from the reset
+URL and then errored; the reset URL — token, address and one-time hash — was still in `data.from` on that
+later error **and** on the later transaction. A credential in a URL is not scoped to the event raised on that
+URL; it rides the rest of the session.
+
+`url.path` carries neither part and is the reason the fix is a truncation rather than a deletion.
+`marketplace-admin` on 3147 produced the identical shape, which is what makes this a property of the SDK
+rather than of one app's router.
+
+### 9.4 What the browser adds that the node key list does not name
+
+E12-S02's key list was built from `@sentry/node-core`'s `httpServerSpansIntegration`. None of
+`http.client_ip`, `net.peer.ip`, `net.host.ip` or `http.request.header.*` appeared in any browser envelope —
+they have no browser equivalent, exactly as §6.1 warned. What appeared instead:
+
+| Key | What it is | Decision |
+|---|---|---|
+| `url`, `url.full`, `http.url`, `http.target` | the address bar | **added** to the key list, sanitised to the path |
+| `referer` / `referrer` | the previous page's whole URL, written by the same unconditional `httpContextIntegration` call as the agent string — so `httpHeaders: { request: false }` does not stop it either | **added**, sanitised to the path |
+| `breadcrumbs[].data.from` / `.to` | a URL on a `navigation` breadcrumb and free text anywhere else | **added**, at that one site only |
+| `spans[].description` | free text; the address bar on eight spans, `first-contentful-paint` or a CSS selector on others | sanitised **only when the value starts like a URL** |
+| `User-Agent` header | the browser's own | already removed — `user-agent` was in the key list from E12-S22 |
+| `deviceMemory`, `hardwareConcurrency`, `effectiveConnectionType`, `contexts.culture.*` | fingerprinting entropy: 32 GB / 32 cores / `4g` / `locale: it`, `timezone: Europe/Rome` | **kept, deliberately** — see the residual below |
+
+The truncation removes everything from the first `?` **or** `#`. Both, not the fragment alone: a fragment is
+what a reset link carries since E12-S26, a query string is what one built before it carries, and the SDK
+copies `location.href` whole either way.
+
+### 9.5 One implementation, not three
+
+`sentryBeforeSend` is published for frontend use rather than copied into the three apps. The reason, stated
+because the story asks for it: the three frontends share no package of their own, so "one implementation"
+in any other place would be a new package built for one function; the module imports nothing and walks plain
+object bags, so it is browser-safe by construction and the existing `./others/sentryBeforeSend` subpath export
+puts exactly one file into a browser bundle, not the Mongoose models beside it; and `deploy-local.sh`
+discovers consumers *by declaration*, so the three `package.json` entries are the whole of the plumbing. Three
+copies would have to be corrected three times, and the first correction that reaches two of them is the leak.
+
+It is wired as **both** `beforeSend` and `beforeSendTransaction` in all three apps, for §6's reason applied to
+the browser: `url.full` and the eight span descriptions are on the transaction, which the first hook never
+sees.
+
+### 9.6 Residuals, stated rather than fixed
+
+- **The path itself is not redacted.** A reset link built *before* E12-S26 carries its credential in the path,
+  and truncating at `?` keeps the path. Nothing on this platform mints that shape any more — E12-S26 moved the
+  credential into the fragment, where the truncation removes it — and the old links die with their 60-minute
+  window. Adding route knowledge to a shared scrubber to cover a transitional shape was rejected as the worse
+  trade: no verify-email route exists in any frontend, so this is the only path-carried credential there has
+  ever been.
+- **Device and culture entropy is kept.** `deviceMemory`, `hardwareConcurrency`, `effectiveConnectionType` and
+  `contexts.culture` are fingerprinting inputs, and they are also the entire payload of the performance
+  product the transaction exists to feed. They are not credentials and they are not the client address. The
+  decision is to keep them; it is written down here so that a future reader finds a decision rather than an
+  oversight.
+- **`marketplace-shopowner` was not captured.** Two of three apps were, and the two agreed to the byte on
+  every bag in §9.3. The third shares the SDK, the version and the `Sentry.init` block; its scrubber is wired
+  and its gates run, but no envelope of its own was read.
+
+## 10. Stories
 
 | Finding | Story | Severity |
 |---|---|---|
@@ -290,20 +459,26 @@ production bucket of whatever project the DSN names. → **E12-S23**.
 | Transactions bypass `beforeSend`; three keys and two bags missing from the scrubber, §6 / §7 | **E12-S22** | 🟠 |
 | `environment` is `production` on a development service, §8 | **E12-S23** | 🟡 |
 | Three frontends sample transactions at `0.1` with no scrubber of any kind, §6.1 | **E12-S24** | 🟠 |
+| The browser ships the whole address bar in five places and no option stops it, §9 | **E12-S24** | 🔴 |
 
-Written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story. None is fixed
-here.
+Written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story. The first four
+were not fixed here; the fifth was measured and fixed under E12-S24 in the same piece of work, which is why
+§9 carries its own residual table.
 
-## 10. What this finding does not cover
+## 11. What this finding does not cover
 
 - **A real Sentry project.** The collector is local by design: capturing the envelope is the point, and
   sending a plaintext password to a third party to prove it would be sent is not a method. The transport,
-  the serialiser and every integration are the real ones.
+  the serialiser and every integration are the real ones. This holds for §9 as much as for §3.
 - **The other eight services.** One service was captured. The nine `instrument.mts` files are identical in
   the block that matters, and §5's mechanism is in `@sentry/core`, not in any service — but the observation
   is of one.
-- **The frontends.** They initialise their own SDK and are outside E12-S02's subject. §6.1 records what
-  reading their three `instrument.ts` files establishes and nothing more: a sample rate is set and no
-  scrubber exists. **No frontend event was captured** — measuring one is E12-S24, and until it is measured
-  no claim about what a browser transaction carries belongs in this document.
+- **`marketplace-shopowner`.** Two of the three browser apps were captured and agreed to the byte; the third
+  was not. §9.6.
+- **A browser transaction on the shipped configuration.** There is none — §9.1. The transaction §9 reads was
+  produced by registering `browserTracingIntegration()` in the harness, which is what the apps would have to
+  do for the sample rate they already set to mean anything. The scrubber is wired for that day; the day has
+  not come.
+- **Session Replay and `contexts.culture`.** No replay integration is registered anywhere, so none was
+  captured. `culture` is kept on purpose, not overlooked — §9.6.
 - **Every other sink.** [`log-sink-inventory.md`](./log-sink-inventory.md).
