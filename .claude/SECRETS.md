@@ -25,7 +25,7 @@ Matcher `Bash|Read|Grep|NotebookEdit`. Denies:
 |indirection|`echo $(cat .env)`, `find . -name .env \| xargs cat`|
 |copy / transmit|`cp .env /tmp/x`, `scp`, `curl -F f=@.env`, `tar … \| nc`|
 |staging|`git add .env`|
-|shell expansion of a protected var|`echo $KEYGRIP_KEY_1`, `printenv QODANA_TOKEN`|
+|shell expansion of a protected var|`echo $KEYGRIP_KEK`, `printenv QODANA_TOKEN`|
 |bare environment dump|`printenv`, `env \| grep …`|
 |inline interpreter lookup|`node -e "…process.env.MONGODB_URI"`, `python3 -c "…os.environ['REDIS_PASSWORD']"`|
 |protected-value retrieval|`npm config get //registry.npmjs.org/:_authToken`|
@@ -46,8 +46,17 @@ close that, and no such hook point exists — so treat it as a real gap rather t
 
 Blocks a commit when a staged **path** looks like a secret file, or when staged **added lines** contain a
 high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----BEGIN … PRIVATE KEY-----`,
-a 40+ char non-placeholder `KEYGRIP_KEY_*`, a `QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD`/
-`INTROSPECTION_CODE` literal ≥16 chars, or a mongodb URI with a ≥10 char password.
+a 40+ char non-placeholder `KEYGRIP_KEY_*`, a `KEYGRIP_KEK`, a
+`QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD`/`INTROSPECTION_CODE` literal ≥16 chars, or a
+mongodb URI with a ≥10 char password.
+
+⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034, added E01-S12): base64 of 32
+bytes is 43 characters plus one `=`, and every `env` template assigns it empty, so the rule cannot fire on
+a placeholder and a real key cannot slip past by starting with the `x` the `KEYGRIP_KEY_*` rule tolerates.
+It carries the whole platform's cookie-signing key set — one leaked value forges every session of every
+tier — so it belongs in the same class as the keys it replaced, not a lower one. It is in six repos: the
+four `*-authorization` services, `marketplace-dev-authenticated-logout`, and `marketplace-db-setup`, which
+seeds the record.
 
 **Check 0 — env value split across two lines.** Runs before the two above and is the only check that
 reads the **working tree** rather than the staged index, because the file it exists for is git-ignored
@@ -110,9 +119,22 @@ every repo rather than left to drift out of sync with the tracked one. Each repo
 |`marketplace-nginx`|1|**no tail at all** — no `package.json`, so the guard runs and the hook exits|
 
 The secret-guard body — check 0 and the two staged-secret scans, from `set -uo pipefail` to the end of
-the abort block, 123 lines — **is** byte-identical across all six, and must stay that way: change one,
-copy that body to the other five. The header comment above it is not identical, because it lists the
-gates each variant goes on to run.
+the abort block — **is** byte-identical across the fifteen repos that carry the full version, and must
+stay that way: change one, copy that body to the other fourteen. The header comment above it is not
+identical, because it lists the gates each variant goes on to run.
+
+⚠️ **`marketplace-nginx` is the exception, deliberately and in writing.** It tracks nginx configuration
+and a shell harness — no `package.json`, no env file, no JavaScript — so the npm, `.npmrc`, `KEYGRIP_*`
+and service-env-key branches can never fire there, and its copy carries only the three formats that can
+plausibly land in a conf, a snippet or the README. The narrowing is argued in the file itself; do not
+"restore" the missing rules, and do not count it when checking the other fifteen agree:
+
+```bash
+for r in . BEs/marketplace-common BEs/marketplace-db-setup marketplace-admin marketplace-shopowner \
+         marketplace-user BEs/dev/*/; do
+  sed -n '/^set -uo pipefail$/,/^fi$/p' "$r/.githooks/pre-commit" | md5sum
+done | sort -u        # one line of output, or a repo has drifted
+```
 
 ## 4. Git ignore, two levels
 

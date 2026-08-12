@@ -194,7 +194,7 @@ Anything printed to a terminal here is sent to the model API **and** written in 
 
 - To inspect a secret file, print **key names only**: `grep -oE '^[A-Za-z_0-9]+' .env`.
 - Metadata (`ls`, `stat`, `wc -l`, `md5sum`, `git check-ignore`) is fine.
-- Protected values include `KEYGRIP_KEY_1/2`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`,
+- Protected values include `KEYGRIP_KEK`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`,
   `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY` and any npm token.
 
 Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.md) for the three layers (`permissions.deny`, the
@@ -204,15 +204,15 @@ Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.
 
 Per-machine `.env` files are the one place where a *wrong* value fails where nothing is looking.
 
-- ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so a
-  `KEYGRIP_KEY_*` mismatch between `marketplace-dev-public-authorization` (which signs the customer
-  refresh cookie at `loginUser`) and the user-tier authorization service (which verifies it) returns 401
-  on every customer refresh while both repos' suites stay green, because each signs and verifies with
-  itself. The same holds for `INTROSPECTION_CODE`. **Check with a fingerprint sweep, not by reading
-  files.**
-  ⚠️ **For the Keygrip pair this is decided and awaiting code** — ADR-034 moves it into one wrapped Redis
-  record and makes a disagreeing service refuse to boot (E01-S12). `INTROSPECTION_CODE` keeps this
-  warning either way.
+- ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so an
+  `INTROSPECTION_CODE` or `REDIS_KEY` mismatch between two services fails at runtime while both repos'
+  suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
+  reading files.**
+  ✅ **The cookie-signing keys are the one pair this no longer applies to** — since E01-S12 they are not
+  in any `.env` at all. They live in one Redis record wrapped under `KEYGRIP_KEK` (ADR-034), and a
+  service whose KEK cannot open that record **exits 1 at boot** with `KEYGRIP_KEK_MISMATCH` instead of
+  signing cookies its siblings cannot verify. What is left to keep in step is the KEK itself, and getting
+  it wrong is now loud.
 - **Fingerprint, never print.** `sha256(key + ' ' + value)`, first six hex — proves two repos agree
   without putting the secret in a terminal.
 - ⚠️ **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or
@@ -246,9 +246,14 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   shape, run a script from disk instead of inlining it: the guard reads the command line, not the
   script.
 
-- **Which services need `KEYGRIP_KEY_*`:** the four `*-authorization` services and
-  `marketplace-dev-authenticated-logout` — 5 of 9. The four `*-resource` services sign no cookie and
-  must not carry the keys; per-service table in [`docs/devprotocol/phase3/INFRA.md`](./devprotocol/phase3/INFRA.md) §7.
+- **Which services need `KEYGRIP_KEK`:** the four `*-authorization` services and
+  `marketplace-dev-authenticated-logout` — 5 of 9 — plus `marketplace-db-setup`, which seeds the record
+  with `yarn seed:keygrip` and is not a service. The four `*-resource` services sign no cookie and must
+  not carry it; per-service table in [`docs/devprotocol/phase3/INFRA.md`](./devprotocol/phase3/INFRA.md) §7.
+- ⚠️ **`KEYGRIP_KEK` is a wrapping key, not a signing key**, and it is the whole platform's session
+  security in one value: whoever holds it can open the record and forge a cookie for any tier. Treat it
+  exactly like the pair it replaced. Losing it, unlike losing the CSFLE master key, is recoverable —
+  `yarn seed:keygrip --force` mints a new set and everyone signs in again.
 - `checkRequiredEnv` is `if (!env[envVar])`, so an empty value fails exactly like a missing one — that
   is the only class of these the code catches. Audit by parsing each service's `REQUIRED_ENV_VARS` out
   of `src/index.mts`, then checking that repo's local config for absent-or-empty.

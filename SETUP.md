@@ -160,25 +160,29 @@ spans two services, so a mismatch returns 401 at runtime while every suite stays
 one **once**, now, and paste the same value everywhere it is needed.
 
 ```bash
-openssl rand -base64 66 | tr -d '\n'   # KEYGRIP_KEY_1   → 88 chars, no padding
-openssl rand -base64 66 | tr -d '\n'   # KEYGRIP_KEY_2
+openssl rand -base64 32                # KEYGRIP_KEK   → 44 chars, one '=' of padding
 openssl rand -hex 24                   # INTROSPECTION_CODE
 ```
 
 | Value | Goes in | Why it must match |
 |---|---|---|
-| `KEYGRIP_KEY_1` / `_2` | the four `*-authorization` services **and** `marketplace-dev-authenticated-logout` — 5 of 9 | `public-authorization` signs the refresh cookie at login; the tier's own authorization service verifies it. Different keys = 401 on every refresh |
+| `KEYGRIP_KEK` | the four `*-authorization` services, `marketplace-dev-authenticated-logout` and `marketplace-db-setup` — 5 of 9, plus the seed | it unwraps the one Redis record the cookie-signing keys live in (ADR-034). `public-authorization` signs the refresh cookie at login and the tier's own authorization service verifies it, so a service that cannot open the record **refuses to boot** rather than signing cookies its siblings cannot verify |
 | `INTROSPECTION_CODE` | all nine services | the header that lets schema introspection through without a session — **on a development or test machine only**, see below |
-| `REDIS_KEY` | all nine services, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session |
+| `REDIS_KEY` | all nine services **and `marketplace-db-setup`**, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session, and the seed writes the keygrip record where nobody looks for it |
 
-The four `*-resource` services sign no cookie and **must not** carry the Keygrip keys.
+The four `*-resource` services sign no cookie and **must not** carry `KEYGRIP_KEK`.
+
+⚠️ **`KEYGRIP_KEK` is not a signing key**, and the difference matters when something goes wrong. The
+signing keys themselves are never in an `.env` file: they are minted into Redis by `yarn seed:keygrip` in
+§8 and read from there at boot. This value only opens that record. Losing it is recoverable — re-seed
+with `--force` and everyone signs in again; losing it is *not* the CSFLE situation in §4.
 
 ⚠️ **One value, one line.** dotenv ends a value at the newline *even inside quotes*, hands back the
 truncated prefix and reads the tail as a variable of its own — silently, in both halves. An 88-character
-key is exactly long enough for an editor to wrap it, which is how all five `.env` files holding these
-keys were once found broken. `.githooks/pre-commit` check 0 blocks a commit in a repo whose `.env` has
-that shape. To check by hand, list key names only — anything in the output that is not
-`SCREAMING_SNAKE_CASE` is the tail of a wrapped value on the line above:
+key is exactly long enough for an editor to wrap it, which is how all five `.env` files holding the old
+`KEYGRIP_KEY_1`/`_2` pair were once found broken. `.githooks/pre-commit` check 0 blocks a commit in a
+repo whose `.env` has that shape. To check by hand, list key names only — anything in the output that is
+not `SCREAMING_SNAKE_CASE` is the tail of a wrapped value on the line above:
 
 ```bash
 grep -oE '^[A-Za-z_0-9]+' .env
@@ -343,13 +347,14 @@ right port. Leave `VITE_TURNSTILE_SITE_KEY` empty — with no server-side secret
 
 ---
 
-## 8. Create the schema and the demo data
+## 8. Create the schema, the demo data and the cookie-signing keys
 
 ```bash
 cd BEs/marketplace-db-setup
 yarn install
 yarn migrate:status      # every migration should read PENDING on a fresh database
 yarn migrate:up
+yarn seed:keygrip        # once per machine, BEFORE any service starts
 ```
 
 This creates six collections with `$jsonSchema` validators and `additionalProperties: false`, all their
@@ -370,6 +375,32 @@ the shop-owner panel.
 
 **Migrations are immutable.** Never edit one that may already be applied; change a schema by adding a
 new one. `yarn migrate:down` reverts exactly one migration, the last applied.
+
+### `yarn seed:keygrip` — the record five services refuse to boot without
+
+`yarn seed:keygrip` touches no collection. It writes **one Redis hash**, `<REDIS_KEY>keygrip`, holding
+the cookie-signing key array sealed under `KEYGRIP_KEK` (ADR-034), and it prints the record's version and
+fingerprint — never a key. The four `*-authorization` services and `marketplace-dev-authenticated-logout`
+read it at boot and **exit 1 if it is missing**, naming this command, so running §9 first simply tells
+you to come back here.
+
+It is deliberately not part of any service's start-up: a service that minted its own keys against an
+empty Redis would re-key the whole fleet on every restart, which is the split-brain ADR-034 removes.
+
+- **Run it once**, on a machine whose Redis has no such record. A second run reports what is already
+  there and writes nothing.
+- **`--force` replaces the record wholesale**, and every session cookie signed under the old keys stops
+  verifying. Rotating a *live* key set is `keygripRotate` in the operator panel, not this script.
+- **Upgrading a machine that already ran the old `KEYGRIP_KEY_1`/`_2` pair:** copy the two values into
+  `marketplace-db-setup/.env`, run the seed once — it adopts them in order, so nobody is logged out —
+  then delete them from that file and from all five service `.env` files. Nothing reads them afterwards.
+
+Check the fleet agrees once the services are up (§9), one row per service, all carrying the same
+fingerprint the seed printed:
+
+```bash
+redis-cli HGETALL "<REDIS_KEY>keygrip:holders"
+```
 
 ---
 
@@ -556,7 +587,9 @@ and are gate removals — use them only when you have decided to.
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh` |
 | a service exits at boot listing variables | that `.env` is incomplete — remember an empty value counts as missing |
 | `Cannot find module '@axiumine/marketplace-common'` | `./deploy-local.sh` was not run after building it |
-| every login returns 401 after a refresh | `KEYGRIP_KEY_1` / `_2` disagree between the signing and verifying service. Fingerprint, do not print: `sha256(key + ' ' + value)`, first six hex |
+| a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else |
+| a service exits with `KEYGRIP_KEK_MISMATCH` | its `KEYGRIP_KEK` is not the one the record was written under. The keys are fine; this one `.env` is wrong |
+| every login returns 401 after a refresh | the five cookie services are not on the same keygrip record. `HGETALL "<REDIS_KEY>keygrip:holders"` — every row must carry the same fingerprint. A stale row means that service has not been restarted since a rotation |
 | a session is never found although login succeeded | `REDIS_KEY` differs between two services. It must be byte-identical in all nine |
 | a bogus key name in `grep -oE '^[A-Za-z_0-9]+' .env` | a wrapped value on the line above it |
 | the migration suite drops the wrong database | it refuses to — `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env` |
