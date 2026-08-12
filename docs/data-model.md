@@ -192,7 +192,7 @@ Everything below is built by `marketplace-common/src/others/sessionKeys.mts` or 
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
 | `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | planned, E14-S02 |
 | `<prefix>family:<familyId>` | a set of that family's session keys | rotation | planned, E14-S03 |
-| `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }` | login, rotation | live (E15-S02) |
+| `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }`, each field `HEXPIRE`d at its own session's cap | login, rotation | live (E15-S02, S03) |
 
 ⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
 login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
@@ -215,10 +215,33 @@ each is a silent failure on its own:
 - **The key's TTL is always 30 days** — `SESSION_CAP_DAYS_REMEMBERED`, the *longer* cap — reissued on
   every write whatever cap the session carries. The shorter one would let a single 1-day login pull the
   whole key down and orphan a remembered session: live, listed nowhere, missed by any revocation.
+- **Each field carries a TTL of its own, and it is a different number from the key's** (E15-S03). Every
+  `hSet` into the index is followed by an `HEXPIRE` on that one field for what remains of
+  `originalLogin + sessionCapDays` — not the refresh session key's own expiry, which is shorter and
+  would delist a live session, and not the key's 30 days, which would outlive a 1-day login by 29.
 
 `mintedAt` is the lineage's `originalLogin`, carried forward unchanged by rotation, so a session that
 refreshes every fifteen minutes does not read as fifteen minutes old. It carries no token material, and
 nothing else may be added to it without a decision — see E15's §6.
+
+### How a field leaves the index
+
+Three ways, and between them the upper bound on stale fields per account is **zero by design** rather
+than "small" — there is no sweeper, no lazy prune on read, and nothing a reader has to tolerate:
+
+- **Rotation** — `refreshSessionTokens` `hDel`s the superseded field in the same routine that files the
+  successor, *after* the session keys themselves are deleted. The successor is written with the cap the
+  predecessor carried: **rotation does not reset the field TTL**, so a session that refreshes forever
+  still leaves the index on the day its lineage was capped.
+- **Logout** — `unindexSession`, again after `deleteSession`.
+- **Anything else** — the field's `HEXPIRE` above. A crashed client, a dropped browser, a session that
+  simply ran out its cap: nobody has to come back and tidy up.
+
+⚠️ **This is what puts a floor of Redis 7.4.0 under the whole platform** — `HEXPIRE`/`HTTL` do not exist
+before it, and Redis refuses an unknown command at the first call rather than at startup. `up.sh
+--with-redis` checks the container's version, and each of the four authorization services probes its own
+connection with an `HTTL` at boot and exits rather than serving a login it cannot file. Both are
+single-key commands, so BCON-08 holds. `docker-DBs/README.md` §Redis is the operational half.
 
 ### Persistence — AOF is on in both environments
 
