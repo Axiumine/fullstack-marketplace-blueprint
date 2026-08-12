@@ -2,12 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-07
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
 v1.1 - 2026-08-11: the CON-08 row's quote of `phase1/NFR.md` §4 follows that document to v1.1 — a 🔴 Critical
 change needs a written owner decision, not team sign-off. Single developer; the gate itself is untouched.
+v1.2 - 2026-08-12: CON-12 added — operator-only fields are listed and linted, not translated. Records the
+closed answer to a question three phase documents had open: no anti-corruption layer across `shopOwner` or
+`user`, now or later.
 
 ## 1. Purpose
 
@@ -34,6 +37,7 @@ Numbered CON-xx. Each: rule, source, what break look like.
 | CON-09 | `marketplace-common` consumed by package name (`@axiumine/marketplace-common`), not on any registry (404s npmjs). `deploy-local.sh` is what make edit visible to 9 consumers. | `docs/workflow.md` §Repo layout; `phase2/BOUNDED_CONTEXT.md` §6 Anti-corruption layers, BC-10 row | ADR assumes `yarn install` alone picks up a common change, or proposes real npm publish as in-scope for Phase 3 |
 | CON-10 | Public routes SSR. `/account/*` is `ssr: false`. Pairs with `proxy_cache` bypass on session cookie. Security boundary, not perf choice — weaken either half, leak. | [`docs/frontends.md`](../../frontends.md) §marketplace-user; `phase1/PDR.md` §In scope "Public SSR surface"; `phase2/BOUNDED_CONTEXT.md` §6 last row | ADR proposes SSR for `/account/*`, or removes/weakens the cache-bypass-on-cookie rule |
 | CON-11 | English only — domain names, UI text, routes, comments. Tabs not spaces. Node `^24.18.0`. yarn everywhere. | [`CLAUDE.md`](../../../CLAUDE.md) header banner and §Two naming rules, [`docs/conventions.md`](../../conventions.md); `phase1/PDR.md` §6 Constraints | Doc/ADR use a non-English identifier for a new thing, or propose spaces-indent, or pin different Node range |
+| CON-12 | Operator-only fields are named in one list and refused in lint, not translated by a layer. `OPERATOR_ONLY_FIELDS_SHOP_OWNER` (`notes`, `waitApprov`) lives in `marketplace-common`, a test there holds every name to a real `ShopOwnerSchema` path, and `no-restricted-syntax` in the 3 ShopOwner-tier repos refuses the property, the type signature, the member read and the projection string. Cross-BC boundaries on one collection are **Conformist by design, permanent** — one `$jsonSchema` builder, one model, nothing to translate. No `user` counterpart until `user` has such a field. | `BEs/marketplace-common/src/others/operatorOnlyFields.mts`; `phase5/epics/E01.md` E01-S10; `phase2/BOUNDED_CONTEXT.md` §6 + §7 q7 (both closed 2026-08-12); `phase4/DDD_AGGREGATES.md` §10 q6 | ADR proposes an anti-corruption layer / per-context mapper across `shopOwner` or `user`; a projection in a ShopOwner-tier service grows either field; the eslint block is deleted rather than the list amended; an empty `user` list is added to look symmetric |
 
 ## 3. Vocabulary lock
 

@@ -2,12 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-08-07
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-12: §10 question 6 closed — Conformist by design and permanent, no ACL for either
+aggregate. One `$jsonSchema` builder per collection is a Shared Kernel; the gap was field scope, and
+E01-S10 / CON-12 closes it with a named list plus lint rather than a mapper.
 
 ---
 
@@ -73,7 +76,7 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 ### ShopOwnerAggregate
 
 **Root entity:** `ShopOwner` — collection + Mongoose model `BEs/marketplace-common/src/models/MongoDB/ShopOwner.mts`, validator `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`.
-**Bounded context:** primary **BC-03** (Shop Owner Onboarding & Approval) — BC-03 governs the account's lifecycle (`shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerUpdateNote`/`shopOwnerUpdatePreferences`, all four in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`). **BC-01** (Identity & Access) also touches this same document — it reads `login`/`resetPwd`/`emailVerify` and reads `waitApprov` to refuse a login. This is not a clean single-BC ownership: `phase2/BOUNDED_CONTEXT.md` §1/§4/§6 names it explicitly as "Conformist, convention only — same `shopOwner` collection, no schema-level wall." One aggregate, one document, two contexts reaching into different sub-documents of it with nothing but code review keeping the split honest.
+**Bounded context:** primary **BC-03** (Shop Owner Onboarding & Approval) — BC-03 governs the account's lifecycle (`shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerUpdateNote`/`shopOwnerUpdatePreferences`, all four in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`). **BC-01** (Identity & Access) also touches this same document — it reads `login`/`resetPwd`/`emailVerify` and ⚠️ **does not read `waitApprov`**, contrary to what this line said until 2026-08-12 (`BOUNDED_CONTEXT.md` §7 q8). This is not a clean single-BC ownership: `phase2/BOUNDED_CONTEXT.md` §1/§4/§6 names it "Conformist" — since 2026-08-12 *by design and permanently*, because one `$jsonSchema` builder plus one Mongoose model is a Shared Kernel and there is no second model to translate to. One aggregate, one document, two contexts reaching into different sub-documents of it; the shape is kept honest by the shared builder and the field scope by E01-S10 / CON-12, which refuse `notes` and `waitApprov` in every ShopOwner-tier repo at lint time.
 **Boundary:** one `shopOwner` document. Everything inside `required`/`properties` of the validator's `$jsonSchema` block is inside the transaction; nothing outside the document is.
 
 **Entities and value objects:**
@@ -85,7 +88,7 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 **Invariants:**
 - `login.email` unique across the collection — `INDEXES_LOGIN_EMAIL` (shared shape from `account.js`).
 - `personalData` (with nested `contacts.mobile`/`contacts.email`) is REQUIRED at document creation — `shopOwner.js:38-40,51-56,85-88`. ⚠️ The Mongoose model disagrees: it declares `personalData.birth.date` and omits `contacts` entirely. The `$jsonSchema` validator wins on every write — a mongoose-only field with no validator entry is silently rejected (`additionalProperties: false`).
-- `waitApprov: true` blocks `loginAdmin`/authorization login — enforced in the authorization resolver reading this field, not in the schema itself; the schema only stores the boolean.
+- ⚠️ **`waitApprov: true` blocks nothing.** This line claimed it gated `loginAdmin`/authorization login; no resolver on the platform reads the field. `login` does not project it, `refresh` renews a session that has it set, `resetPwdFlow` documents ignoring it. The schema stores a boolean the Admin area writes and displays, and that is the whole mechanism today — `BOUNDED_CONTEXT.md` §7 q8 asks whether it is meant to bite at login.
 - `disabled`/`deleted` gate every authenticated call, all tiers, via `checkUserAuthorizationDisDel` (`BEs/marketplace-common/src/others/checkUserAuthorizationDisDel.mts`).
 - `shopOwnerUpdateStatus` writes `disabled` and `waitApprov` together as one full-state `$set`, never a partial patch (`BEs/dev/marketplace-dev-admin-authenticated-resource/.../shopOwnerUpdateStatus.mts:29-30`) — this is a design choice about the write shape, not a DB-enforced rule.
 - Whether a freshly created `ShopOwner` starts gated (`waitApprov`) or ungated is **unresolved on disk** — `shopOwnerAdd` never sets the field at creation (`EVENT_STORMING.md` §5 hotspot 1). Nothing enforces an answer either way.
@@ -403,5 +406,5 @@ Each of these needs its own ADR before it gets an aggregate boundary — not a s
 | 3 | When an Admin creates a `Company` directly (rather than approving a ShopOwner-created one), what `idShopOwner` value does it get stamped with? | Backend (Admin resource service) | Open — `EVENT_STORMING.md` §5 hotspot 5 |
 | 4 | `item.published` has two independent writers (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field. Is the race acceptable, or does `Item` need an optimistic-concurrency field? | Backend (both resource services) | Open — `EVENT_STORMING.md` §5 hotspot 4 |
 | 5 | How is a new `Admin` account provisioned? No `adminAdd` mutation was found in this pass; only the seed migration writes the collection. | Backend / Ops | Open — not previously recorded in any phase 1-3 document found |
-| 6 | Should `ShopOwnerAggregate` and `UserAggregate`'s cross-BC sub-document split (BC-01 vs BC-03/BC-07, same document, no schema wall) be closed with an explicit ACL, or is "Conformist, convention only" an accepted permanent state? | Architecture | Open — `BOUNDED_CONTEXT.md` §6 names it a gap, not a protection |
+| 6 | Should `ShopOwnerAggregate` and `UserAggregate`'s cross-BC sub-document split (BC-01 vs BC-03/BC-07, same document, no schema wall) be closed with an explicit ACL, or is "Conformist, convention only" an accepted permanent state? | Architecture | **Closed 2026-08-12 — Conformist by design, permanent, and no ACL.** One `$jsonSchema` builder and one Mongoose model per collection is a Shared Kernel: there are no two models to translate between, and `additionalProperties: false` already makes the drift an ACL absorbs impossible. What was actually unprotected was field *scope*, now enforced by E01-S10 / CON-12 — a named list plus `no-restricted-syntax` in the three ShopOwner-tier repos. `UserAggregate` gets no counterpart because `user` has no operator-only field to list |
 | 7 | Should the `idCompany`/`idCategory`/`idShopOwner` FK-existence pattern (hand-written resolver guard per call site, §4/§8) be centralised behind some reusable check, given `marketplace-common` already carries `checkUserAuthorizationDisDel` and `assertTier` as shared primitives? | Backend / Architecture | Open — this document does not propose a repository layer (§8), but the guard-duplication cost is real |

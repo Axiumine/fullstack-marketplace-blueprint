@@ -207,7 +207,7 @@ Every mandatory Phase 1-4 document has at least one implementing epic.
 | `phase3/C4_CONTAINER.md` | E01, E09, E10 - the 9-service + 3-frontend + common split |
 | `phase3/SECURITY_AUTH.md` | E01, E02 - opaque token + Redis session + tier-assert model |
 | `phase3/INFRA.md` | E09 - deploy, nginx, Redis cluster / MongoDB topology |
-| `phase3/CONSTRAINTS.md` | E09 - CON-01..CON-11 enforced by the gate layer |
+| `phase3/CONSTRAINTS.md` | E09 - CON-01..CON-12 enforced by the gate layer (CON-12 via E01-S10's eslint block) |
 | `phase3/adr/ADR-INDEX.md` | All (E01-E11) - 29 ADRs, no epic may contradict its area |
 | `phase4/ERD.md` | E03, E04, E05, E06, E07 - the 6-collection data model |
 | `phase4/DDD_AGGREGATES.md` | E03, E04, E05, E06, E07 - aggregate invariants |

@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-07
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
@@ -11,6 +11,11 @@ v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) an
 BC-12 is **withdrawn** and is not coming: it was proposed only to give E16 and E17 a context to own under an
 epic-to-context rule that `phase5/CONSTRAINTS.md` §5 has since removed. The eleven contexts themselves are
 unchanged.
+v1.2 - 2026-08-12: §7 open question 7 closed — no anti-corruption layer across `shopOwner` or `user`, now
+or later; both pairs share one `$jsonSchema` builder, which is a Shared Kernel rather than two models
+needing a translator. The §6 rows stop saying "gap, not a protection": the `shopOwner` one is enforced by
+E01-S10 / CON-12, the `user` one has nothing to enforce yet and says why. Question 8 opened in the same
+pass: `waitApprov` gates nothing, and §1, BC-01, BC-03 and §4 each said otherwise.
 **Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
 **Mutability:** the platform owner decides and writes the reason down before the edit — **one developer, so no
 vote and no second approver exists.** Splitting or merging contexts is a major refactor. Carving a new context
@@ -26,7 +31,7 @@ epic needs somewhere to live" is never that reason.
 
 Draws boundaries between sub-domains of Marketplace, a 16-repo polyrepo (`CLAUDE.md`). Each bounded context owns its own data and language; no context reaches into another's internals except through the integration patterns named in §4. Terms used below are canonical per `UBIQUITOUS_LANGUAGE.md` - no synonym, no re-translation.
 
-Boundary enforcement note, load-bearing for every entry below: on this platform "tier" (`Admin` / `ShopOwner` / `User`) is a collection plus a dedicated service pair, never a role flag (`UBIQUITOUS_LANGUAGE.md` §3-4, `CLAUDE.md` §Terminology - "There is no `role` field and no permission enum anywhere"). That makes the three identity contexts enforced **by construction**: separate MongoDB collections (`admin`/`shopOwner`/`user`), separate git repos, separate ports, a `tier` value stamped into the Redis session and asserted on every call (`assertTier`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`). Not every boundary below gets that guarantee. Two do not, and are flagged where they occur: the split between Identity & Access and Shop Owner Onboarding & Approval (both write different sub-documents of the same `shopOwner` collection, from two different services, with no schema-level partition) and the split between Identity & Access and Customer Account & Addresses (same story, one `user` collection, one resource service, two conceptual owners of different sub-documents). Those are conventions this document records, not walls MongoDB enforces.
+Boundary enforcement note, load-bearing for every entry below: on this platform "tier" (`Admin` / `ShopOwner` / `User`) is a collection plus a dedicated service pair, never a role flag (`UBIQUITOUS_LANGUAGE.md` §3-4, `CLAUDE.md` §Terminology - "There is no `role` field and no permission enum anywhere"). That makes the three identity contexts enforced **by construction**: separate MongoDB collections (`admin`/`shopOwner`/`user`), separate git repos, separate ports, a `tier` value stamped into the Redis session and asserted on every call (`assertTier`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`). Not every boundary below gets that guarantee. Two do not, and are flagged where they occur: the split between Identity & Access and Shop Owner Onboarding & Approval (both write different sub-documents of the same `shopOwner` collection, from two different services, with no schema-level partition) and the split between Identity & Access and Customer Account & Addresses (same story, one `user` collection, one resource service, two conceptual owners of different sub-documents). Those are conventions this document records, not walls MongoDB enforces — with one part now built: **which fields BC-01 may name at all** on `shopOwner` is checked by lint in all three ShopOwner-tier repos (E01-S10 / CON-12, §6). The shape stays shared on purpose; only the scope is walled.
 
 ---
 
@@ -37,7 +42,7 @@ Boundary enforcement note, load-bearing for every entry below: on this platform 
 **Owns:** `admin`, `shopOwner`, `user` collections' `login`/`resetPwd`/`emailVerify` sub-documents (shared shape `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY`, `BEs/marketplace-db-setup/lib/schemas/account.js`); the Redis session hash keyed `${REDIS_KEY}${token}`; the `TIER` constant and `assertTier` guard (`BEs/marketplace-common/src/others/Tier.mts:12-18`, `BEs/marketplace-common/src/others/assertTier.mts:21-23`); the three `*-authenticated-authorization` services (`BEs/dev/marketplace-dev-authenticated-authorization`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `BEs/dev/marketplace-dev-user-authenticated-authorization`) plus `marketplace-dev-public-authorization` for first login (`login`/`loginAdmin`/`loginUser`).
 **Produces:** Customer Logged In / Shop Owner Logged In / Admin Logged In, Login Refused (per-tier reason, generic error shape outward), Access Token Rotated, Refresh Refused - Foreign Tier, Verification Email Sent, Email Verified (`UBIQUITOUS_LANGUAGE.md` §15).
 **Consumes:** bcrypt-hashed credentials from each collection (`SALT_ROUNDS=14`), the Keygrip-signed refresh cookie, `x-introspectioncode` for service-to-service bypass (`resolveAuthorizationSession`, `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`).
-**Does not own:** logout (BC-02, separate context on purpose), `waitApprov`/onboarding gate content (BC-03 writes it, this context only reads it to refuse a login), `personalData`/`addresses` (BC-07).
+**Does not own:** logout (BC-02, separate context on purpose), `waitApprov`/onboarding gate content (BC-03 writes it; ⚠️ this context does **not** read it — see §7 q8), `personalData`/`addresses` (BC-07).
 
 ---
 
@@ -57,8 +62,8 @@ Boundary enforcement note, load-bearing for every entry below: on this platform 
 ---
 
 ### BC-03 - Shop Owner Onboarding & Approval
-**Responsibility:** Provisions a `ShopOwner` account (Admin-initiated, no self-service registration exists) and gates its ability to log in behind manual approval.
-**Owns:** `shopOwner.waitApprov`, `shopOwner.notes` (operator-only, never loaded by the ShopOwner tier), `shopOwnerAdd` / `shopOwnerUpdateStatus` / `shopOwnerUpdateNote` / `shopOwnerUpdatePreferences` mutations, all four living in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`.
+**Responsibility:** Provisions a `ShopOwner` account (Admin-initiated, no self-service registration exists) and records whether it is approved. ⚠️ **Records, not gates:** `waitApprov` is written and displayed by the Admin area and read by nothing else — `login` does not project it, `refresh` succeeds without it, the reset-password flow ignores it (`BEs/dev/marketplace-dev-public-resource/src/lib/access/resetPwdFlow.mts`). An unapproved shop owner can log in today. §7 q8.
+**Owns:** `shopOwner.waitApprov`, `shopOwner.notes` (operator-only, and since E01-S10 not merely unloaded by the ShopOwner tier but unloadable - `no-restricted-syntax` refuses both names in all three of its repos, CON-12), `shopOwnerAdd` / `shopOwnerUpdateStatus` / `shopOwnerUpdateNote` / `shopOwnerUpdatePreferences` mutations, all four living in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`.
 **Produces:** Shop Owner Account Created, Duplicate Login Email Rejected, Shop Owner Approval Granted, Shop Owner Approval Withheld, Shop Owner Disabled, Shop Owner Note Recorded.
 **Consumes:** nothing from another context to act - `shopOwnerUpdateStatus` writes `disabled` and `waitApprov` together as a full-state save, never a partial patch:
 ```ts
@@ -69,7 +74,7 @@ args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
 ```
 **Does not own:** the login attempt itself (BC-01 reads `waitApprov` to refuse a login, this context only writes it). Two hotspots live here, unresolved on disk: whether a freshly created `ShopOwner` starts gated or ungated (`EVENT_STORMING.md` §5 hotspot 1), and what advances `onboardingStep`/`onboardingDone` - no mutation under any `mutations/` directory on the platform writes either field (`EVENT_STORMING.md` §5 hotspot 2).
 
-**Boundary is convention, not construction:** this context and BC-01 both touch the `shopOwner` collection, from two different repos (`marketplace-dev-admin-authenticated-resource` writes, `marketplace-dev-authenticated-authorization` reads), with no schema partition separating "onboarding fields" from "login fields" - only the shared `$jsonSchema` builder in `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` keeps both sides honest about the shape.
+**Boundary is convention on the shape, construction on the scope:** this context and BC-01 both touch the `shopOwner` collection, from two different repos (`marketplace-dev-admin-authenticated-resource` writes, `marketplace-dev-authenticated-authorization` reads), with no schema partition separating "onboarding fields" from "login fields" - the shared `$jsonSchema` builder in `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` is what keeps both sides honest about the shape, and that is deliberate: one builder is a Shared Kernel, which is exactly why an anti-corruption layer between the two would translate a shape into itself (§7 q7, closed). What *is* enforced is which fields BC-01 may name at all - E01-S10 / CON-12.
 
 ---
 
@@ -233,7 +238,7 @@ graph TB
 
     ID -->|"logout, any tier's token"| LO
 
-    OB -.->|"writes waitApprov into shared shopOwner doc - convention only, no schema wall"| ID
+    OB -.->|"writes waitApprov into shared shopOwner doc - no schema wall; BC-01 may not name the field (CON-12)"| ID
     ACC -.->|"writes personalData/addresses into shared user doc - convention only, no schema wall"| ID
 
     Op -->|"shopOwnerAdd, shopOwnerUpdateStatus"| OB
@@ -281,7 +286,7 @@ Solid arrows carry a real GraphQL command or FK read at runtime. Dashed arrows a
 | From | To | Relationship | Integration pattern |
 |---|---|---|---|
 | BC-01 Identity & Access | BC-02 Session Termination | Three tiers all call the one shared logout service | Customer-Supplier (three customers, one supplier) via Published Language - the shared `REDIS_KEY` prefix and token-content addressing is the contract, not a per-tier API |
-| BC-03 Shop Owner Onboarding & Approval | BC-01 Identity & Access | BC-03 writes `waitApprov`, BC-01 reads it to refuse `login` | Conformist, convention only - same `shopOwner` collection, no schema-level wall, see §1 boundary note |
+| BC-03 Shop Owner Onboarding & Approval | BC-01 Identity & Access | BC-03 writes `waitApprov`; **BC-01 does not read it** - `login` neither projects nor gates on it, and `refresh` succeeds for an unapproved account. Approval is enforced downstream of the session, not in front of it | Conformist **by design and permanently** - one `shopOwner` collection built from one `$jsonSchema` builder, so there is no second model to translate to. No schema-level wall on the shape; a lint-level wall on the scope, E01-S10 / CON-12 |
 | BC-07 Customer Account & Addresses | BC-01 Identity & Access | Both live on the `user` collection, different sub-documents, same resource service | Conformist, convention only - see §1 boundary note |
 | BC-03 Shop Owner Onboarding & Approval | BC-04 Legal Entity / Company | `company.idShopOwner` FK points at an account BC-03 provisioned | Customer-Supplier - Company is downstream, the FK is unenforced |
 | BC-04 Legal Entity / Company | BC-05 Catalogue | `item.idCompany` FK, ownership checked before category existence | Customer-Supplier |
@@ -320,8 +325,8 @@ Two field names deliberately mean **different things** in different contexts and
 |---|---|---|
 | Foreign-tier access token presented to the wrong resource service | An `Admin` token accepted by the ShopOwner resource service (real historical hole - `authorizationAuthenticatedResourceHandler.mts` set `ctx.state.user` on any non-empty Redis hash before 2026-08-05, and all 9 services share one `REDIS_KEY`) | `assertTier(actual, expected)` throws 403 (never 401), fails closed on a session with no `tier` field - `BEs/marketplace-common/src/others/assertTier.mts:21-23` |
 | BC-08 Public Discovery reading BC-04/BC-05/BC-06's live data | An unpublished/draft `company` or `item` leaking to anonymous traffic if a query forgot its own filter | One shared pipeline stage, `livePublic`/`LIVE_PUBLIC_PIPELINE`, applied once rather than re-implemented per query - `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |
-| BC-03 Shop Owner Onboarding writing `shopOwner.waitApprov`/`notes`, BC-01 reading the same collection for login | No ACL exists at all - two different service repos read/write the same MongoDB document directly, guarded only by both sides importing the same `$jsonSchema` builder | **Gap, not a protection**: only `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` keeps the shape aligned; a resolver on either side could reach into the other's sub-document with nothing stopping it but code review - see open question 7 |
-| BC-07 Customer Account writing `user.personalData`/`addresses`, BC-01 reading `user.login`/`emailVerify` | Same gap as above, on the `user` collection | Same - `BEs/marketplace-db-setup/lib/schemas/user.js` is the only shared discipline |
+| BC-03 Shop Owner Onboarding writing `shopOwner.waitApprov`/`notes`, BC-01 reading the same collection for login | A ShopOwner-tier resolver widening its projection by one word and handing the subject the operator's own encrypted note about them, or writing the approval gate on their own account | **Closed by E01-S10, and deliberately not with an ACL** - both sides are one model built from one `$jsonSchema` builder, so there is nothing to translate. `OPERATOR_ONLY_FIELDS_SHOP_OWNER` (`BEs/marketplace-common/src/others/operatorOnlyFields.mts`) names the two fields; a test there holds every name to a real path on `ShopOwnerSchema`; `no-restricted-syntax` selectors in all three ShopOwner-tier repos refuse the property, the type signature, the member read and the projection string. See CON-12 |
+| BC-07 Customer Account writing `user.personalData`/`addresses`, BC-01 reading `user.login`/`emailVerify` | Same shape of risk on the `user` collection | **Not enforced, and correctly so today**: `user` carries no operator-only field - no `notes`, no `waitApprov`, and the Admin tier has no `user` resolvers at all - so there is nothing for a list to hold. An empty counterpart would read as a boundary being enforced when nothing is. `BEs/marketplace-db-setup/lib/schemas/user.js` is the shared discipline; the first operator-only field to land on `user` brings the E01-S10 pair with it |
 | BC-10 Shared Kernel package boundary | An edit to `marketplace-common` is invisible to every consumer until synced - the package is not on any registry (`@axiumine/marketplace-common` 404s on `registry.npmjs.org`) | `BEs/marketplace-common/deploy-local.sh` (must be re-run after every edit), `yarn test:contract` (verifies the `exports` map against actual files) |
 | BC-08's SSR half (`/`, public routes) vs `/account/*` on `marketplace-user` | Rendering authenticated HTML behind a shared `proxy_cache` could serve one customer's data to the next visitor | Two halves of one mechanism: `/account/*` is `ssr: false` (never rendered server-side) and the cache bypasses on the session cookie - weakening either alone is enough to leak |
 | BC-11 Ordering & Fulfilment [PLANNED] against everything else | None yet - the risk of designing an ACL prematurely, before the aggregate exists, is why `item` still has no price field | [`CLAUDE.md`](../../../CLAUDE.md) §Build state: "ask before inventing them" - the protection here is refusing to build the boundary until the context itself is designed |
@@ -338,6 +343,7 @@ Two field names deliberately mean **different things** in different contexts and
 | 4 | When BC-11 Ordering & Fulfilment design work starts, who signs off the first schema - and does it become one context or split (Cart / Order / Delivery / Payment each their own)? | Product + platform dev | Open |
 | 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item? | Platform dev | Open |
 | 6 | What `idShopOwner` does an Admin-created `company` document (BC-04) get, absent an owning ShopOwner having created it first via BC-03? | Platform dev | Open |
-| 7 | Should the BC-01/BC-03 (`shopOwner`) and BC-01/BC-07 (`user`) convention-only boundaries get a real anti-corruption layer (e.g. each context restricted to its own resolver-level projection) before a fourth tier is added and the pattern is copied a third time? | Platform dev | Open |
+| 7 | Should the BC-01/BC-03 (`shopOwner`) and BC-01/BC-07 (`user`) convention-only boundaries get a real anti-corruption layer (e.g. each context restricted to its own resolver-level projection) before a fourth tier is added and the pattern is copied a third time? | Platform dev | **Closed 2026-08-12 - no ACL, ever.** Both pairs share one `$jsonSchema` builder and one Mongoose model: that is a Shared Kernel, and a mapper across it would translate a shape into itself at a permanent CON-08 cost. The real defect was field *scope*, not corruption, and E01-S10 closes it with a named field list plus `no-restricted-syntax` in the three ShopOwner-tier repos (CON-12). A fourth tier copies that, not an ACL. Re-open only if the two sides stop sharing the builder |
+| 8 | `shopOwner.waitApprov` gates nothing. It is written by `shopOwnerUpdateStatus`, displayed by the Admin area, and read by no other service on the platform - `login` does not project it, `refresh` renews a session without it, `resetPwdFlow` documents ignoring it on purpose. So an unapproved shop owner can log in and use the ShopOwner tier normally. Is the manual-approval gate meant to bite at login (a deliberate BC-01 read, which E01-S10 would then have to carve an exception for), or is `waitApprov` correctly just an operator-facing flag and every document calling it a gate wrong? Surfaced 2026-08-12 while closing q7. | Product + platform dev | Open |
 
 

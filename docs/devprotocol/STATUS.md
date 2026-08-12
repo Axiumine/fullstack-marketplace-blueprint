@@ -47,7 +47,7 @@ Injected into every parallel agent of the phase that owns them.
 
 | Phase | Document | Ids |
 |---|---|---|
-| Phase 3 | [`phase3/CONSTRAINTS.md`](./phase3/CONSTRAINTS.md) | CON-01..CON-11 |
+| Phase 3 | [`phase3/CONSTRAINTS.md`](./phase3/CONSTRAINTS.md) | CON-01..CON-12 |
 | Phase 4 | [`phase4/CONSTRAINTS.md`](./phase4/CONSTRAINTS.md) | DCON-01..DCON-09 |
 | Phase 5 | [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) | BCON-01..BCON-09 |
 
