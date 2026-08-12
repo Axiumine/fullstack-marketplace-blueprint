@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** sequence-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
+§2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
 **Depends on:** `phase2/EVENT_STORMING.md` ✅ · `phase4/API_CONTRACTS.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅ · `phase4/DDD_AGGREGATES.md` ✅ · `phase5/CONSTRAINTS.md` ✅ (binding, §4 Flow rules)
 **Mutability:** keep in sync — update when a flow, actor set or branching condition changes.
 
@@ -32,12 +34,14 @@ decoded client-side — every "is this valid" step is a Redis `hGetAll`, never a
 ## 2. Simple flows
 
 ### 2.1 — `shopOwnerAdd` (Admin provisions a ShopOwner account)
-No self-service ShopOwner registration exists on this platform — every account is Admin-created.
-`Admin` calls `shopOwnerAdd` on `marketplace-dev-admin-authenticated-resource` (4024); the resolver writes
+One of **two** creation paths since 2026-08-12 — the other is §2.9, and the difference between them is a
+single field. `Admin` calls `shopOwnerAdd` on `marketplace-dev-admin-authenticated-resource` (4024); the resolver writes
 the `shopOwner` collection directly, no activation-link step. Source of truth:
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts`,
 event `Shop Owner Account Created` / `Duplicate Login Email Rejected` per
-`phase2/UBIQUITOUS_LANGUAGE.md` §14-15.
+`phase2/UBIQUITOUS_LANGUAGE.md` §14-15. It writes **no `waitApprov` and no `emailVerify`**: an operator
+creating the account by hand has approved it by the act of creating it, and there is no address to confirm
+because nobody claimed one. The account can log in the moment it exists.
 
 ### 2.2 — `loginAdmin`
 Same three-step shape as ShopOwner login (§3 below), with the same `guardPublicLogin` in front of it but
@@ -86,6 +90,34 @@ Admin-only, linear writes on a `shopOwner` document Admin does not own. `shopOwn
 `Shop Owner Approval Granted` / `Withheld` / `Shop Owner Disabled` — three outcomes of one field write, no
 actor coordination.
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts`.
+
+### 2.9 — `shopOwnerRegister` (a seller signs themselves up)
+Diagram 4's flow with the same three branches — new registration, restart of an unverified one, and an
+address that already has a verified account, all three answering `true` so the mutation is no
+account-enumeration oracle — against the `shopOwner` collection and `GET /check/verify-email/:email/:hash`
+instead of the customer's route. Two differences are the whole story:
+
+- `registerNewShopOwner.mts:44` writes **`waitApprov: true`** alongside the login and the hash. Confirming
+  the address proves the person exists; only `shopOwnerUpdateStatus` clearing that flag admits them.
+  Selling here is a commercial relationship with the operator, so a stranger may *ask* to become a shop
+  owner and may not *become* one by filling in a form.
+- There is **no resend mutation** to pair with `userVerifyEmailResend` (§2.7). Submitting the form again
+  re-mints the hash and re-sends, which is the recovery for a mail that never arrived — the seller has no
+  account area to press a button in until they are approved.
+
+Rate limiting is its own `shopOwnerRegister` bucket, 3 mails per address per hour, deliberately not shared
+with `userRegister`'s: one person may legitimately be both a customer and a seller, since the two
+collections are unrelated by design (ADR-002), and a shared counter would let three seller attempts spend
+a customer's budget for the same address. The whole resolver runs in one transaction, so no mail is ever
+sent for a document that failed to write.
+`BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/shopOwnerRegister.mts`,
+`.../src/lib/db/registerNewShopOwner.mts`, front end `/register/seller` on `marketplace-user`.
+
+⚠️ **Both gates are then checked at login, and in this order:** `tryLoginShopOwner` refuses
+`emailVerify.valid === false` first, `waitApprov` second — so an unconfirmed seller is told their address
+is unconfirmed rather than that they are queued. `=== false`, never `!== true`: an *absent* `emailVerify`
+is what every §2.1 account has, and collapsing absent into unverified would lock out every shop owner
+created before this flow existed.
 
 ---
 

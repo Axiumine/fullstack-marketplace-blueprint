@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-12: E03-S08. `personalData` left `shopOwner`'s doc-level `required` list, so §3.2's rows,
+its `required` excerpt and the `waitApprov` description all move, and §4 counts three divergences from
+`user` rather than four.
 **Depends on:** [`CLAUDE.md`](../../../CLAUDE.md) (parent workspace) ✅ · [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](../phase2/UBIQUITOUS_LANGUAGE.md) ✅ · [`docs/devprotocol/phase3/CONSTRAINTS.md`](../phase3/CONSTRAINTS.md) ✅ · [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) ✅
 
 ---
@@ -107,32 +110,32 @@ Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, called once by `mig
 | `login.onboardingStep` | string | no | maxLength 4 | onboarding wizard step |
 | `login.onboardingDone` | bool | no | — | onboarding wizard complete |
 | `login.rememberMe` | bool | no | — | the owner's last "remember me" choice, stored for the form and editable by an Admin through `shopOwnerUpdatePreferences`. **Not a revocation control:** the lifetime it names is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07), so an Admin toggling it moves no live session — it changes what the next login defaults to |
-| `personalData.firstName` / `.lastName` | string | yes | maxLength 100 each | owner's name |
-| `personalData.birth.date` | date | yes | — | date of birth |
-| `personalData.address.street` | string | yes | maxLength 250 | home address |
-| `personalData.address.postalCode` | string | yes | exactly 5 chars | — |
-| `personalData.address.city` | string | yes | maxLength 100 | — |
-| `personalData.address.province` | string | yes | exactly 2 chars | — |
+| `personalData` | object | **no** — whole sub-doc optional since 2026-08-12 | — | absent on a self-registered seller until onboarding fills it in; `shopOwnerAdd` still demands the whole block, which is a rule of that mutation and not of the collection |
+| `personalData.firstName` / `.lastName` | string | yes if `personalData` present | maxLength 100 each | owner's name |
+| `personalData.birth.date` | date | yes if `personalData` present | — | date of birth |
+| `personalData.address.street` | string | yes if `personalData` present | maxLength 250 | home address |
+| `personalData.address.postalCode` | string | yes if `personalData` present | exactly 5 chars | — |
+| `personalData.address.city` | string | yes if `personalData` present | maxLength 100 | — |
+| `personalData.address.province` | string | yes if `personalData` present | exactly 2 chars | — |
 | `personalData.address.position` | object | no | GeoJSON Point, tuple `[lng,lat]`, each axis `['double','int','long']` bounded ±180/±90 | optional — no `2dsphere` index, fills in from the operator app's autocomplete |
-| `personalData.contacts.mobile` | string | yes | maxLength 12 | — |
+| `personalData.contacts.mobile` | string | yes if `personalData` present | maxLength 12 | — |
 | `personalData.contacts.landline` | string | no | maxLength 12 | — |
-| `personalData.contacts.email` | string | yes | maxLength 250 | second contact address, distinct from `login.email` |
+| `personalData.contacts.email` | string | yes if `personalData` present | maxLength 250 | second contact address, distinct from `login.email` |
 | `registeredAt` | date | yes | — | sign-up date |
 | `deleted` | date | no | — | soft-delete stamp |
 | `disabled` | bool | no | — | present + true blocks login |
-| `waitApprov` | bool | no | — | present + true = awaiting admin approval (or a telepromoter flag) |
+| `waitApprov` | bool | no | — | present + true = this account may not log in until an operator approves it. Written `true` by `shopOwnerRegister` (a stranger signed themselves up) and by `shopOwnerUpdateStatus` (an operator parked an existing account); `$unset` on approval, so the field is truthy-or-absent and never `false`. Absent on every Admin-provisioned account — `shopOwnerAdd` does not write it |
 | `notes` | string | no | maxLength 2000 | operator-written note; `marketplace-dev-authenticated-*` never loads this model field, so it cannot leak to the shop owner |
 | `resetPwd.resetDateReq` / `.resetHash` | date / string | yes if sub-doc present | exactly 50 chars for hash | password reset slot |
 | `emailVerify.*` | object | no (no required members) | see `account.js:96-125` | verify-email slot, koa-utils flow |
 | `__v` | int | no | — | versionKey |
 
-Doc-level `required`: `login`, `personalData`, `registeredAt`.
+Doc-level `required`: `login`, `registeredAt`. ⚠️ **`personalData` was on that list until 2026-08-12** and left it with E03-S08: `shopOwnerRegister` takes an email and a password and nothing else, so a required block would have made the public form impossible to satisfy. Inside the sub-document nothing relaxed — it is still all-or-nothing once present, which is what keeps "half a registry entry" unwritable.
 
 ```js
 // BEs/marketplace-db-setup/lib/schemas/shopOwner.js
 required: [
   'login',
-  'personalData',
   'registeredAt'
 ],
 ```
@@ -272,18 +275,19 @@ idParent: {
 
 ---
 
-## 4. `user`'s four divergences from `shopOwner`
+## 4. `user`'s three divergences from `shopOwner`
 
-Both collections share `login`, `resetPwd`, `emailVerify`, `deleted`/`disabled` from `BEs/marketplace-db-setup/lib/schemas/account.js` — role on this platform is which collection you authenticate against, not a field (DCON-09). Four fields diverge, all argued at `BEs/marketplace-db-setup/lib/schemas/user.js`, none an accident to "fix":
+Both collections share `login`, `resetPwd`, `emailVerify`, `deleted`/`disabled` from `BEs/marketplace-db-setup/lib/schemas/account.js` — role on this platform is which collection you authenticate against, not a field (DCON-09). Three fields diverge, all argued at `BEs/marketplace-db-setup/lib/schemas/user.js`, none an accident to "fix":
 
 | # | Divergence | `shopOwner` | `user` | Why |
 |---|---|---|---|---|
-| 1 | `personalData` | doc-level required | doc-level optional | registration is email + password only; name/contacts filled in after email confirmation |
-| 2 | address storage | one `personalData.address` object | `addresses[]` array, each element with required `_id` | a customer has a home, an office, a friend's flat; a shop owner has one residence |
-| 3 | `waitApprov` | present, operator approval gate | **absent entirely** | customers self-serve; the only gate is email confirmation (`loginUser` checks `emailVerify.valid`) |
-| 4 | `defaultAddress` | no counterpart | top-level `ObjectId` pointer into `addresses[]._id` | see section 5 |
+| 1 | address storage | one `personalData.address` object | `addresses[]` array, each element with required `_id` | a customer has a home, an office, a friend's flat; a shop owner has one residence |
+| 2 | `waitApprov` | present, operator approval gate | **absent entirely** | a customer self-serves with nothing to approve; the only gate is email confirmation (`loginUser` checks `emailVerify.valid`). A shop owner who self-serves carries both gates, one an Admin created carries neither |
+| 3 | `defaultAddress` | no counterpart | top-level `ObjectId` pointer into `addresses[]._id` | see section 5 |
 
-A fifth, smaller divergence: `shopOwner.personalData.contacts` requires `mobile` and `email`; `user.personalData.contacts` requires none of its members — `login.email` is already the credential, so demanding a duplicate contact email is asking the customer to retype what they already gave (`BEs/marketplace-db-setup/lib/schemas/user.js`).
+⚠️ **`personalData` was the fourth until 2026-08-12** and is not a divergence any more: it left `shopOwner`'s doc-level `required` list with E03-S08, so both collections now register an email and a password and collect the rest later. What still differs is what "later" means — a customer may never fill it in and can still order, a shop owner is walked through onboarding before they can sell.
+
+A fourth, smaller divergence: `shopOwner.personalData.contacts` requires `mobile` and `email`; `user.personalData.contacts` requires none of its members — `login.email` is already the credential, so demanding a duplicate contact email is asking the customer to retype what they already gave (`BEs/marketplace-db-setup/lib/schemas/user.js`).
 
 ---
 

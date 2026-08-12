@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.1 - E03-S08. `shopOwner` gained a second creation route: §6's definition, the new `personalData` (whole block) row, the `waitApprov` rows and the `user` definition all follow from it, and the hotspot §6 carried is closed rather than restated. §14 gained `shopOwnerRegister` and the shop owner's REST verification route, §15 the events they produce, §16 the policy that writes the flag and the order the two login gates run in.
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅
 **Mutability:** living document — every new term used in code, config, or docs must be defined here first
 
@@ -37,9 +38,9 @@ The single most important mapping on the platform. Get this wrong and every down
 
 ### ShopOwner
 **Definition:** Business owner who runs one or more shops on the platform. Authenticates against the `shopOwner` collection. Each `ShopOwner` document owns N `company` documents via `company.idShopOwner`.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-authenticated-resource`, `BEs/dev/marketplace-dev-authenticated-authorization`, `marketplace-shopowner`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-authenticated-resource`, `BEs/dev/marketplace-dev-authenticated-authorization`, `BEs/dev/marketplace-dev-public-resource` (registration only), `marketplace-shopowner`, `marketplace-user` (`/register/seller` only).
 **Not to be confused with:** `Admin` (platform operator, different collection, different service pair). Old business talk called this role "the admin" — that phrase is banned, see §19.
-**Example:** No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts`). Verified: grepped every `mutations/` dir across all 9 services, no `shopOwnerRegister` exists anywhere.
+**Example:** ~~No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd`.~~ **Since 2026-08-12 there are two creation routes and they differ in one field.** `shopOwnerRegister` on the public service writes `waitApprov: true`, so a stranger may ask to become a shop owner; `shopOwnerAdd` on the Admin service writes nothing there, because an operator creating the account by hand has approved it by doing so. The seller's own panel `marketplace-shopowner` has no registration screen — the public form lives on `marketplace-user`, beside the customer's.
 
 ### Admin
 **Definition:** Platform operator, thedoctorweb staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
@@ -152,7 +153,8 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 | `login.firstLogin` / `login.lastLogin` | date | no | |
 | `login.onboardingStep` / `login.onboardingDone` | string ≤4 / bool | no | present for shape uniformity with `shopOwner`; meaningless for `admin` |
 | `login.rememberMe` | bool | no | |
-| `personalData.firstName` / `lastName` | string ≤100 | yes | |
+| `personalData` (the whole block) | object | **no** | absent on a self-registration until onboarding; all-or-nothing when written |
+| `personalData.firstName` / `lastName` | string ≤100 | yes *within the block* | |
 | `deleted` | date | no | soft delete |
 | `disabled` | bool | no | |
 | `resetPwd.resetDateReq` / `resetHash` | date / string(50) | yes if `resetPwd` present | |
@@ -170,7 +172,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ## 6. Collection: `shopOwner`
 
-**Definition:** Business owner account. Mirrors `admin`'s login shape, adds full `personalData` (name, birth, address, contacts), `waitApprov` (manual approval gate), `onboardingStep`/`onboardingDone`, operator-only `notes`.
+**Definition:** Business owner account. Mirrors `admin`'s login shape, adds `personalData` (name, birth, address, contacts — **optional at creation since 2026-08-12**, complete once written), `waitApprov` (manual approval gate), `onboardingStep`/`onboardingDone`, operator-only `notes`. Created two ways: `shopOwnerAdd` (Admin, every field up front, ungated) and `shopOwnerRegister` (public self-service, address + password, `waitApprov: true`).
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`.
 
 | Field | Type | Required | Notes |
@@ -185,15 +187,15 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 | `registeredAt` | date | yes | sign-up instant |
 | `deleted` | date | no | |
 | `disabled` | bool | no | |
-| `waitApprov` | bool | no | see below, hotspot |
+| `waitApprov` | bool | no | see below |
 | `notes` | string ≤2000 | no | operator-only, never loaded by ShopOwner tier |
 | `resetPwd.*` | shared | yes if present | |
 | `emailVerify.*` | shared | no | |
 | `__v` | int | no | |
 
 ### waitApprov
-**Definition:** Manual approval gate. Present blocks login **and blocks the refresh of a session already open** — since 2026-08-12 that is enforced rather than merely described (`BOUNDED_CONTEXT.md` §7 q8). Present, not `true`: the field is written by `$set` when raised and removed by `$unset` when cleared, so `false` never reaches the collection and every reader tests existence. `shopOwnerAdd` never sets it at creation, so a new account is ungated; `shopOwnerUpdateStatus` is the ONLY mutation that ever writes it, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30` (the write); `BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`, called from `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029 (the two reads).
+**Definition:** Manual approval gate. Present blocks login **and blocks the refresh of a session already open** — since 2026-08-12 that is enforced rather than merely described (`BOUNDED_CONTEXT.md` §7 q8). Present, not `true`: the field is written by `$set` when raised and removed by `$unset` when cleared, so `false` never reaches the collection and every reader tests existence. **Two mutations write it, and which one ran is the whole meaning of the flag:** `shopOwnerRegister` (public) sets it `true` at creation, because nobody has vetted the stranger who typed the form in; `shopOwnerAdd` (Admin) sets nothing, because the operator typing it in *is* the approval. `shopOwnerUpdateStatus` is the only one that ever *changes* it afterwards, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30` and `BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44` (the writes); `BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`, called from `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029 (the two reads).
 **Not to be confused with:** `disabled` — independent flag, also written by `shopOwnerUpdateStatus` in the same call, never alone.
 **Example:**
 ```ts
@@ -202,7 +204,7 @@ interface IArgs { _id: Types.ObjectId; disabled: boolean; waitApprov: boolean }
 args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
          waitApprov: { type: new GraphQLNonNull(GraphQLBoolean) } }
 ```
-Hotspot, unresolved: schema comment conflates "awaiting approval" with "deleted" in one boolean's doc comment (`shopOwner.js:117-120`, description reads "present and true: awaiting admin approval … or deleted"). Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver found on disk — open question, see `EVENT_STORMING.md` §5 hotspot 1 and §6 open question 3.
+~~Hotspot~~ **closed 2026-08-12** (`EVENT_STORMING.md` §5 hotspot 1, `BOUNDED_CONTEXT.md` §7 q3): a freshly created ShopOwner starts gated when they registered themselves and ungated when an operator created them, and the schema comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. No migration for the rows already on disk — all of them predate the public form, so all of them are Admin-created.
 
 ### onboardingStep / onboardingDone
 **Definition:** Fields read at 3 auth-middleware sites, written by NO mutation found under any `mutations/` dir on the platform.
@@ -253,7 +255,7 @@ Two tiers diverge on delete semantics for an already-retired company: ShopOwner 
 
 ## 8. Collection: `user`
 
-**Definition:** End customer account. Mirrors `shopOwner`'s login shape with 4 deliberate divergences: `personalData` optional, `addresses` an array (not a single embedded address), no `waitApprov`, `defaultAddress` pointer with no counterpart on `shopOwner`.
+**Definition:** End customer account. Mirrors `shopOwner`'s login shape with 3 deliberate divergences: `addresses` an array (not a single embedded address), no `waitApprov`, `defaultAddress` pointer with no counterpart on `shopOwner`. A fourth — `personalData` optional — stopped being a divergence on 2026-08-12, when `shopOwnerRegister` made it optional on `shopOwner` too.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js`.
 
 | Field | Type | Required | Notes |
@@ -515,6 +517,8 @@ A command is an intentional trigger, imperative present tense — almost always 
 | `loginUser` | Customer | `user` | Customer Logged In, Login Refused (unverified/disabled/deleted) | `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`, backed by `tryLoginUser.mts` |
 | `refresh` | any authenticated tier | Redis session | Access Token Rotated, Refresh Refused — Foreign Tier | `BEs/dev/marketplace-dev-user-authenticated-authorization/src/graphQLApi/schema/mutations/refresh.mts` (and its per-tier siblings) |
 | `logout` | any authenticated tier | Redis session | Session Destroyed | `BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts` — ONE service, all 3 tiers |
+| `shopOwnerRegister` | Anon Visitor | `shopOwner` | Shop Owner Registration Requested, Verification Email Sent, Approval Awaited | `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/shopOwnerRegister.mts` — answers `true` on a taken address as well, so it is no account-enumeration oracle |
+| `GET /check/verify-email/:email/:hash` | ShopOwner | `shopOwner` | Email Verified, Verification Hash Rejected | `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:16` — a route of its own rather than a second handler on the customer's: neither flow can tell from an email and a hash which collection minted the pair |
 | `shopOwnerAdd` | Admin | `shopOwner` | Shop Owner Account Created, Duplicate Login Email Rejected | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts` |
 | `shopOwnerUpdateStatus` | Admin | `shopOwner` | Approval Granted/Withheld, Shop Owner Disabled | same dir, `shopOwnerUpdateStatus.mts` |
 | `login` | ShopOwner | `shopOwner` | Shop Owner Logged In, Login Refused (awaiting approval / disabled / deleted) | `BEs/dev/marketplace-dev-public-authorization` |
@@ -545,7 +549,7 @@ A domain event is something that happened, always past tense. Grouped by aggrega
 | Aggregate | Events |
 |---|---|
 | `user` | Customer Registration Requested · Verification Email Sent · Duplicate Email Rejected · Email Verified · Verification Hash Rejected · Customer Logged In · Login Refused — Unverified Email · Login Refused — Disabled/Deleted · Access Token Rotated · Refresh Refused — Foreign Tier · Session Destroyed · Personal Data Filled In · Address Added · Address Updated · Default Address Set · Set Refused — Address Not Owned · Address Deleted · Default Address Pointer Cleared · Password Changed |
-| `shopOwner` | Shop Owner Account Created · Duplicate Login Email Rejected · Shop Owner Approval Granted · Shop Owner Approval Withheld · Shop Owner Disabled · Shop Owner Logged In · Login Refused — Awaiting Approval · Login Refused — Disabled/Deleted · Shop Owner Note Recorded |
+| `shopOwner` | Shop Owner Registration Requested · Verification Email Sent · Shop Owner Account Created · Duplicate Login Email Rejected · Email Verified · Verification Hash Rejected · Shop Owner Approval Granted · Shop Owner Approval Withheld · Shop Owner Disabled · Shop Owner Logged In · Login Refused — Unverified Email · Login Refused — Awaiting Approval · Login Refused — Disabled/Deleted · Shop Owner Note Recorded |
 | `admin` | Admin Logged In |
 | `itemCategory` | Item Category Created · Deep-Nesting Rejected · Duplicate Slug Rejected · Item Category Updated · Item Category Deleted |
 | `item` | Item Added · Add Refused — Company Not Owned · Add Refused — Category Missing · Item Updated · Item Published / Item Unpublished · Item Deleted · Item Published By Admin · Item Unpublished By Admin · Item Deleted By Admin |
@@ -563,6 +567,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | When this happens | This policy fires | Source |
 |---|---|---|
 | Customer Registration Requested | Verification email sent via SocketLabs, wrong-hash attempts counted toward disposing of the registration | `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:18-24` |
+| Shop Owner Registration Requested | Activation mail sent, and `waitApprov: true` written in the same transaction — the account exists from that moment and nobody may log into it until an operator clears the flag | `BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44` |
 | Foreign-Tier Access Token Presented | `assertTier` throws 403, never 401 | `BEs/marketplace-common/src/others/assertTier.mts` |
 | Session hash carries no `tier` field | Treated as invalid, never a wildcard — fail closed | same |
 | Address Deleted, and it was the default | `defaultAddress` `$unset` in the SAME update as the address removal | `funUserAddressDel.mts`, `updatePipeline: true` |
@@ -570,7 +575,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | `itemCategoryAdd`/`Update` given an `idParent` that is itself a subcategory | `throwIfParentNotTopLevel` rejects | `funItemCategoryAdd.mts` |
 | `companyDel` on an already-retired company, ShopOwner tier | 403 — guard filters `deleted` | `throwIfShopOwnerDontOwnCompany` |
 | `companyDel` on an already-retired company, Admin tier | 200 — guard does not filter `deleted` | Admin resource service |
-| ShopOwner logs in while `waitApprov` true | Login refused, generic error shape | login flow |
+| ShopOwner logs in while `waitApprov` true | Login refused, generic error shape — and **after** the email check, so a self-registered seller who has not opened the activation link is refused as unverified rather than as unapproved | `tryLoginShopOwner.mts:39-54` |
 | Any account `deleted` or `disabled` | `checkUserAuthorizationDisDel` gates every authenticated call, all 3 tiers | `BEs/marketplace-common` |
 | Logout, any tier's token | Same Redis keys deleted regardless of which service minted them | `authorizationLogoutHandler.mts:60,74` |
 | `itemAdd`/`itemUpdate` given a nonexistent `idCategory` | `throwIfItemCategoryMissing` rejects — the substitute for a reference nothing enforces | Admin/ShopOwner resource services |
