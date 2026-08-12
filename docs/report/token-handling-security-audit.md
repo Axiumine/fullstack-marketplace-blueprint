@@ -16,6 +16,16 @@ refutation. Every finding marked ✅ below was re-verified by hand at the cited 
 
 ---
 
+⚠️ **Every finding below describes the platform on 2026-08-10 and is never edited afterwards.** This is a
+dated review artefact, not a live checklist: a finding is closed by the epic that remediates it, in that
+epic's own text, and the finding here keeps saying what was true when it was written. Read a finding
+alongside [`phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) before believing it is still
+open — E13, E14 and E15 have each closed several, and an un-annotated finding here means nothing either way.
+The one exception is a finding whose *premise* was wrong at publication, which is corrected in place and
+marked as such; being overtaken by later work is not that.
+
+---
+
 ## 1. Verdict
 
 The **token model** is a good decision, well argued. Opaque UUIDv4 tokens looked up in Redis instead of
