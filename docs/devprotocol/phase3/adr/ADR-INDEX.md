@@ -2,14 +2,18 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.1
-**Date:** 2026-08-10
+**Version:** 1.2
+**Date:** 2026-08-12
 **Author:** adr-agent
 **Changelog:**
 v1.0 - 31 decisions, one per architectural choice this platform stands on
 v1.1 - ADR-032 (production topology, recorded as owed) and ADR-033 (`SameSite=Strict` on the refresh
 cookie) added from the token-handling security audit; two rows added to §4, and §5's topology gap now
 points at the ADR that owns it
+v1.2 - ADR-034 added: the Keygrip pair leaves the five `.env` files for one wrapped record in Redis, a
+service that cannot unwrap it refuses to boot, and rotation becomes an operator mutation. Three rows in
+§4 and one line in §5 — the KEK is the value a secrets manager would take over, so the ADR-032 gap now
+names it
 
 ## 1. How to use this index
 
@@ -61,10 +65,11 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-031 | The fifteen sub-repos are tracked as submodules of the parent workspace | accepted | 2026-08-09 | — | — | Infrastructure and delivery |
 | ADR-032 | The production topology is owed, and no control may assume it | accepted | 2026-08-10 | — | — | Infrastructure and delivery |
 | ADR-033 | `SameSite=Strict` on the refresh cookie, enforced twice | accepted | 2026-08-10 | — | — | Identity and access |
+| ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted | 2026-08-12 | — | — | Identity and access |
 
 ## 3. By area
 
-**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033
+**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034
 
 **Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029
 
@@ -95,12 +100,20 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Encrypt `shopOwner.personalData.firstName` / `lastName` / `address.city` too | ADR-029 | they are the sort keys and `/^term/i` targets of the operator's shop-owner table, and neither CSFLE algorithm survives a sort or a prefix match; encrypting them makes that table silently wrong rather than slow |
 | Switch another field to deterministic so it can be queried | ADR-029 | equal plaintext gives equal ciphertext, which is an equality oracle for anyone holding a read; the five deterministic fields are the ones a login or a verification link must *find*, and the list does not grow for convenience |
 | Narrow the refresh cookie's `path` to the authorization routes | ADR-018 | the root scope is what makes `conf.d/30-cache.conf:32-35` work: nginx decides whether to cache a public catalogue page by whether the request carries `refresh_token`, and a cookie the browser withholds on that path makes a logged-in customer look anonymous — their personalised HTML is then stored and served to the next visitor (NFR-SE09). ADR-018's prose said "scoped to API paths" and was wrong about it; the sentence was corrected, the scope is not to be |
+| Put the Keygrip keys in Redis unwrapped, or drop the `KEYGRIP_KEK` because "Redis is internal" | ADR-034 | the signature is the one layer a Redis read does not already defeat: an attacker holding the session tokens still cannot sign a cookie. Unwrapped keys hand that away, and ADR-032 forbids arguing it back with a network boundary that is not written down anywhere |
+| Give the mint to `marketplace-dev-authenticated-logout` because all three tiers already reach it | ADR-034 | that is the reason not to: it is the one service a customer's traffic touches on every tier, and minting a signing key is an operator act that belongs behind the Admin tier's own resource service |
+| Reintroduce `KEYGRIP_KEY_1`/`_2` into an `env` template "as a fallback" | ADR-034 | a fallback is a second source of truth for the value the whole decision exists to make single, and it fails in the one shape that is invisible — a service that quietly boots on the env pair while the other four follow the record |
 | Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
 
 ## 5. Gaps
 
 Decisions this platform still owes an ADR, once taken:
 
+- **Where a shared secret is provisioned.** ADR-034 takes the Keygrip pair out of five `.env` files and
+  leaves one `KEYGRIP_KEK` in their place, which is a smaller version of the same unanswered question,
+  not an answer to it — `INTROSPECTION_CODE` and `REDIS_PASSWORD` are untouched and still have to be
+  identical across nine files that nothing compares (`INFRA.md` §8 q8). Option E of ADR-034 — a secrets
+  manager — is the destination and cannot be chosen before ADR-032 says where any of this runs.
 - **Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*).
 - **Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus 168 behavioural assertions, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.

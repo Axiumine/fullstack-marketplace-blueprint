@@ -339,6 +339,12 @@ cannot use it and enlarges the unenforced cross-repo agreement set below for not
 | `marketplace-dev-public-resource` | ❌ |
 | `marketplace-dev-user-authenticated-resource` | ❌ |
 
+⚠️ **This table describes the design ADR-034 replaces.** The five ✅ rows become `KEYGRIP_KEK` — one value
+per service instead of two — and the keys themselves move into a wrapped record in Redis that a service
+must be able to unwrap before it will bind a port. The ❌ rows do not change: a resource service signs no
+cookie and gets neither the pair nor the KEK. E01-S12 through E01-S15 carry it; until they land, what is
+written above is what the code does.
+
 Two classes of variable and how they were found to disagree, 2026-08-07 audit:
 
 - **Per-repo, self-consistent** — a wrong value here breaks only that repo's own suite, which then fails
