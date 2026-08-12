@@ -64,10 +64,17 @@ Customer       →   Log Out (logout, shared service)        →   Session Destr
 Sources: `userRegister` mutation — `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/userRegister.mts`. Verify route — `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:25`, a **second route**, not a second handler bound to the same path as the shop-owner variant, because the platform docs itself notes email+hash alone cannot say which collection minted the pair. `loginUser` — `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`, backed by `BEs/dev/marketplace-dev-public-authorization/src/lib/db/login/tryLoginUser.mts`. Refresh — `BEs/dev/marketplace-dev-user-authenticated-authorization/src/graphQLApi/schema/mutations/refresh.mts`. Logout — one shared service for all 3 tiers, `BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts`, resolving through:
 
 ```ts
-// BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:60,74
-const redRefreshSession = await redisClient.hGet(`${process.env.REDIS_KEY}${refreshToken}`, 'id')
-const redAccessSession = await redisClient.hGet(`${process.env.REDIS_KEY}${accessToken}`, '_id')
+// BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:92,106
+const redRefreshSession = await readSessionField(redisClient, refreshToken, '_id')
+const redAccessSession = await readSessionField(redisClient, accessToken, '_id')
 ```
+
+Two things in that pair changed after it was first written down. The key is no longer the token — since
+E13-S01 a session lives under the digest of it, and `readSessionField` is what tries the digest first and
+the raw token second while the pre-cutover sessions drain. And the refresh field was `id` until E15-S01,
+which no writer has ever written: **"Session Destroyed" was an event this platform announced and did not
+produce**, because the lookup missed, the handler answered `throwAlreadyDone`, and both tokens stayed live
+until they expired on their own.
 
 Deletes by token content, tier-blind, on purpose — [`docs/architecture.md`](../../architecture.md) §Services: "one service serves every tier, because its resolver deletes the Redis keys by token content and never asks which collection minted them." `loginUser` refuses an account whose `emailVerify.valid` is false with the same generic error every other failure gets, so login cannot be used as an email-enumeration oracle (`docs/architecture.md` §Auth model).
 

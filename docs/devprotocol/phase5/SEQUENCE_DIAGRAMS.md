@@ -288,13 +288,19 @@ sequenceDiagram
     participant Redis
 
     Any->>LO: logout() — refresh_token cookie + Authorization: Bearer access:<token>
-    LO->>LO: read accessToken from header, refreshToken from signed cookie
-    LO->>Redis: del(REDIS_KEY + access:<accessToken>)
-    LO->>Redis: del(REDIS_KEY + refresh:<refreshToken>)
-    Note over LO,Redis: no hGetAll, no tier field ever read — deletion is by key content alone
-    LO->>Any: clear refresh_token cookie
-    LO-->>Any: {status: true}
-    Note over LO: del on an absent key is a Redis no-op — repeat logout answers the same {status:true}
+    LO->>LO: read accessToken from header, refreshToken from signed cookie (Keygrip-verified)
+    LO->>Redis: hGet(sessionKey(refresh:<token>), '_id') — then the raw key if that misses
+    alt no session under either key shape
+        LO-->>Any: 204 (throwAlreadyDone) — the resolver never runs
+    else session found
+        LO->>Redis: hGet(sessionKey(access:<token>), '_id') — optional, may already have expired
+        LO->>Redis: del(sessionKey(refresh:<token>)) + del(REDIS_KEY + refresh:<token>)
+        LO->>Redis: del(sessionKey(access:<token>)) + del(REDIS_KEY + access:<token>)
+        Note over LO,Redis: both key shapes every time (E13-S02) — the session may predate the cutover
+        LO->>Any: clear refresh_token cookie
+        LO-->>Any: {logout: true}
+    end
+    Note over LO,Redis: no tier field is ever read — the whole path is content-addressed
 ```
 
 **Narrative**
@@ -303,16 +309,21 @@ sequenceDiagram
    port **4030**. The resolver never inspects `tier`; it deletes by the token strings the caller presents.
    `BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts:1-35`
 2. The handler pulls the access token from the `Authorization` header and the refresh token from the same
-   Keygrip-signed cookie every tier writes at login, then issues two `del` calls — no `hGetAll`, so it
-   never learns (or needs) which collection minted the session.
-   `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:1-82`
+   Keygrip-signed cookie every tier writes at login, then reads **one field** of each session hash — `_id`,
+   the identity every writer stores — and never `hGetAll`, so it never learns (or needs) which collection
+   minted the session. `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:78-110`
+
+   ⚠️ **That field read `id` until E15-S01, and nothing writes an `id`.** Every logout therefore missed,
+   took the `throwAlreadyDone` branch, and left both tokens live while answering the caller with success.
+   The diagram above is what the service does now; what it did before was the 204 arm, always.
 3. Consequence documented in [`docs/architecture.md`](../../architecture.md) §Auth model: tier-named logout mutations were evaluated and
    rejected — a single content-addressed delete is simpler and cannot desync from whichever tier the
    session actually belongs to.
-4. **No failure branch tied to tier** — the one deviation from the other diagrams. A `del` on a key that
-   does not exist (already logged out, or expired) is a Redis no-op, not an error; the resolver returns the
-   same `{status: true}` either way, so repeated logout calls are idempotent by construction.
-   `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:1-82`
+4. **No failure branch tied to tier** — the one deviation from the other diagrams. The only refusal is
+   "there is no such session": a second logout finds nothing under either key shape and is answered
+   `throwAlreadyDone` — **204, not `true`** — while a `del` on an access key that has already expired is a
+   Redis no-op inside a successful logout. Both make repeated calls safe; only the first is a refusal.
+   `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:78-110`
 
 ---
 
