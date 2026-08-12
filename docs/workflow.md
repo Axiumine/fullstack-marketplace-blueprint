@@ -210,6 +210,9 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   on every customer refresh while both repos' suites stay green, because each signs and verifies with
   itself. The same holds for `INTROSPECTION_CODE`. **Check with a fingerprint sweep, not by reading
   files.**
+  ⚠️ **For the Keygrip pair this is decided and awaiting code** — ADR-034 moves it into one wrapped Redis
+  record and makes a disagreeing service refuse to boot (E01-S12). `INTROSPECTION_CODE` keeps this
+  warning either way.
 - **Fingerprint, never print.** `sha256(key + ' ' + value)`, first six hex — proves two repos agree
   without putting the secret in a terminal.
 - ⚠️ **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or
