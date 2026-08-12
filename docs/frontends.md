@@ -112,7 +112,7 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 
 | App | Test files | Tests | Mutants killed / timed out / survived |
 |---|---|---|---|
-| `marketplace-admin` | 61 | 825 | 2003 / 7 / 0 |
+| `marketplace-admin` | 62 | 842 | 2053 / 7 / 0 |
 | `marketplace-shopowner` | 40 | 533 | 1083 / 5 / 0 |
 | `marketplace-user` | 72 | 1304 | 2171 / 7 / 0 |
 | `services-status` | 7 | 379 | 1102 / 1 / 0 |
