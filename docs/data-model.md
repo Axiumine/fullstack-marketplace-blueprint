@@ -192,11 +192,33 @@ Everything below is built by `marketplace-common/src/others/sessionKeys.mts` or 
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
 | `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | planned, E14-S02 |
 | `<prefix>family:<familyId>` | a set of that family's session keys | rotation | planned, E14-S03 |
-| `<prefix>idx:<tier>:<accountId>` | account → its sessions | login, rotation | planned, E15-S02 |
+| `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }` | login, rotation | live (E15-S02) |
 
 ⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
 login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
 would look like "Redis lost the sessions" rather than like a bug.
+
+### The account index, in detail
+
+`<prefix>idx:<tier>:<accountId>` is what lets an account enumerate its own sessions without `SCAN` or
+`KEYS` — neither of which this platform may use (BCON-08). Four properties of it are load-bearing, and
+each is a silent failure on its own:
+
+- **The field name is the refresh session's key body**, so a reader rebuilds the key to act on as
+  `${REDIS_KEY}${field}` and never holds a token. A field digested from anything else is still 64 hex
+  characters, still passes a shape check, and names a key that does not exist.
+- **Only the refresh session is filed**, because a session *is* its refresh lineage. The access token
+  minted from a revoked refresh token keeps working until its own expiry — the same residual the
+  `disabled` flag already carries, since that too is only re-checked on refresh.
+- **The tier is in the key name**, not only in the value: three collections mint `_id`s independently, so
+  an index keyed by id alone would let one account's revocation log out a stranger.
+- **The key's TTL is always 30 days** — `SESSION_CAP_DAYS_REMEMBERED`, the *longer* cap — reissued on
+  every write whatever cap the session carries. The shorter one would let a single 1-day login pull the
+  whole key down and orphan a remembered session: live, listed nowhere, missed by any revocation.
+
+`mintedAt` is the lineage's `originalLogin`, carried forward unchanged by rotation, so a session that
+refreshes every fifteen minutes does not read as fifteen minutes old. It carries no token material, and
+nothing else may be added to it without a decision — see E15's §6.
 
 ### Persistence — AOF is on in both environments
 
