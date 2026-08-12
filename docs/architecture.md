@@ -89,7 +89,9 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
 - `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
   calls. Treat as a secret; never log it, never expose it to a browser client.
 - `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `shopOwner`
-  also has `waitApprov` (manual approval gate) and `onboardingStep` / `onboardingDone`. `user` has
+  also has `waitApprov` (manual approval gate, `checkShopOwnerApproval` in marketplace-common — refused
+  at login on 4028 and again on every refresh on 4029, so parking a shop owner ends a session already
+  open within one access-token lifetime) and `onboardingStep` / `onboardingDone`. `user` has
   **no** `waitApprov` — customers self-serve — but `loginUser` refuses an account whose
   `emailVerify.valid` is false, returning the same generic error as every other failure so it cannot be
   used as an enumeration oracle.

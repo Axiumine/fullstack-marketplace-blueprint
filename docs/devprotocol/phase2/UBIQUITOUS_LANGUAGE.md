@@ -192,8 +192,8 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 | `__v` | int | no | |
 
 ### waitApprov
-**Definition:** Manual approval gate. Present and `true` blocks login. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the ONLY mutation that ever writes it, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30`.
+**Definition:** Manual approval gate. Present blocks login **and blocks the refresh of a session already open** — since 2026-08-12 that is enforced rather than merely described (`BOUNDED_CONTEXT.md` §7 q8). Present, not `true`: the field is written by `$set` when raised and removed by `$unset` when cleared, so `false` never reaches the collection and every reader tests existence. `shopOwnerAdd` never sets it at creation, so a new account is ungated; `shopOwnerUpdateStatus` is the ONLY mutation that ever writes it, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30` (the write); `BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`, called from `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029 (the two reads).
 **Not to be confused with:** `disabled` — independent flag, also written by `shopOwnerUpdateStatus` in the same call, never alone.
 **Example:**
 ```ts
