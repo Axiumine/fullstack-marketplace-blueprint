@@ -298,7 +298,7 @@ Every backend service declares `REQUIRED_ENV_VARS` at the top of `src/index.mts`
 
 ```ts
 export const REQUIRED_ENV_VARS = [
-	'PORT', 'KEYGRIP_KEY_1', 'KEYGRIP_KEY_2',
+	'PORT', 'KEYGRIP_KEK',
 	'REDIS_IS_CLUSTER', 'REDIS_DB1_HOST', 'REDIS_DB2_HOST', 'REDIS_DB3_HOST',
 	'REDIS_DB1_PORT', 'REDIS_DB2_PORT', 'REDIS_DB3_PORT',
 	'REDIS_USERNAME', 'REDIS_PASSWORD', 'REDIS_KEY', 'MONGODB_URI'
@@ -320,30 +320,32 @@ Each service's own list differs by concern (resource services additionally requi
 vars; the exact list is per-repo — grep that repo's `src/index.mts`, do not assume the authorization list
 above is universal).
 
-⚠️ **`KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` are in 5 of the 9 lists, not all 9** — the four `*-authorization`
-services and `marketplace-dev-authenticated-logout`, i.e. exactly the services that mint or verify the
-refresh cookie. The four `*-resource` services authenticate over an `Authorization: Bearer` header
-checked against Redis, sign no cookie, and carry neither key in `REQUIRED_ENV_VARS` nor in their `env`
-template. Do not add them back to a resource service: it puts a live signing key on a service that
-cannot use it and enlarges the unenforced cross-repo agreement set below for nothing.
+⚠️ **`KEYGRIP_KEK` is in 6 of the 9 lists, not all 9** — the four `*-authorization` services and
+`marketplace-dev-authenticated-logout`, i.e. exactly the services that mint or verify the refresh cookie,
+**plus `marketplace-dev-admin-authenticated-resource`**, which signs nothing and holds the KEK only so
+`keygripRotate` can open the record and reseal what it writes back (ADR-034, E01-S13). The other three
+`*-resource` services authenticate over an `Authorization: Bearer` header checked against Redis, sign no
+cookie, and carry no keygrip variable in `REQUIRED_ENV_VARS` nor in their `env` template. Do not add one
+back to them: it puts the wrapping key on a service that has nothing to wrap.
 
-| Service | `KEYGRIP_KEY_1`/`_2` required |
-|---|---|
-| `marketplace-dev-admin-authenticated-authorization` | ✅ |
-| `marketplace-dev-authenticated-authorization` | ✅ |
-| `marketplace-dev-public-authorization` | ✅ |
-| `marketplace-dev-user-authenticated-authorization` | ✅ |
-| `marketplace-dev-authenticated-logout` | ✅ |
-| `marketplace-dev-admin-authenticated-resource` | ❌ |
-| `marketplace-dev-authenticated-resource` | ❌ |
-| `marketplace-dev-public-resource` | ❌ |
-| `marketplace-dev-user-authenticated-resource` | ❌ |
+| Service | `KEYGRIP_KEK` required | Why |
+|---|---|---|
+| `marketplace-dev-admin-authenticated-authorization` | ✅ | signs and verifies the refresh cookie |
+| `marketplace-dev-authenticated-authorization` | ✅ | signs and verifies the refresh cookie |
+| `marketplace-dev-public-authorization` | ✅ | signs and verifies the refresh cookie |
+| `marketplace-dev-user-authenticated-authorization` | ✅ | signs and verifies the refresh cookie |
+| `marketplace-dev-authenticated-logout` | ✅ | reads and clears the refresh cookie for all three tiers |
+| `marketplace-dev-admin-authenticated-resource` | ✅ | hosts `keygripRotate` — unwraps and reseals, signs nothing |
+| `marketplace-dev-authenticated-resource` | ❌ | |
+| `marketplace-dev-public-resource` | ❌ | |
+| `marketplace-dev-user-authenticated-resource` | ❌ | |
 
-⚠️ **This table describes the design ADR-034 replaces.** The five ✅ rows become `KEYGRIP_KEK` — one value
-per service instead of two — and the keys themselves move into a wrapped record in Redis that a service
-must be able to unwrap before it will bind a port. The ❌ rows do not change: a resource service signs no
-cookie and gets neither the pair nor the KEK. E01-S12 through E01-S15 carry it; until they land, what is
-written above is what the code does.
+⚠️ **The `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` pair this table used to list is gone from the code** (ADR-034,
+E01-S12). One value per service instead of two, and the keys themselves live in a wrapped record in Redis
+that a service must be able to unwrap before it will bind a port. The five signing services and the
+rotating one refuse to boot without the KEK; the ✅ rows above are therefore verifiable by starting a
+service, which the pair never was. E01-S15 takes the old names out of the `env` templates and the
+remaining prose.
 
 Two classes of variable and how they were found to disagree, 2026-08-07 audit:
 
@@ -351,10 +353,13 @@ Two classes of variable and how they were found to disagree, 2026-08-07 audit:
   loudly. Caught by `checkRequiredEnv` when empty; not caught when merely wrong.
 - **Cross-repo agreement, unenforced by construction** — no test on this platform spans two services
   (`docs/workflow.md` §Environment files), so nothing local verifies these match:
-  - `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` between `marketplace-dev-public-authorization` (signs the customer
+  - ~~`KEYGRIP_KEY_1`/`KEYGRIP_KEY_2`~~ between `marketplace-dev-public-authorization` (signs the customer
     refresh cookie at `loginUser`) and each `*-authenticated-authorization` service (verifies it). A
     mismatch here returned 401 on every customer refresh while both repos' own suites stayed green,
-    because each one signs and verifies with itself.
+    because each one signs and verifies with itself. **Closed by ADR-034 / E01-S12**: the keys are one
+    shared record now, and a service whose `KEYGRIP_KEK` cannot open it refuses to boot. This is the only
+    entry in this list that has moved from *unenforced* to *enforced*, and it is here as the worked
+    example of what closing one costs.
   - `INTROSPECTION_CODE` across all 9 services — the service-to-service bypass header (§5.3 of
     `SYSTEM_CONTEXT.md`) breaks in both directions if it disagrees anywhere.
   - `REDIS_KEY` — must be the **same literal** across all 9 by design (§CON-04,
