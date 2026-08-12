@@ -32,19 +32,25 @@ If it is genuinely new, touch in this order:
 5. resolvers in the resource services
 6. schema slice + codegen in the frontends that read it
 
-## `user` — mirrors `shopOwner`, four deliberate divergences
+## `user` — mirrors `shopOwner`, three deliberate divergences
 
 Builder `lib/schemas/user.js`, reusing `account.js` (`LOGIN`, `RESET_PWD`, `EMAIL_VERIFY`, `DELETED`,
 `DISABLED`, `INDEXES_LOGIN_EMAIL`) and `geo.js`. Required: `login` and `registeredAt` only — **not**
 `personalData`, because registration is email + password and nothing else.
 
-The four divergences are intentional and none of them is an accident to "fix":
+⚠️ **`shopOwner` now requires the same two and no more.** `personalData` left its `required` list on
+2026-08-12, when `shopOwnerRegister` gave the public site a seller registration shaped like the
+customer's — so "optional `personalData`, filled in after the address is confirmed" stopped being a
+divergence and became the rule on both collections. What is still true of `shopOwner` and not of `user`
+is the *shape*: one embedded `personalData.address`, and `contacts` requiring both members.
 
-1. **`personalData` is optional** — filled in after the email is confirmed.
-2. **`addresses` is an array** where `shopOwner` has one `personalData.address`. Each element carries a
+The three divergences are intentional and none of them is an accident to "fix":
+
+1. **`addresses` is an array** where `shopOwner` has one `personalData.address`. Each element carries a
    required `_id`, an optional `label` and the shared address block with an optional `position`.
-3. **No `waitApprov`.** Customers self-serve; there is no manual approval gate.
-4. **`defaultAddress`** has no counterpart at all — see below.
+2. **No `waitApprov`.** Customers self-serve with nothing to approve; a shop owner who self-serves is
+   parked until an operator clears the flag, and one an Admin created is not parked at all.
+3. **`defaultAddress`** has no counterpart at all — see below.
 
 ### `defaultAddress` — a pointer, enforced by the database (ADR-010)
 

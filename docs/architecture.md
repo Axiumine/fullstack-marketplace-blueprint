@@ -92,9 +92,18 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   also has `waitApprov` (manual approval gate, `checkShopOwnerApproval` in marketplace-common — refused
   at login on 4028 and again on every refresh on 4029, so parking a shop owner ends a session already
   open within one access-token lifetime) and `onboardingStep` / `onboardingDone`. `user` has
-  **no** `waitApprov` — customers self-serve — but `loginUser` refuses an account whose
-  `emailVerify.valid` is false, returning the same generic error as every other failure so it cannot be
-  used as an enumeration oracle.
+  **no** `waitApprov` — customers self-serve — but both collections refuse an account whose
+  `emailVerify.valid` is false: `tryLoginUser` inline for `user`, `checkShopOwnerEmailVerified` (in
+  marketplace-common) for `shopOwner`. Both return the same generic error as every other failure, so
+  neither can be used as an enumeration oracle. ⚠️ That check is `=== false`, never `!== true`: an
+  **absent** `emailVerify` means the account was Admin-provisioned and never asked to confirm anything,
+  and collapsing the two would lock out every shop owner created before E03-S08.
+- ⚠️ **A self-registered shop owner carries both flags, and they come down by different hands.** Since
+  E03-S08 the public site has a seller registration (`shopOwnerRegister`, 4027) that writes
+  `waitApprov: true` alongside the unconfirmed address: the activation link clears the verification, an
+  operator clears the approval, and `tryLoginShopOwner` checks them in that order — verification first,
+  because it is the one the person at the keyboard can act on. `shopOwnerAdd` on the Admin service writes
+  no `waitApprov` at all, deliberately: an operator creating the account by hand *is* the approval.
 - Passwords: bcrypt via `@node-rs/bcrypt`, `SALT_ROUNDS=14`.
 
 ### Per-tier session assertion (ADR-004)

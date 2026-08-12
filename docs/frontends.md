@@ -61,7 +61,16 @@ The customer app, and the only server-rendered thing on the platform. TanStack S
 + TanStack Router SSR) · urql · graphql-codegen `client-preset` · react-hook-form + zod · Tailwind 4 ·
 MapLibre GL 6 + Protomaps PMTiles as a dynamically-imported island · Sentry.
 
-Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The four that matter from outside:
+Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that matter from outside:
+
+- ⚠️ **This app carries both of the platform's registrations, and they are two pages on purpose.**
+  `/register` writes a `user` through `userRegister`; `/register/seller` writes a `shopOwner` through
+  `shopOwnerRegister`, both on public-resource (4027). Nothing moves an account between the two
+  collections (ADR-002 — the role *is* the collection), so a seller who fills in the customer form has
+  spent their address on an account they cannot trade from. Each page therefore links to the other, and
+  the footer offers both. The seller's page deliberately has **no** sign-in link: `/login` here
+  authenticates against `user` and would refuse a shop owner with a wrong-password error, so their way
+  in is the link in the activation mail, to an app on another origin.
 
 - ⚠️ **Public routes are SSR, `/account/*` is `ssr: false`, and that pairing is a security boundary**
   (ADR-018). Rendering authenticated HTML on a server behind a shared `proxy_cache` is how one
@@ -103,7 +112,7 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 
 | App | Test files | Tests | Mutants killed / timed out / survived |
 |---|---|---|---|
-| `marketplace-admin` | 51 | 765 | 1783 / 6 / 0 |
+| `marketplace-admin` | 61 | 825 | 2003 / 7 / 0 |
 | `marketplace-shopowner` | 40 | 533 | 1083 / 5 / 0 |
-| `marketplace-user` | 67 | 1170 | 2028 / 6 / 0 |
+| `marketplace-user` | 72 | 1304 | 2171 / 7 / 0 |
 | `services-status` | 7 | 379 | 1102 / 1 / 0 |

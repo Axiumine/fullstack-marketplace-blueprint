@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-12: the ShopOwner actor row said they register through `marketplace-shopowner`, which has no
+registration screen and never had one. E03-S08 built the flow on the public SSR app instead — corrected to
+the two real creation paths.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
 
@@ -82,7 +85,7 @@ graph TB
 |---|---|---|
 | Anonymous visitor | no session | reads public SSR routes on `marketplace-user` (`/`, `/shops`, `/shop/:slug`, `/category/:slug`) — GraphQL over the public-resource service, no auth token |
 | User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything — no cart or order model exists |
-| ShopOwner | shop owner, `shopOwner` collection | registers via `marketplace-shopowner`, waits on `waitApprov` from an Admin, manages own `company` document(s) and `item` catalogue |
+| ShopOwner | shop owner, `shopOwner` collection | arrives one of two ways — self-registers at `/register/seller` on the **public** app `marketplace-user` and waits on `waitApprov`, or is provisioned by an Admin through `shopOwnerAdd` and waits on nothing. Then confirms the email, logs in on `marketplace-shopowner`, manages own `company` document(s) and `item` catalogue. ⚠️ `marketplace-shopowner` has **no registration screen** — it is the panel you reach once you have an account |
 | Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
 | Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 

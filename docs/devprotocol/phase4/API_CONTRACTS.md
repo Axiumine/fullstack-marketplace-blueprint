@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
+write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
+serves follow from it; the operator's read of `personalData` is now nullable.
 
 ---
 
@@ -103,7 +106,7 @@ placeholder file, never the real `.env`.
 | Service | Port | Tier | Concern | Confirmed |
 |---|---|---|---|---|
 | `marketplace-dev-public-authorization` | 4028 | public (anonymous) | `login`, `loginAdmin`, `loginUser` | `env:1` |
-| `marketplace-dev-public-resource` | 4027 | public (anonymous) | public catalogue reads, customer registration, verify-email | `env:1` |
+| `marketplace-dev-public-resource` | 4027 | public (anonymous) | public catalogue reads, **both** registrations (customer and shop owner), verify-email | `env:1` |
 | `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | token lifecycle | `env:1` |
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | domain data, item/company CRUD, uploads | `env:1` |
 | `marketplace-dev-authenticated-logout` | 4030 | **all three** | logout | — (not re-verified this pass; per [`docs/architecture.md`](../../architecture.md) §Services) |
@@ -197,17 +200,20 @@ Root files: `src/graphQLPublic/schema/{queries,mutations}.mts` (confirmed — th
 resolver** — nothing upstream of this service bounds it, since no auth middleware runs here
 (`schema/queries.mts:20-23`).
 
-**Mutations — customer registration + both tiers' password-reset pair:**
+**Mutations — both registrations + both tiers' password-reset pair:**
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
 | `userRegister` | `email: String!`, `password: String!`, `repeatPassword: String!`, `turnstileToken: String` | `Boolean!` | Registers a new `User`, sends the activation link; rate-limited + Turnstile-gated | `mutations/userRegister.mts:50-58` |
+| `shopOwnerRegister` | `email: String!`, `password: String!`, `repeatPassword: String!`, `turnstileToken: String` | `Boolean!` | Registers a new `ShopOwner` **with `waitApprov: true`**, sends the activation link; rate-limited (own `shopOwnerRegister` bucket, 3/email/hour) + Turnstile-gated | `mutations/shopOwnerRegister.mts:61-70` |
 | `userVerifyEmailResend` | `email: String!`, `turnstileToken: String` | `Boolean!` | Re-sends the customer activation link; rate-limited + Turnstile-gated | `mutations/userVerifyEmailResend.mts:46-51` |
 | `userResetPwd` | `email: String!`, `turnstileToken: String` | same type as `resetPwd` below (`boundResetPwd.type`) | Sends a customer password-reset link (mails on `APP_DOMAIN_USER`); rate-limited + Turnstile-gated | `mutations/userResetPwd.mts:37-42` |
 | `userUpdatePwd` | `email: String!`, `hash: String!`, `password: String!`, `turnstileToken: String` | same type as `updatePwd` below (`boundUpdatePwd.type`) | Confirms a customer password reset | `mutations/userUpdatePwd.mts:37-44` |
 | `resetPwd` | mirrors `userResetPwd` minus `turnstileToken` (the ShopOwner pair is still not Turnstile-gated — `mutations.mts:23-28`) | bound from `resetPwdFlow.mjs` | Sends a `ShopOwner` password-reset link (mails on `APP_DOMAIN`); **not** rate-limited or Turnstile-gated | `schema/mutations.mts:3,21` |
 | `updatePwd` | mirrors `userUpdatePwd` minus `turnstileToken` | bound from `resetPwdFlow.mjs` | Confirms a `ShopOwner` password reset | `schema/mutations.mts:3,22` |
 | `publicMutNoArgs`, `publicMutArgs` | — | — | Smoke-test mutations | `schema/mutations.mts:16-17` |
+
+⚠️ **Both registrations answer `Boolean!` and answer `true` whatever happened**, including on an address that already has an account. A 409 would turn either into an account-enumeration oracle anybody may query one address at a time; the three outcomes differ only in what lands in the inbox. `shopOwnerRegister` never reports the approval state either — the caller cannot tell a queued account from a fresh one. The seller flow has **no** resend mutation to pair with `userVerifyEmailResend`: submitting the form again re-mints the hash and re-sends, which is the recovery path for a mail that never arrived, and the seller has no account area to press a button in until they are approved.
 
 Two collections, two flows, never one dispatching on an argument: "an email plus a hash says nothing
 about which [collection]" (`schema/mutations.mts:18-20`). `resetPwd`/`updatePwd` are now the only two
@@ -371,7 +377,7 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | `shopOwnersActiveTbl` | `offset: Int! = 0`, `limit: Int! = SHOP_OWNERS_TBL_DEFAULT_LIMIT`, `search: String`, `sortBy: ShopOwnersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLShopOwnersActiveTblPage!` | Paginated, searchable, sortable shopOwner table | `schema/queries/shopOwnersActiveTbl.mts:10,15-22` |
 | `shopOwnersStats` | none | `Int!` | Aggregate shopOwner count | `schema/queries/shopOwnersStats.mts:6` |
 | `shopOwnersPerPeriod` | `period: ShopOwnersPeriod! = ALL` | `GraphQLShopOwnersPerPeriod!` | Time-bucketed signup stats | `schema/queries/shopOwnersPerPeriod.mts:8,18-19` |
-| `shopOwnerById` | `idShopOwner: ID!` | `GraphQLShopOwnerById!` | One shopOwner, any of them — no ownership filter on this tier | `schema/queries/shopOwnerById.mts:11,13-14` |
+| `shopOwnerById` | `idShopOwner: ID!` | `GraphQLShopOwnerById!` | One shopOwner, any of them — no ownership filter on this tier. ⚠️ Its `personalData` is **nullable** since 2026-08-12: a self-registered seller has none until onboarding, and a `NonNull` field would have made every such account a hard GraphQL error rather than a row with blanks | `schema/queries/shopOwnerById.mts:11,13-14` |
 | `shopOwnerCompanies` | `idShopOwner: ID!` | `[GraphQLCompany!]!` | Companies owned by one shopOwner | `schema/queries/shopOwnerCompanies.mts:17,19-20` |
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Catalogue entries of one company | `schema/queries/companyItems.mts:19,21-22` |
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Full two-level category tree | `schema/queries/itemCategories.mts:18` |
@@ -383,7 +389,7 @@ Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
 | `adminUpdatePwd` | `passwordOld: String!`, `passwordNew: String!` | `Boolean!` | Operator changes their own password — id from the session, never from the client | `schema/mutations/adminUpdatePwd.mts:12,13-16` |
-| `shopOwnerAdd` | `login: GraphQLInputLogin!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Operator provisions a shop owner; input validated *and normalised* before the write | `schema/mutations/shopOwnerAdd.mts:17,18-21` |
+| `shopOwnerAdd` | `login: GraphQLInputLogin!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Operator provisions a shop owner; input validated *and normalised* before the write. **Writes no `waitApprov`** — creating the account by hand is the approval, and routing these through the queue would leave it permanently full of accounts nobody is waiting on. `personalData` stays `NonNull` here even though the collection no longer requires it: an operator filling in a form has the details in front of them | `schema/mutations/shopOwnerAdd.mts:17,18-21` |
 | `shopOwnerUpdate` | `_id: ID!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Replaces one shopOwner's registry data | `schema/mutations/shopOwnerUpdate.mts:14,15-18` |
 | `shopOwnerUpdateEmail` | `_id: ID!`, `email: String!` | `Boolean!` | Changes the login email — the unique-index key | `schema/mutations/shopOwnerUpdateEmail.mts:20,21-24` |
 | `shopOwnerUpdateNote` | `_id: ID!`, `notes: String!` | `Boolean!` | Operator-private annotation on a shop owner | `schema/mutations/shopOwnerUpdateNote.mts:24,25-28` |

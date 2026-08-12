@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-12
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.1 - 2026-08-12: E03-S08 built the self-service registration §2.2 recorded as absent. That flow, its
+activation route and the events they produce are added; hotspots 1 and 3 and questions 1 and 3 close.
+Hotspot 2 stays open but stops claiming no mutation writes the onboarding fields — `shopOwnerUpdatePreferences`
+does, by an operator's hand, which is exactly the gap the hotspot is about.
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Mutability:** living document — refine as domain understanding evolves
 
@@ -70,24 +74,34 @@ Deletes by token content, tier-blind, on purpose — [`docs/architecture.md`](..
 ### 2.2 Shop owner account provisioning, approval, onboarding, session lifecycle
 Aggregate: `shopOwner`
 
-Finding: no self-service `shopOwnerRegister` mutation exists on this platform — grepped every mutation directory across all 9 backend services, none named it. The only account-creation path is Admin-initiated.
+~~Finding: no self-service `shopOwnerRegister` mutation exists on this platform — grepped every mutation directory across all 9 backend services, none named it. The only account-creation path is Admin-initiated.~~
+
+**Superseded 2026-08-12 by E03-S08.** There are now two creation paths and they differ in exactly one write: `shopOwnerRegister` on `marketplace-dev-public-resource` raises `waitApprov`, `shopOwnerAdd` on the Admin service does not. A stranger may ask to become a shop owner; only an operator makes them one. The customer's registration (§2.1) has no such gate, which is the difference between opening an account and entering a commercial relationship.
 
 ```
 SHOP OWNER PROVISIONING & APPROVAL
 ────────────────────────────────────────────────────────────────────────────────────────
 Actor       Command                                     Domain Event
 ────────────────────────────────────────────────────────────────────────────────────────
+Anon    →   Register As Shop Owner (shopOwnerRegister) →  Shop Owner Registration Requested
+                                                        →   Verification Email Sent
+                                                        →   (waitApprov: true — nobody may log in yet)
+ShopOwner → Open Activation Link                       →   Email Verified
+              (GET /check/verify-email/:email/:hash)   →   Verification Hash Rejected
 Admin   →   Add Shop Owner (shopOwnerAdd)             →   Shop Owner Account Created
                                                         →   Duplicate Login Email Rejected
 Admin   →   Set Status (shopOwnerUpdateStatus)        →   Shop Owner Approval Granted (waitApprov→false)
                                                         →   Shop Owner Approval Withheld (waitApprov→true)
                                                         →   Shop Owner Disabled
 ShopOwner → Log In (login)                             →   Shop Owner Logged In
+                                                        →   Login Refused — Unverified Email
                                                         →   Login Refused — Awaiting Approval
                                                         →   Login Refused — Disabled/Deleted
 ShopOwner → Refresh Session (refresh)                  →   Access Token Rotated
 ShopOwner → Log Out (logout, shared service)           →   Session Destroyed
 ```
+
+⚠️ **The two refusals are ordered, and the order is the answer to "why was I refused?"** `tryLoginShopOwner` checks `emailVerify.valid === false` before `waitApprov`, so a self-registered seller who has not opened the activation link is told their address is unconfirmed rather than that they are queued. `=== false`, never `!== true`: an *absent* `emailVerify` is what every Admin-provisioned account has, and treating absent as unverified would lock out every shop owner created before 2026-08-12.
 
 `shopOwnerAdd` mints `_id` itself and stamps `registeredAt`, but sets no `waitApprov` at all:
 
@@ -101,7 +115,7 @@ const doc: IShopOwnerSchema = {
 }
 ```
 
-`shopOwnerUpdateStatus` is the only mutation that ever writes `waitApprov`, and it always sends both toggles together as non-null booleans — a deliberate full-state save, not a partial patch, "because the one thing a partial update of these two cannot express is turning a flag off":
+`shopOwnerUpdateStatus` is the only mutation that ever *clears* `waitApprov` — since E03-S08 `registerNewShopOwner.mts:44` raises it, on the public service, and nothing else writes the field on either side. It always sends both toggles together as non-null booleans — a deliberate full-state save, not a partial patch, "because the one thing a partial update of these two cannot express is turning a flag off":
 
 ```ts
 // BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30
@@ -112,7 +126,7 @@ args: {
 }
 ```
 
-`onboardingStep` / `onboardingDone` are read, not written, at every auth-middleware site found: `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`. No mutation under any `mutations/` directory on the platform sets either field — flagged as a hotspot, §5.
+`onboardingStep` / `onboardingDone` are read, not written, at every auth-middleware site found: `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`. The one writer is `shopOwnerUpdatePreferences` on the Admin service — an operator typing a step in by hand. Nothing advances either field as a side effect of a shop owner doing anything, which is what §5 hotspot 2 is about and what E03-S08 made urgent: an approved self-registered account arrives with a login and nothing else, so onboarding is now the flow between an approval and a shop.
 
 ### 2.3 Admin session, moderation, itemCategory taxonomy
 Aggregate: `admin`, `itemCategory`, `shopOwner` (moderation target), `item` (moderation target)
@@ -350,9 +364,9 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 
 | # | Hotspot | Description |
 |---|---|---|
-| 1 | `waitApprov` field semantics | Schema comment reads "present and true: awaiting admin approval (flagged by telepromoter) or deleted" (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js`) — conflates an approval-pending state with a deletion state in one boolean's own doc comment. `shopOwnerAdd` never sets it at creation; `shopOwnerUpdateStatus` is the only writer. Whether a freshly created ShopOwner starts gated or ungated is not evidenced by any resolver examined. |
-| 2 | `onboardingStep` / `onboardingDone` advancement | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts` — no mutation under any `mutations/` directory on the platform writes either field. Either derived from other state (e.g. presence of a `company` document) with no single write site, or the write path exists outside the directory convention every other resolver here follows. |
-| 3 | No self-service shop-owner registration | Every `ShopOwner` account today is Admin-provisioned via `shopOwnerAdd`. A public self-registration flow, if ever wanted, is new scope — not a bug in an existing one. |
+| 1 | ~~`waitApprov` field semantics~~ **Closed 2026-08-12 by E03-S08** | The comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. A freshly created ShopOwner starts gated or ungated **depending on who created it**: `shopOwnerRegister` writes `true`, `shopOwnerAdd` writes nothing. Which mutation ran is the whole meaning of the flag. No backfill was needed — every document on disk predates the public form. |
+| 2 | `onboardingStep` / `onboardingDone` advancement | **Still open, and E03-S08 raised the stakes.** Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`; written only by `shopOwnerUpdatePreferences`, an Admin typing a value in. Nothing advances either field as a side effect of the shop owner's own progress. A self-registered account is approved with an empty `personalData` and no company, so the flow that would collect them is the flow that would move this counter — and it does not exist. |
+| 3 | ~~No self-service shop-owner registration~~ **Closed 2026-08-12 by E03-S08** | Built as `shopOwnerRegister` on `marketplace-dev-public-resource`, with `/register/seller` on `marketplace-user` in front of it. Admin-provisioning stayed: it is the route for a shop the platform recruited, and it skips the approval queue for that reason. |
 | 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
 | 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | [`docs/frontends.md`](../../frontends.md) documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
 | 6 | Commerce vocabulary (§2.9) | Named for glossary readiness only. Zero collection, zero resolver, zero migration exists. Do not treat presence in this document as scope. |
@@ -363,9 +377,9 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Does self-service shop-owner registration ever get built, or does Admin-provisioning stay permanent? | Product | Open |
-| 2 | What advances `onboardingStep`, and where does that write live? | Platform dev | Open |
-| 3 | Is `waitApprov`'s state at account creation "approved" or "pending" by default? | Platform dev | Open |
+| 1 | ~~Does self-service shop-owner registration ever get built, or does Admin-provisioning stay permanent?~~ | Product | **Closed 2026-08-12 (E03-S08) — built, and the two coexist.** |
+| 2 | What advances `onboardingStep`, and where does that write live? Nothing but an operator's hand, today — see hotspot 2 | Platform dev | Open |
+| 3 | ~~Is `waitApprov`'s state at account creation "approved" or "pending" by default?~~ | Platform dev | **Closed 2026-08-12 (E03-S08) — neither is a default: pending when the seller registered themselves, approved when an operator created them.** |
 | 4 | When order/cart/payment/delivery design work starts, who signs off the first schema? | Product + platform dev | Open |
 | 5 | Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item? | Platform dev | Open |
 | 6 | What `idShopOwner` does an Admin-created `company` document get, absent an owning ShopOwner having created it first? | Platform dev | Open |

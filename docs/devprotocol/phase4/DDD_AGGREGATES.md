@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-07
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
@@ -11,6 +11,12 @@
 v1.1 - 2026-08-12: §10 question 6 closed — Conformist by design and permanent, no ACL for either
 aggregate. One `$jsonSchema` builder per collection is a Shared Kernel; the gap was field scope, and
 E01-S10 / CON-12 closes it with a named list plus lint rather than a mapper.
+v1.2 - 2026-08-12: `ShopOwnerAggregate` changes shape with E03-S08. `personalData` is **no longer required
+at creation** — completeness became a lifecycle stage rather than a creation invariant, which is what a
+self-registered account needs in order to exist before onboarding — and `shopOwnerRegister` joins the
+aggregate's commands as its only anonymous writer. §10 question 1 closes: a `ShopOwner` starts gated when
+they registered themselves and ungated when an operator created them. §6's and §7's tables are corrected in
+the same pass; both said `personalData` was required and one said nothing enforced the gating default.
 
 ---
 
@@ -76,25 +82,25 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 ### ShopOwnerAggregate
 
 **Root entity:** `ShopOwner` — collection + Mongoose model `BEs/marketplace-common/src/models/MongoDB/ShopOwner.mts`, validator `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`.
-**Bounded context:** primary **BC-03** (Shop Owner Onboarding & Approval) — BC-03 governs the account's lifecycle (`shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerUpdateNote`/`shopOwnerUpdatePreferences`, all four in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`). **BC-01** (Identity & Access) also touches this same document — it reads `login`/`resetPwd`/`emailVerify` and ⚠️ **does not read `waitApprov`**, contrary to what this line said until 2026-08-12 (`BOUNDED_CONTEXT.md` §7 q8). This is not a clean single-BC ownership: `phase2/BOUNDED_CONTEXT.md` §1/§4/§6 names it "Conformist" — since 2026-08-12 *by design and permanently*, because one `$jsonSchema` builder plus one Mongoose model is a Shared Kernel and there is no second model to translate to. One aggregate, one document, two contexts reaching into different sub-documents of it; the shape is kept honest by the shared builder and the field scope by E01-S10 / CON-12, which refuse `notes` and `waitApprov` in every ShopOwner-tier repo at lint time.
+**Bounded context:** primary **BC-03** (Shop Owner Onboarding & Approval) — BC-03 governs the account's lifecycle (`shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerUpdateNote`/`shopOwnerUpdatePreferences`, all four in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`, plus `shopOwnerRegister` on the public service since E03-S08). **BC-01** (Identity & Access) also touches this same document — it reads `login`/`resetPwd`/`emailVerify`, and ⚠️ **it does read `waitApprov`**: this line denied that for the few hours between `BOUNDED_CONTEXT.md` §7 q8 opening and E01-S11 closing it, and the gate has existed since (see the invariant below). This is not a clean single-BC ownership: `phase2/BOUNDED_CONTEXT.md` §1/§4/§6 names it "Conformist" — since 2026-08-12 *by design and permanently*, because one `$jsonSchema` builder plus one Mongoose model is a Shared Kernel and there is no second model to translate to. One aggregate, one document, two contexts reaching into different sub-documents of it; the shape is kept honest by the shared builder and the field scope by E01-S10 / CON-12, which refuse `notes` and `waitApprov` in every ShopOwner-tier repo at lint time.
 **Boundary:** one `shopOwner` document. Everything inside `required`/`properties` of the validator's `$jsonSchema` block is inside the transaction; nothing outside the document is.
 
 **Entities and value objects:**
 | Name | Type | Description |
 |---|---|---|
 | `ShopOwner` | Root entity | `login`/`resetPwd`/`emailVerify` sub-docs (shared `LOGIN`/`RESET_PWD`/`EMAIL_VERIFY` shapes, `BEs/marketplace-db-setup/lib/schemas/account.js`), `waitApprov`, `notes`, `onboardingStep`/`onboardingDone`, `disabled`, `deleted` |
-| `PersonalData` | Value object | required at creation: `firstName`, `lastName`, `birth.date`, `address` (GeoJSON `position` optional), `contacts` (requires BOTH `mobile` and `email`) — `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` |
+| `PersonalData` | Value object | **optional at creation since 2026-08-12**, all-or-nothing once present: `firstName`, `lastName`, `birth.date`, `address` (GeoJSON `position` optional), `contacts` (requires BOTH `mobile` and `email`) — `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` |
 
 **Invariants:**
 - `login.email` unique across the collection — `INDEXES_LOGIN_EMAIL` (shared shape from `account.js`).
-- `personalData` (with nested `contacts.mobile`/`contacts.email`) is REQUIRED at document creation — `shopOwner.js:38-40,51-56,85-88`. ⚠️ The Mongoose model disagrees: it declares `personalData.birth.date` and omits `contacts` entirely. The `$jsonSchema` validator wins on every write — a mongoose-only field with no validator entry is silently rejected (`additionalProperties: false`).
+- ⚠️ **`personalData` left the validator's `required` list on 2026-08-12** (E03-S08), and everything inside it stayed required: `required: ['login', 'registeredAt']`, so a `shopOwner` is now writable from a login alone, and a half-filled `personalData` is still a rejected write. `shopOwnerRegister` is why — a stranger signing themselves up gives an address and a password, and the name, the date of birth, the home address and the contacts arrive at onboarding or not at all. This makes the aggregate's completeness a **lifecycle stage** rather than a creation invariant, and every reader of `shopOwner.personalData` has to treat it as absent-able: both operator-facing GraphQL types dropped their `NonNull` in the same change, having turned one pending registration into a whole-page error. ⚠️ The Mongoose model disagrees on the block's *contents*: it declares `personalData.birth.date` and omits `contacts` entirely. The `$jsonSchema` validator wins on every write — a mongoose-only field with no validator entry is silently rejected (`additionalProperties: false`).
 - **`waitApprov: true` blocks login, and blocks a refresh of a session already open.** It did not for most of this document's life: the flag was written and displayed and read by nothing, which is what `BOUNDED_CONTEXT.md` §7 q8 recorded and then closed. The gate is `checkShopOwnerApproval` (`BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`), called by `tryLoginShopOwner` (4028) after the password check — before it, the refusal would answer "is this account parked?" to anyone who knows the address — and by `tokenInfoShopOwner` (4029) on every rotation. `resetPwdFlow` still ignores it, deliberately: a parked shop owner may reset a password they cannot then use, and refusing there would leak account state to an unauthenticated caller. ⚠️ The flag is truthy-or-absent, never `false` — `funShopOwnerUpdateStatus` `$unset`s it — so every reader tests presence, not equality.
 - `disabled`/`deleted` gate every authenticated call, all tiers, via `checkUserAuthorizationDisDel` (`BEs/marketplace-common/src/others/checkUserAuthorizationDisDel.mts`).
 - `shopOwnerUpdateStatus` writes `disabled` and `waitApprov` together as one full-state `$set`, never a partial patch (`BEs/dev/marketplace-dev-admin-authenticated-resource/.../shopOwnerUpdateStatus.mts:29-30`) — this is a design choice about the write shape, not a DB-enforced rule.
-- Whether a freshly created `ShopOwner` starts gated (`waitApprov`) or ungated is **unresolved on disk** — `shopOwnerAdd` never sets the field at creation (`EVENT_STORMING.md` §5 hotspot 1). Nothing enforces an answer either way.
+- A freshly created `ShopOwner` starts **gated when they created themselves and ungated when an operator created them** — `shopOwnerRegister` writes `waitApprov: true` (`BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44`), `shopOwnerAdd` writes nothing. Resolved 2026-08-12 by E03-S08; `EVENT_STORMING.md` §5 hotspot 1 is closed with it, and no migration was needed because every row on disk predates the public form.
 - `onboardingStep`/`onboardingDone` are read in three places (`tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`) but **no mutation on the platform writes either field** (`EVENT_STORMING.md` §5 hotspot 2) — an invariant with a read side and no discoverable write side.
 
-**Commands (mutate this aggregate):** `shopOwnerAdd`, `shopOwnerUpdateStatus`, `shopOwnerUpdateNote`, `shopOwnerUpdatePreferences` (all Admin tier, `marketplace-dev-admin-authenticated-resource`); `login`/refresh writes touch `login.lastLogin` (authorization services).
+**Commands (mutate this aggregate):** `shopOwnerAdd`, `shopOwnerUpdateStatus`, `shopOwnerUpdateNote`, `shopOwnerUpdatePreferences` (all Admin tier, `marketplace-dev-admin-authenticated-resource`); `shopOwnerRegister` (**anonymous**, `marketplace-dev-public-resource` — the only unauthenticated writer of this aggregate, and the only one that creates a document nobody at the platform has seen); `login`/refresh writes touch `login.lastLogin` (authorization services).
 
 **Events emitted:** Shop Owner Account Created, Duplicate Login Email Rejected, Shop Owner Approval Granted, Shop Owner Approval Withheld, Shop Owner Disabled, Shop Owner Note Recorded, Shop Owner Logged In, Login Refused (`UBIQUITOUS_LANGUAGE.md` §15, `EVENT_STORMING.md` §2.2/§2.4).
 
@@ -329,9 +335,9 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | Invariant | Aggregate | Enforced where | What breaks if violated |
 |---|---|---|---|
 | `login.email` unique | ShopOwner, Company (`certifiedEmail`), User, Admin | unique index (`INDEXES_LOGIN_EMAIL`, `account.js`) | Insert rejected by MongoDB with a duplicate-key error |
-| `personalData` (+ `contacts.mobile`/`contacts.email`) required at creation | ShopOwner | `$jsonSchema` validator, `shopOwner.js:38-88` | Insert rejected — the Mongoose model alone would NOT catch this (DCON-01: model omits `contacts`) |
+| `personalData` all-or-nothing — **optional at creation** since E03-S08, complete once written (`firstName`, `lastName`, `birth.date`, `address`, and BOTH `contacts.mobile` and `contacts.email`) | ShopOwner | `$jsonSchema` validator, `shopOwner.js` | Insert rejected — the Mongoose model alone would NOT catch this (DCON-01: model omits `contacts`). Its *absence* is now legal, which is what lets a self-registration exist before onboarding |
 | `waitApprov: true` blocks login | ShopOwner | resolver (`checkShopOwnerApproval`, called by `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029) | **Nothing at the schema level** — a resolver that forgot the check, or a projection that quietly stopped naming the field, would let a gated account log in. What holds it is a test per call site asserting the projection names `waitApprov`, plus an integration test that seeds a real parked document and expects 401 |
-| Fresh `ShopOwner` starts gated vs ungated | ShopOwner | **nothing** — `shopOwnerAdd` never sets `waitApprov` | Unresolved on disk; behaviour depends on whatever default MongoDB gives an absent boolean field, which is "absent," not "false" |
+| Fresh `ShopOwner` starts gated vs ungated | ShopOwner | the two creation resolvers, and nothing below them — `shopOwnerRegister` writes `waitApprov: true`, `shopOwnerAdd` writes nothing | Resolved by E03-S08, but held by resolver code alone: a self-registration that stopped writing the flag would create an account that can log in the moment it confirms its address. The test that holds it asserts the written document, not the mutation's `true` |
 | `onboardingStep`/`onboardingDone` advancement | ShopOwner | **nothing found** — read in 3 places, written by no discovered mutation | Fields may be permanently stale; no resolver was found that could ever change them |
 | `PUBLISHED_IMPLIES_LINKABLE` | Company | `$expr` validator, `company.js:88-100` | Insert/update rejected by MongoDB |
 | `vatNumber`/`certifiedEmail`/`slug` stay occupied after soft delete | Company | unique index, no `partialFilterExpression` | A retired company's vatNumber can never be re-registered by anyone — deliberate, not a bug (ADR-011) |
@@ -358,11 +364,11 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 
 | Enforcement layer | Invariants held there |
 |---|---|
-| `$jsonSchema` (required fields, types, `additionalProperties: false`) | field presence/shape/absence on every collection; e.g. `personalData` required on `shopOwner` but not `user`, no `price` on `item` |
+| `$jsonSchema` (required fields, types, `additionalProperties: false`) | field presence/shape/absence on every collection; e.g. `personalData` optional on both `shopOwner` and `user` but complete once written, no `price` on `item` |
 | `$expr` (cross-field, single-document) | `PUBLISHED_IMPLIES_LINKABLE` on `Company`; `DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES` on `User` |
 | Unique index | `login.email`, `vatNumber`, `certifiedEmail`, `company.slug`, `itemCategory.slug`, `item.{idCompany,slug}` |
 | Resolver guard (cross-document read before write) | `idShopOwner`/`idCompany`/`idCategory` FK existence and ownership; `itemCategory` depth cap; `waitApprov` login gate; `disabled`/`deleted` gate |
-| **Nothing** | fresh-`ShopOwner` gated/ungated default; `onboardingStep`/`onboardingDone` advancement; `item.published` concurrent-writer race; Admin `idShopOwner` stamping on Admin-created companies; `Admin` account provisioning |
+| **Nothing** | `onboardingStep`/`onboardingDone` advancement; `item.published` concurrent-writer race; Admin `idShopOwner` stamping on Admin-created companies; `Admin` account provisioning |
 
 **ADR-010's pattern is the one to repeat, not merely the one `User.defaultAddress` happens to use.** The `$expr` approach makes a second default **inexpressible**, not merely rejected on write — there is no code path, buggy or otherwise, that can leave two `addresses[]` elements simultaneously "the default," because there is no per-element boolean to set twice. Compare this to `itemCategory`'s depth cap (§3, DCON-05): that invariant is only ever "checked," never "inexpressible" — a `$jsonSchema` genuinely cannot read a sibling document, so the guarantee is exactly as strong as the discipline of confining every write path to one resolver, in one service. Where a future aggregate needs an "at most one X" or "exactly one Y" rule, model it as a single pointer/field whose absence is legal rather than as a flag repeated per element — the DB can hold the first shape and can only ever police the second.
 
@@ -401,7 +407,7 @@ Each of these needs its own ADR before it gets an aggregate boundary — not a s
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Does a freshly created `ShopOwner` start with `waitApprov` true or false/absent? `shopOwnerAdd` was not found setting the field. | Backend (Admin resource service) | Open — `EVENT_STORMING.md` §5 hotspot 1. Since 2026-08-12 the answer has teeth: the flag now gates login, and absent means ungated, so a new account is usable the moment it has a password unless an operator parks it by hand |
+| 1 | Does a freshly created `ShopOwner` start with `waitApprov` true or false/absent? `shopOwnerAdd` was not found setting the field. | Backend (Admin resource service) | **Closed 2026-08-12 by E03-S08 — it depends on the creation route.** `shopOwnerRegister` (public, 4027) writes `true`; `shopOwnerAdd` still writes nothing, because the operator doing the creating is the approval. No migration: every existing row predates the public form. `EVENT_STORMING.md` §5 hotspot 1 closes with it |
 | 2 | What writes `shopOwner.onboardingStep`/`onboardingDone`? Read in 3 places, written by no discovered mutation. | Backend (Admin/ShopOwner resource services) | Open — `EVENT_STORMING.md` §5 hotspot 2 |
 | 3 | When an Admin creates a `Company` directly (rather than approving a ShopOwner-created one), what `idShopOwner` value does it get stamped with? | Backend (Admin resource service) | Open — `EVENT_STORMING.md` §5 hotspot 5 |
 | 4 | `item.published` has two independent writers (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field. Is the race acceptable, or does `Item` need an optimistic-concurrency field? | Backend (both resource services) | Open — `EVENT_STORMING.md` §5 hotspot 4 |
