@@ -46,8 +46,8 @@ Matches row 1 of the table above.
 
 Reasoning: `authorizationLogoutHandler` never opens a tier collection and never reads `tier` off
 the session — it validates the refresh cookie via `verifySignedRefreshToken`, looks up
-`redisClient.hGet(...'id')` for the refresh session and, if present, the access session too
-(`BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:58-78`), then
+`readSessionField(..., '_id')` for the refresh session and, if present, the access session too
+(`BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:78-110`), then
 the `logout` resolver deletes both keys by token content
 (`BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts:17-23`).
 Tier-agnostic by construction, not by omission — there is no branch anywhere in that path that
@@ -59,6 +59,16 @@ the call site: "`/logout` is the one both apps share, legitimately... it is tier
 construction." All three frontends' `CTX_LOGOUT` point at the identical `env.logout` shape —
 verified `marketplace-admin/src/api/endpoints.ts:26`, `marketplace-shopowner/src/api/endpoints.ts:31`,
 `marketplace-user/src/api/endpoints.ts:29`, each `Object.freeze({ url: ENDPOINT.logout })`.
+
+**Amended 2026-08-12 by E15-S01 — the decision stands, one line of its evidence did not.** The refresh
+lookup quoted above read the field `id`, and no writer on this platform has ever written one: the refresh
+hash is `IRefreshData`, whose identity is `_id`. The lookup therefore returned `null` for every real
+session, the handler answered `throwAlreadyDone`, and **logout deleted nothing for as long as this service
+existed** — while returning success to the caller. Nothing about the tier-agnostic argument depended on the
+field name, which is exactly why the wrong one survived here: this ADR was reasoning about *which
+collection* the read does not touch, not about whether the read finds anything. The field is now `_id`, and
+the pairing is asserted against a writer-shaped hash rather than a hand-seeded field
+(`test/helpers/sessionFixtures.mts`).
 
 ## Consequences
 
