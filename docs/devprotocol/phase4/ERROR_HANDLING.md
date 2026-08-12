@@ -68,10 +68,16 @@ export function checkRequiredEnv(env: NodeJS.ProcessEnv = process.env): void {
 catches; a wrong-but-present value (a copied-in value from an unrelated project) is invisible to it. This
 is exactly what happened on 2026-08-07 in both `*-user-authenticated-*` services: `MONGODB_URI` pointed at
 an unrelated database with no `authSource`, `INTROSPECTION_CODE` mismatched the other seven services, and
-`KEYGRIP_KEY_1`/`_2` mismatched the service that signs the cookie this one verifies — none of it tripped
-`checkRequiredEnv`, because every var was non-empty. No test on this platform spans two services (see
-platform [`docs/workflow.md`](../../workflow.md) §Environment files), so cross-repo value agreement is unenforced by construction; the fix is
-a fingerprint sweep, not a stronger boot check.
+the cookie-signing keys mismatched the service that signs the cookie this one verifies — none of it
+tripped `checkRequiredEnv`, because every var was non-empty. No test on this platform spans two services
+(see platform [`docs/workflow.md`](../../workflow.md) §Environment files), so cross-repo value agreement is unenforced by construction; the fix
+is a fingerprint sweep, not a stronger boot check.
+
+⚠️ **The Keygrip third of that incident is the one case since closed, and it was closed by a stronger boot
+check after all** (ADR-034, E01-S12): the keys left the environment for a wrapped Redis record, so a
+service holding the wrong `KEYGRIP_KEK` fails to unwrap and `process.exit(1)`s instead of running. That
+generalises only where a value can be *proved* wrong at boot — `INTROSPECTION_CODE` and `MONGODB_URI`
+still cannot be, and for them the paragraph above stands unchanged.
 
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
@@ -378,7 +384,7 @@ reminder:
 | Must never appear in a response body, log line visible to a client, or Sentry breadcrumb tagged user-facing | Where it would otherwise leak from |
 |---|---|
 | `x-introspectioncode` value | service-to-service bypass header, `authorizationAuthenticatedResourceHandler.mts:31` — must never be echoed, logged, or exposed to a browser client (platform [`docs/architecture.md`](../../architecture.md) §Auth model) |
-| `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` | refresh-cookie signing keys; a leaked key lets an attacker forge a session cookie for any tier |
+| `KEYGRIP_KEK` | unwraps the Redis record holding the refresh-cookie signing keys; a leak yields those keys, and a forged session cookie for any tier (ADR-034) |
 | Any Mongo connection string / `MONGODB_URI` | `throwMongoDBErrors` deliberately never forwards the driver's own error text for this reason — only `Error reported to Dev Team.` |
 | A raw stack trace | `throwInternalError()`'s description is a fixed string; the real error goes to `Sentry.captureException(e)` only |
 | Whether a given email address is registered | Layer 2's generic-error rule — every login failure branch answers the identical `throwUnauthorizedError()` |

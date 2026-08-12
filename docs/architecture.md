@@ -84,7 +84,9 @@ now a pointer, and its README says what was wrong with the files it held.
 
 Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` type in `schema.graphql`.
 
-- Refresh token: Koa signed cookie (Keygrip SHA-512, `KEYGRIP_KEY_1/2`), httpOnly.
+- Refresh token: Koa signed cookie (Keygrip SHA-512), httpOnly. The signing keys are **not** environment
+  variables: they are one AES-256-GCM-wrapped record in Redis that each signing service unwraps with
+  `KEYGRIP_KEK` at boot, refusing to start if it cannot (ADR-034).
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
 - `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
   calls. Treat as a secret; never log it, never expose it to a browser client.
