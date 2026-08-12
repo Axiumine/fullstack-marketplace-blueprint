@@ -144,8 +144,24 @@ resource service, and minting a signing key is an operator act, so it must sit b
 **Not** the logout service: logout is the one service all three tiers reach (ADR-005), and giving it the
 mint would put key material behind a route customers hit.
 
+⚠️ **This makes `marketplace-dev-admin-authenticated-resource` a sixth KEK holder** — the only one that
+signs no cookie. It needs the KEK to open the record it is about to add a key to and to seal what it
+writes back, so `KEYGRIP_KEK` belongs in its `REQUIRED_ENV_VARS` like the other five, and it refuses to
+boot without it. It does **not** call the loader the signing services use, and so never appears in the
+holders table: a row for a service that adopts nothing would read as permanently stale.
+
 It unwraps, mints 64 random bytes, unshifts, drops entries older than `SESSION_CAP_DAYS_REMEMBERED` days
-while never leaving fewer than two, rewraps under the bumped version in a `MULTI`, and publishes.
+while never leaving fewer than two, rewraps under the bumped version, writes it back under a
+compare-and-set, and publishes.
+
+**The write is a Lua script, not `WATCH` + `MULTI`.** Two operators rotating at the same moment must not
+both win: the loser's blob would land under a version that already describes different bytes, and every
+service that unwrapped the winner's record would then fail the AAD check on the next re-read. `WATCH`
+does prevent that, but it watches a key on *one* connection, and the record lives on a Redis cluster
+where the client that holds the watch is not guaranteed to be the client the retry runs on. `EVAL`
+compares `version` and swaps all three fields inside a single server-side execution, on the node that
+owns the slot — no connection affinity to get wrong. A rotation whose compare fails is refused outright
+rather than retried, because the operator's next click reads the record the winner wrote.
 
 **Rotation prepends; only retirement is age-gated.** A new signer is harmless at any cadence — what
 would log a remembered customer out is dropping a key that is still verifying cookies, and that is
@@ -232,8 +248,10 @@ written.
 
 - `grep -rn 'process.env.KEYGRIP_KEY_' BEs/*/src BEs/dev/*/src` returns nothing. The only reference to
   the old names outside documentation is the seed script's adoption path.
-- Each of the five services lists `KEYGRIP_KEK` in `REQUIRED_ENV_VARS` and lists neither
-  `KEYGRIP_KEY_1` nor `KEYGRIP_KEY_2`; the four `*-resource` services list none of the three
+- Six services list `KEYGRIP_KEK` in `REQUIRED_ENV_VARS`, and none of them lists `KEYGRIP_KEY_1` or
+  `KEYGRIP_KEY_2`: the five that sign cookies, plus `marketplace-dev-admin-authenticated-resource`,
+  which signs nothing and holds the KEK **only** to reseal the record `keygripRotate` writes — it cannot
+  mint a key it cannot wrap. The remaining three `*-resource` services list none of the three
   (`INFRA.md` §7 keeps its table, with the column renamed).
 - `new Keygrip(` appears in each service exactly once, fed from the loaded record, and never from
   `process.env`.
