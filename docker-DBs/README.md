@@ -192,15 +192,19 @@ account's live sessions, and fields whose sessions expire without passing throug
 have to age out on their own. Without per-field TTLs the index keeps naming sessions that no longer
 exist, which is both a slow memory leak and a lie told to the operator screen that reads it.
 
-**Nothing calls those commands today** — E15 is proposed, not built — but the mechanism is decided:
-E15-S03 takes `HEXPIRE`, with each field's TTL set to the remaining life of the session it names, and
-the lazy-prune alternative was rejected rather than kept as a toggle. The floor is therefore load
-bearing, not aspirational, and is recorded here so a version choice is made deliberately instead of
-being discovered as `ERR unknown command 'HEXPIRE'` somewhere nobody was watching.
+**Those commands are called on every login and every token rotation** (E15-S03, built 2026-08-13).
+Each field's TTL is what remains of the session it names — `originalLogin + sessionCapDays`, not the
+session key's own expiry and not the index key's — so a session that ends without passing through
+logout or rotation takes its row with it. The lazy-prune alternative was rejected rather than kept as
+a toggle, which is what makes the floor load bearing rather than aspirational.
 
 **Downgrading `REDIS_TAG` below `7.4` is a breaking change, not a tag bump.** Redis does not refuse
 an unknown command at startup; it refuses it at the first call, inside whichever request happened to
-trigger the write.
+trigger the write. Two things now catch that earlier: `./up.sh --with-redis` reads
+`redis-server --version` out of the container and refuses to finish below 7.4.0, and each of the four
+authorization services probes the server with an `HTTL` at boot and exits rather than serving a login
+it cannot file. The script only ever sees this compose file's container; the boot probe sees whatever
+`REDIS_URL` points at, because it runs on the connection the service itself will use.
 
 The nine services keep their sessions in Redis, so the platform does not boot without one. If you
 have no Redis either, start the one in this compose file:
@@ -372,7 +376,8 @@ Stated plainly so nobody has to guess:
 | `MONGO_TEST_CONN_STRING names database "x" but MONGO_TEST_DB is "y"` | the three test-database names disagree; the table above has the right one for that repo. |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh`. |
 | the suite drops the wrong database | it refuses to: `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env`. |
-| `ERR unknown command 'HEXPIRE'` | the Redis behind `REDIS_URL` is older than 7.4. Check with `redis-cli INFO server \| grep redis_version`; if it is this compose file's container, `REDIS_TAG` was lowered — see §Redis. |
+| `Redis is older than 7.4.0` at a service's startup, or `up.sh: Redis 7.2.x is below the 7.4.0 floor` | the same cause read at two different moments: the Redis behind `REDIS_URL` — or this compose file's container, if `REDIS_TAG` was lowered — has no hash-field TTLs. See §Redis. |
+| `ERR unknown command 'HEXPIRE'` | the two checks above were bypassed, or the server was downgraded under a running service. Check with `redis-cli INFO server \| grep redis_version` and restart the services after raising it — the probe runs at boot only. |
 | `Fatal error, can't open config file` from `redis` | `secrets/redis.conf` is missing, or is a directory Docker created for a missing bind mount. `rm -rf secrets/redis.conf && ./up.sh --with-redis`. |
 | `NOAUTH Authentication required` after changing the password | `.env` was edited but `./up.sh --with-redis` was not re-run, so the container still holds the old value. Compose does not read that variable any more — the script writes the config file. |
 | `docker logs` no longer reaches back far enough | expected: every container is capped at 20 MiB × 5 files since E12-S18. `docker inspect -f '{{json .HostConfig.LogConfig}}' <name>` shows the pair; raise `max-size` in `docker-compose.yml` if you need a longer window. |
