@@ -68,8 +68,9 @@ is the pattern that let the `*-user-authenticated-*` `.env` corruption ship: not
 itself, so nothing local caught it.
 
 What this decision does **not** cover, on purpose, because a single-repo `globalSetup` structurally cannot
-check it: agreement *between* repos (matching `KEYGRIP_KEY_1/2` across the authorization services, matching
-`INTROSPECTION_CODE` across all 9). That gap is real, already bit once, and its mitigation is the
+check it: agreement *between* repos (matching `INTROSPECTION_CODE` across all 9; matching cookie-signing
+keys across the authorization services, until ADR-034 took that pair out of the environment entirely and
+made a wrong `KEYGRIP_KEK` a refused boot). That gap is real, already bit once, and its mitigation is the
 fingerprint sweep, not a per-repo assertion — recorded here so it is not re-discovered as a surprise.
 
 ---

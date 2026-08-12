@@ -110,7 +110,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 **Used in:** every `*-authenticated-resource` service's auth middleware.
 
 ### Refresh token
-**Definition:** Opaque token in a Koa signed httpOnly cookie (Keygrip SHA-512, `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2`), used by the `refresh` mutation to rotate the access token.
+**Definition:** Opaque token in a Koa signed httpOnly cookie (Keygrip SHA-512), used by the `refresh` mutation to rotate the access token. The signing keys are the shared Redis record of ADR-034, unwrapped with `KEYGRIP_KEK` — never an environment variable.
 **Used in:** every `*-authenticated-authorization` service.
 
 ### Introspection code

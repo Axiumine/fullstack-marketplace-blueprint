@@ -50,9 +50,9 @@ pattern, identical across the other 7 GraphQL-only services). The one exception 
 
 | Service kind | Credential | Where it travels |
 |---|---|---|
-| `*-authorization` (token lifecycle) | Refresh token | Koa **signed cookie**, Keygrip SHA-512 (`KEYGRIP_KEY_1`/`_2`), httpOnly |
+| `*-authorization` (token lifecycle) | Refresh token | Koa **signed cookie**, Keygrip SHA-512 over the Redis key record unwrapped with `KEYGRIP_KEK` (ADR-034), httpOnly |
 | `*-resource` (domain data) | Access token | `Authorization: Bearer access:<token>` header, checked against Redis on every call |
-| Any service, internal caller | `x-introspectioncode` header, value = `INTROSPECTION_CODE` | Bypasses the bearer-token/tier check entirely — service-to-service only, never a browser client. Treat as a secret with the same weight as `KEYGRIP_KEY_1`/`_2` (`phase3/SECURITY_AUTH.md` §3.6; `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37`) |
+| Any service, internal caller | `x-introspectioncode` header, value = `INTROSPECTION_CODE` | Bypasses the bearer-token/tier check entirely — service-to-service only, never a browser client. Treat as a secret with the same weight as `KEYGRIP_KEK` (`phase3/SECURITY_AUTH.md` §3.6; `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37`) |
 
 Tokens are **opaque** — looked up in Redis, never decoded, never trusted for content (`phase3/SECURITY_AUTH.md`
 §3.1). Every session hash carries a `tier` (`'admin' | 'shopOwner' | 'user'`) and every resource/authorization
@@ -516,10 +516,12 @@ key. That is what lets one process serve every tier: tier-named logout mutations
   independently by whatever is on `main` at deploy time, and no test on this platform spans two services —
   agreement between a producer and a consumer (a resolver's argument shape, a shared secret, a Redis key
   format) is enforced by nothing but manual review. [`docs/workflow.md`](../../workflow.md) §Environment files records one
-  concrete cost of this: two of the user-tier services shipped mismatched `.env` values
-  (`KEYGRIP_KEY_1`/`_2` between `marketplace-dev-public-authorization` and
-  `marketplace-dev-user-authenticated-authorization`) for a period where both repos' own suites stayed
-  green, because each one signs and verifies against itself.
+  concrete cost of this: two of the user-tier services shipped mismatched values — the cookie-signing keys
+  between `marketplace-dev-public-authorization` and `marketplace-dev-user-authenticated-authorization` —
+  for a period where both repos' own suites stayed green, because each one signs and verifies against
+  itself. ✅ **That particular pair is no longer a cross-service agreement at all** (ADR-034): the keys are
+  one wrapped Redis record, and a service that cannot unwrap it refuses to boot. Every other value in this
+  class is still unenforced.
 - **Operations that do not exist and are not designed:** anything ordering-related — cart, order, delivery,
   payment. No collection, no resolver, no schema slice, no ADR. `item` deliberately carries no `price`
   field for the same reason (`docs/data-model.md`, ADR-009). Name this as a gap; this document does not

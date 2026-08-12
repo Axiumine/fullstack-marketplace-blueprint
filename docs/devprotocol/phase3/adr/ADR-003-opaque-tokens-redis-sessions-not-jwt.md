@@ -16,7 +16,9 @@ Platform needs auth for 3 tiers (`Admin`, `ShopOwner`, `User`), each own collect
 role = which collection session authenticated against (CON-01, `phase3/CONSTRAINTS.md`).
 
 Two token halves already fixed by the time this ADR records them: refresh token in Koa signed httpOnly
-cookie (Keygrip SHA-512, `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2`), access token as `Authorization: Bearer
+cookie (Keygrip SHA-512, `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` — ⚠️ **amended 2026-08-12 by ADR-034**, which moved
+those keys out of the environment into one wrapped Redis record; nothing else here changes, because this
+ADR is about what a token *is*, not where the signing key lives), access token as `Authorization: Bearer
 access:<token>` header. Question this ADR answers: what IS the token — self-contained claims (JWT) or a
 lookup key against server state (opaque + session store)?
 
