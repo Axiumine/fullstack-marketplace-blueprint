@@ -124,6 +124,41 @@ else
 	dc up -d --build
 fi
 
+if [ "$WITH_REDIS" -eq 1 ]; then
+	# ⚠️ **The 7.4.0 floor, enforced here rather than assumed** (E15-S03). The account→sessions index is
+	# one hash per account whose fields are that account's live sessions, and every field carries a TTL of
+	# its own through `HEXPIRE` — a command that exists in no release before 7.4. Redis does not refuse an
+	# unknown command at startup, it refuses it at the first call, so a container one minor version too
+	# old comes up green here and fails inside somebody's login. README.md §Redis is the rest of it.
+	#
+	# `redis-server --version` and not `INFO server`: the binary prints its version without opening a
+	# connection, so no password goes near this check and none can reach an argv (E12-S17).
+	redis_version=''
+	for _ in $(seq 1 30); do
+		redis_version="$(dc exec -T redis redis-server --version 2> /dev/null | sed -n 's/.*v=\([0-9.]*\).*/\1/p' || true)"
+		if [ -n "$redis_version" ]; then
+			break
+		fi
+		sleep 1
+	done
+
+	if [ -z "$redis_version" ]; then
+		echo 'up.sh: the redis container never reported a version. Check `docker compose --profile redis ps`.' >&2
+		exit 1
+	fi
+
+	# `sort -V` compares field by field: 7.10.0 is newer than 7.4.0, and a lexical compare reads it as
+	# older. If the floor sorts first, whatever is installed is at or above it.
+	if [ "$(printf '%s\n7.4.0\n' "$redis_version" | sort -V | head -1)" != '7.4.0' ]; then
+		echo "up.sh: Redis $redis_version is below the 7.4.0 floor this platform requires." >&2
+		echo '       Hash-field TTLs (HEXPIRE/HTTL) do not exist there, and the session index cannot' >&2
+		echo '       prune itself without them. Raise REDIS_TAG in .env — see README.md §Redis.' >&2
+		exit 1
+	fi
+
+	echo "up.sh: Redis $redis_version — hash-field TTLs present (floor 7.4.0)."
+fi
+
 # mongosh scripts arrive on stdin rather than in argv: a password on a command line is visible in
 # `ps` to every user on the machine, and this script has four of them.
 run_local() { # run_local <service> <port>  < script
