@@ -290,6 +290,12 @@ SOCKETLABS_SERVER_ID=…  SOCKETLABS_SERVER_APIKEY=…
 ⚠️ **`APP_DOMAIN_USER` unset falls back to `APP_DOMAIN`.** One process serves both audiences, and the
 fallback is a working link to the wrong panel rather than a broken one — set both.
 
+Five of those six are in `REQUIRED_ENV_VARS` and stop the boot when unset. `DEV_TEAM_EMAIL` is the
+exception: its only readers are `SocketLabsLib`'s `alertDevTeam()` and `sendEmailPostReported()`, which
+nothing calls today, so it is the one name here that can be missing without a single mail changing
+(E18-S13). No other service takes any of the six — the same story removed them from the eight templates
+that carried them for no reader.
+
 Without SocketLabs credentials, registration still succeeds and the confirmation mail is not sent — see
 step 12 for how to confirm an account without one.
 
