@@ -61,7 +61,7 @@ residual it left — revocation ending refresh sessions only — was carried as 
 
 All three login mutations live on `marketplace-dev-public-authorization` (4028) — a login cannot require a
 token. Each service answers on its own path, not on `/graphql`: `ctx.path === ENDPOINT`, and `ENDPOINT` is
-the service's own name (`src/index.mts:24`). A probe sent to `/graphql` gets a bare 404 with no GraphQL
+the service's own name (`src/index.mts:20-26`, the exact line differing per service). A probe sent to `/graphql` gets a bare 404 with no GraphQL
 body, which is worth knowing before diagnosing a 404 as a routing failure.
 
 ⚠️ **The Admin and ShopOwner accounts already existed on this machine; the User tier had none, and one had
@@ -139,7 +139,7 @@ two cases must not be confusable by a caller probing for which tier a token belo
   **original** `mintedAt` — one row per session, not one per rotation (E15-S03), confirmed.
 
 ⚠️ **`family:<uuid>` is created by the first rotation, not by the login.** `newSessionLineage` stamps the
-three lineage fields and files nothing; the `sAdd` is in `refreshSessionTokens.mts:200`. A session that has
+three lineage fields and files nothing; the `sAdd` is in `refreshSessionTokens.mts:222`. A session that has
 never refreshed therefore has no family set at all, and the pair a login minted is in no family for as
 long as it lives. This matters for F2 and is not written down anywhere else.
 
@@ -161,7 +161,10 @@ is probably a second browser tab.
 ## 5. F1 — a registered account cannot log in
 
 `registerNewUser` hashes the password and hands the hash to `User.create`
-(`BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewUser.mts:34`). `LoginSubDocSchema` carries
+(`BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewUser.mts:34`). ⚠️ **That line number and
+`registerNewShopOwner.mts:41` below are where the defect was read, and both functions were rewritten by the
+fix in this section** — following either one today lands on code that hands over the plaintext deliberately
+and says so in a comment. `LoginSubDocSchema` carries
 a `pre('save')` that hashes `password` whenever it is modified
 (`BEs/marketplace-common/src/models/MongoDB/sub/LoginSubDocSchema.mts:43-50`), and a create counts as
 modified. The stored string is therefore **bcrypt(bcrypt(password))**, while `tryLoginUser` compares the
@@ -224,7 +227,8 @@ touch `restartUserRegistration` or `restartShopOwnerRegistration`, which were co
 | after a replay-triggered family revocation | **200** | 498 | — |
 
 E14-S06 retires the previous access token at rotation, but only `if (presentedAccessToken)`
-(`refreshSessionTokens.mts:217`) — the client has to send it. The frontends do send it when they have one,
+(`refreshSessionTokens.mts:253`, the line this finding was read at — the guard is still there and is no
+longer alone, see the fix below) — the client has to send it. The frontends do send it when they have one,
 and structurally cannot on the path that matters most: a page reload wipes the in-memory token and the
 first operation after it refreshes with nothing to present (`marketplace-user/src/api/client.ts:82-92`).
 Every reload therefore orphans one access token, which is in no family (§4), listed in no index row — the
@@ -233,7 +237,9 @@ index names refresh sessions only — and so reachable by neither `revokeSession
 them**, found by scanning for the account's `email` field and deleted by hand.
 
 That access tokens outlive a revocation is already stated where it matters
-(`marketplace-admin/src/api/operations/adminResource/mutations.ts:168`). What is new here is that they also
+(`marketplace-admin/src/api/operations/adminResource/mutations.ts` — ⚠️ the comment that said so was
+rewritten when R54 closed, and the file now says the opposite at `:201`: the session hash records the key
+of its own access token and a revocation ends it). What is new here is that they also
 outlive *logout*, that they accumulate one per reload rather than existing one at a time, and that nothing
 can enumerate them.
 
