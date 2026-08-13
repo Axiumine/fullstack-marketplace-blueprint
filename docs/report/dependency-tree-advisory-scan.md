@@ -100,6 +100,15 @@ version.
 `peerDependencies` (63 reachable) and `devDependencies`, so the consumer provides them. Reading its `dependencies`
 as "what it needs at runtime" gives the wrong answer, and this is the one repo where that is true.
 
+> **This table is the tree as installed on 2026-08-13, before E18-S10 and E18-S12 landed.** Both stories moved
+> packages out of the production zone rather than out of the tree, so `Installed` is unchanged and
+> `Prod-reachable` is not: E18-S12 takes **37** off each of the eight service rows that had `tsc-alias` misplaced
+> (every row above except `authenticated-logout`, `marketplace-common`, `marketplace-db-setup` and the three
+> frontends). The re-measurement is a re-implementation of the method in §2 and its absolute counts run **6 below**
+> the ones here — the same offset in every repo, including the ones neither story touched. The delta is the number
+> to read, not the absolute: nothing in this document turns on the sixth decimal of a package count, and rewriting
+> the table from a second implementation would replace a measurement with an estimate.
+
 ---
 
 ## 4. Production zone — the twenty-nine
@@ -193,7 +202,7 @@ not zero, and it is not a code path this platform can be tricked into.
 | `qs` | 6.15.0 | moderate | [GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26) | `@apollo/server > body-parser` | **no** — the crash is in `qs.stringify` with `encodeValuesOnly`; the server parses, it does not stringify |
 | `@protobufjs/utf8` | 1.1.0 | moderate | [GHSA-q6x5-8v7m-xcrf](https://github.com/advisories/GHSA-q6x5-8v7m-xcrf) | `@apollo/server > @apollo/usage-reporting-protobuf > @apollo/protobufjs` | **no** — usage reporting is Apollo Studio telemetry; no service sends it |
 | `follow-redirects` | 1.15.11 | moderate | [GHSA-r4q5-vmmm-2653](https://github.com/advisories/GHSA-r4q5-vmmm-2653) | `@socketlabs/email > axios` | bounded — see §4.1 |
-| `picomatch` | 2.3.1 | high + moderate | [GHSA-c2c7-rcm5-vvqj](https://github.com/advisories/GHSA-c2c7-rcm5-vvqj), [GHSA-3v7f-55p6-f55p](https://github.com/advisories/GHSA-3v7f-55p6-f55p) | `tsc-alias@1.9.1 > chokidar > anymatch` | **no** at runtime — but see below |
+| ~~`picomatch`~~ | 2.3.1 | high + moderate | [GHSA-c2c7-rcm5-vvqj](https://github.com/advisories/GHSA-c2c7-rcm5-vvqj), [GHSA-3v7f-55p6-f55p](https://github.com/advisories/GHSA-3v7f-55p6-f55p) | `tsc-alias@1.9.1 > chokidar > anymatch` | **no** at runtime — **and no longer in the production zone at all: E18-S12, 2026-08-13** |
 
 ### 4.3 The env contract points at the wrong services
 
@@ -221,6 +230,12 @@ tool that rewrites path aliases in `dist/`; nothing imports it at runtime. It is
 with a ReDoS advisory counts as a production dependency here.
 `marketplace-dev-authenticated-logout` declares it under `devDependencies` — which is the correct placement, and
 makes the other eight a copy-paste divergence rather than a decision.
+
+> **Closed 2026-08-13 by E18-S12.** All eight moved. Re-measured the same way — breadth-first from `dependencies`
+> alone, through Node's own upward resolution — each of the eight production zones loses **37 packages** and
+> `picomatch` is in none of them. `tsc-alias`, `chokidar` and `anymatch` leave the production zone with it. Every
+> service still builds (`yarn clean && tsc && tsc-alias`) and every gate still passes, which is the whole proof
+> that the move changed nothing but the manifest.
 
 ---
 
@@ -352,7 +367,7 @@ it does not run in CI, because there is no CI. It runs in two git hooks, via Qod
 |---|---|---|
 | 1 | ~~Remove `@socketlabs/email` from the seven services that never load it~~ **Done 2026-08-13, E18-S10** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
 | 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that works despite the unpublished package (§2). Without this, every other dependency decision here is unverifiable next month |
-| 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement |
+| 3 | ~~Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies`~~ **Done 2026-08-13, E18-S12** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
 
 **Opens — accepted, as a risk row:** the residual `axios@0.21.4` in `marketplace-dev-public-resource` after story 1
 lands. `@socketlabs/email@1.4.4` is the latest published version and pins `^0.21.1`; the only ways out are a
