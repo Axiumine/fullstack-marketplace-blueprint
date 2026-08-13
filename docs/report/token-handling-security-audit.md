@@ -285,7 +285,14 @@ Stated so the report is not read as more complete than it is.
   last name and city are permanently plaintext for the operator table's sake, and the Redis
   access-token session hash carries the account's email in the clear, into the AOF.
 - **No full dependency-tree audit** of `@axiumine/koa-utils` or `@sentry/node` beyond the specific
-  mechanisms each finding needed.
+  mechanisms each finding needed. **Answered 2026-08-13 by E18-S04**, in
+  [`dependency-tree-advisory-scan.md`](./dependency-tree-advisory-scan.md). Both are clean, and so is every
+  other package in the auth path — `keygrip@1.1.0`, `cookies@0.9.1`, `koa@3.2.1`, `redis@6.2.0`, both Sentry
+  packages. Fifty-four advisories match installed versions across the fourteen repos that have a tree; 29 sit
+  in a production zone and none of those is reachable through an attacker-influenced path. Two things that
+  finding surfaced and this audit did not: seven services ship `@socketlabs/email`'s `axios@0.21.4` and never
+  load a line of it, and Qodana's vulnerable-dependency inspection runs on every commit and every push and
+  reports zero problems in every repo — a security gate that cannot be told apart from a passing one.
 
 ---
 
