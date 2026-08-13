@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.12
+**Version:** 1.13
 **Date:** 2026-08-13
 **Author:** risk-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -67,6 +67,14 @@ closed by E13-S10, triggered by the cutover date *and* a counter reading zero, n
 which now has a row of its own with the numbers E14-S08 chose its 60-second window by. §4's totals were
 recounted mechanically and moved by more than three: `R05b` had never been counted, and R21's promotion to
 High had reached the prose and not the table.
+v1.13 - 2026-08-13: **R27 closes because it was wrong**, not because anything was built (E03-S04). The row
+said no mutation under any `mutations/` directory writes `onboardingStep`/`onboardingDone`;
+`shopOwnerUpdatePreferences` writes both, in exactly such a directory, and did so before this register was
+written. **R53** takes the part that is real — nothing advances either field as the shop owner progresses,
+now a deferred decision rather than an omission — and is scored 🟢 Low on a measurement rather than a
+feeling: no frontend reads either field, so nothing is stuck today. §4 goes to 54 rows, Low to 7. The
+lesson is filed with the count: a row can overstate risk as easily as understate it, and only re-running
+its evidence tells the difference.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅ · `phase3/SECURITY_AUTH.md` ✅ · `phase3/INFRA.md` ✅ · `phase3/adr/ADR-INDEX.md` ✅ · `phase4/API_CONTRACTS.md` ✅ · `phase4/ERROR_HANDLING.md` ✅
 **Mutability:** living doc - reviewed every sprint. New risk added as found. Resolved risk marked in Status, never deleted.
 
@@ -131,7 +139,8 @@ exactly as likely to recur elsewhere as before the one instance was fixed.
 | R24 | MongoDB collection-level RBAC beneath the shared application connection is unverified, independent of the `assertTier` application-layer check | Security | 1 | 3 | 3 | 🟢 Low | None found - not designed, not verified. `phase1/SYSTEM_CONTEXT.md` §7 item 3; [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) §Not verified | If the app-level connection has broader Mongo privileges than each service needs, a code bug bypasses `assertTier` entirely at the datastore | Any Mongo credential provisioning change | Platform owner / DBA | Open |
 | R25 | GDPR applicability (NFR-CO02) to `user.personalData` and `user.addresses[]` is an open question, not a resolved requirement | Compliance | 2 | 3 | 6 | 🟡 Medium | Partial, 2026-08-11 - the owner's first concrete retention decision, logs only: nginx error logs keep full client addresses, rotated 14–30 days and shredded; no personal data in the access log; two lines in a privacy policy (quoted in full on `epics/E12.md` E12-S19; that epic's §6 now maps every answer to the story carrying it). **The access-log half is done** — E12-S16, 2026-08-11, redacting the mailed `:email/:hash` links and the `Referer` — the other two are E12-S19 + E12-S25. **E12-S26** goes past the log: the customer reset link moves into the URL fragment, so the address stops reaching Cloudflare's logs and the SSR disk cache as well as this platform's own — **and its disk-cache half is already built** (2026-08-11), nginx having been measured keeping a reset link as a cache key for up to 24h. Applicability of the framework itself is still undecided (`phase1/NFR.md` §2.7/§3), out of Phase 3 scope to decide (`phase3/CONSTRAINTS.md` §5) | PII (name, address, GeoJSON position) is stored today with no formal applicability decision made | Any expansion of `user.personalData`/`addresses[]` collection, or first EU customer onboarded | Product / Platform owner | Open |
 | R26 | ~~`waitApprov` field semantics: one boolean's own doc comment conflates "awaiting approval" with "deleted"; the initial state at creation is unproven~~ | Quality | 4 | 3 | 12 | 🟠 High | **Closed 2026-08-12 by E03-S08.** The comment at `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` was rewritten to say what the field holds and who writes it; the initial state is now evidenced and is not one value — `shopOwnerRegister` writes `true`, `shopOwnerAdd` writes nothing, and which mutation ran is the whole meaning of the flag | Was: a freshly created ShopOwner's login-gate state could be silently ungated or silently gated. No backfill was needed — every document on disk predates the public form, so every one is Admin-created and correctly ungated | — | Platform dev | **Closed** (EVENT_STORMING hotspot 1, closed) |
-| R27 | `onboardingStep`/`onboardingDone` are read in 3 places (`tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`) but no mutation under any `mutations/` directory writes either field | Quality | 3 | 2 | 6 | 🟡 Medium | None found. Either derived elsewhere with no single write site, or the write path exists outside the directory convention every other resolver follows | Onboarding state may be permanently stuck for any ShopOwner if no write path genuinely exists | Any change to the ShopOwner onboarding flow | Platform dev | Open (EVENT_STORMING hotspot 2) |
+| R27 | ~~`onboardingStep`/`onboardingDone` are read in 3 places (`tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`) but no mutation under any `mutations/` directory writes either field~~ | Quality | 3 | 2 | 6 | 🟡 Medium | ⚠️ **The row's own premise was false.** `shopOwnerUpdatePreferences` — Admin tier, `mutations/shopOwnerUpdatePreferences.mts`, writing `login.onboardingStep` and `login.onboardingDone` through `funShopOwnerUpdatePreferences` — has written both since before this register existed. The mitigation column read "none found" because the search that produced the row stopped one `grep` short, and four other documents copied the finding | The failure this row names — *permanently stuck because no write path genuinely exists* — **cannot happen**: a write path exists and an operator can reach it. What survives is narrower and is **R53** | — | Platform dev | **Closed 2026-08-13 by E03-S04** — closed on evidence, not on work: the mitigation was already in the tree. Residual is **R53** |
+| R53 | Nothing advances `onboardingStep`/`onboardingDone` as a side effect of the shop owner's own progress. An operator types each value in by hand, and a self-registered seller approved under E03-S08 arrives with a login and nothing else | Quality | 2 | 2 | 4 | 🟢 Low | **Deferred by decision, not overlooked** (E03-S04, EVENT_STORMING §5 hotspot 2). The score is 4 because of a fact this pass established rather than assumed: **no frontend reads either field** — `grep` over all three apps returns nothing — so no screen is presently waiting on a value only an operator can set. `LoginAppType` returns both, and no client consumes them | The gap surfaces the moment a client gates on `onboardingDone`: a self-registered owner would sit at whatever step an operator last typed, or at none. The design that closes it — what the ≤4-character steps mean, what "done" means, whether the shop-owner app writes them itself or asks for an operator's review — exists in no document here, and inventing it is product work | The first frontend that reads `onboardingDone`; any story that designs the shop-owner onboarding flow | Product + platform dev | Open — split out of **R27** when that row closed 2026-08-13 |
 | R28 | ~~No self-service ShopOwner registration exists - every account is Admin-provisioned via `shopOwnerAdd`~~ | Scope | 2 | 2 | 4 | 🟢 Low | **Closed 2026-08-12 by E03-S08** — the product decision the risk was waiting on was taken, and the flow built on the public app with `waitApprov: true` in front of it. Admin-provisioning stayed as the recruited-shop route | Was: building self-service without a product decision would be inventing scope. It was asked for, not inferred | — | Product | **Closed** |
 | R29 | Two independent writers of `item.published` (`ShopOwner`'s `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field on `item.js` | Data | 3 | 3 | 9 | 🟡 Medium | None - no lock/version field found in the schema excerpts examined | An owner unpublishing and an admin moderating the same `item` concurrently can race with no detection | Any concurrent-write incident report on `item.published`, or before adding optimistic locking | Platform dev | Open (EVENT_STORMING hotspot 4) |
 | R30 | When an Admin creates a `company` directly (rather than approving a ShopOwner-made one), what `idShopOwner` it gets stamped with is unexamined | Quality | 2 | 2 | 4 | 🟢 Low | None found - Admin-tier `companyAdd`/`companyUpdate`/`companyDel` rationale not documented anywhere on disk | An orphaned or wrongly-stamped `idShopOwner` on an Admin-created company | Any Admin-tier `companyAdd` call outside the approval flow | Platform dev | Open (EVENT_STORMING hotspot 5) |
@@ -165,15 +174,20 @@ exactly as likely to recur elsewhere as before the one instance was fixed.
 | 🔴 Critical | 0 |
 | 🟠 High | 13 |
 | 🟡 Medium | 34 |
-| 🟢 Low | 6 |
-| **Total** | **53** |
+| 🟢 Low | 7 |
+| **Total** | **54** |
 
 ⚠️ **Recounted 2026-08-13 by E18-S07, and the totals moved by more than the three rows it added.** The
 previous count read 49 and the rows read 50: `R05b` had never been counted as a row of its own, and R21's
 promotion to High that morning had been written into the prose and not into the table. The count above is
 mechanical — every `R…` row in §3, level column as written, closed rows included, because a closed row is
-still a risk this platform had. **Four are `Closed`**: R02 and R21 on 2026-08-13 (E18-S07 and E18-S11), R26
-and R28 on 2026-08-12.
+still a risk this platform had. **Five are `Closed`**: R02, R21 and R27 on 2026-08-13 (E18-S07, E18-S11 and
+E03-S04), R26 and R28 on 2026-08-12.
+
+⚠️ **R27 is the one closure here that took no work, and that is the uncomfortable part.** It closed because
+the mitigation it called "none found" was in the tree the whole time — a row, four documents and a story
+criterion had all copied one shallow search. The number to watch is not 54; it is that a register row can
+be wrong in the direction of *more* risk than exists, and only a re-run of its own evidence catches it.
 
 High-count concentration: cross-repo env/secret agreement (R04, and R03 below it at Medium — R02 left this
 group on 2026-08-12, the first of them ever to get a gate, and closed outright on 2026-08-13 leaving **R50**
@@ -220,5 +234,6 @@ Known, explicit, no further work planned unless the trigger fires:
 | Date | Reviewer | Changes |
 |---|---|---|
 | 2026-08-07 | risk-agent | v1.0 initial retrofit - 41 risks reverse-engineered from [`CLAUDE.md`](../../../CLAUDE.md), `phase2/EVENT_STORMING.md` §5-6, `phase2/BOUNDED_CONTEXT.md` §7, `phase3/SECURITY_AUTH.md` §2/§7, `phase3/INFRA.md` §13-14, `phase4/API_CONTRACTS.md` §9, `phase4/ERROR_HANDLING.md` §Layer 8, `phase1/PDR.md` §6/§8. All 6 Event Storming hotspots covered (R26-R31). All 9 PDR open questions and all 6 EVENT_STORMING/BOUNDED_CONTEXT open questions covered. |
+| 2026-08-13 | E03-S04 | v1.13. **Closed R27** — its premise was false: `shopOwnerUpdatePreferences` writes both onboarding fields and always has, so the "permanently stuck because no write path exists" failure cannot happen. **Added R53** for what survives — nothing *advances* either field as the owner progresses, deferred by decision until the onboarding flow is designed, and scored 🟢 Low on a measured fact: no frontend reads either field. §4 totals 54 / Low 7. The same shallow search sat in four other documents and is corrected in all of them. |
 | 2026-08-13 | E18-S07 | v1.12 hygiene pass over the seven-epic audit backlog. **Closed:** R21 (E18-S11), R02 (ADR-034 boot gate + E16-S08's measurement), each naming the story rather than a date. **Added:** R50 (per-machine `KEYGRIP_KEK`, split out of R02 so a closed row carries no open residual), R51 (dual-read fallback removal — trigger is the cutover date **and** a zero counter), R52 (distinct-token flood against `refresh`, previously visible only inside R46). Every one has an owner and a trigger; the four residuals this backlog names that already had rows — R42 Sentry major bump, R44 origin-pull certificate expiry, R45 Redis transport, R47 key-adoption window — were checked rather than duplicated. §4 recounted mechanically: 53 rows, and the previous 49 was wrong before this pass. |
 

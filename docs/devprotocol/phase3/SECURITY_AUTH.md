@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-12
+**Version:** 1.6
+**Date:** 2026-08-13
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-11: §NFR-SE01–SE12 paragraph follows `phase1/NFR.md` to v1.1 — a 🔴 Critical change needs a
@@ -23,6 +23,11 @@ v1.5 - 2026-08-12: **E03-S08** opened `shopOwner` to self-registration, which tu
 §9 q2. The rate-limit paragraph, the `shopOwner` field list and the `user`-divergence pointer follow. One
 new control surface, none weakened: the mutation is behind the same `guardPublicWrite` + Turnstile pair as
 `userRegister`, on its own counter.
+v1.6 - 2026-08-13: §9 q3 closes and §3.3's onboarding paragraph stops calling the missing self-advance "an
+open gap, not a design decision" — as of **E03-S04** it is exactly a design decision, deferred rather than
+built. Nothing about the security posture moves: neither `onboardingStep` nor `onboardingDone` is read by
+any gate, on any tier, which is the fact that makes the deferral free here and is now stated where a
+reader would otherwise have to check.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
 
@@ -143,7 +148,7 @@ Invoked from `findAccountForSession.mts:48`, which runs on **every** refresh, no
 
 Per-tier divergence beyond the shared gate:
 
-- **`shopOwner`** additionally carries `waitApprov` (manual Admin approval gate, `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`) and `onboardingStep` / `onboardingDone` (`BEs/marketplace-common/src/models/MongoDB/sub/LoginSubDocSchema.mts:25,28`). `waitApprov` is written by `shopOwnerUpdateStatus` (Admin tier, `$set` when true and `$unset` when false, so the field is truthy-or-absent and never `false`) and, since 2026-08-12, raised at creation by `shopOwnerRegister` on the public service — the one write of it outside the Admin tier, and the only one an unauthenticated caller can cause. Read by the two BC-01 gates. `onboardingStep` is read into the session (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts:11-12`) and written only by `shopOwnerUpdatePreferences`, an Admin typing a value in — **nothing advances it or `onboardingDone` as a side effect of the shop owner's own progress**, confirmed by grep across every `mutations/` directory. That half is an open gap, not a design decision, and E03-S08 widened it: a self-registered account is approved carrying a login and nothing else (`phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 2).
+- **`shopOwner`** additionally carries `waitApprov` (manual Admin approval gate, `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`) and `onboardingStep` / `onboardingDone` (`BEs/marketplace-common/src/models/MongoDB/sub/LoginSubDocSchema.mts:25,28`). `waitApprov` is written by `shopOwnerUpdateStatus` (Admin tier, `$set` when true and `$unset` when false, so the field is truthy-or-absent and never `false`) and, since 2026-08-12, raised at creation by `shopOwnerRegister` on the public service — the one write of it outside the Admin tier, and the only one an unauthenticated caller can cause. Read by the two BC-01 gates. `onboardingStep` is read into the session (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts:11-12`) and written only by `shopOwnerUpdatePreferences`, an Admin typing a value in — **nothing advances it or `onboardingDone` as a side effect of the shop owner's own progress**, confirmed by grep across every `mutations/` directory. ⚠️ **That half became a design decision on 2026-08-13 (E03-S04): the operator's hand is the writer, and stays the only one until a shop-owner onboarding flow is designed.** It is deferred work rather than a gap nobody noticed, and neither field is a security control — no gate anywhere reads either one, so what is deferred costs nothing in this document's terms. E03-S08 is why it is worth naming at all: a self-registered account is approved carrying a login and nothing else (`phase2/BOUNDED_CONTEXT.md` BC-03, `phase5/RISK_REGISTER.md` R53).
 - **`user` has no `waitApprov`.** A customer self-serves with nothing to approve — registration requires only `login` + `registeredAt`, and no manual approval step exists for the `User` tier by design (`docs/data-model.md`, `user` divergence #2). A shop owner may now self-serve too, and that is precisely where the two differ: the seller's account exists from the same moment and may not be used until an operator says so.
 - **`loginUser` refuses an account whose `emailVerify.valid` is false**, returning the **same generic error** as every other login failure:
 
@@ -421,7 +426,7 @@ When any of these get built, this document requires a new version — per its ow
 |---|---|---|---|
 | 1 | Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of `assertTier`? | platform owner / DBA | open — `phase1/SYSTEM_CONTEXT.md` §7 item 3, not verified this session |
 | 2 | ~~Whether a freshly created `ShopOwner` starts `waitApprov`-gated or ungated~~ | platform owner | **closed 2026-08-12 by E03-S08 — it depends on who created it.** `shopOwnerRegister` writes `true`, `shopOwnerAdd` writes nothing. No backfill: every document on disk predates the public form, so every one of them is Admin-created and correctly ungated (`phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 1 and §7 q3, both closed) |
-| 3 | What advances `onboardingStep`/`onboardingDone` — nothing but an Admin calling `shopOwnerUpdatePreferences`, and a self-registered seller is approved with an empty `personalData` | platform owner | open, and wider since E03-S08 — `phase2/BOUNDED_CONTEXT.md` BC-03 hotspot 2 |
+| 3 | ~~What advances `onboardingStep`/`onboardingDone` — nothing but an Admin calling `shopOwnerUpdatePreferences`, and a self-registered seller is approved with an empty `personalData`~~ | platform owner | **Closed 2026-08-13 (E03-S04)** — an Admin calling `shopOwnerUpdatePreferences`, by decision, until the onboarding flow is designed. Neither field gates anything, so nothing in this document depends on the answer; residual `phase5/RISK_REGISTER.md` R53 |
 | 4 | ~~Is the documented `/api/register` SSR proxy route stale doc, or an unbuilt route?~~ | platform owner | **closed** — unbuilt, and deleted rather than built; it would have weakened both controls it claimed to add. `phase1/SYSTEM_CONTEXT.md` §5.11 |
 | 5 | ~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner / ops | **closed** — it did not, and now all three do: `marketplace-nginx/sites-available/`, [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) |
 | 6 | No automated dependency-audit gate found for npm supply-chain risk (§7) — should one be added to `.githooks/pre-push`? | platform owner | open, raised this session |
