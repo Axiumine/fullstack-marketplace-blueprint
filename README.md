@@ -150,6 +150,31 @@ which, at push time, everything being pushed is. It stays out of `pre-commit` fo
 mutation does: it needs Docker and a pinned image, and a hook paid per commit is a hook that gets
 bypassed out of habit. Bypass for a Docker outage, never for a finding: `SKIP_SEMGREP=1 git push`.
 
+**Trivy joined `pre-push` on 2026-08-13, in all fourteen repos that carry a `yarn.lock` — the fifteenth
+gated tree, `services-status`, through the parent hook.** It is the answer to a question nothing on this
+platform was answering: semgrep and Qodana both read the code *written* here, and neither reports on the
+code *installed* here. Qodana looked like it did — `VulnerableLibrariesLocal` is armed in every
+`qodana.yaml` and runs on every commit and push — but that inspection is a ~0.03 s offline heuristic that
+queries no advisory feed and reports zero on every repo, while the class that does query one
+(`VulnerableLibrariesGlobalInspection`) ships in the same image and appears in no profile and in no scan
+log this workspace has ever produced. A check that cannot report is indistinguishable from a passing one,
+which is the same failure the fifteen unrun `semgrep/` directories were.
+
+Not `yarn audit`: yarn 1 aborts the whole run over the unpublished `@axiumine/marketplace-common`, and
+`npm audit` wants a `package-lock.json` nothing here has. Trivy reads `yarn.lock` natively, in a pinned
+container, and **suppresses devDependencies by default** — which is the property that makes the gate
+keepable rather than the one everybody learns to bypass: an advisory in something only `yarn build` loads
+does not block a push. HIGH and CRITICAL only, matching `qodana.yaml`'s own critical 0 / high 0. It runs
+second, after semgrep and before everything slow, at well under a second once the vulnerability database
+is cached. Bypass for a Docker or network outage, never for a finding: `SKIP_TRIVY=1 git push`.
+
+⚠️ **The threshold was not tuned to green the current tree, and the current tree is not green.**
+`marketplace-dev-public-resource` blocks on `axios@0.21.4` — ten HIGH advisories, R49 on the risk register
+— and every other repo passes. That is the gate reporting, not the gate misconfigured: the fix is the
+upgrade, not a `.trivyignore`, and there is no `.trivyignore` anywhere in this workspace. ⚠️ The database
+updates independently of the pinned image tag, so a tree that is clean today can go red tomorrow with no
+commit in between. E18-S11.
+
 ⚠️ It is **not** a second copy of Qodana's SAST. Qodana runs JetBrains inspections; semgrep runs the
 vendored registry packs plus each repo's own `semgrep/custom.yml`, whose three secret-in-logs rules —
 introspection code, auth token, reset secret — are this platform's own and no general-purpose linter
@@ -168,7 +193,7 @@ fast but needs Docker and is only trustworthy over committed files (see above).
 
 `marketplace-db-setup` runs a shorter chain, and the one omission left is a decision rather than a gap.
 Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push` is
-`test:cov` → `test:mutation` → Qodana. **No lint**, because it is the one repo on the platform with no
+trivy → `test:cov` → `test:mutation` → Qodana. **No lint**, because it is the one repo on the platform with no
 `eslint.config.js` and no `.prettierrc` — its content is applied migrations, which are immutable, so a
 formatter that rewrites them is the wrong tool. Qodana still *inspects* those files, which is the part
 worth having.
@@ -195,7 +220,7 @@ appearance of a gated project. Both parent hooks now close it:
 |Hook|Gates|Scope|
 |---|---|---|
 |`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `services-status/`|
-|`.githooks/pre-push`|`yarn semgrep:ci` → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+|`.githooks/pre-push`|`yarn semgrep:ci` → trivy → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
 
 The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
 commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
