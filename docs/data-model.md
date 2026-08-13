@@ -219,12 +219,12 @@ each is a silent failure on its own:
 - **The field name is the refresh session's key body**, so a reader rebuilds the key to act on as
   `${REDIS_KEY}${field}` and never holds a token. A field digested from anything else is still 64 hex
   characters, still passes a shape check, and names a key that does not exist.
-- **Only the refresh session is filed**, because a session *is* its refresh lineage. The access token
-  minted from a revoked refresh token keeps working until its own expiry — the same residual the
-  `disabled` flag already carries, since that too is only re-checked on refresh, and the one **R54**
-  carries. It is not an *unreachable* token: the refresh hash names its access session in `accessKey`, so
-  rotation and logout both end it without the client presenting anything. Revocation is the path that does
-  not yet read that field.
+- **Only the refresh session is filed**, because a session *is* its refresh lineage — and filing one is no
+  longer the same as revoking one half of it (**R54**, closed 2026-08-13). The refresh hash names its own
+  access session in `accessKey`, so rotation, logout *and* revocation all end the access token without the
+  client presenting anything; a revocation reads that field before it deletes the hash holding it, since
+  afterwards there is nothing to read. What the index does not carry, it reaches through the session it
+  names.
 - **The tier is in the key name**, not only in the value: three collections mint `_id`s independently, so
   an index keyed by id alone would let one account's revocation log out a stranger.
 - **The key's TTL is always 30 days** — `SESSION_CAP_DAYS_REMEMBERED`, the *longer* cap — reissued on
