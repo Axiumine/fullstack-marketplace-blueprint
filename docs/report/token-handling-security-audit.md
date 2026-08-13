@@ -494,4 +494,6 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
 - **The residuals carried as risk rows** rather than as claims of completeness: the per-machine `KEYGRIP_KEK`
   (R02), the retirement adoption window (R47), unencrypted Redis transport (R45), storage-level encryption
   (R48), `axios@0.21.4` in `public-resource` (R49), and the distinct-token flood against `refresh`. E18-S07
-  is the story that gives each of them a row, an owner and a trigger.
+  is the story that gives each of them a row, an owner and a trigger — **landed the same day**: the flood is
+  **R52**, the dual-read fallback's removal is **R51**, and the per-machine `KEYGRIP_KEK` became **R50** when
+  R02 closed, since a closed row may not carry an open residual. The other three were already rows.
