@@ -237,6 +237,12 @@ than "small" — there is no sweeper, no lazy prune on read, and nothing a reade
 - **Anything else** — the field's `HEXPIRE` above. A crashed client, a dropped browser, a session that
   simply ran out its cap: nobody has to come back and tidy up.
 
+`revokeAllSessionsForAccount` (E15-S04) takes the whole key instead: `hKeys`, one single-key `del` per
+session it names, and **the index key last** — the index is the only record of what is left to delete, so
+an interrupted revocation that removed it first would leave live refresh tokens nothing can name. Reversed,
+a retry finishes the job. An account with nothing open issues no command at all, unlike the family set of
+E14-S03, which is always deleted: that one has no per-field TTL to fall back on.
+
 ⚠️ **This is what puts a floor of Redis 7.4.0 under the whole platform** — `HEXPIRE`/`HTTL` do not exist
 before it, and Redis refuses an unknown command at the first call rather than at startup. `up.sh
 --with-redis` checks the container's version, and each of the four authorization services probes its own
