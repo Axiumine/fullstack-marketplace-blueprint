@@ -48,6 +48,11 @@ One defect was found, and it has nothing to do with keys — it was found becaus
   started and stopped, and cannot tell it from a clean shutdown. This belongs to **E18-S03**, which is
   already the story about `REQUIRED_ENV_VARS` and failing to start; it is recorded here because this is
   where it was observed.
+  **Fixed 2026-08-13 by E18-S03**, in all nine services: the entrypoint's `.catch` now writes the failure
+  to stderr and calls `process.exit(1)`, so a boot that never bound its port stops reporting a clean
+  shutdown to Docker, to systemd and to anything else reading the exit code. Sentry still gets the event,
+  and still discards it while no DSN is configured — which is why the exit code, not the report, is what
+  was made to carry the failure.
 
 ## 2. What was measured
 
