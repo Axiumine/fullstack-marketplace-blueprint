@@ -139,6 +139,10 @@ admin, user — outside the chain
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on
   all four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a
   test.
+- ⚠️ **Never start the mutation gate by hand, in any of the fifteen repos that carry a `stryker.config.*`.**
+  `yarn test:mutation` is **hook-only** — `pre-push` calls it, nothing else does, and neither a commit nor
+  a "quick check on one file" is a reason to run it. Each repo's own `CLAUDE.md` says the same at the top.
+  To reproduce a survivor, apply the mutant by hand in the source and run `yarn test`, which takes seconds.
 - **Never read, echo or commit a secret-bearing file** (`.env`, `.npmrc`, `*.pem`, …). `env` and
   `npmrc` without the dot are committed templates and safe. Print key names only:
   `grep -oE '^[A-Za-z_0-9]+' .env`. See [`.claude/SECRETS.md`](./.claude/SECRETS.md).
