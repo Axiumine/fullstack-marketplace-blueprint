@@ -98,7 +98,7 @@ script in the workspace root.
 | MC-09 | every authenticated service proves all eleven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
 | MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
-| MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | trivy + Qodana SCA, per [`README.md`](../README.md) |
+| MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere (E18-S11) |
 
 ⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Four of its
 five checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing

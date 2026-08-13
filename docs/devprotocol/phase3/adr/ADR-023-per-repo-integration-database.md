@@ -101,6 +101,9 @@ fingerprint sweep, not a per-repo assertion — recorded here so it is not re-di
   for any value this ADR's check does not reach (`INTROSPECTION_CODE`, `KEYGRIP_KEY_1/2`, `REDIS_PASSWORD`
   pairing). Revisit if a second cross-repo drift incident happens — that would be the signal a scheduled
   fingerprint sweep needs to become a gate rather than a one-off audit.
+  ⚠️ **Amended 2026-08-13 (E18-S06).** `KEYGRIP_KEY_1/2` left this list by ceasing to exist: **ADR-034**
+  moved the signing keys into one wrapped Redis record, so the value that caused the incident this bullet
+  names is no longer a per-repo env value at all. The revisit trigger stands for the two that are.
 - **A per-machine `.env` silently reverts to a stale copy** (e.g. a workstation reset, a bad `cp`). The
   3-var assertion still passes if the stale copy is internally consistent; only a fingerprint sweep against
   the other 9 repos would catch it.

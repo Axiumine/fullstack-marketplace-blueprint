@@ -126,6 +126,48 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   no `waitApprov` at all, deliberately: an operator creating the account by hand *is* the approval.
 - Passwords: bcrypt via `@node-rs/bcrypt`, `SALT_ROUNDS=14`.
 
+### What one session is made of
+
+A login mints two tokens and three facts that outlive both of them. `newSessionLineage` stamps them once
+and no rotation moves any of them (`marketplace-common/src/others/newSessionLineage.mts:31`):
+
+- **`familyId`** — a `randomUUID()`, derived from neither token. Every refresh key of that login joins
+  `<REDIS_KEY>family:<familyId>`, so one login is addressable as a whole and not only as its current
+  token pair.
+- **`originalLogin`** — the epoch millisecond the login happened, which is what makes the cap absolute
+  rather than sliding.
+- **`sessionCapDays`** — `1` by default, `30` when the login carried `rememberMe: true`
+  (`SESSION_CAP_DAYS_DEFAULT` / `SESSION_CAP_DAYS_REMEMBERED`, `src/others/sessionLifetime.mts:20,35`).
+  An absent or non-boolean argument resolves to the **shorter** one, so an omitted flag fails towards a
+  shorter session. The cookie's `Max-Age` is untouched by any of this: it stays `REFRESH_TOKEN_EXPIRY`,
+  and the cap is a comparison in `resolveAuthorizationSession`, not a cookie attribute.
+
+Three mechanisms read those facts, and each is a whole answer to one audit finding:
+
+- **Rotation is one-shot.** The consumed refresh token is tombstoned at `<REDIS_KEY>used:<sha256(token)>`
+  holding its `familyId` *before* the session is deleted, so the key never passes through a state where
+  it is neither live nor known-consumed. Presenting a consumed token inside `GRACE_SECONDS` (10) answers
+  a retry — that is a page's two tabs racing, not an attacker — and past it is a replay:
+  `revokeSessionFamily` deletes every member of the family set and appends to `<REDIS_KEY>reuse:<tier>:<accountId>`,
+  the trail the operator console reads. The access token presented alongside the rotated refresh token is
+  deleted in the same pass, so the pre-rotation bearer stops working at rotation rather than at its own
+  expiry.
+- **The absolute cap is enforced on refresh.** `now - originalLogin > sessionCapDays * 86400000` throws the
+  same `throwRefreshTokenExpiredOrDeleted()` every other refusal throws — no new error class, nothing a
+  client can tell apart — and revokes the family on its way out.
+- **An account can be found from its `_id`.** `<REDIS_KEY>idx:<tier>:<accountId>` is a hash with one field
+  per live session, the field name being the refresh session's key body and the value `{ tier, mintedAt }`,
+  each field `HEXPIRE`d to its own session's remaining cap. It exists because this platform may not run
+  `SCAN` or `KEYS` (BCON-08), and it is what makes "end every session of this account" possible at all:
+  a password or email change (E15-S05, E15-S06), a status transition, or an operator pressing revoke.
+
+⚠️ **Only refresh sessions are indexed and only refresh sessions are revoked.** An access token minted
+before a revocation keeps working until its own expiry — the same residual `disabled` has always carried,
+since that too is re-read on refresh. Two further residuals are measured rather than assumed: a refresh
+sent with no `Authorization` header orphans the access token it replaces
+([`report/live-auth-path-observation.md`](./report/live-auth-path-observation.md)), and revocation is
+per-account, so it cannot reach a session whose account id it does not have.
+
 ### Per-tier session assertion (ADR-004)
 
 Every session hash carries a `tier`, and every service asserts its own. Three pieces, all in
