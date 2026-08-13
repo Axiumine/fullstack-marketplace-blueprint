@@ -183,10 +183,12 @@ implementation in `marketplace-common`.
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 18 epics, states build state against the working tree, and links out.
 
-**One exception, since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md), beside
-this index rather than under `epics/`. All fifteen of its stories are `built` and nothing in it was work
-still ahead, so it reads as the record of a shipped surface. The story IDs `E01-S01`..`E01-S15` are
-unchanged and are still what twenty-two files cite - see that file's §0.
+**Two exceptions, both since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
+and E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), beside this index rather than under
+`epics/`. All fifteen of E01's stories are `built`, and E02's four built stories sit next to one
+anti-story - a boundary to defend, not work ahead - so both read as the record of a shipped surface rather
+than a backlog entry. The story IDs `E01-S01`..`E01-S15` and `E02-S01`..`E02-S05` are unchanged and are
+still what the citing files cite - see each file's §0.
 
 Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
 order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
@@ -200,7 +202,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | ID | Epic | Contexts touched (informational) | Tier(s) served | Build state | Repos | File |
 |---|---|---|---|---|---|---|
 | E01 | Identity & Access | BC-01 | Admin, ShopOwner, User, anonymous (registration) | Built | `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-common` | [IDENTITY_ACCESS.md](IDENTITY_ACCESS.md) — not under `epics/`, see §1 |
-| E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [E02.md](epics/E02.md) |
+| E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [SESSION_TERMINATION.md](SESSION_TERMINATION.md) — not under `epics/`, see §1 |
 | E03 | Shop Owner Onboarding & Approval | BC-03 | ShopOwner, Admin, **anonymous (self-registration)** | Built - onboarding progress is operator-written by decision (E03-S04), a shop-owner flow is future work | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-common`, `marketplace-db-setup`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E03.md](epics/E03.md) |
 | E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E04.md](epics/E04.md) |
 | E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [E05.md](epics/E05.md) |

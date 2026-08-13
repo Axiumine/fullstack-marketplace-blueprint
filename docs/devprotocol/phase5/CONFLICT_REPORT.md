@@ -27,7 +27,7 @@ Pass. No blocking conflict found. Two warning-level nits and one traceability ga
 | phase2/BOUNDED_CONTEXT.md | (sampled) | grep for BC-01..BC-11 relation table |
 | phase3/adr/ADR-INDEX.md | (sampled) | grep count of ADR rows |
 
-⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `epics/E01.md` was deleted that day and its record moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) beside this file. Every `epics/E01.md` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present under `epics/`" was true on the day and reads ten today. The `E01-SNN` ids are unchanged.
+⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `epics/E01.md` and `epics/E02.md` were both deleted that day and their records moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) beside this file. Every `epics/E01.md`, `epics/E02.md` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present under `epics/`" was true on the day and reads nine today. The `E01-SNN` and `E02-SNN` ids are unchanged.
 
 Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only §1/§2/§5/§9-10 and tier-assert/logout lines sampled), most of epics/E01-E06,E09,E10 bodies beyond story-header + traces-line greps, all of phase1-4 baseline beyond the NFR/BC/ADR tables grepped. This is a grep-first sweep, not a cover-to-cover read.
 
