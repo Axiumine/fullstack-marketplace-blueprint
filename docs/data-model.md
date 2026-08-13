@@ -192,7 +192,7 @@ limiter were found, live and documented nowhere, on the day E18-S08 first ran it
 | Shape | Holds | Written by | Status |
 |---|---|---|---|
 | `<prefix><sha256('access:'+token)>` | the access session hash — `_id`, `email`, `tier`, never the refresh token | login, rotation | live (E13-S01) |
-| `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier` | login, rotation | live (E13-S01) |
+| `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier`, the lineage, and `accessKey`: the *key* of the access session minted beside it, never a token | login, rotation | live (E13-S01; `accessKey` 2026-08-13) |
 | `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing — **read-only fallback** | temporary, removed by E13-S10 |
 | `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | temporary, removed by E13-S10 |
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
@@ -221,7 +221,10 @@ each is a silent failure on its own:
   characters, still passes a shape check, and names a key that does not exist.
 - **Only the refresh session is filed**, because a session *is* its refresh lineage. The access token
   minted from a revoked refresh token keeps working until its own expiry — the same residual the
-  `disabled` flag already carries, since that too is only re-checked on refresh.
+  `disabled` flag already carries, since that too is only re-checked on refresh, and the one **R54**
+  carries. It is not an *unreachable* token: the refresh hash names its access session in `accessKey`, so
+  rotation and logout both end it without the client presenting anything. Revocation is the path that does
+  not yet read that field.
 - **The tier is in the key name**, not only in the value: three collections mint `_id`s independently, so
   an index keyed by id alone would let one account's revocation log out a stranger.
 - **The key's TTL is always 30 days** — `SESSION_CAP_DAYS_REMEMBERED`, the *longer* cap — reissued on

@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E18-S09. Not baselined, not a requirement document
-**Version:** 1.1 — F1 fixed the same day; §5 says how, and why the other candidate fix was refused
+**Version:** 1.2 — F1 and F2 both fixed the same day; §5 and §6 say how, and what each fix leaves alone
 **Date:** 2026-08-13
 **Scope:** what the running Dev stack does, per tier, for the four calls the seven phase-5 epics are
 written about: a login, an authenticated call, that same call against a service of another tier, a
@@ -41,12 +41,14 @@ epics' worth of design, working, on the first run.
 | # | Finding | Severity |
 |---|---|---|
 | F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration was broken in production. Fixed 2026-08-13, see §5** |
-| F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the operator console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | Medium — bounded by the access TTL, unbounded in count |
+| F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the operator console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | **Medium — the orphan and the accumulation are fixed, 2026-08-13, see §6. One residual left open by decision** |
 
 Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a
 production defect in a story nobody had written, and it is stated here because this is the document that
 found it. It was fixed the same day, outside any story, on the user's decision — §5 records what was
-changed and what the fix deliberately leaves alone. **F2 is still open** and has no story either.
+changed and what the fix deliberately leaves alone. **F2 was fixed the same day and on the same
+decision**, also with no story: the unreachable token and its accumulation are gone; what survives is one
+narrower residual, recorded in §6 and carried as R54.
 
 ## 2. What was driven
 
@@ -234,6 +236,34 @@ That access tokens outlive a revocation is already stated where it matters
 outlive *logout*, that they accumulate one per reload rather than existing one at a time, and that nothing
 can enumerate them.
 
+**Fixed 2026-08-13, outside any story, on the user's decision.** The refresh session now records the key of
+the access session minted beside it, in an `accessKey` field on its own hash, so the server never has to be
+*told* by a client which access token belongs to the session in front of it:
+
+- **login** stamps it — `setRedisLoginSession` writes both hashes in one `Promise.all`, the refresh one
+  carrying `accessKey` (`marketplace-dev-public-authorization`);
+- **every rotation** retires the union of the key the consumed session records and the key of a presented
+  token, then stamps the successor with its own (`refreshSessionTokens.mts`, `marketplace-common`). The
+  `if (presentedAccessToken)` guard is no longer the only path to the predecessor, so a refresh with no
+  `Authorization` header kills its predecessor exactly like one with a header;
+- **logout** deletes the key the session names as well as the presented one, deduplicated through a `Set`
+  so the ordinary two-delete logout stays two deletes (`marketplace-dev-authenticated-logout`).
+
+A stored key is a *key*, not a token: it is the digest already used as the Redis address, it grants nothing
+to whoever reads it, and it is never projected into a session the resolvers return, so E17 §2 holds.
+
+What this closes, exactly: no access token is unreachable any more, and none accumulates — at most one
+access token per session is live at any moment, and logout ends it. The measured table above no longer
+reproduces; the reload path in particular now behaves as row 1 already did for a header-carrying refresh.
+
+⚠️ **What it deliberately does not close — the residual, carried as R54.** `revokeSessionFamily`,
+`revokeAllSessionsForAccount` and the E17 operator "end session" button still end *refresh* sessions only.
+An account whose password was changed, or which an operator has just revoked, keeps its current access
+token for up to the rest of its 30–91 minutes. That is now a cheap change rather than a structural one —
+one `hGet` of `accessKey` per session being revoked and one extra command on `ISessionRevokeStore`, as
+`revokeAllSessionsForAccount`'s own docstring records — but it is a widening of what "revoke" means to
+every caller of those three paths, so it is a decision, not a fix, and it is left to the user.
+
 **F3 — a revoked family leaves its index row behind.** `revokeSessionFamily` deletes the members and the
 set and never touches `idx:<tier>:<accountId>` (`revokeSessionFamily.mts:64-66`). Observed: after the
 replay revocation the row remained, still naming the digest of a session that no longer exists, for the
@@ -268,10 +298,13 @@ tokens answer 498 afterwards and the emptied jar answers 412. The claim in E15 �
 statement about the pre-fix code and needs no correction — it is already written in the past tense, with
 the fix attributed.
 
-⚠️ **One qualification, which is F2 and not a regression:** logout ends the session it is shown. It does
-not end the *lineage*. An access token from an earlier generation of the same session is untouched, and
-`family:<uuid>` survives. "Logged out" means the refresh chain is dead and the presented access token with
-it — up to 91 minutes short of meaning that every token this session ever minted is dead.
+⚠️ **One qualification, which was F2 and not a regression:** logout ends the session it is shown. It does
+not end the *lineage*: `family:<uuid>` survives it. As observed, an access token from an earlier generation
+of the same session survived too — that half is what the F2 fix closed. Since 2026-08-13 a rotation retires
+its predecessor's access session whether or not the client presented the token, so by the time logout runs
+there is at most one access session left in the lineage and logout deletes it, by the key the refresh hash
+names, without needing the header. "Logged out" now means the refresh chain is dead and every access token
+the session minted with it.
 
 ## 8. What this document does not cover
 
