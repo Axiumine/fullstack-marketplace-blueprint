@@ -166,11 +166,22 @@ openssl rand -hex 24                   # INTROSPECTION_CODE
 
 | Value | Goes in | Why it must match |
 |---|---|---|
-| `KEYGRIP_KEK` | the four `*-authorization` services, `marketplace-dev-authenticated-logout` and `marketplace-db-setup` — 5 of 9, plus the seed | it unwraps the one Redis record the cookie-signing keys live in (ADR-034). `public-authorization` signs the refresh cookie at login and the tier's own authorization service verifies it, so a service that cannot open the record **refuses to boot** rather than signing cookies its siblings cannot verify |
+| `KEYGRIP_KEK` | the four `*-authorization` services, `marketplace-dev-authenticated-logout`, `marketplace-dev-admin-authenticated-resource` and `marketplace-db-setup` — 6 of 9, plus the seed | it unwraps the one Redis record the cookie-signing keys live in (ADR-034). `public-authorization` signs the refresh cookie at login and the tier's own authorization service verifies it, so a service that cannot open the record **refuses to boot** rather than signing cookies its siblings cannot verify |
 | `INTROSPECTION_CODE` | all nine services | the header that lets schema introspection through without a session — **on a development or test machine only**, see below |
 | `REDIS_KEY` | all nine services **and `marketplace-db-setup`**, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session, and the seed writes the keygrip record where nobody looks for it |
 
-The four `*-resource` services sign no cookie and **must not** carry `KEYGRIP_KEK`.
+⚠️ **Six services, not five, and the sixth is a `*-resource` one.**
+`marketplace-dev-admin-authenticated-resource` signs no cookie and still requires the KEK: it hosts the
+rotation and retirement mutations, which mint and reseal the record (E17; `src/index.mts:65-71` says why
+it is required at boot rather than at first use). The other three `*-resource` services —
+`authenticated-resource`, `public-resource`, `user-authenticated-resource` — sign nothing, rotate nothing
+and **must not** carry it. This line read "five" until 2026-08-13, when starting the whole stack for the
+first time found the sixth by refusing to boot — see
+[`docs/report/live-auth-path-observation.md`](./docs/report/live-auth-path-observation.md) §6.
+
+**Six is not the number of rows in `<REDIS_KEY>keygrip:holders`, which is five.** A holder row is filed
+by a service that *signs*; `admin-authenticated-resource` opens the record without signing with it. The
+two counts answer different questions and both are correct.
 
 ⚠️ **`KEYGRIP_KEK` is not a signing key**, and the difference matters when something goes wrong. The
 signing keys themselves are never in an `.env` file: they are minted into Redis by `yarn seed:keygrip` in
@@ -382,13 +393,13 @@ the shop-owner panel.
 **Migrations are immutable.** Never edit one that may already be applied; change a schema by adding a
 new one. `yarn migrate:down` reverts exactly one migration, the last applied.
 
-### `yarn seed:keygrip` — the record five services refuse to boot without
+### `yarn seed:keygrip` — the record six services refuse to boot without
 
 `yarn seed:keygrip` touches no collection. It writes **one Redis hash**, `<REDIS_KEY>keygrip`, holding
 the cookie-signing key array sealed under `KEYGRIP_KEK` (ADR-034), and it prints the record's version and
-fingerprint — never a key. The four `*-authorization` services and `marketplace-dev-authenticated-logout`
-read it at boot and **exit 1 if it is missing**, naming this command, so running §9 first simply tells
-you to come back here.
+fingerprint — never a key. The four `*-authorization` services, `marketplace-dev-authenticated-logout` and
+`marketplace-dev-admin-authenticated-resource` read it at boot and **exit 1 if it is missing**, naming this
+command, so running §9 first simply tells you to come back here.
 
 It is deliberately not part of any service's start-up: a service that minted its own keys against an
 empty Redis would re-key the whole fleet on every restart, which is the split-brain ADR-034 removes.
