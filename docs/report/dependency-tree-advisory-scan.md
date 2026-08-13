@@ -350,7 +350,7 @@ it does not run in CI, because there is no CI. It runs in two git hooks, via Qod
 
 | # | What | Why it is a story and not a note |
 |---|---|---|
-| 1 | Remove `@socketlabs/email` from the seven services that never load it | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run |
+| 1 | ~~Remove `@socketlabs/email` from the seven services that never load it~~ **Done 2026-08-13, E18-S10** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
 | 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that works despite the unpublished package (§2). Without this, every other dependency decision here is unverifiable next month |
 | 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement |
 
