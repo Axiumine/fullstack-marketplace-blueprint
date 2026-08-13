@@ -22,7 +22,7 @@ Those three are the only REST endpoints on the platform.
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | domain data, item CRUD, uploads |
 | `marketplace-dev-authenticated-logout` | 4030 | **all three** | logout |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | token lifecycle |
-| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | domain data, `itemCategory` CRUD, moderation |
+| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | domain data, `itemCategory` CRUD, moderation, **session administration and key custody** |
 | `marketplace-dev-user-authenticated-authorization` | 4031 | User | token lifecycle |
 | `marketplace-dev-user-authenticated-resource` | 4032 | User | account, personal data, addresses |
 
@@ -36,6 +36,13 @@ lifecycle.
 ⚠️ **The logout row is not a typo** (ADR-005). One service serves every tier, because its resolver
 deletes the Redis keys by token *content* and never asks which collection minted them. All three
 frontends point at 4030.
+
+⚠️ **The Admin resource row carries two concerns that are not domain data**, and that is a recorded
+decision rather than drift: `sessions` / `reuseEvents` / `revokeSession` / `revokeAllSessions` read and
+write another tier's Redis sessions, and `keygripStatus` / `keygripRotate` / `keygripRetire` administer the
+platform's cookie-signing keys. Both are Admin-tier operator tooling and both are answered here rather than
+by a tenth deployable — see [`docs/decisions/admin-session-tooling-placement.md`](./decisions/admin-session-tooling-placement.md), which also states
+what would reopen it.
 
 ### Ports and binding
 

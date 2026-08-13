@@ -153,7 +153,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
 | E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | 9 of 9 built - E15-S01 closed the live `logout` no-op and E15-S09 the context type that hid it, both 2026-08-12; E15-S08 closed 2026-08-13 against a gate E01-S11 had already built. **E15-S02 built 2026-08-13: the account index exists** and every login and rotation files its session under it, with no keyspace scan anywhere. **E15-S03 the same day: it prunes itself** — rotation and logout unfile, everything else expires with a per-field `HEXPIRE` at the session's cap, which puts a checked Redis 7.4 floor under the platform. **E15-S04 the same day: one routine revokes an account**, so `marketplace-common` is finished for this epic. **E15-S05 the same day: a password change ends every session**, caller included, on the only two services that have a password-change mutation — which surfaced the public reset-password flow as an uncovered credential write (open question 4). **E15-S06 the same day: writing a login email ends that account's sessions**, at its one call site, with a per-repo enumeration test standing guard over the next one. **E15-S07 the same day: parking a ShopOwner ends the sessions they were holding**, so `disabled` and `waitApprov` stop being labels that only bite at the next rotation — while releasing an account deliberately revokes nothing. The epic is complete; what it leaves behind is the public reset-password flow (open question 4), which no story in it covers | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, the three `*-resource` services, `docker-DBs` | [E15.md](epics/E15.md) |
 | E16 | Signing-Key Custody & Rotation | BC-01, BC-10 | Admin (operates), all tiers (affected) | **Built 2026-08-13, by ADR-034's mechanism rather than this epic's** - S01, S02, S03, S05, S06 by E01-S12…E01-S15; S04, S07, S08, S09 in E16's own name. R02 `Mitigated`, residual at R47 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
-| E17 | Admin Session Console | BC-01, BC-10 | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
+| E17 | Admin Session Console | BC-01, BC-10 | Admin | **Built 2026-08-13 - 9 of 9**, and all four open questions answered: the reuse trail is a **capped Redis list** (50 events) kept **30 days from its last event**, sessions are readable **per account only** — one `hGetAll`, no keyspace scan — and an operator's revoke is **not attributable**, which is a second store's decision rather than a third value in `REUSE_EVENT_ACTIONS`. E17-S04 landed as a *correction* to E15-S04's already-shipped routine: the index is re-read before it is deleted, bounded at three attempts, and left in place on exhaustion. E17-S07 is a gate rather than a convention — a loop over all seven operations on both sides, with fixtures carrying secrets in fields no document selects, a control test proving the app really authenticates, and a coverage test that fails when an eighth operation is added. E17-S09's decision note argues the ninth service from R02/R03/R04 and cites neither ADR-006 nor NFR-AV01, deliberately | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common`, `docs/` | [E17.md](epics/E17.md) |
 | E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | 2 of 9 built - **E18-S01 verified `built` 2026-08-13 and this epic did not build it**: all three resource services now test the wrong tier, the missing tier and 403-not-401 against their own middleware, having gained those tests with the tier discriminator itself. **E18-S02 built 2026-08-13** — eleven cases in `marketplace-common`, tagged in all seven authenticated services, a per-repo contract test that fails on a missing tag, the contract in `docs/testing.md`; it closed two real gaps in the three authorization services (the introspection allowlist, and the replay refusal asserted only from the writing side) | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
 
 ### 2.1 E12-E18 are numbered in landing order
@@ -210,14 +210,16 @@ Brownfield retrofit. Most stories in `epics/*.md` describe work ALREADY SHIPPED,
   `phase5/CONSTRAINTS.md` §6 even those stop at recording the gap - no schema, no resolver signature, no
   checkout sequence gets designed in this protocol. **E12-E18 were open throughout when written**, by
   construction: they described remediation that had not been built. E12, E13 and E14 landed on 2026-08-10
-  and are open only where each epic's §7 says so; **E15 and E16 are complete since 2026-08-13** — E16 by
-  ADR-034's mechanism rather than its own, retargeted in its v2.0 rather than rebuilt — E17 and E18 are still
+  and are open only where each epic's §7 says so; **E15, E16 and E17 are complete since 2026-08-13** — E16 by
+  ADR-034's mechanism rather than its own, retargeted in its v2.0 rather than rebuilt — and E18 is still
   open throughout. Unlike E11 they *do*
   carry design detail, because the §6 prohibition scopes to order/cart/delivery/payment, not to security
   hardening of shipped code.
-- **Status tag vocabulary is two values only** - `built` and `not built`. E17 and E18 use `not built`
-  uniformly; E12-E16 now carry a marker per story, and E12-E14 each end with a §7 naming what stayed
-  `not built` and why. **E16 has no §7 either**: all nine of its stories are `built` and every one of them
+- **Status tag vocabulary is two values only** - `built` and `not built`. E18 uses `not built`
+  uniformly; E12-E17 now carry a marker per story, and E12-E14 each end with a §7 naming what stayed
+  `not built` and why. **E17 has no §7**: all nine of its stories are `built`, every one carries an
+  **Outcome** paragraph, and all four of its open questions are answered in its §6 rather than left for
+  later. **E16 has no §7 either**: all nine of its stories are `built` and every one of them
   carries an **Outcome** paragraph instead, saying what satisfied the criteria, what was traded, and where a
   criterion was refused on the merits — E16-S08's R02 closure is the refusal. **E15 has no §7 and needs
   none** — all nine of its stories are `built`, and the one
@@ -299,11 +301,11 @@ Finding-to-epic map, so no audit finding is left unassigned:
 | §3.4 old access token survives refresh | E14 |
 | §3.5 `sendDefaultPii` + `rejectUnauthorized = false` | E12 |
 | §3.6a raw tokens as Redis keys | E13 |
-| §3.6b no account→sessions index | E15, surfaced by E17; closed 2026-08-13 by E15-S02 (written) and E15-S03 (pruned) |
+| §3.6b no account→sessions index | E15, surfaced by E17; closed 2026-08-13 by E15-S02 (written), E15-S03 (pruned) and E17-S02 (read by an operator) |
 | §3.6c `INTROSPECTION_CODE` comparison and reachability | E13-S03 (comparison), E13-S11 (bypass disabled outside development), E13-S09 (reachability) |
 | §3.6d `assertTier` reject path untested in 2 of 3 | E18-S01, verified closed 2026-08-13 — the two missing suites gained the tests with the tier discriminator itself, so E18 verified rather than built |
 | §3.6e `waitApprov` claimed but not enforced | E15-S08, closed 2026-08-13 — the gate itself was built by E01-S11 on 2026-08-12 |
-| §3.6f Keygrip rotation unused (= R02) | E16 — **closed 2026-08-13**, operated by E17 |
+| §3.6f Keygrip rotation unused (= R02) | E16 — **closed 2026-08-13**, and operable since the same day: E17-S08's panel rotates and retires from a screen |
 | §3.7a `rememberMe` inert | E14 |
 | §3.7b Redis persistence / TLS undocumented | E13 |
 | §3.7c `SameSite` in no ADR | E13 |
