@@ -109,7 +109,7 @@ a false-positive reuse signal. Worth resolving during design, not before.
 > **Outcome — fixed, 2026-08-13 (E14-S01…S04).** `familyId` is stamped at login and carried unchanged
 > (`marketplace-common/src/others/newSessionLineage.mts:31`); rotation tombstones the consumed token at
 > `<REDIS_KEY>used:<sha256(token)>` **before** deleting the live key
-> (`src/others/refreshSessionTokens.mts:217-222`), and a replay revokes every member of
+> (`src/others/refreshSessionTokens.mts:230-260`), and a replay revokes every member of
 > `<REDIS_KEY>family:<familyId>` (`src/others/revokeSessionFamily.mts:49`). The design note was right and
 > was answered rather than assumed away: a replay inside `GRACE_SECONDS = 10`
 > (`src/others/sessionLifetime.mts:56`) is a retry, not an attack, and E14-S09 measured what the three SPAs
@@ -201,13 +201,28 @@ XSS read of the `Authorization` header — stays usable after the victim has alr
 `refreshSessionTokens` and delete its key alongside the old refresh key. Symmetric with the rollback logic
 already there.
 
-> **Outcome — fixed with a measured residual, 2026-08-13 (E14-S06; residual found by E18-S09).** The access
-> token the call arrived with is deleted in the rotation pass
-> (`marketplace-common/src/others/refreshSessionTokens.mts:217`), so the pre-rotation bearer dies at
-> rotation. The residual is the case the fix cannot see: a refresh sent with **no** `Authorization` header —
-> which is exactly what a page reload does — passes nothing to delete, and that access token then lives out
-> its own TTL unreachable by logout, family revocation and the operator console alike. Observed on the
-> running platform, not inferred: `report/live-auth-path-observation.md`.
+> **Outcome — fixed, then the residual it left was fixed too, both 2026-08-13 (E14-S06; residual found by
+> E18-S09).** The access token the call arrived with is deleted in the rotation pass, and so is the one the
+> *session* records: `refreshSessionTokens.mts:250-255` builds a `Set` of both names and issues one `del`
+> per distinct key. The set is what closes the residual this paragraph used to end on — a refresh sent with
+> **no** `Authorization` header, which is exactly what a page reload does, presented nothing to delete, and
+> that access token then lived out its own TTL unreachable by logout, family revocation and the operator
+> console alike. It was observed on the running platform rather than inferred
+> (`report/live-auth-path-observation.md` §6), and it is reachable now because the refresh hash carries
+> `accessKey`: the session names its own access half, so the rotation is right whatever the request looked
+> like. `presentedAccessToken` is kept alongside it rather than replaced by it — the two differ when a
+> client presents an access token older than the one its session records, and a pre-cutover session has no
+> bound key at all.
+>
+> **How both halves of E14-S06's last criterion are proved, since no test drives two live services.** Three
+> links, each asserted against a real cluster: the rotation deletes the retired access key
+> (`marketplace-dev-authenticated-authorization/test/integration/index.itest.mts:473`); the successor
+> refresh hash names that exact key in `accessKey`, and the access hash really lives under it
+> (`marketplace-dev-user-authenticated-authorization/test/integration/index.itest.mts:388-409`), which is
+> what makes the key a resource service derives and the key a rotation deletes the same key rather than two
+> that happen to agree; and a `Bearer access:` token with no key on the cluster is refused **498** by the
+> resource service (`marketplace-dev-authenticated-resource/test/integration/index.itest.mts:189`, customer
+> tier `:88`). What no suite does is put one request through two processes.
 
 ---
 
@@ -468,7 +483,7 @@ reopen it; "routed" means it was never a code question and now belongs to a deci
 | 3.1 | Rotation without reuse detection | fixed | E14-S01…S04 — `newSessionLineage.mts`, `refreshSessionTokens.mts`, `revokeSessionFamily.mts` |
 | 3.2 | No absolute session lifetime | fixed | E14-S05, E14-S07 — `sessionLifetime.mts:20,35` |
 | 3.3 | No credential write invalidates a session | fixed | E15-S02, S05, S06, S07 — `revokeAllSessionsForAccount.mts:79` |
-| 3.4 | The old access token survives a refresh | fixed | E14-S06 — `refreshSessionTokens.mts:217`; header-less path closed 2026-08-13 by the `accessKey` field, `live-auth-path-observation.md` §6; the revocation residual **R54** closed the same day, `sessionKeys.mts` `retireAccessSession` |
+| 3.4 | The old access token survives a refresh | fixed | E14-S06 — `refreshSessionTokens.mts:250-255`; header-less path closed 2026-08-13 by the `accessKey` field, `live-auth-path-observation.md` §6; the revocation residual **R54** closed the same day, `sessionKeys.mts` `retireAccessSession`. Both halves of the last acceptance criterion are proved by three real-cluster assertions across two suites rather than by one two-service test — §3.4's outcome block names them |
 | 3.5 | Admin-only `sendDefaultPii`, unverified TLS in all nine | fixed | E12-S01…S05, S13, S21, S22, S24 — `sentryBeforeSend.mts` |
 | 3.6a | Redis keys are the raw token | fixed | E13-S01 — `sessionKeys.mts:52`; E13-S10 still owes the fallback's removal |
 | 3.6b | No account→sessions index | fixed | E15-S02, S03 — `sessionKeys.mts:104`; operator half in E17 |
