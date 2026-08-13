@@ -87,6 +87,17 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
 - Refresh token: Koa signed cookie (Keygrip SHA-512), httpOnly. The signing keys are **not** environment
   variables: they are one AES-256-GCM-wrapped record in Redis that each signing service unwraps with
   `KEYGRIP_KEK` at boot, refusing to start if it cannot (ADR-034).
+  **They also reach a running process, without a restart.** An operator rotates or retires through the
+  Admin API, which rewrites the record and publishes on `<REDIS_KEY>keygrip:rotated`; each of the five
+  signing services re-reads and unwraps it for itself — the message is a nudge and never carries key
+  material — and rebuilds its `Keygrip`, reassigning `app.keys` so in-flight requests finish against the
+  array they started with. A timer re-reads every `KEYGRIP_POLL_MS` (5 minutes) in case a message was
+  never delivered, and restamps this service's row in `<REDIS_KEY>keygrip:holders` either way, which is
+  what makes that table a heartbeat rather than a record of last adoption. **Measured propagation on the
+  Dev stack: 37 ms for a rotation, 8 ms for a retirement, to all five services** — the 5 minutes is the
+  ceiling for a lost nudge, not the mechanism ([`report/keygrip-rotation-propagation.md`](./report/keygrip-rotation-propagation.md)).
+  Rotation adds a key and removes none, so it can log nobody out; retirement removes one, which is its
+  purpose, and R47 records the window in which a not-yet-adopted service still honours it.
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
 - `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
   calls. Treat as a secret; never log it, never expose it to a browser client.
