@@ -27,6 +27,8 @@ Pass. No blocking conflict found. Two warning-level nits and one traceability ga
 | phase2/BOUNDED_CONTEXT.md | (sampled) | grep for BC-01..BC-11 relation table |
 | phase3/adr/ADR-INDEX.md | (sampled) | grep count of ADR rows |
 
+⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `epics/E01.md` was deleted that day and its record moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) beside this file. Every `epics/E01.md` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present under `epics/`" was true on the day and reads ten today. The `E01-SNN` ids are unchanged.
+
 Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only §1/§2/§5/§9-10 and tier-assert/logout lines sampled), most of epics/E01-E06,E09,E10 bodies beyond story-header + traces-line greps, all of phase1-4 baseline beyond the NFR/BC/ADR tables grepped. This is a grep-first sweep, not a cover-to-cover read.
 
 ## 3. Conflicts
@@ -78,7 +80,7 @@ None. Grepped `price`, `cart`, `order`, `delivery`, `payment` across all 17 file
 
 **NFR-SE03 ("Access token must be validated as `Authorization: Bearer access:<token>` against Redis on every resource-service call") appeared as an acceptance criterion in zero stories** — the one orphan of the 17 Critical NFRs, and the one CONSTRAINTS.md §5 explicitly warned to cross-check for. It was never a functional gap: E01-S04 and every `assertTier` call site assume the Bearer lookup already happened, and SE01/SE02/SE05/SE06 cover the behaviour end to end. It was an uncited traceability line.
 
-**Fixed.** [`epics/E01.md`](./epics/E01.md) §E01-S04 gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
+**Fixed.** [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §E01-S04 — `epics/E01.md` when this was written — gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
 
 **All 17 Critical NFRs now land on at least one story.**
 
