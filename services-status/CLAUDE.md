@@ -110,10 +110,13 @@ code.
   change that needs a threshold lowered needs a test.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
   non-markdown paths under `services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
-  unscoped — `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires for a merge
-  commit and never saw a `--no-verify` one.
-- **Semgrep is in no hook.** `yarn semgrep` is a manual step, and it only sees files git already
-  tracks — a brand-new file is invisible to a "clean" scan until it is staged. Run it by hand after
-  touching `systemd.ts`, `server.ts` or `src/public/`.
+  unscoped — `semgrep:ci` → `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires
+  for a merge commit and never saw a `--no-verify` one.
+- **Semgrep is a push gate, and push-only.** It was in no hook at all until 2026-08-13 — `yarn semgrep`
+  was a manual step nobody was obliged to run. `pre-push` now runs `yarn semgrep:ci` (the `--error`
+  variant) first, because at ~3 s it is the cheapest gate here by an order of magnitude. Push is also
+  the only place it can be trusted: semgrep scans **files git already tracks**, so a brand-new file is
+  invisible to a "clean" scan until it is committed — which, at push time, everything being pushed is.
+  Bypass for a Docker outage, never for a finding: `SKIP_SEMGREP=1 git push`.
 - Commits here land in the parent repo. Never commit on `main`: branch first,
   `git switch -c <type>/<slug>`. Merging is the user's call.

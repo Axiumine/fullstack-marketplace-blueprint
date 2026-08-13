@@ -139,6 +139,23 @@ so there is no lint, coverage, mutation or Qodana step it could run: its `pre-pu
 — `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check, and
 its `pre-commit` is the secret guard below and nothing else (ADR-030).
 
+**Semgrep joined `pre-push` on 2026-08-13, in all fifteen projects that carry a ruleset, and it is
+push-only on purpose.** Before that date it was in no hook at all — fifteen `semgrep/` directories, a
+`semgrep` and a `semgrep:ci` script in every `package.json`, and nothing that ever ran either: a
+ruleset is not a gate. It runs **first** of the gates in each hook, because at ~3 s it is cheaper than
+the rest by an order of magnitude, so a rule violation is reported in seconds rather than after a full
+coverage + mutation + Qodana run. Push is also the only place its verdict can be trusted: semgrep scans
+**files git already tracks**, so a new file is invisible to a "clean" scan until it is committed —
+which, at push time, everything being pushed is. It stays out of `pre-commit` for the same reason
+mutation does: it needs Docker and a pinned image, and a hook paid per commit is a hook that gets
+bypassed out of habit. Bypass for a Docker outage, never for a finding: `SKIP_SEMGREP=1 git push`.
+
+⚠️ It is **not** a second copy of Qodana's SAST. Qodana runs JetBrains inspections; semgrep runs the
+vendored registry packs plus each repo's own `semgrep/custom.yml`, whose three secret-in-logs rules —
+introspection code, auth token, reset secret — are this platform's own and no general-purpose linter
+knows them. `marketplace-nginx` is the one gated repo with no ruleset and therefore no such step; it
+ships no code.
+
 `.githooks/pre-commit` runs the secret guard — which since 2026-08-09
 opens with **check 0**, the only check on the platform that reads the *working tree* rather than the
 staged index: it blocks when a repo's `.env` or `env` holds a value broken across two physical lines,
@@ -146,7 +163,8 @@ the failure that silently truncated all ten `KEYGRIP_KEY_*` values that day (`.c
 R05b) — then `yarn lint:check`, then
 `yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
 `./qodana.sh` (~1 min), and only when the staged paths can move a verdict — a docs-only commit skips all
-of it. Mutation is the one gate that stays push-only; it is far too slow to pay for per commit.
+of it. Two gates stay push-only: mutation, far too slow to pay for per commit, and semgrep, which is
+fast but needs Docker and is only trustworthy over committed files (see above).
 
 `marketplace-db-setup` runs a shorter chain, and the one omission left is a decision rather than a gap.
 Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push` is
@@ -177,7 +195,7 @@ appearance of a gated project. Both parent hooks now close it:
 |Hook|Gates|Scope|
 |---|---|---|
 |`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `services-status/`|
-|`.githooks/pre-push`|`yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+|`.githooks/pre-push`|`yarn semgrep:ci` → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
 
 The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
 commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
