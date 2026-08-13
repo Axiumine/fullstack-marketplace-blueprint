@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-07
+**Version:** 1.6
+**Date:** 2026-08-13
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
@@ -34,6 +34,12 @@ v1.5 - 2026-08-13: BC-11's `item.js` quotation is now the sentence that file act
 close in meaning and absent in fact, found by E11-S01 checking its own criterion that BC-11 and `E11.md`
 agree. Nothing else in BC-11 moved: it owns nothing, produces nothing and is still the one context this
 platform may not design without being asked.
+v1.6 - 2026-08-13: BC-03's last hotspot and §7 question 2 close (E03-S04), and both closed on a **factual
+correction** as much as on a decision — this document asserted twice that no mutation anywhere writes the
+two onboarding fields, and `shopOwnerUpdatePreferences` has written both since before any of these
+documents existed. The claim E03-S04 makes, and the only one that is true, keeps the word this file
+dropped: no **other** mutation does. The decision is that this stays so until a shop-owner onboarding flow
+is designed.
 **Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
 **Mutability:** the platform owner decides and writes the reason down before the edit — **one developer, so no
 vote and no second approver exists.** Splitting or merging contexts is a major refactor. Carving a new context
@@ -90,7 +96,7 @@ interface IArgs { _id: Types.ObjectId; disabled: boolean; waitApprov: boolean }
 args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
          waitApprov: { type: new GraphQLNonNull(GraphQLBoolean) } }
 ```
-**Does not own:** the login attempt itself (BC-01 reads `waitApprov` to refuse a login, this context only writes it). One hotspot is left of the two: what advances `onboardingStep`/`onboardingDone` - no mutation under any `mutations/` directory on the platform writes either field (`EVENT_STORMING.md` §5 hotspot 2), and E03-S08 made that heavier rather than lighter, since a self-registered account has *only* a login until onboarding fills the rest in. The other hotspot is closed: a `ShopOwner` starts gated when they registered themselves and ungated when an operator created them (§7 q3).
+**Does not own:** the login attempt itself (BC-01 reads `waitApprov` to refuse a login, this context only writes it). ⚠️ **Both hotspots are now closed, and the second one closed on a correction as well as a decision** (2026-08-13, E03-S04). This sentence used to say that no mutation under any `mutations/` directory on the platform writes `onboardingStep`/`onboardingDone`, which was never true: `shopOwnerUpdatePreferences` on the Admin service writes both, and E03-S04's own acceptance criterion says so with the word this line dropped — no **other** mutation does. What is true is that nothing advances either field as a side effect of the shop owner's own progress, and that is now a decision rather than an omission: the operator's hand is the writer until a shop-owner onboarding flow is designed, which is deferred work (`EVENT_STORMING.md` §5 hotspot 2, `phase5/RISK_REGISTER.md` R53). E03-S08 is what makes the deferral worth naming, since a self-registered account has *only* a login until onboarding fills the rest in. The first hotspot closed earlier: a `ShopOwner` starts gated when they registered themselves and ungated when an operator created them (§7 q3).
 
 **Boundary is convention on the shape, construction on the scope:** this context and BC-01 both touch the `shopOwner` collection, from two different repos (`marketplace-dev-admin-authenticated-resource` writes, `marketplace-dev-authenticated-authorization` reads), with no schema partition separating "onboarding fields" from "login fields" - the shared `$jsonSchema` builder in `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` is what keeps both sides honest about the shape, and that is deliberate: one builder is a Shared Kernel, which is exactly why an anti-corruption layer between the two would translate a shape into itself (§7 q7, closed). What *is* enforced is which fields BC-01 may name at all - E01-S10 / CON-12.
 
@@ -356,7 +362,7 @@ Two field names deliberately mean **different things** in different contexts and
 | # | Question | Owner | Status |
 |---|---|---|---|
 | 1 | Does self-service shop-owner registration ever get built, or does Admin-provisioning (BC-03) stay permanent? | Product | **Closed 2026-08-12 - built, and the two coexist.** `shopOwnerRegister` on the public service (4027) writes a `shopOwner` from an address and a password, `waitApprov: true`, and mails an activation link; `/register/seller` in `marketplace-user` is the form. `shopOwnerAdd` stays exactly as it was, for a shop the platform recruited - the operator doing the typing is the approval. E03-S08 |
-| 2 | What advances `shopOwner.onboardingStep`/`onboardingDone` (BC-01/BC-03 boundary), and where does that write live? No mutation under any `mutations/` directory on the platform was found to write either field. | Platform dev | Open |
+| 2 | ~~What advances `shopOwner.onboardingStep`/`onboardingDone` (BC-01/BC-03 boundary), and where does that write live?~~ ⚠️ The second sentence was wrong and is deleted: `shopOwnerUpdatePreferences` (Admin tier) writes both fields and always has. | Platform dev | **Closed 2026-08-13 (E03-S04) — an operator's hand, by decision. A shop-owner-side write is deferred design, not a missing line; residual R53.** |
 | 3 | Is `waitApprov` (BC-03) true or false/absent by default at account creation? Schema comment conflates "awaiting approval" with "deleted" in one field's own doc comment (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js`). | Platform dev | **Closed 2026-08-12 - the default is per creation route, which is the answer rather than a hedge.** `shopOwnerRegister` writes `waitApprov: true`, `shopOwnerAdd` writes nothing. No migration: every row on disk predates the public form, so all of them are Admin-created and correctly ungated. The doc comment was rewritten in the same change - it now says the field means "may not log in until an admin approves", names both writers, and records that approval `$unset`s it, which is why every reader tests presence and never equality. E03-S08 |
 | 4 | When BC-11 Ordering & Fulfilment design work starts, who signs off the first schema - and does it become one context or split (Cart / Order / Delivery / Payment each their own)? | Product + platform dev | Open |
 | 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item? | Platform dev | Open |

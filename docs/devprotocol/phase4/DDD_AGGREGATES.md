@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-07
+**Version:** 1.3
+**Date:** 2026-08-13
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
@@ -17,6 +17,12 @@ self-registered account needs in order to exist before onboarding — and `shopO
 aggregate's commands as its only anonymous writer. §10 question 1 closes: a `ShopOwner` starts gated when
 they registered themselves and ungated when an operator created them. §6's and §7's tables are corrected in
 the same pass; both said `personalData` was required and one said nothing enforced the gating default.
+v1.3 - 2026-08-13: four places in this document said no mutation writes `onboardingStep`/`onboardingDone`,
+and **none of them was ever true** — `shopOwnerUpdatePreferences` writes both. E03-S04 corrects §3, §6, §7
+and §10 q2 together and states the claim that does hold: nothing *advances* either field as the owner
+progresses, deliberately, until an onboarding flow is designed. An invariant row this wrong is worth more
+than a fix: the search behind it was one `grep` shallower than the claim it produced, and three other
+documents copied it.
 
 ---
 
@@ -98,7 +104,7 @@ arrowhead, that runs as an unguaranteed extra read before the aggregate's own si
 - `disabled`/`deleted` gate every authenticated call, all tiers, via `checkUserAuthorizationDisDel` (`BEs/marketplace-common/src/others/checkUserAuthorizationDisDel.mts`).
 - `shopOwnerUpdateStatus` writes `disabled` and `waitApprov` together as one full-state `$set`, never a partial patch (`BEs/dev/marketplace-dev-admin-authenticated-resource/.../shopOwnerUpdateStatus.mts:29-30`) — this is a design choice about the write shape, not a DB-enforced rule.
 - A freshly created `ShopOwner` starts **gated when they created themselves and ungated when an operator created them** — `shopOwnerRegister` writes `waitApprov: true` (`BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44`), `shopOwnerAdd` writes nothing. Resolved 2026-08-12 by E03-S08; `EVENT_STORMING.md` §5 hotspot 1 is closed with it, and no migration was needed because every row on disk predates the public form.
-- `onboardingStep`/`onboardingDone` are read in three places (`tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`) but **no mutation on the platform writes either field** (`EVENT_STORMING.md` §5 hotspot 2) — an invariant with a read side and no discoverable write side.
+- `onboardingStep`/`onboardingDone` are read in three places (`tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`) and written in one: `shopOwnerUpdatePreferences`, Admin tier, an operator typing a value in. ⚠️ **This line said "no mutation on the platform writes either field" until 2026-08-13 and that was never true** (E03-S04) — the writer is one `grep` away and predates every document here. The real shape is an invariant with a read side, an operator-driven write side, and no rule that advances it as the owner progresses; `EVENT_STORMING.md` §5 hotspot 2 closes on that being deliberate, with the deferred flow tracked as `phase5/RISK_REGISTER.md` R53.
 
 **Commands (mutate this aggregate):** `shopOwnerAdd`, `shopOwnerUpdateStatus`, `shopOwnerUpdateNote`, `shopOwnerUpdatePreferences` (all Admin tier, `marketplace-dev-admin-authenticated-resource`); `shopOwnerRegister` (**anonymous**, `marketplace-dev-public-resource` — the only unauthenticated writer of this aggregate, and the only one that creates a document nobody at the platform has seen); `login`/refresh writes touch `login.lastLogin` (authorization services).
 
@@ -338,7 +344,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | `personalData` all-or-nothing — **optional at creation** since E03-S08, complete once written (`firstName`, `lastName`, `birth.date`, `address`, and BOTH `contacts.mobile` and `contacts.email`) | ShopOwner | `$jsonSchema` validator, `shopOwner.js` | Insert rejected — the Mongoose model alone would NOT catch this (DCON-01: model omits `contacts`). Its *absence* is now legal, which is what lets a self-registration exist before onboarding |
 | `waitApprov: true` blocks login | ShopOwner | resolver (`checkShopOwnerApproval`, called by `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029) | **Nothing at the schema level** — a resolver that forgot the check, or a projection that quietly stopped naming the field, would let a gated account log in. What holds it is a test per call site asserting the projection names `waitApprov`, plus an integration test that seeds a real parked document and expects 401 |
 | Fresh `ShopOwner` starts gated vs ungated | ShopOwner | the two creation resolvers, and nothing below them — `shopOwnerRegister` writes `waitApprov: true`, `shopOwnerAdd` writes nothing | Resolved by E03-S08, but held by resolver code alone: a self-registration that stopped writing the flag would create an account that can log in the moment it confirms its address. The test that holds it asserts the written document, not the mutation's `true` |
-| `onboardingStep`/`onboardingDone` advancement | ShopOwner | **nothing found** — read in 3 places, written by no discovered mutation | Fields may be permanently stale; no resolver was found that could ever change them |
+| `onboardingStep`/`onboardingDone` advancement | ShopOwner | ⚠️ **Corrected 2026-08-13 (E03-S04).** `shopOwnerUpdatePreferences` (Admin tier) writes both and always has — "nothing found" was a search that missed it. What no resolver does is advance either field as a side effect of the owner's own progress, and as of E03-S04 that is a decision rather than an omission | Nothing today: no frontend reads either field. When one does, an owner's step is whatever an operator last typed — `phase5/RISK_REGISTER.md` R53 |
 | `PUBLISHED_IMPLIES_LINKABLE` | Company | `$expr` validator, `company.js:88-100` | Insert/update rejected by MongoDB |
 | `vatNumber`/`certifiedEmail`/`slug` stay occupied after soft delete | Company | unique index, no `partialFilterExpression` | A retired company's vatNumber can never be re-registered by anyone — deliberate, not a bug (ADR-011) |
 | `idShopOwner` FK validity | Company | resolver guard, `throwIfShopOwnerDontOwnCompany`, ShopOwner tier only | Admin tier has no ownership guard at all on `companyAdd`/`Update`/`Del` — any `idShopOwner` value can be stamped; unexamined (hotspot 5) |
@@ -368,7 +374,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | `$expr` (cross-field, single-document) | `PUBLISHED_IMPLIES_LINKABLE` on `Company`; `DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES` on `User` |
 | Unique index | `login.email`, `vatNumber`, `certifiedEmail`, `company.slug`, `itemCategory.slug`, `item.{idCompany,slug}` |
 | Resolver guard (cross-document read before write) | `idShopOwner`/`idCompany`/`idCategory` FK existence and ownership; `itemCategory` depth cap; `waitApprov` login gate; `disabled`/`deleted` gate |
-| **Nothing** | `onboardingStep`/`onboardingDone` advancement; `item.published` concurrent-writer race; Admin `idShopOwner` stamping on Admin-created companies; `Admin` account provisioning |
+| **Nothing** | `onboardingStep`/`onboardingDone` *advancement* — the fields themselves are written by `shopOwnerUpdatePreferences`, and what is held nowhere is the rule that would move them as the owner progresses; `item.published` concurrent-writer race; Admin `idShopOwner` stamping on Admin-created companies; `Admin` account provisioning |
 
 **ADR-010's pattern is the one to repeat, not merely the one `User.defaultAddress` happens to use.** The `$expr` approach makes a second default **inexpressible**, not merely rejected on write — there is no code path, buggy or otherwise, that can leave two `addresses[]` elements simultaneously "the default," because there is no per-element boolean to set twice. Compare this to `itemCategory`'s depth cap (§3, DCON-05): that invariant is only ever "checked," never "inexpressible" — a `$jsonSchema` genuinely cannot read a sibling document, so the guarantee is exactly as strong as the discipline of confining every write path to one resolver, in one service. Where a future aggregate needs an "at most one X" or "exactly one Y" rule, model it as a single pointer/field whose absence is legal rather than as a flag repeated per element — the DB can hold the first shape and can only ever police the second.
 
@@ -408,7 +414,7 @@ Each of these needs its own ADR before it gets an aggregate boundary — not a s
 | # | Question | Owner | Status |
 |---|---|---|---|
 | 1 | Does a freshly created `ShopOwner` start with `waitApprov` true or false/absent? `shopOwnerAdd` was not found setting the field. | Backend (Admin resource service) | **Closed 2026-08-12 by E03-S08 — it depends on the creation route.** `shopOwnerRegister` (public, 4027) writes `true`; `shopOwnerAdd` still writes nothing, because the operator doing the creating is the approval. No migration: every existing row predates the public form. `EVENT_STORMING.md` §5 hotspot 1 closes with it |
-| 2 | What writes `shopOwner.onboardingStep`/`onboardingDone`? Read in 3 places, written by no discovered mutation. | Backend (Admin/ShopOwner resource services) | Open — `EVENT_STORMING.md` §5 hotspot 2 |
+| 2 | ~~What writes `shopOwner.onboardingStep`/`onboardingDone`? Read in 3 places, written by no discovered mutation.~~ | Backend (Admin/ShopOwner resource services) | **Closed 2026-08-13 (E03-S04) — `shopOwnerUpdatePreferences`, Admin tier, and it was there the whole time.** The question this document meant to ask is what *advances* them, and the answer is nothing, on purpose, until the onboarding flow is designed; residual R53 |
 | 3 | When an Admin creates a `Company` directly (rather than approving a ShopOwner-created one), what `idShopOwner` value does it get stamped with? | Backend (Admin resource service) | Open — `EVENT_STORMING.md` §5 hotspot 5 |
 | 4 | `item.published` has two independent writers (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field. Is the race acceptable, or does `Item` need an optimistic-concurrency field? | Backend (both resource services) | Open — `EVENT_STORMING.md` §5 hotspot 4 |
 | 5 | How is a new `Admin` account provisioned? No `adminAdd` mutation was found in this pass; only the seed migration writes the collection. | Backend / Ops | Open — not previously recorded in any phase 1-3 document found |

@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.26
+**Version:** 1.27
 **Date:** 2026-08-13
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -40,6 +40,15 @@ no longer stores a response whose URL carries a mailed credential. That one was 
 the bypass reverted, a second request to a reset link answers `HIT`, so the address and the live hash were
 being kept as a cache key under `inactive=24h`. The session-cookie map could not have caught it, because a
 visitor following a reset link is anonymous. E12-S26 is `partly built`; E12 still reads 16 of 26.
+v1.27 - 2026-08-13: **E03-S04 closes on the platform owner's call, and the closure is a correction rather
+than a build.** Onboarding progress is written by `shopOwnerUpdatePreferences` on the Admin tier — the only
+writer, deliberately, until a shop-owner onboarding flow is designed, which is future work. Six documents
+said no mutation anywhere writes those fields; only E03-S04's own acceptance criterion had it right, because
+only it kept the word **other**. `EVENT_STORMING.md` hotspot 2, `BOUNDED_CONTEXT.md` q2, `SECURITY_AUTH.md`
+q3, `DDD_AGGREGATES.md` q2 (four separate false claims), `UBIQUITOUS_LANGUAGE.md` §6 and E03 §6 are all
+corrected and closed; `RISK_REGISTER.md` R27 closes on a premise that was never true, and the real residual
+— no shop-owner-side flow — opens as **R53** (🟢 Low, measured: no frontend reads either field). E03's build
+state reads per that decision now instead of "onboarding itself still has no flow".
 v1.26 - 2026-08-13: **E18-S10 is built**, across eight services and eight commits. `@socketlabs/email` and
 its whole `axios@0.21.4` closure — six lockfile blocks, 38 lines, all deletions — leave the seven trees that
 never executed a line of it; `public-resource` keeps it and is now the only tree in the workspace that
@@ -187,7 +196,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 |---|---|---|---|---|---|---|
 | E01 | Identity & Access | BC-01 | Admin, ShopOwner, User, anonymous (registration) | Built | `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-common` | [E01.md](epics/E01.md) |
 | E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [E02.md](epics/E02.md) |
-| E03 | Shop Owner Onboarding & Approval | BC-03 | ShopOwner, Admin, **anonymous (self-registration)** | Built - onboarding itself still has no flow | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-common`, `marketplace-db-setup`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E03.md](epics/E03.md) |
+| E03 | Shop Owner Onboarding & Approval | BC-03 | ShopOwner, Admin, **anonymous (self-registration)** | Built - onboarding progress is operator-written by decision (E03-S04), a shop-owner flow is future work | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-common`, `marketplace-db-setup`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E03.md](epics/E03.md) |
 | E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E04.md](epics/E04.md) |
 | E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [E05.md](epics/E05.md) |
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [E06.md](epics/E06.md) |

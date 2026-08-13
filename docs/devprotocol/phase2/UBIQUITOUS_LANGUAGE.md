@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-12
+**Version:** 1.2
+**Date:** 2026-08-13
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.2 - 2026-08-13: E03-S04. §6's `onboardingStep`/`onboardingDone` entry said the fields are written by no mutation on the platform. They are written by `shopOwnerUpdatePreferences` and always were — the entry now names the file and says the shop owner cannot write their own progress. The hotspot closes as a decision (the operator's hand stays the writer until a shop-owner onboarding flow is designed), residual as `RISK_REGISTER.md` R53.
 v1.1 - E03-S08. `shopOwner` gained a second creation route: §6's definition, the new `personalData` (whole block) row, the `waitApprov` rows and the `user` definition all follow from it, and the hotspot §6 carried is closed rather than restated. §14 gained `shopOwnerRegister` and the shop owner's REST verification route, §15 the events they produce, §16 the policy that writes the flag and the order the two login gates run in.
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅
 **Mutability:** living document — every new term used in code, config, or docs must be defined here first
@@ -207,9 +208,9 @@ args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
 ~~Hotspot~~ **closed 2026-08-12** (`EVENT_STORMING.md` §5 hotspot 1, `BOUNDED_CONTEXT.md` §7 q3): a freshly created ShopOwner starts gated when they registered themselves and ungated when an operator created them, and the schema comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. No migration for the rows already on disk — all of them predate the public form, so all of them are Admin-created.
 
 ### onboardingStep / onboardingDone
-**Definition:** Fields read at 3 auth-middleware sites, written by NO mutation found under any `mutations/` dir on the platform.
-**Used in:** read at `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`.
-Hotspot, unresolved: no confirmed write path exists on disk. Do not assume derivation logic — open question, [`EVENT_STORMING.md`](./EVENT_STORMING.md) §6 open question 2.
+**Definition:** Onboarding-wizard progress on a `ShopOwner` — a step label of at most 4 characters and the boolean that says the wizard finished. Read at 3 auth-middleware sites, **written by exactly one mutation: `shopOwnerUpdatePreferences`, on the Admin tier.** The shop owner cannot write their own onboarding progress; an operator sets it for them.
+**Used in:** read at `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`; written at `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdatePreferences.mts:25,26-31` → `src/lib/shopOwner/funShopOwnerUpdatePreferences.mts`.
+~~Hotspot, unresolved: no confirmed write path exists on disk.~~ **Corrected 2026-08-13 by E03-S04.** The write path was always there — this entry (and four other documents) said "no mutation writes them" where the true statement is "no *other* mutation writes them". What is genuinely absent is a **shop-owner-side** flow that would advance the step as the owner works through it, and that absence is now a decision rather than an oversight: deferred to future work, residual tracked as [`../phase5/RISK_REGISTER.md`](../phase5/RISK_REGISTER.md) R53 (🟢 Low — no frontend reads either field today). Do not assume derivation logic: nothing derives these, a human types them.
 
 ---
 
