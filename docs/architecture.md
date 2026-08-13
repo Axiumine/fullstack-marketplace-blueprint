@@ -163,11 +163,17 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
   `SCAN` or `KEYS` (BCON-08), and it is what makes "end every session of this account" possible at all:
   a password or email change (E15-S05, E15-S06), a status transition, or an operator pressing revoke.
 
-⚠️ **Only refresh sessions are indexed and only refresh sessions are revoked.** An access token minted
-before a revocation keeps working until its own expiry — the same residual `disabled` has always carried,
-since that too is re-read on refresh — and rotation and logout are what end it early, both through
-`accessKey`. One further residual is measured rather than assumed: revocation is per-account, so it cannot
-reach a session whose account id it does not have. Both are recorded in
+⚠️ **Only refresh sessions are indexed, and a revocation now ends both halves of each one it finds**
+(R54, closed 2026-08-13). The index files refresh sessions alone and does not need to file more: every
+refresh hash records the key of the access session minted beside it (`accessKey`), so
+`revokeAllSessionsForAccount` and the operator's `revokeSession` read that field and delete the access half
+**before** the session that names it — the field lives inside the hash being deleted, so the other order
+reads nothing. Family revocation reached both halves already, its set holding the pair every rotation files.
+Until this landed, a password change, a status transition or a revoke left the account a working bearer
+token for the rest of its 30–91 minutes. What is *not* closed by it is the `disabled` flag flipped with no
+revocation behind it: that is still re-read on refresh and nowhere else, which is a statement about a
+different write. One further residual is measured rather than assumed: revocation is per-account, so it
+cannot reach a session whose account id it does not have. Both are recorded in
 [`report/live-auth-path-observation.md`](./report/live-auth-path-observation.md) §6, which also records the
 orphaned access token that this arrangement replaced.
 

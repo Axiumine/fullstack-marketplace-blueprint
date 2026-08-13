@@ -468,7 +468,7 @@ reopen it; "routed" means it was never a code question and now belongs to a deci
 | 3.1 | Rotation without reuse detection | fixed | E14-S01…S04 — `newSessionLineage.mts`, `refreshSessionTokens.mts`, `revokeSessionFamily.mts` |
 | 3.2 | No absolute session lifetime | fixed | E14-S05, E14-S07 — `sessionLifetime.mts:20,35` |
 | 3.3 | No credential write invalidates a session | fixed | E15-S02, S05, S06, S07 — `revokeAllSessionsForAccount.mts:79` |
-| 3.4 | The old access token survives a refresh | fixed, one residual | E14-S06 — `refreshSessionTokens.mts:217`; header-less path closed 2026-08-13 by the `accessKey` field, `live-auth-path-observation.md` §6; residual **R54** |
+| 3.4 | The old access token survives a refresh | fixed | E14-S06 — `refreshSessionTokens.mts:217`; header-less path closed 2026-08-13 by the `accessKey` field, `live-auth-path-observation.md` §6; the revocation residual **R54** closed the same day, `sessionKeys.mts` `retireAccessSession` |
 | 3.5 | Admin-only `sendDefaultPii`, unverified TLS in all nine | fixed | E12-S01…S05, S13, S21, S22, S24 — `sentryBeforeSend.mts` |
 | 3.6a | Redis keys are the raw token | fixed | E13-S01 — `sessionKeys.mts:52`; E13-S10 still owes the fallback's removal |
 | 3.6b | No account→sessions index | fixed | E15-S02, S03 — `sessionKeys.mts:104`; operator half in E17 |
@@ -490,12 +490,13 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
   reading zero, not by a decision, and the only story of §3.6a still owed.
 - **ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
   §3.6c's real subject, and §3.7b's second half depends on the same answer.
-- **Revocation still ends refresh sessions only** — `revokeSessionFamily`, `revokeAllSessionsForAccount`
-  and the E17 console leave the account's current access token alive for the rest of its 30–91 minutes
-  (§3.4's residual, **R54**). The *orphaned* access token found live on 2026-08-13 is not part of this: it
-  was fixed the same day, and rotation and logout now both reach the access session through the refresh
-  hash's `accessKey`. Widening the three revocation paths to do the same is one `hGet` per session, and is
-  a decision about what "revoke" means rather than a defect.
+- ~~**Revocation still ends refresh sessions only**~~ — **closed 2026-08-13, hours after it was written
+  here.** `revokeAllSessionsForAccount` and the E17 console's `funRevokeSession` retire the access half
+  through the refresh hash's `accessKey` before deleting the hash that names it, so a password change, a
+  disable and an operator's revoke all end the access token now (§3.4's residual, **R54**, closed).
+  `revokeSessionFamily` was named in that residual and never belonged in it: its set holds the pair every
+  rotation files, so it has deleted both halves since E14-S02. The *orphaned* access token found live on
+  2026-08-13 was fixed earlier the same day, by the field this closure reads. §3.4 has no residual left.
 - **The residuals carried as risk rows** rather than as claims of completeness: the per-machine `KEYGRIP_KEK`
   (R02), the retirement adoption window (R47), unencrypted Redis transport (R45), storage-level encryption
   (R48), `axios@0.21.4` in `public-resource` (R49), and the distinct-token flood against `refresh`. E18-S07

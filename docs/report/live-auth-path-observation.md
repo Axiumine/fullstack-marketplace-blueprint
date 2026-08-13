@@ -47,8 +47,9 @@ Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 findin
 production defect in a story nobody had written, and it is stated here because this is the document that
 found it. It was fixed the same day, outside any story, on the user's decision — §5 records what was
 changed and what the fix deliberately leaves alone. **F2 was fixed the same day and on the same
-decision**, also with no story: the unreachable token and its accumulation are gone; what survives is one
-narrower residual, recorded in §6 and carried as R54.
+decision**, also with no story: the unreachable token and its accumulation are gone. The one narrower
+residual it left — revocation ending refresh sessions only — was carried as R54 and **closed the same day**;
+§6 records both, including the fact that R54 named one path too many.
 
 ## 2. What was driven
 
@@ -256,13 +257,21 @@ What this closes, exactly: no access token is unreachable any more, and none acc
 access token per session is live at any moment, and logout ends it. The measured table above no longer
 reproduces; the reload path in particular now behaves as row 1 already did for a header-carrying refresh.
 
-⚠️ **What it deliberately does not close — the residual, carried as R54.** `revokeSessionFamily`,
+⚠️ ~~**What it deliberately does not close — the residual, carried as R54.** `revokeSessionFamily`,
 `revokeAllSessionsForAccount` and the E17 operator "end session" button still end *refresh* sessions only.
 An account whose password was changed, or which an operator has just revoked, keeps its current access
-token for up to the rest of its 30–91 minutes. That is now a cheap change rather than a structural one —
-one `hGet` of `accessKey` per session being revoked and one extra command on `ISessionRevokeStore`, as
-`revokeAllSessionsForAccount`'s own docstring records — but it is a widening of what "revoke" means to
-every caller of those three paths, so it is a decision, not a fix, and it is left to the user.
+token for up to the rest of its 30–91 minutes.~~ **The decision was taken the same day and R54 is closed.**
+`revokeAllSessionsForAccount` and `funRevokeSession` call `retireAccessSession` before each session `del` —
+before, because the `accessKey` field lives inside the hash being deleted and a read afterwards finds
+nothing. A password change, a disable and an operator's revoke all end the access token now.
+
+⚠️ **The residual named three paths and only two were in it.** `revokeSessionFamily` was never part of this
+window: the family set holds the *pair* every rotation files (`refreshSessionTokens.mts:222`), so a family
+revocation has deleted access halves since E14-S02. This document said otherwise for a few hours, and the
+correction is worth more than the tidy sentence — the claim was written from the index's shape rather than
+from the set's contents. What is left is the session hash written before `accessKey` existed: it names no
+access half, so revoking it leaves that one token for the rest of its own 30–91 minutes, and none can be
+written any more.
 
 **F3 — a revoked family leaves its index row behind.** `revokeSessionFamily` deletes the members and the
 set and never touches `idx:<tier>:<accountId>` (`revokeSessionFamily.mts:64-66`). Observed: after the
