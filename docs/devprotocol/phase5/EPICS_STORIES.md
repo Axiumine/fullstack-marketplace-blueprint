@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.19
+**Version:** 1.20
 **Date:** 2026-08-13
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -40,6 +40,12 @@ no longer stores a response whose URL carries a mailed credential. That one was 
 the bypass reverted, a second request to a reset link answers `HIT`, so the address and the live hash were
 being kept as a cache key under `inactive=24h`. The session-cookie map could not have caught it, because a
 visitor following a reset link is anonymous. E12-S26 is `partly built`; E12 still reads 16 of 26.
+v1.20 - 2026-08-13: **E18-S02 is built** — eleven auth-boundary cases AB-01..AB-11 single-sourced in
+`marketplace-common`, tagged above the covering test in all seven authenticated services, each with a
+contract test that fails when a required tag is absent, and the whole thing written up in `docs/testing.md`.
+It was not bookkeeping: the three authorization services were missing the introspection allowlist case
+(E13-S11) entirely, and their replay refusal (E14-S02) was asserted only as a tombstone written, never as a
+token refused. E18 reads 2 of 9.
 v1.19 - 2026-08-13: **E18-S01 verified `built`, and E18 did not build it** — all three resource services
 already test the wrong tier, the missing tier and 403-not-401 against their own middleware, having gained
 those tests with the tier discriminator itself. The audit's §3.6d is closed and E18's §3 no longer claims
@@ -138,7 +144,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | 9 of 9 built - E15-S01 closed the live `logout` no-op and E15-S09 the context type that hid it, both 2026-08-12; E15-S08 closed 2026-08-13 against a gate E01-S11 had already built. **E15-S02 built 2026-08-13: the account index exists** and every login and rotation files its session under it, with no keyspace scan anywhere. **E15-S03 the same day: it prunes itself** — rotation and logout unfile, everything else expires with a per-field `HEXPIRE` at the session's cap, which puts a checked Redis 7.4 floor under the platform. **E15-S04 the same day: one routine revokes an account**, so `marketplace-common` is finished for this epic. **E15-S05 the same day: a password change ends every session**, caller included, on the only two services that have a password-change mutation — which surfaced the public reset-password flow as an uncovered credential write (open question 4). **E15-S06 the same day: writing a login email ends that account's sessions**, at its one call site, with a per-repo enumeration test standing guard over the next one. **E15-S07 the same day: parking a ShopOwner ends the sessions they were holding**, so `disabled` and `waitApprov` stop being labels that only bite at the next rotation — while releasing an account deliberately revokes nothing. The epic is complete; what it leaves behind is the public reset-password flow (open question 4), which no story in it covers | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, the three `*-resource` services, `docker-DBs` | [E15.md](epics/E15.md) |
 | E16 | Signing-Key Custody & Rotation | BC-01, BC-10 | Admin (operates), all tiers (affected) | Not built - RISK_REGISTER R02 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
 | E17 | Admin Session Console | BC-01, BC-10 | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
-| E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | 1 of 9 built - **E18-S01 verified `built` 2026-08-13 and this epic did not build it**: all three resource services now test the wrong tier, the missing tier and 403-not-401 against their own middleware, having gained those tests with the tier discriminator itself. That is also the argument for E18-S02, still open — three suites agreeing is not a contract, and nothing fails when a service is added with none of the cases | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
+| E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | 2 of 9 built - **E18-S01 verified `built` 2026-08-13 and this epic did not build it**: all three resource services now test the wrong tier, the missing tier and 403-not-401 against their own middleware, having gained those tests with the tier discriminator itself. **E18-S02 built 2026-08-13** — eleven cases in `marketplace-common`, tagged in all seven authenticated services, a per-repo contract test that fails on a missing tag, the contract in `docs/testing.md`; it closed two real gaps in the three authorization services (the introspection allowlist, and the replay refusal asserted only from the writing side) | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
 
 ### 2.1 E12-E18 are numbered in landing order
 

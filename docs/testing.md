@@ -19,6 +19,63 @@ Outside `dev/`, coverage lives in `marketplace-common` (vitest + stryker) and `m
 (vitest + stryker against a real Mongo; assertions are `node:assert/strict`, the runner is vitest).
 `marketplace-dev-authenticated-logout/COVERAGE.md` is the reference write-up of the pattern.
 
+## The auth-boundary contract (E18-S02)
+
+Every authenticated service refuses the same set of things, and until this contract existed each one
+decided for itself which of those refusals it tested. That is how the gap E18-S01 names appeared: three
+resource services, three boundary-test shapes, one of them missing the wrong-tier case for months while
+coverage read 100% and mutation read 100. **The numbers cannot see a case nobody wrote.**
+
+The list is single-sourced in
+[`BEs/marketplace-common/src/others/authBoundaryContract.mts`](https://github.com/Axiumine/marketplace-common/blob/main/src/others/authBoundaryContract.mts)
+— test data, imported by test files only, never by a runtime path:
+
+| # | The case |
+|---|---|
+| AB-01 | a valid credential is accepted and the session it resolves reaches `ctx.state.user` |
+| AB-02 | a session minted for another tier is refused with 403, not 401 |
+| AB-03 | a session carrying no tier at all is refused — fail closed, never a wildcard |
+| AB-04 | a request carrying no credential is refused |
+| AB-05 | a credential of the wrong shape is refused — a bad scheme, a broken signature |
+| AB-06 | a credential whose session is gone from Redis is refused |
+| AB-07 | a refresh token presented a second time is refused, and its family revoked with it |
+| AB-08 | a valid `x-introspectioncode` is accepted with no credential at all, and reads no session |
+| AB-09 | a wrong `x-introspectioncode` is refused |
+| AB-10 | no `x-introspectioncode` at all leaves the ordinary refusal exactly as it is |
+| AB-11 | a valid `x-introspectioncode` is refused outside the environment allowlist, indistinguishably from none |
+
+**How a service answers.** A `// AB-xx: <the case>` comment sits above the test that proves it, and
+`test/authBoundaryContract.test.mts` reads that service's own boundary suite and fails when a required tag
+is absent. Seven such files exist, one per authenticated service, each naming itself with a hardcoded
+`SERVICE` constant — `requiredAuthBoundaryCases()` **throws** on a name it does not know, so a typo fails
+the suite instead of quietly asking for no cases at all, and a *new* service cannot ask what it owes until
+somebody adds it to the contract. The scanner reads test files only, which is what keeps it out of
+Stryker's way: Stryker instruments `src/`.
+
+| Service | Owes | Excused, and why |
+|---|---|---|
+| `marketplace-dev-authenticated-resource` | AB-01..06, 08..11 | AB-07 — reads an access session, mints nothing, so has no token to replay |
+| `marketplace-dev-admin-authenticated-resource` | same | same |
+| `marketplace-dev-user-authenticated-resource` | same | same |
+| `marketplace-dev-authenticated-authorization` | all eleven | — |
+| `marketplace-dev-admin-authenticated-authorization` | all eleven | — |
+| `marketplace-dev-user-authenticated-authorization` | all eleven | — |
+| `marketplace-dev-authenticated-logout` | AB-01, 04, 05, 06, 08..11 | AB-02, AB-03 — the one service serving all three tiers (ADR-005): it finds a session by token content alone and asserts no tier. AB-07 — deletes the tokens it is given and mints none |
+
+The two public services are outside the contract: they authenticate nobody, so there is no boundary to
+refuse at. An exemption is a written sentence in `AUTH_BOUNDARY_SERVICES`, never an empty cell — the unit
+suite in `marketplace-common` fails an exemption whose reason is blank or whose id is not a real case.
+
+- ⚠️ **A tag is a claim, and the scanner cannot check the claim.** It catches the case nobody wrote a test
+  for; it does not catch a tagged test that was gutted while its tag stayed. That one is caught by mutation
+  testing, one gate later. Do not read a green contract test as "the boundary is proven".
+- ⚠️ **`Object.hasOwn`, never truthiness, when reading the service map.** It is a plain object literal, so
+  `AUTH_BOUNDARY_SERVICES['constructor']` answers a *function* — a lookup written the obvious way hands an
+  unknown service a required-case list nobody wrote down, instead of throwing.
+- **Adding a case means adding it everywhere in the same piece of work**: the array, the seven suites, and
+  an exemption sentence for any service it does not apply to. The contract test turns a forgotten service
+  into a failing suite, which is the whole point of it.
+
 ## Traps that make a green run lie
 
 - ⚠️ **A vitest project with no matching files passes.** It collects nothing and reports success,
