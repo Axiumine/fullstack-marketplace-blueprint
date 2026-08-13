@@ -149,9 +149,11 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
   it is neither live nor known-consumed. Presenting a consumed token inside `GRACE_SECONDS` (10) answers
   a retry — that is a page's two tabs racing, not an attacker — and past it is a replay:
   `revokeSessionFamily` deletes every member of the family set and appends to `<REDIS_KEY>reuse:<tier>:<accountId>`,
-  the trail the operator console reads. The access token presented alongside the rotated refresh token is
-  deleted in the same pass, so the pre-rotation bearer stops working at rotation rather than at its own
-  expiry.
+  the trail the operator console reads. The access session of the rotated refresh token is deleted in the
+  same pass, so the pre-rotation bearer stops working at rotation rather than at its own expiry. It is
+  found by the `accessKey` field the refresh hash carries — stamped at login, re-stamped by every rotation
+  — and not only by the token the client presented, so the deletion also happens on the reload path, where
+  the in-memory access token is gone and the refresh arrives with no `Authorization` header.
 - **The absolute cap is enforced on refresh.** `now - originalLogin > sessionCapDays * 86400000` throws the
   same `throwRefreshTokenExpiredOrDeleted()` every other refusal throws — no new error class, nothing a
   client can tell apart — and revokes the family on its way out.
@@ -163,10 +165,11 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
 
 ⚠️ **Only refresh sessions are indexed and only refresh sessions are revoked.** An access token minted
 before a revocation keeps working until its own expiry — the same residual `disabled` has always carried,
-since that too is re-read on refresh. Two further residuals are measured rather than assumed: a refresh
-sent with no `Authorization` header orphans the access token it replaces
-([`report/live-auth-path-observation.md`](./report/live-auth-path-observation.md)), and revocation is
-per-account, so it cannot reach a session whose account id it does not have.
+since that too is re-read on refresh — and rotation and logout are what end it early, both through
+`accessKey`. One further residual is measured rather than assumed: revocation is per-account, so it cannot
+reach a session whose account id it does not have. Both are recorded in
+[`report/live-auth-path-observation.md`](./report/live-auth-path-observation.md) §6, which also records the
+orphaned access token that this arrangement replaced.
 
 ### Per-tier session assertion (ADR-004)
 
