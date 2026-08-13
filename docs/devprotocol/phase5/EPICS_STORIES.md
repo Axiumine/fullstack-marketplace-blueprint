@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.17
+**Version:** 1.18
 **Date:** 2026-08-13
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -40,6 +40,14 @@ no longer stores a response whose URL carries a mailed credential. That one was 
 the bypass reverted, a second request to a reset link answers `HIT`, so the address and the live hash were
 being kept as a cache key under `inactive=24h`. The session-cookie map could not have caught it, because a
 visitor following a reset link is anonymous. E12-S26 is `partly built`; E12 still reads 16 of 26.
+v1.18 - 2026-08-13: **E15-S07, and E15 is complete at 9 of 9** — parking a ShopOwner ends the sessions they
+were holding, so `disabled` and `waitApprov` stop being labels that only bite at the next rotation. The gate
+reads the target state rather than a transition (both flags arrive on every save, so no previous state is in
+hand and none is fetched), and **releasing an account revokes nothing** — nobody's credentials changed, and
+all four flag combinations are pinned so that case is asserted rather than untested. One deviation recorded
+on the story: the integration test cannot boot `marketplace-dev-authenticated-resource` to be refused by it,
+so it asserts what the two services share — the refresh session and the index key are gone. What the epic
+leaves behind is not one of its stories: the public reset-password flow of open question 4.
 v1.17 - 2026-08-13: **E15-S06** — writing a login email now ends that account's sessions, with one call
 site (`shopOwnerUpdateEmail`, the platform's only email-change mutation) and an enumeration test in both
 services that write a credential, so a future mutation cannot skip the revoke silently. It is the mirror
@@ -122,7 +130,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built - 26 of 26, closed 2026-08-11. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's log-retention answer added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once, and its cache half is already built. **Every defect either investigation found is fixed**, the 🔴 among them: no service with a `DSN` set ships a request body any more, and E12-S24's browser capture closed the last one — the address bar, query string and fragment included, was reaching Sentry from all three frontends in five distinct places, and `urlQueryParams: false` never gated it. **One item is still not this repo's to close:** E12-S15's config is in the repo but Authenticated Origin Pulls must be switched on in Cloudflare **before** it is deployed, or every handshake fails from the reload. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `docker-DBs`, `marketplace-user`, `marketplace-admin`, `marketplace-shopowner` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | Built 2026-08-10 - 10 of 11. E13-S10 removes the dual-read fallback and may not run before `DUAL_READ_REMOVE_AFTER`, whose date is re-stamped at the cutover deploy. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
-| E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | 6 of 9 built - E15-S01 closed the live `logout` no-op and E15-S09 the context type that hid it, both 2026-08-12; E15-S08 closed 2026-08-13 against a gate E01-S11 had already built. **E15-S02 built 2026-08-13: the account index exists** and every login and rotation files its session under it, with no keyspace scan anywhere. **E15-S03 the same day: it prunes itself** — rotation and logout unfile, everything else expires with a per-field `HEXPIRE` at the session's cap, which puts a checked Redis 7.4 floor under the platform. **E15-S04 the same day: one routine revokes an account**, so `marketplace-common` is finished for this epic. **E15-S05 the same day: a password change ends every session**, caller included, on the only two services that have a password-change mutation — which surfaced the public reset-password flow as an uncovered credential write (open question 4). **E15-S06 the same day: writing a login email ends that account's sessions**, at its one call site, with a per-repo enumeration test standing guard over the next one. Only E15-S07, the ShopOwner status change, is left | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, the three `*-resource` services, `docker-DBs` | [E15.md](epics/E15.md) |
+| E15 | Session Index, Account Revocation & Credential Teardown | hardens BC-01, BC-02, BC-03 | Admin, ShopOwner, User | 9 of 9 built - E15-S01 closed the live `logout` no-op and E15-S09 the context type that hid it, both 2026-08-12; E15-S08 closed 2026-08-13 against a gate E01-S11 had already built. **E15-S02 built 2026-08-13: the account index exists** and every login and rotation files its session under it, with no keyspace scan anywhere. **E15-S03 the same day: it prunes itself** — rotation and logout unfile, everything else expires with a per-field `HEXPIRE` at the session's cap, which puts a checked Redis 7.4 floor under the platform. **E15-S04 the same day: one routine revokes an account**, so `marketplace-common` is finished for this epic. **E15-S05 the same day: a password change ends every session**, caller included, on the only two services that have a password-change mutation — which surfaced the public reset-password flow as an uncovered credential write (open question 4). **E15-S06 the same day: writing a login email ends that account's sessions**, at its one call site, with a per-repo enumeration test standing guard over the next one. **E15-S07 the same day: parking a ShopOwner ends the sessions they were holding**, so `disabled` and `waitApprov` stop being labels that only bite at the next rotation — while releasing an account deliberately revokes nothing. The epic is complete; what it leaves behind is the public reset-password flow (open question 4), which no story in it covers | `marketplace-dev-authenticated-logout`, `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, the three `*-resource` services, `docker-DBs` | [E15.md](epics/E15.md) |
 | E16 | Signing-Key Custody & Rotation | BC-01, BC-10 | Admin (operates), all tiers (affected) | Not built - RISK_REGISTER R02 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
 | E17 | Admin Session Console | BC-01, BC-10 | Admin | Not built | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common` | [E17.md](epics/E17.md) |
 | E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | Not built - 1 of 3 resource services tests its reject path | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
@@ -181,12 +189,15 @@ Brownfield retrofit. Most stories in `epics/*.md` describe work ALREADY SHIPPED,
   `phase5/CONSTRAINTS.md` §6 even those stop at recording the gap - no schema, no resolver signature, no
   checkout sequence gets designed in this protocol. **E12-E18 were open throughout when written**, by
   construction: they described remediation that had not been built. E12, E13 and E14 landed on 2026-08-10
-  and are open only where each epic's §7 says so; E15-E18 are still open throughout. Unlike E11 they *do*
+  and are open only where each epic's §7 says so; **E15 is complete since 2026-08-13**, E16-E18 are still
+  open throughout. Unlike E11 they *do*
   carry design detail, because the §6 prohibition scopes to order/cart/delivery/payment, not to security
   hardening of shipped code.
-- **Status tag vocabulary is two values only** - `built` and `not built`. E15-E18 use `not built`
-  uniformly; E12-E14 now carry a marker per story, and each of those three epics ends with a §7 naming what
-  stayed `not built` and why. A partially-correct mechanism is `not built` with the defect named in the
+- **Status tag vocabulary is two values only** - `built` and `not built`. E16-E18 use `not built`
+  uniformly; E12-E15 now carry a marker per story, and E12-E14 each end with a §7 naming what stayed
+  `not built` and why. **E15 has no §7 and needs none** — all nine of its stories are `built`, and the one
+  thing it leaves open is a credential write on a service its scope never named, recorded as open question
+  4 rather than as an unbuilt story. A partially-correct mechanism is `not built` with the defect named in the
   epic's §3 - or `built` with the shortfall named in its §7, never a marker that implies more than landed.
 - An **investigation story** produces a written finding and nothing else. Its acceptance criteria describe
   what the finding must contain and where each outcome is routed, never a code change. E12-S12, E12-S13,
@@ -259,11 +270,11 @@ Finding-to-epic map, so no audit finding is left unassigned:
 |---|---|
 | §3.1 rotation without reuse detection | E14 |
 | §3.2 no absolute session lifetime | E14 |
-| §3.3 no credential write invalidates a session | E15 |
+| §3.3 no credential write invalidates a session | E15, closed 2026-08-13 by E15-S05 (password) and E15-S06 (login email) — except the public reset-password flow, which is open question 4 and no story's scope |
 | §3.4 old access token survives refresh | E14 |
 | §3.5 `sendDefaultPii` + `rejectUnauthorized = false` | E12 |
 | §3.6a raw tokens as Redis keys | E13 |
-| §3.6b no account→sessions index | E15, surfaced by E17 |
+| §3.6b no account→sessions index | E15, surfaced by E17; closed 2026-08-13 by E15-S02 (written) and E15-S03 (pruned) |
 | §3.6c `INTROSPECTION_CODE` comparison and reachability | E13-S03 (comparison), E13-S11 (bypass disabled outside development), E13-S09 (reachability) |
 | §3.6d `assertTier` reject path untested in 2 of 3 | E18 |
 | §3.6e `waitApprov` claimed but not enforced | E15-S08, closed 2026-08-13 — the gate itself was built by E01-S11 on 2026-08-12 |
