@@ -11,10 +11,11 @@
 # gate. This hook and the services-status block in pre-commit are what make them
 # real.
 #
-# Three blocking gates, in this order:
-#   [1/3] yarn test:cov      — tsc, the suite, and 100% on every metric
-#   [2/3] yarn test:mutation — Stryker, thresholds.break: 100
-#   [3/3] Qodana             — severity + coverage thresholds
+# Four blocking gates, in this order:
+#   [1/4] yarn semgrep:ci    — SAST: vendored rules, pinned image, offline
+#   [2/4] yarn test:cov      — tsc, the suite, and 100% on every metric
+#   [3/4] yarn test:mutation — Stryker, thresholds.break: 100
+#   [4/4] Qodana             — severity + coverage thresholds
 #
 # ⚠️ Unlike pre-commit, this one is NOT scoped by path. A push carries whatever
 # happens to be on the branch, including commits made with --no-verify and merge
@@ -27,7 +28,9 @@
 # does; here it is a manual `git config core.hooksPath .githooks` after a fresh
 # clone, or this hook and the secret guard in pre-commit are both simply off.
 #
-# Bypass: `SKIP_QODANA=1 git push` (the coverage and mutation gates still run).
+# Bypass: `SKIP_QODANA=1 git push` (the SAST, coverage and mutation gates still
+# run) and `SKIP_SEMGREP=1 git push` (the other three still run). Both exist for a
+# Docker outage, never for a finding.
 set -uo pipefail
 
 APP='services-status'
@@ -110,7 +113,99 @@ fi
 cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 
 # ---------------------------------------------------------------------------
-# Gate 1 — build, tests, coverage.
+# Gate 1 — Semgrep (SAST). Coverage and mutation ask whether the code is tested;
+# this one asks whether it is safe. Push-only, like mutation: it needs Docker and
+# the pinned image, and a gate paid per commit is a gate that gets bypassed out
+# of habit. Push is the layer that matters anyway — it is the only one that ever
+# sees a merge commit.
+#
+# It runs FIRST because it is by far the cheapest of the four (~3 s against the
+# minutes the rest take together), so a rule violation is reported in seconds
+# rather than after a full coverage + mutation + Qodana run.
+#
+# `semgrep:ci` is the --error variant of `yarn semgrep`: exit 1 on any finding,
+# plus a SARIF at services-status/semgrep.sarif (gitignored). Every rule is
+# vendored under services-status/semgrep/ and the container runs --network none,
+# so the verdict is offline and reproducible — the pinned image tag is the only
+# moving part.
+#
+# ⚠️ This is NOT the same scan as gate 4. Qodana runs JetBrains inspections;
+# this runs the semgrep registry packs plus semgrep/custom.yml, whose rules are
+# this platform's own.
+#
+# Bypass: `SKIP_SEMGREP=1 git push` — for a Docker outage, never for a finding.
+# ---------------------------------------------------------------------------
+
+if [ -n "${SKIP_SEMGREP:-}" ]; then
+	echo "pre-push [1/4]: $APP — Semgrep gate skipped, SKIP_SEMGREP is set." >&2
+else
+	# An absent ruleset is not an empty one: `--config semgrep/` on a missing
+	# directory is an error, but a half-restored one would scan with whatever
+	# survived and report 0 findings, which reads exactly like a pass.
+	if [ ! -d "$APP_DIR/semgrep" ]; then
+		gate_block "$APP/semgrep/ is missing — every rule this gate runs is vendored there." \
+			"git checkout $APP/semgrep"
+	fi
+
+	if ! command -v docker > /dev/null 2>&1; then
+		gate_block 'docker not found in PATH — the scan runs inside the pinned semgrep container.' \
+			'# install Docker Engine, then push again:' \
+			'https://docs.docker.com/engine/install/'
+	fi
+
+	if ! docker info > /dev/null 2>&1; then
+		gate_block 'docker daemon not reachable.' \
+			'sudo systemctl start docker'
+	fi
+
+	# Read the tag out of the yarn script rather than hard-coding it here, the same
+	# way gate 4 reads its linter out of qodana.yaml: bumping the engine in one
+	# place must not leave this hook checking for an image no scan uses.
+	SEMGREP_IMAGE="$(grep -oE 'semgrep/semgrep:[0-9][0-9.]*' "$APP_DIR/package.json" | head -n 1 || true)"
+
+	if [ -z "$SEMGREP_IMAGE" ]; then
+		gate_block "no 'semgrep/semgrep:<version>' image found in the $APP/package.json scripts." \
+			"git checkout $APP/package.json"
+	fi
+
+	# The container would be pulled on demand. Blocking instead keeps a slow or
+	# unreachable Docker Hub from turning into a failed push: one explicit pull per
+	# image bump, versus a network flake on any push.
+	if ! docker image inspect "$SEMGREP_IMAGE" > /dev/null 2>&1; then
+		gate_block "semgrep image $SEMGREP_IMAGE is not present locally." \
+			"docker pull $SEMGREP_IMAGE"
+	fi
+
+	echo "pre-push [1/4]: $APP — running the SAST gate ($SEMGREP_IMAGE)…"
+
+	if ! yarn semgrep:ci; then
+		cat >&2 << 'MSG'
+
+────────────────────────────────────────────────────────────────────────────
+PUSH BLOCKED — Semgrep found something in services-status, or the scan could not
+run.
+
+Every finding is printed above and repeated in services-status/semgrep.sarif.
+Read the rule id first, then the code it matched:
+
+  1. A true positive is fixed in the source, never in the ruleset.
+  2. A genuine false positive gets an inline `// nosemgrep: <rule-id>` with the
+     reason written on the line above it. Never a bare `// nosemgrep`, which
+     silences every rule on that line, and never an edit to semgrep/vendor/ —
+     that is a frozen registry snapshot which vendor/refresh.sh will restore.
+
+Re-run `yarn semgrep` in services-status/ for the readable report, then push
+again.
+────────────────────────────────────────────────────────────────────────────
+MSG
+		exit 1
+	fi
+
+	echo "pre-push [1/4]: $APP — Semgrep clean."
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 2 — build, tests, coverage.
 #
 # No lint gate anywhere in this hook, and that is not an oversight:
 # services-status is the one package here with no eslint.config.js and no
@@ -119,7 +214,7 @@ cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 # this gate before a single test does.
 # ---------------------------------------------------------------------------
 
-echo "pre-push [1/3]: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
+echo "pre-push [2/4]: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
 
 if ! yarn test:cov; then
 	cat >&2 << 'MSG'
@@ -146,10 +241,10 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [1/3]: 100% coverage held."
+echo "pre-push [2/4]: 100% coverage held."
 
 # ---------------------------------------------------------------------------
-# Gate 2 — mutation. Coverage asks whether a line RAN; mutation asks whether a
+# Gate 3 — mutation. Coverage asks whether a line RAN; mutation asks whether a
 # test would have FAILED had that line been wrong, and the two answers diverge
 # badly — every package on this platform sat at 100% coverage with survivors.
 #
@@ -161,7 +256,7 @@ echo "pre-push [1/3]: 100% coverage held."
 # for it.
 # ---------------------------------------------------------------------------
 
-echo "pre-push [2/3]: $APP — mutation testing, gated at 100 (yarn test:mutation)…"
+echo "pre-push [3/4]: $APP — mutation testing, gated at 100 (yarn test:mutation)…"
 
 if ! yarn test:mutation; then
 	cat >&2 << 'MSG'
@@ -202,10 +297,10 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [2/3]: mutation score 100 held."
+echo "pre-push [3/4]: mutation score 100 held."
 
 # ---------------------------------------------------------------------------
-# Gate 3 — Qodana. Deliberately here as well as in pre-commit, for two reasons
+# Gate 4 — Qodana. Deliberately here as well as in pre-commit, for two reasons
 # pre-commit structurally cannot cover: `git merge --no-ff` never fires
 # pre-commit, so the merge commit is the one revision no pre-commit scan sees;
 # and Qodana Cloud files every report under the branch it was produced on (the
@@ -216,7 +311,7 @@ echo "pre-push [2/3]: mutation score 100 held."
 # ---------------------------------------------------------------------------
 
 if [ -n "${SKIP_QODANA:-}" ]; then
-	echo 'pre-push [3/3]: Qodana gate skipped — SKIP_QODANA is set.' >&2
+	echo 'pre-push [4/4]: Qodana gate skipped — SKIP_QODANA is set.' >&2
 	exit 0
 fi
 
@@ -285,7 +380,7 @@ if [ -z "${QODANA_TOKEN:-}" ] && { [ ! -f "$APP_DIR/.env" ] || ! grep -q '^[[:sp
 		"echo 'QODANA_TOKEN=<token>' >> $APP/.env"
 fi
 
-echo "pre-push [3/3]: $APP — enforcing the Qodana gate ($LINTER)…"
+echo "pre-push [4/4]: $APP — enforcing the Qodana gate ($LINTER)…"
 
 # SKIP_TESTS=1, exactly as the fourteen gated packages pass it: qodana.sh would
 # otherwise regenerate coverage as `yarn test:cov || true`, with the exit code
@@ -311,5 +406,5 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [3/3]: Qodana clean. Pushing."
+echo "pre-push [4/4]: Qodana clean. Pushing."
 exit 0
