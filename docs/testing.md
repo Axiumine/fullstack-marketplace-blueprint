@@ -76,6 +76,60 @@ suite in `marketplace-common` fails an exemption whose reason is blank or whose 
   an exemption sentence for any service it does not apply to. The contract test turns a forgotten service
   into a failing suite, which is the whole point of it.
 
+## The mechanical checks (E18-S08)
+
+The phase-5 security audit was manual, static-only and single-pass, and it is the reason most of the
+sections on this page exist. **Most of what it did by reading is now a command**, and this is the list —
+what is checked, what runs it, and for the two that are still a human reading code, why.
+
+Nothing here needs a service running, a container, or a network. Everything is `yarn` in a repo or one
+script in the workspace root.
+
+| # | The check | Runs it | Where |
+|---|---|---|---|
+| MC-01 | no Redis key is built outside `marketplace-common`, and every builder digests a token or says in writing why it does not | `yarn test` | `marketplace-common/test/redisKeyspace.test.mts` |
+| MC-02 | no key shape exists that `docs/data-model.md` §Key shapes does not list | `./scripts/audit-check.sh` §2 | workspace root |
+| MC-03 | no `rejectUnauthorized`, no `NODE_TLS_REJECT_UNAUTHORIZED`, no `sendDefaultPii`, no `beforeSend` without `beforeSendTransaction`, no request body captured | `yarn lint:check` | the `no-restricted-syntax` block in each `eslint.config.js` |
+| MC-04 | each of those selectors actually fires, and the compliant shape does not | `yarn test` | `test/restrictedSyntax.test.mts` (`.ts` in the three apps) |
+| MC-05 | all thirteen repos that ship the block — the nine services, the three apps, the library the scrubber lives in — carry both of the above | `./scripts/audit-check.sh` §4 | workspace root |
+| MC-06 | no network-derived value reaches an event, a span, a breadcrumb or a log line | `yarn test` · `yarn semgrep` | `marketplace-common/test/sentryBeforeSend.test.mts`; `marketplace-no-log-*` in each backend `semgrep/custom.yml`, `marketplace-fe-no-log-auth-token` in each app's |
+| MC-07 | a rate-limit bucket key digests its identity and no service can obtain a client address | `yarn test` · `./scripts/audit-check.sh` §3 | `redisKeyspace.test.mts`; `app.proxy` set nowhere |
+| MC-08 | the E17 console cannot print a token, a digest or a key prefix | `yarn test` | `marketplace-dev-admin-authenticated-resource/test/sessionNoLeak.test.mts` |
+| MC-09 | every authenticated service proves all eleven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
+| MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
+| MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
+| MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | trivy + Qodana SCA, per [`README.md`](../README.md) |
+
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Four of its
+five checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing
+from one, a boundary suite absent from one — and a vitest suite in any single repo is structurally unable
+to see them. It reads only: no writes, no installs, no containers.
+
+### Still manual, and why
+
+Two, both of them the same shape: a check that would have to judge intent rather than match a pattern.
+
+- **What a caller passes as a rate-limit `identity`.** MC-07 proves the identity is digested and MC-03's
+  sibling proves no service can read a client address — but a resolver that passed something inappropriate
+  would produce a key indistinguishable from a correct one, because digesting is exactly what hides it. The
+  line is held one level up, structurally: `app.proxy` stays off in all nine services, so there is no
+  address in the process to pass. **Adding `app.proxy` is what to refuse**, not the call site.
+- **Whether a tagged boundary test still tests its case.** The contract scanner reads `// AB-xx:` comments
+  and cannot check the claim above one; a gutted test with its tag intact passes it. That is caught one
+  gate later by mutation testing, and is the reason `thresholds.break: 100` is not negotiable — see
+  *Mutation testing traps* below.
+
+Two more things this list deliberately does **not** claim to cover. Neither is a gap to be closed by
+another grep:
+
+- **The audit was static.** MC-01..12 read source; none of them sends a request to a running platform.
+  E18-S09 did that once, by hand, and found two things every static check had passed over — the
+  registration path storing `bcrypt(bcrypt(password))` among them. A green checklist is not a working
+  system.
+- **A check that names a file proves the file exists, not that it is honest.** MC-05 and MC-10 are
+  presence checks by construction; what makes them worth running is that the thing they look for is the
+  thing a new repo forgets.
+
 ## Traps that make a green run lie
 
 - ⚠️ **A vitest project with no matching files passes.** It collects nothing and reports success,

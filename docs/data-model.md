@@ -180,8 +180,14 @@ call site.
 
 ### Key shapes
 
-Everything below is built by `marketplace-common/src/others/sessionKeys.mts` or by
-`assertUnderRateLimit.mts`. **Nothing anywhere else may build a session key out of a template literal.**
+Everything below is built by `marketplace-common/src/others/sessionKeys.mts`, by `assertUnderRateLimit.mts`
+or by `assertHashFieldTTLSupport.mts`. **Nothing anywhere else may build a session key out of a template
+literal**, and nothing does: `marketplace-common/test/redisKeyspace.test.mts` counts the interpolations in
+that package and `./scripts/audit-check.sh` greps the other fifteen repos, since no test here spans two.
+
+⚠️ **This table is the whole keyspace, and both checks above compare against it.** A shape added to the
+code and not to this table fails `audit-check.sh` §2 by name — which is how the six rows below the rate
+limiter were found, live and documented nowhere, on the day E18-S08 first ran it.
 
 | Shape | Holds | Written by | Status |
 |---|---|---|---|
@@ -190,9 +196,15 @@ Everything below is built by `marketplace-common/src/others/sessionKeys.mts` or 
 | `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing — **read-only fallback** | temporary, removed by E13-S10 |
 | `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | temporary, removed by E13-S10 |
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
-| `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | planned, E14-S02 |
-| `<prefix>family:<familyId>` | a set of that family's session keys | rotation | planned, E14-S03 |
+| `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | live (E14-S02) |
+| `<prefix>family:<familyId>` | a set of that family's session keys | rotation | live (E14-S03) |
 | `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }`, each field `HEXPIRE`d at its own session's cap | login, rotation | live (E15-S02, S03) |
+| `<prefix>grace-hits` | an integer — how often a refresh lost a race and was told to retry | the grace-window branch of rotation | live (E14-S04), read by E14-S09 |
+| `<prefix>reuse:<tier>:<accountId>` | that account's reuse trail, a list trimmed to 50 on every append — `{ familyId, tier, accountId, action, at }`, no token and nothing network-derived | rotation, on a replay | live (E17-S05) |
+| `<prefix>keygrip` | the cookie-signing keys: `version`, `wrapped` (AES-256-GCM under `KEYGRIP_KEK`), `fp` | `marketplace-db-setup`, rotation | live (ADR-034) |
+| `<prefix>keygrip:holders` | one field per service — `<fingerprint>@<ISO-8601>`, the detection that five `.env` copies never had | every service at boot, and on each live swap | live (E01-S14) |
+| `<prefix>keygrip:rotated` | **a pub/sub channel, not a key** — the payload is the new version number, a nudge to re-read | a rotation | live (ADR-034) |
+| `<prefix>hash-field-ttl-probe` | nothing — it is never written; `hTTL` on a missing key answers instead of throwing | nobody, by design | live (E15-S03) |
 
 ⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
 login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
