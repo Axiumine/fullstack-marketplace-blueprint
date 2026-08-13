@@ -275,6 +275,15 @@ Stated so the report is not read as more complete than it is.
 - **Encryption at rest for the MongoDB collections holding PII and legal-identity fields**
   (`taxCode`, `vatNumber`, `certifiedEmail`) is out of scope for a token audit but is the adjacent
   question this review did not touch.
+  **Answered 2026-08-13 by E18-S05**, in
+  [`encryption-at-rest-coverage.md`](./encryption-at-rest-coverage.md). Those three fields are not
+  encrypted and should not be — they identify a company, which is public record. Thirty personal-data
+  paths across four collections are, under four per-collection DEKs (ADR-029). The **storage** beneath
+  all of them is not: MongoDB Community 8.0.28 carries no encryption option in the binary, and both
+  volumes sit on an unencrypted filesystem in Dev — unknown for any other environment, because no other
+  environment exists. Two things that finding surfaced and this audit did not: `shopOwner`'s first name,
+  last name and city are permanently plaintext for the operator table's sake, and the Redis
+  access-token session hash carries the account's email in the clear, into the AOF.
 - **No full dependency-tree audit** of `@axiumine/koa-utils` or `@sentry/node` beyond the specific
   mechanisms each finding needed.
 
