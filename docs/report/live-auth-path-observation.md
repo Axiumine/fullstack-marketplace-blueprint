@@ -1,0 +1,271 @@
+# The Auth Path, Observed — Login, Refresh, Logout, Wrong Tier
+
+# Marketplace
+
+**Status:** investigation finding — closes E18-S09. Not baselined, not a requirement document
+**Version:** 1.0
+**Date:** 2026-08-13
+**Scope:** what the running Dev stack does, per tier, for the four calls the seven phase-5 epics are
+written about: a login, an authenticated call, that same call against a service of another tier, a
+refresh and a logout. For each: the response, the cookies, and the Redis keyspace before and after.
+**Method:** measurement first, reading second. All nine services were started on this machine — the first
+time they have all run here at once — against the LAN Dev datastores (`rs0.gio.lan`, and the three-node
+Redis cluster the same hosts carry). Every probe is a `curl` at a service's own endpoint with a real
+cookie jar; every Redis statement is a diff of a full three-node `SCAN` taken before and after the call.
+Static reading was used only to explain a result already observed, and every such explanation carries a
+file-and-line citation so the two halves stay distinguishable.
+**Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
+[`multi-tab-refresh-behaviour.md`](./multi-tab-refresh-behaviour.md) ·
+[`E15.md`](../devprotocol/phase5/epics/E15.md) §3, E15-S01 · [`E14.md`](../devprotocol/phase5/epics/E14.md)
+E14-S06 · [`E16.md`](../devprotocol/phase5/epics/E16.md) §3 · [`E18.md`](../devprotocol/phase5/epics/E18.md)
+E18-S09 · [`SETUP.md`](../../SETUP.md) §5, §8
+
+⚠️ **No token, token prefix, key or key prefix appears in this document**, per E17 §2. Token values are
+given as lengths, Redis key names as shapes: `<hex>` stands for a digest, `<uuid>` for a lineage id. The
+harness that produced these numbers scrubbed both on the way to the terminal, because a transcript is a
+display like any other.
+
+---
+
+## 1. Verdict
+
+**The session machinery behaves as the epics describe it, and the one live defect those epics named is
+genuinely fixed.** Logout is not a no-op: it deletes both session hashes and the account's index row, and
+expires both cookies. Tier isolation holds in all six wrong-tier combinations. Refresh rotates, tombstones
+and re-files the index row. A replayed refresh token inside the grace window is answered 409 and touches
+nothing; the same token replayed after it kills the whole lineage and files a reuse event. That is four
+epics' worth of design, working, on the first run.
+
+**Two things were found that reading had not.**
+
+| # | Finding | Severity |
+|---|---|---|
+| F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration is broken in production** |
+| F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the operator console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | Medium — bounded by the access TTL, unbounded in count |
+
+Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a live
+production defect in a story nobody has written, and it is stated here because this is the document that
+found it.
+
+## 2. What was driven
+
+| Tier | Login | Authenticated call | Refresh | Logout |
+|---|---|---|---|---|
+| Admin | `loginAdmin` (4028) | 4024 | 4025 | 4030 |
+| ShopOwner | `login` (4028) | 4026 | 4029 | 4030 |
+| User | `loginUser` (4028) | 4032 | 4031 | 4030 |
+
+All three login mutations live on `marketplace-dev-public-authorization` (4028) — a login cannot require a
+token. Each service answers on its own path, not on `/graphql`: `ctx.path === ENDPOINT`, and `ENDPOINT` is
+the service's own name (`src/index.mts:24`). A probe sent to `/graphql` gets a bare 404 with no GraphQL
+body, which is worth knowing before diagnosing a 404 as a routing failure.
+
+⚠️ **The Admin and ShopOwner accounts already existed on this machine; the User tier had none, and one had
+to be made.** Not through `userRegister`: SocketLabs is configured with real credentials in this
+environment and registration sends an activation message inside the transaction, so calling it would have
+put a real message on the wire. Not by hand either — `login.email` is deterministically encrypted
+client-side (ADR-029) and `mongosh` holds no key. The account was written through the service's own
+model with the service's own CSFLE configuration, verified on creation, used, and deleted afterwards
+along with every Redis key naming it. **Making that account is what turned up F1.**
+
+## 3. The negative paths
+
+Identical on every service tested, and all four are middleware answers that never reach a resolver.
+
+| Probe | Status | Body |
+|---|---|---|
+| no `Authorization` header | 412 | `No authorization header.` |
+| header present, not `Bearer access:<token>` | 499 | `Access Token Required.` |
+| well-formed token, no session behind it | 498 | `Access Token is expired or deleted by Admin.` |
+| refresh with no cookie jar | 412 | `No authorization cookie.` |
+
+The `access:` prefix is part of the Redis key, not decoration — a token sent without it is not a wrong
+token, it is a malformed header, and the two get different codes. The 498 text is the same one a genuinely
+expired session gets, which is the intended answer: a caller holding a dead token learns that it is dead
+and nothing about why.
+
+## 4. The happy path, per tier
+
+**Login.** 200, one 36-character access token in the body, and two cookies:
+
+```
+refresh_token=…;     path=/; expires=<+90 days>; samesite=strict; httponly
+refresh_token.sig=…; path=/; expires=<+90 days>; samesite=strict; httponly
+```
+
+⚠️ **No `Secure` attribute** — correct here and only here: the services speak plain HTTP on loopback, and
+the edge adds `Secure` on the way out (`marketplace-nginx`). Observed on the service, not through the
+edge.
+
+Four keys appear, and the same four on all three tiers:
+
+| Key shape | Type | TTL observed | Fields |
+|---|---|---|---|
+| `<hex>` — the refresh session | hash | 7 775 990–7 775 998 s (90 d) | `_id`, `tier`, `familyId`, `originalLogin`, `sessionCapDays` |
+| `<hex>` — the access session | hash | 2 614 / 4 411 / 4 936 / 5 232 s | `_id`, `email`, `tier` |
+| `idx:<tier>:<accountId>` | hash | 2 591 997 s (30 d) | one field per session: `<hex>` → `{"tier":…,"mintedAt":…}` |
+| `rl:<loginMutation>:email:<hex>` | string | ≤ 3 598 s | the hourly counter, 60/h for `login` and `loginUser`, 30/h for `loginAdmin` |
+
+The four access TTLs are not four different bugs: `accessTokenExpiry()` returns a uniform random value in
+**[30, 91) minutes** per token (`@axiumine/koa-utils/lib/tokens`). The refresh hash always gets the full
+physical 90 days; the *policy* lifetime is `originalLogin + sessionCapDays`, checked at refresh time.
+
+⚠️ **`sessionCapDays` is 1 for `rememberMe: false` and 30 for `true` — and the cookie says 90 days in both
+cases.** That is the design (E14: the cap is enforced server-side at rotation, `sessionCapDeadline`), but
+it means a browser holds a 90-day cookie for what is a one-day session, and a client reading its own
+cookie expiry would be wrong by 89 days. **The cap firing was not observed** — doing so takes a day of
+wall clock — so this document confirms the fields and not the enforcement.
+
+**Authenticated call, and the wrong tier.** Six combinations, all as designed:
+
+| Token | 4024 Admin | 4026 ShopOwner | 4032 User |
+|---|---|---|---|
+| Admin | 200 | **403** | **403** |
+| User | **403** | **403** | 200 |
+
+`assertTier` answers 403, not 498: the token is real and the caller is simply not entitled here, and the
+two cases must not be confusable by a caller probing for which tier a token belongs to.
+
+**Refresh.** 200 with a new token and a new cookie pair. The diff:
+
+- created: the new access + refresh hashes, `used:<hex>` (the tombstone: `familyId`, `consumedAt`, `_id`,
+  `tier`; TTL 90 d), `family:<uuid>` (a set), `rl:refresh:family:<hex>` and `rl:refresh:token:<hex>`;
+- deleted: the previous refresh hash;
+- **kept**: `idx:<tier>:<accountId>`, whose single field is rewritten to the new digest carrying the
+  **original** `mintedAt` — one row per session, not one per rotation (E15-S03), confirmed.
+
+⚠️ **`family:<uuid>` is created by the first rotation, not by the login.** `newSessionLineage` stamps the
+three lineage fields and files nothing; the `sAdd` is in `refreshSessionTokens.mts:200`. A session that has
+never refreshed therefore has no family set at all, and the pair a login minted is in no family for as
+long as it lives. This matters for F2 and is not written down anywhere else.
+
+**Logout.** 200 `{"logout": true}`. Both session hashes are deleted, the index row is deleted, and both
+cookies are re-set to `expires=Thu, 01 Jan 1970 00:00:00 GMT`. Re-presenting either token afterwards
+returns 498, and the emptied jar returns 412 at the refresh endpoint. The `family:<uuid>` set and the
+tombstones survive — deliberately: they are the replay-detection record, not the session.
+
+**Replay of a retired refresh cookie.** Two distinct behaviours, ten seconds apart:
+
+| When | Status | Body | Keyspace |
+|---|---|---|---|
+| within `GRACE_SECONDS = 10` | **409** | `Refresh In Progress` — "This refresh token was just rotated by another request. Retry with the current cookie." | nothing created, nothing deleted |
+| after it (measured at 205 s and at 12 s) | **498** | `Refresh Token is expired or deleted by Admin.` | family set **and both current session hashes** deleted; `reuse:<tier>:<accountId>` list appended — `{familyId, tier, accountId, action:"refreshTokenReplayed", at}`, TTL 30 d |
+
+Both halves of E14's reuse design, working, including the deliberate refusal to revoke a family for what
+is probably a second browser tab.
+
+## 5. F1 — a registered account cannot log in
+
+`registerNewUser` hashes the password and hands the hash to `User.create`
+(`BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewUser.mts:34`). `LoginSubDocSchema` carries
+a `pre('save')` that hashes `password` whenever it is modified
+(`BEs/marketplace-common/src/models/MongoDB/sub/LoginSubDocSchema.mts:43-50`), and a create counts as
+modified. The stored string is therefore **bcrypt(bcrypt(password))**, while `tryLoginUser` compares the
+plaintext against it — which cannot match, ever.
+
+Measured, through the service's own model, on the Dev database:
+
+| Question | Answer |
+|---|---|
+| is the stored string the hash the caller passed in? | no |
+| does the plaintext password verify against it? | **no** |
+| does *that hash* verify against it? | **yes** |
+
+The consequence is not subtle: a customer registers, receives the activation mail, clicks it, and is told
+`Unauthorized` at every login attempt for ever. `loginUser` answers 401 with no distinguishing text —
+correctly, as an anti-enumeration measure — so the support signature of this defect is indistinguishable
+from a forgotten password.
+
+**It is not confined to the User tier.** `registerNewShopOwner` does the same thing at
+`registerNewShopOwner.mts:41`, into a model built on the same subdocument schema. Only the User half was
+executed, so the ShopOwner half is a structural inference, not a measurement.
+
+**Why it survived every gate.** The two *restart* paths write with `updateOne`
+(`restartUserRegistration.mts:29`, `restartShopOwnerRegistration.mts:34`), which is a query and runs no
+document middleware, so a registration restarted before verification stores a single hash and then works.
+The two password-change functions do the same and say so in a comment that names this exact hook
+(`funUserUpdatePwd.mts:62-64`, `funAdminUpdatePwd.mts:57-59`) — the trap was known on the update side and
+missed on the create side. Unit tests mock the model; no test registers and then logs in, because those
+are two services and the boundary suites stop at the service edge (E18-S02).
+
+**The fix is one word in two files** — pass the plaintext and let the hook hash it, or keep the explicit
+hash and drop the hook — plus the end-to-end test that would have caught it. Which of the two, and where
+the test lives, is a decision for the story that takes this on; this document does not make it.
+
+## 6. F2–F5
+
+**F2 — access tokens outlive every revocation path.** Measured, User tier, one session:
+
+| Step | AT1 (login) | AT2 (first refresh) | AT3 (second refresh) |
+|---|---|---|---|
+| after refresh 1 | **200** | 200 | — |
+| after refresh 2 | **200** | **200** | 200 |
+| after `logout` presenting AT3 | **200** | **200** | 498 |
+| after a replay-triggered family revocation | **200** | 498 | — |
+
+E14-S06 retires the previous access token at rotation, but only `if (presentedAccessToken)`
+(`refreshSessionTokens.mts:217`) — the client has to send it. The frontends do send it when they have one,
+and structurally cannot on the path that matters most: a page reload wipes the in-memory token and the
+first operation after it refreshes with nothing to present (`marketplace-user/src/api/client.ts:82-92`).
+Every reload therefore orphans one access token, which is in no family (§4), listed in no index row — the
+index names refresh sessions only — and so reachable by neither `revokeSessionFamily` nor
+`revokeAllSessionsForAccount` nor the E17 operator console. **This session's own probing left five of
+them**, found by scanning for the account's `email` field and deleted by hand.
+
+That access tokens outlive a revocation is already stated where it matters
+(`marketplace-admin/src/api/operations/adminResource/mutations.ts:168`). What is new here is that they also
+outlive *logout*, that they accumulate one per reload rather than existing one at a time, and that nothing
+can enumerate them.
+
+**F3 — a revoked family leaves its index row behind.** `revokeSessionFamily` deletes the members and the
+set and never touches `idx:<tier>:<accountId>` (`revokeSessionFamily.mts:64-66`). Observed: after the
+replay revocation the row remained, still naming the digest of a session that no longer exists, for the
+remaining 30 days of its own TTL. Nothing is granted by it — the digest resolves to nothing — but the
+E17 console's session list and count read that row, so an account shows a session it does not have.
+`revokeAllSessionsForAccount` cleans up whatever it finds, so the row self-corrects at the next
+account-wide revocation.
+
+**F4 — `SETUP.md` is wrong by one service, and it is a boot-blocking wrongness.** §5 line 169 assigns
+`KEYGRIP_KEK` to "the four `*-authorization` services, `marketplace-dev-authenticated-logout` and
+`marketplace-db-setup` — 5 of 9", and line 173 says "The four `*-resource` services sign no cookie and
+**must not** carry `KEYGRIP_KEK`". Six services require it:
+`marketplace-dev-admin-authenticated-resource` requires it too, and says why at `src/index.mts:65-71` —
+it hosts the E17 rotation mutations, which mint and reseal the record. Following SETUP.md on a fresh
+machine leaves that service refusing to boot. Corrected in the same change as this document.
+
+The holders table is a separate count and is **still five**, as E16 §3 says: `admin-authenticated-resource`
+opens the record but signs no cookie, so it files no `keygrip:holders` row. Live: six services required the
+KEK at boot, five rows present, all at one fingerprint. Both numbers are right; they are answers to
+different questions, and SETUP.md conflates them.
+
+**F5 — the 90-day cookie for a one-day session**, §4 above. Recorded as observed behaviour, not as a
+defect: the cap is enforced at rotation and the cookie expiry is not a control. It is noted because a
+reader of the cookie jar would draw the wrong conclusion, and because nothing else says so.
+
+## 7. E15-S01 — confirmed fixed
+
+E15 §3 records `logout` as having "returned success and left both tokens live until natural expiry" until
+E15-S01 landed on 2026-08-12. **Observed on all three tiers: it does not.** A logout deletes the refresh
+session named by the cookie, the access session named by the header and the account's index row; both
+tokens answer 498 afterwards and the emptied jar answers 412. The claim in E15 §3 is a historical
+statement about the pre-fix code and needs no correction — it is already written in the past tense, with
+the fix attributed.
+
+⚠️ **One qualification, which is F2 and not a regression:** logout ends the session it is shown. It does
+not end the *lineage*. An access token from an earlier generation of the same session is untouched, and
+`family:<uuid>` survives. "Logged out" means the refresh chain is dead and the presented access token with
+it — up to 91 minutes short of meaning that every token this session ever minted is dead.
+
+## 8. What this document does not cover
+
+- **The three frontends were not driven.** Every probe is a direct service call. The reload path in F2 is
+  read from `client.ts`, not measured through a browser.
+- **The absolute session cap was not observed firing** — it needs a day of wall clock (§4).
+- **The activation and password-reset flows were not exercised**, because both send mail through a live
+  SocketLabs account (§2). F1 was therefore proven on the write, not through the mailbox.
+- **The ShopOwner half of F1 is inferred**, not measured (§5).
+- **The edge was not in the path**, so the `Secure` rewrite and the vhost split are untested here — they
+  are `marketplace-nginx`'s own test container's subject.
+- The replay probe run against the real ShopOwner account did what a replay is supposed to do and **ended
+  that account's session**. Its `reuse:shopOwner:<hex>` row is a genuine audit entry for an event that
+  really happened and has deliberately been left in place.
