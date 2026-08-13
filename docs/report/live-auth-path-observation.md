@@ -3,7 +3,7 @@
 # Marketplace
 
 **Status:** investigation finding — closes E18-S09. Not baselined, not a requirement document
-**Version:** 1.0
+**Version:** 1.1 — F1 fixed the same day; §5 says how, and why the other candidate fix was refused
 **Date:** 2026-08-13
 **Scope:** what the running Dev stack does, per tier, for the four calls the seven phase-5 epics are
 written about: a login, an authenticated call, that same call against a service of another tier, a
@@ -40,12 +40,13 @@ epics' worth of design, working, on the first run.
 
 | # | Finding | Severity |
 |---|---|---|
-| F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration is broken in production** |
+| F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration was broken in production. Fixed 2026-08-13, see §5** |
 | F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the operator console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | Medium — bounded by the access TTL, unbounded in count |
 
-Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a live
-production defect in a story nobody has written, and it is stated here because this is the document that
-found it.
+Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a
+production defect in a story nobody had written, and it is stated here because this is the document that
+found it. It was fixed the same day, outside any story, on the user's decision — §5 records what was
+changed and what the fix deliberately leaves alone. **F2 is still open** and has no story either.
 
 ## 2. What was driven
 
@@ -189,8 +190,24 @@ missed on the create side. Unit tests mock the model; no test registers and then
 are two services and the boundary suites stop at the service edge (E18-S02).
 
 **The fix is one word in two files** — pass the plaintext and let the hook hash it, or keep the explicit
-hash and drop the hook — plus the end-to-end test that would have caught it. Which of the two, and where
-the test lives, is a decision for the story that takes this on; this document does not make it.
+hash and drop the hook — plus the end-to-end test that would have caught it.
+
+**Fixed the same day, the first way** (`marketplace-dev-public-resource`, `fix/double-hashed-registration-password`).
+Dropping the hook was the other candidate and the more dangerous one: every write path that relies on it
+would then store a **plaintext** password until someone noticed, and `shopOwnerAdd` on the Admin service is
+already such a path — it hands its operator's plaintext straight to `create`. An unusable hash is a broken
+account; a plaintext one is a breach. So the rule is now stated where both functions can be read: **the write
+operator decides, never the field** — `create`/`save` hash themselves, `updateOne`/`findOneAndUpdate` do not.
+
+The test lives in `test/integration/index.itest.mts`, not beside the unit tests, because the unit tests are
+where this hid: they mock the model, and a mock runs no middleware. Both functions are now driven against
+real MongoDB and the stored credential is handed to `bcrypt.verify` with the plaintext — which is exactly
+the question this section had to open a shell to answer. **The ShopOwner half is no longer an inference:**
+it is measured by the second of those two tests.
+
+Two things this does not do. It does not repair accounts already registered through the broken path — their
+stored hash is unrecoverable and they need a password reset — and nobody has counted them; and it does not
+touch `restartUserRegistration` or `restartShopOwnerRegistration`, which were correct as they stood.
 
 ## 6. F2–F5
 
