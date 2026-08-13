@@ -20,7 +20,7 @@ Read this file first (RULES.md §12), then [`phase1/PDR.md`](./phase1/PDR.md), t
 | Phase 2 — Domain Modelling | ✅ Complete | closed, no checker run | none — see §7 | [`phase2/EVENT_STORMING.md`](./phase2/EVENT_STORMING.md), [`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md), [`phase2/BOUNDED_CONTEXT.md`](./phase2/BOUNDED_CONTEXT.md) |
 | Phase 3 — Architecture | ✅ Complete | **pass** | [`phase3/CONFLICT_REPORT.md`](./phase3/CONFLICT_REPORT.md) v1.1 | [`phase3/C4_CONTEXT.md`](./phase3/C4_CONTEXT.md), [`phase3/C4_CONTAINER.md`](./phase3/C4_CONTAINER.md), `phase3/adr/` (29 ADRs + index + template), [`phase3/SECURITY_AUTH.md`](./phase3/SECURITY_AUTH.md), [`phase3/INFRA.md`](./phase3/INFRA.md) |
 | Phase 4 — Design | ✅ Complete | **pass** | [`phase4/CONFLICT_REPORT.md`](./phase4/CONFLICT_REPORT.md) v1.1 | [`phase4/DDD_AGGREGATES.md`](./phase4/DDD_AGGREGATES.md), [`phase4/ERD.md`](./phase4/ERD.md), [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md), [`phase4/ERROR_HANDLING.md`](./phase4/ERROR_HANDLING.md) |
-| Phase 5 — Behaviour | ✅ Complete | **pass** | [`phase5/CONFLICT_REPORT.md`](./phase5/CONFLICT_REPORT.md) v1.2 | [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md), [`phase5/EPICS_STORIES.md`](./phase5/EPICS_STORIES.md), `phase5/epics/E01..E11.md`, [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md), [`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) |
+| Phase 5 — Behaviour | ✅ Complete | **pass** | [`phase5/CONFLICT_REPORT.md`](./phase5/CONFLICT_REPORT.md) v1.2 | [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md), [`phase5/EPICS_STORIES.md`](./phase5/EPICS_STORIES.md), [`phase5/IDENTITY_ACCESS.md`](./phase5/IDENTITY_ACCESS.md) (the E01 record, moved out of `epics/` on 2026-08-13), `phase5/epics/E02..E18.md`, [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md), [`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) |
 | Phase 6 — Code | ⬜ Open | — | — | pre-code phases are the gate; see §9 |
 
 **Pre-flight:** not run — no `PREFLIGHT_REPORT.md` exists, and that is deliberate. See §7.
@@ -84,7 +84,7 @@ All attempts `1`. **0 retries, 0 errors, 0 empty results across every phase.**
 | `brainy-agent` | 5 | [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) | 120 | 1 |
 | `sequence-agent` | 5 | [`phase5/SEQUENCE_DIAGRAMS.md`](./phase5/SEQUENCE_DIAGRAMS.md) | 566 | 1 |
 | `epics-agent` | 5 | [`phase5/EPICS_STORIES.md`](./phase5/EPICS_STORIES.md) | 115 | 1 |
-| `epics-agent` ×4 | 5 | `phase5/epics/E01..E11.md` | 1618 | 1 |
+| `epics-agent` ×4 | 5 | `phase5/epics/E01..E11.md` — E01's record is now [`phase5/IDENTITY_ACCESS.md`](./phase5/IDENTITY_ACCESS.md) | 1618 | 1 |
 | `risk-agent` | 5 | [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md) | 141 | 1 |
 | `dod-agent` | 5 | [`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) | 250 | 1 |
 | `conflict-checker-agent` | 5 | [`phase5/CONFLICT_REPORT.md`](./phase5/CONFLICT_REPORT.md) | 107 | 1 |
