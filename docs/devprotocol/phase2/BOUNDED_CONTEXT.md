@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-07
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
@@ -29,6 +29,11 @@ nothing there. The context's "Responsibility" line stops saying no self-service 
 its two hotspots is gone. BC-01 gains a second gate on the same path — `checkShopOwnerEmailVerified`
 immediately before `checkShopOwnerApproval` in `tryLoginShopOwner` — because a self-registration arrives
 with both flags up and only one of them is the applicant's to clear.
+v1.5 - 2026-08-13: BC-11's `item.js` quotation is now the sentence that file actually holds
+(`item.js:11-13`). The paraphrase that stood there — "a guess at a design decision nobody has made" — was
+close in meaning and absent in fact, found by E11-S01 checking its own criterion that BC-11 and `E11.md`
+agree. Nothing else in BC-11 moved: it owns nothing, produces nothing and is still the one context this
+platform may not design without being asked.
 **Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
 **Mutability:** the platform owner decides and writes the reason down before the edit — **one developer, so no
 vote and no second approver exists.** Splitting or merging contexts is a major refactor. Carving a new context
@@ -218,7 +223,7 @@ reaching Qodana -> exited non-zero with no results directory -> both hooks repor
 **Responsibility:** Would own cart, order, delivery and payment - the commerce flow a customer needs to actually buy an `item`. Named here for glossary and boundary readiness only.
 **Owns:** nothing. No collection, no migration, no model, no resolver, no schema builder exists anywhere in the 16 repos (`EVENT_STORMING.md` §2.9, verified: no `mutations/` directory in any of the 9 services under `BEs/dev/` contains a file matching `cart`/`order`/`payment`/`delivery`).
 **Produces:** nothing real. Hypothetical, unimplemented events named for vocabulary readiness: Cart Item Added, Order Placed, Payment Authorised, Delivery Dispatched - none exists in code.
-**Consumes:** would need BC-05's `item` (still with no price - `BEs/marketplace-db-setup/lib/schemas/item.js` states a price "would be a guess at a design decision nobody has made"), BC-07's `addresses` for delivery, BC-04's `company` for fulfilment ownership.
+**Consumes:** would need BC-05's `item` (still with no price - `BEs/marketplace-db-setup/lib/schemas/item.js:11-13` states a price "would be a guess at a currency, a precision, a VAT treatment and a discount model all at once" — ⚠️ **quoted exactly since 2026-08-13 (E11-S01)**; the paraphrase that stood here before was not a string in that file), BC-07's `addresses` for delivery, BC-04's `company` for fulfilment ownership.
 **Does not own:** anything yet. **Ask before inventing any part of this** (`CLAUDE.md` §Build state) - designing it requires operator sign-off, not an agent's inference from the shape of the other ten contexts.
 
 ---
