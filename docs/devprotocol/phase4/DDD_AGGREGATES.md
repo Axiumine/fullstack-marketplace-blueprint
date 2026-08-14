@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-13
+**Version:** 1.4
+**Date:** 2026-08-14
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
@@ -23,6 +23,14 @@ and §10 q2 together and states the claim that does hold: nothing *advances* eit
 progresses, deliberately, until an onboarding flow is designed. An invariant row this wrong is worth more
 than a fix: the search behind it was one `grep` shallower than the claim it produced, and three other
 documents copied it.
+v1.4 - 2026-08-14: **the same failure again, on `company.idShopOwner`, in three places here.** §`Company`
+invariants said what an Admin-created company gets stamped with was "unexamined on disk"; the constraint
+table said "any `idShopOwner` value can be stamped"; §10 q3 asked the question outright. All three are
+wrong: `funCompanyAdd` runs `ShopOwner.exists({ _id: idShopOwner, deleted: { $exists: false } })` and 404s
+before the insert, and `companyUpdate`/`companyDel` cannot reach the field at all because `idShopOwner` is
+outside `ICompanyValidated`. What is true, and is what the table now says, is that the Admin tier has no
+*ownership* guard — a different thing from referential validity, and deliberate. `EVENT_STORMING.md` §5
+hotspot 5, §6 q6 and `phase5/RISK_REGISTER.md` R30 close in the same pass.
 
 ---
 
@@ -136,7 +144,7 @@ const PUBLISHED_IMPLIES_LINKABLE = {
 };
 ```
 - `vatNumber_unique`, `certifiedEmail_unique`, `slug_unique` — global unique indexes, NO `partialFilterExpression`. A soft-deleted company keeps occupying its `vatNumber`/`certifiedEmail`/`slug` slot forever (ADR-011). One VAT number is one company, whoever registered it and whenever they stopped trading.
-- `idShopOwner` FK is unenforced — checked only when `throwIfShopOwnerDontOwnCompany` runs (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts`), and only on the ShopOwner tier's own mutations. The Admin tier's `companyAdd`/`companyUpdate`/`companyDel` can act on any company and the question of what `idShopOwner` an Admin-created company gets stamped with is unexamined on disk (`EVENT_STORMING.md` §5 hotspot 5).
+- `idShopOwner` FK is unenforced **by MongoDB** — no database constraint exists. Two different application-code guards stand in for one, and they answer different questions. *Ownership* is checked only when `throwIfShopOwnerDontOwnCompany` runs (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/company/throwIfShopOwnerDontOwnCompany.mts`), on the ShopOwner tier's own mutations, and the Admin tier has no ownership guard — an operator may act on any company, which is the point of the tier. *Referential validity at insert* is checked on the Admin tier and only there, because only there is the owner an argument: `funCompanyAdd` runs `ShopOwner.exists({ _id: idShopOwner, deleted: { $exists: false } })` and 404s when it resolves to nothing (`…/marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyAdd.mts:34-36`), a soft-deleted owner counting as absent. ⚠️ **This bullet used to say the value an Admin-created company gets stamped with was unexamined on disk; it was examined in that guard the whole time** — closed 2026-08-14 with `EVENT_STORMING.md` §5 hotspot 5. `companyUpdate` and `companyDel` cannot reach the field at all: `idShopOwner` is outside `ICompanyValidated`, so no owner-reassignment path exists on any tier.
 - `companyDel` is soft delete only — `deleted` date stamped, document never removed (DCON-03, ADR-011).
 - The two writer tiers deliberately diverge on an already-retired company: ShopOwner tier's guard filters `deleted` and answers 403; Admin tier's guard does not filter it and answers 200 — this is the platform's canonical example that liveness belongs on read/ownership guards, never on the delete write itself (`docs/data-model.md`).
 
@@ -347,7 +355,7 @@ Verified: `tryLoginAdmin` reads via `Admin.findOne` (`BEs/dev/marketplace-dev-pu
 | `onboardingStep`/`onboardingDone` advancement | ShopOwner | ⚠️ **Corrected 2026-08-13 (E03-S04).** `shopOwnerUpdatePreferences` (Admin tier) writes both and always has — "nothing found" was a search that missed it. What no resolver does is advance either field as a side effect of the owner's own progress, and as of E03-S04 that is a decision rather than an omission | Nothing today: no frontend reads either field. When one does, an owner's step is whatever an operator last typed — `phase5/RISK_REGISTER.md` R53 |
 | `PUBLISHED_IMPLIES_LINKABLE` | Company | `$expr` validator, `company.js:88-100` | Insert/update rejected by MongoDB |
 | `vatNumber`/`certifiedEmail`/`slug` stay occupied after soft delete | Company | unique index, no `partialFilterExpression` | A retired company's vatNumber can never be re-registered by anyone — deliberate, not a bug (ADR-011) |
-| `idShopOwner` FK validity | Company | resolver guard, `throwIfShopOwnerDontOwnCompany`, ShopOwner tier only | Admin tier has no ownership guard at all on `companyAdd`/`Update`/`Del` — any `idShopOwner` value can be stamped; unexamined (hotspot 5) |
+| `idShopOwner` FK validity | Company | `funCompanyAdd`'s `ShopOwner.exists` pre-check, Admin tier — the only tier where the owner is an argument rather than the session | ⚠️ **Corrected 2026-08-14: "any `idShopOwner` value can be stamped" was wrong.** An unresolvable or soft-deleted owner 404s before the insert (`funCompanyAdd.mts:34-36`), and `companyUpdate`/`companyDel` never write the field. What the Admin tier genuinely lacks is an *ownership* guard — `throwIfShopOwnerDontOwnCompany` is ShopOwner-tier only — which is the tier working as designed, not a hole |
 | `companyDel` on already-retired company | Company | resolver guard (ShopOwner: filters `deleted`, 403; Admin: does not, 200) | Documented divergence, not a bug — see [`docs/data-model.md`](../../data-model.md) §`company` |
 | `idCompany` ownership before `idCategory` existence, in that order | Item | two sequential resolver guards, `itemAdd.mts:39-46` | Reversed order would let a non-owner enumerate real category ids via the error message |
 | `idCategory` FK validity | Item | resolver guard, `throwIfItemCategoryMissing` | An `item` can reference a deleted or nonexistent category if the guard is ever bypassed or the category is deleted in the window between check and write (§5) |
@@ -415,7 +423,7 @@ Each of these needs its own ADR before it gets an aggregate boundary — not a s
 |---|---|---|---|
 | 1 | Does a freshly created `ShopOwner` start with `waitApprov` true or false/absent? `shopOwnerAdd` was not found setting the field. | Backend (Admin resource service) | **Closed 2026-08-12 by E03-S08 — it depends on the creation route.** `shopOwnerRegister` (public, 4027) writes `true`; `shopOwnerAdd` still writes nothing, because the operator doing the creating is the approval. No migration: every existing row predates the public form. `EVENT_STORMING.md` §5 hotspot 1 closes with it |
 | 2 | ~~What writes `shopOwner.onboardingStep`/`onboardingDone`? Read in 3 places, written by no discovered mutation.~~ | Backend (Admin/ShopOwner resource services) | **Closed 2026-08-13 (E03-S04) — `shopOwnerUpdatePreferences`, Admin tier, and it was there the whole time.** The question this document meant to ask is what *advances* them, and the answer is nothing, on purpose, until the onboarding flow is designed; residual R53 |
-| 3 | When an Admin creates a `Company` directly (rather than approving a ShopOwner-created one), what `idShopOwner` value does it get stamped with? | Backend (Admin resource service) | Open — `EVENT_STORMING.md` §5 hotspot 5 |
+| 3 | ~~When an Admin creates a `Company` directly (rather than approving a ShopOwner-created one), what `idShopOwner` value does it get stamped with?~~ | Backend (Admin resource service) | **Closed 2026-08-14 — the id the operator passed, after `funCompanyAdd` resolved it to a live `shopOwner`.** `companyAdd` on this tier takes `idShopOwner: ID!` explicitly, since the session names the operator and not the owner; `ShopOwner.exists({ _id, deleted: { $exists: false } })` gates the insert and 404s otherwise (`funCompanyAdd.mts:34-36`). There is no "absent an owning ShopOwner" case to answer for. `EVENT_STORMING.md` §5 hotspot 5 and §6 q6 close with it |
 | 4 | `item.published` has two independent writers (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field. Is the race acceptable, or does `Item` need an optimistic-concurrency field? | Backend (both resource services) | Open — `EVENT_STORMING.md` §5 hotspot 4 |
 | 5 | How is a new `Admin` account provisioned? No `adminAdd` mutation was found in this pass; only the seed migration writes the collection. | Backend / Ops | Open — not previously recorded in any phase 1-3 document found |
 | 6 | Should `ShopOwnerAggregate` and `UserAggregate`'s cross-BC sub-document split (BC-01 vs BC-03/BC-07, same document, no schema wall) be closed with an explicit ACL, or is "Conformist, convention only" an accepted permanent state? | Architecture | **Closed 2026-08-12 — Conformist by design, permanent, and no ACL.** One `$jsonSchema` builder and one Mongoose model per collection is a Shared Kernel: there are no two models to translate between, and `additionalProperties: false` already makes the drift an ACL absorbs impossible. What was actually unprotected was field *scope*, now enforced by E01-S10 / CON-12 — a named list plus `no-restricted-syntax` in the three ShopOwner-tier repos. `UserAggregate` gets no counterpart because `user` has no operator-only field to list |
