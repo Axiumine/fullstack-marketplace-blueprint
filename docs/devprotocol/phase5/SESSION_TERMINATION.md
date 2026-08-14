@@ -14,7 +14,7 @@ for the same reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) moved earlier t
 was work still ahead. Four of the five stories are `built`, and the fifth is an **anti-story** — a boundary
 to defend, not a task queue item — so the file had become the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E04..E18; E01, E02 and E03 are the three whose records sit beside the index instead of under it —
+E05..E18; E01, E02, E03 and E04 are the four whose records sit beside the index instead of under it —
 E03's is [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), moved 2026-08-14.
 
 **The story IDs did not change.** `E02-S01` … `E02-S05` are cited by `SEQUENCE_DIAGRAMS.md` (via

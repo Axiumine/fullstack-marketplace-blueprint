@@ -14,7 +14,7 @@ for the same reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and
 [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) moved on 2026-08-13: nothing in it was work still
 ahead. All eight stories are `built`, and §6's last open question closed the day this moved — so the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E04..E18; E01, E02 and E03 are the three whose
+stories live in `epics/ENN.md`, and that stays true for E05..E18; E01, E02, E03 and E04 are the four whose
 records sit beside the index instead of under it.
 
 **The story IDs did not change.** `E03-S01` … `E03-S08` are cited by sixteen files:
@@ -24,7 +24,7 @@ records sit beside the index instead of under it.
 `RISK_REGISTER.md`, `SEQUENCE_DIAGRAMS.md`, `epics/E15.md`, `docs/architecture.md` and
 `BEs/marketplace-common/CLAUDE.md`. Every one of those resolves to a section of this file. Renumbering
 them was refused for the reason E01 gives: an ID cited across sixteen files is a name, and moving a file
-is not a reason to change a name. A further set — `phase1/NFR.md`, `epics/E04.md`, `epics/E13.md`,
+is not a reason to change a name. A further set — `phase1/NFR.md`, `COMPANY_LEGAL_ENTITY.md`, `epics/E13.md`,
 `epics/E14.md`, `epics/E17.md`, `CONFLICT_REPORT.md` and `STATUS.md` — names the epic **E03** without a
 story suffix, and reads the same way.
 
@@ -257,7 +257,7 @@ and nothing moves an account between them); NFR-SE05; NFR-SE11; CON-12 (the writ
 - BC-04 (Legal Entity / Company) depends on this epic for `company.idShopOwner` to point at a real account
   — a `company` cannot be created for a shop owner this epic has not provisioned, and since 2026-08-14
   that is stated as enforcement rather than as convention: `funCompanyAdd` 404s an `idShopOwner` naming no
-  live `shopOwner` ([`epics/E04.md`](./epics/E04.md) §5).
+  live `shopOwner` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §5).
 - Shares the `shopOwner` collection with BC-01 through no schema-level wall — only
   `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` keeps both sides' writes honest about the shape
   (BCON-05 applies: an edit to that builder is a `marketplace-db-setup` commit plus a full database
@@ -282,5 +282,5 @@ not the fact that a question existed.
 | 1.0 | — | Initial retrofit, reverse-engineered from the 15-repo working tree |
 | 1.1 | 2026-08-12 | E03-S08 adds public self-service registration, and with it the answer to two of §6's open questions — a `ShopOwner` starts parked when they registered themselves and ungated when an operator created them. The epic goal, §2, §3 and E03-S01's second acceptance criterion all changed: "no self-service registration exists on this platform" was true until this story and is now the opposite of the code. `personalData` left the `shopOwner` validator's `required` list in the same change, which is what made both operator screens' `NonNull` on that field a page-breaking bug rather than a type detail |
 | 1.2 | 2026-08-13 | E03-S04 closes, and §6's onboarding question closes with it — on the platform owner's call, the operator's hand is the only writer of `onboardingStep`/`onboardingDone` until a shop-owner onboarding flow is designed. Nothing was built. What the pass did produce is a correction: E03-S04's second acceptance criterion was the only place on the platform that said "no **other** mutation", and four documents plus `RISK_REGISTER.md` R27 had dropped that word into the false claim that *nothing* writes those fields. R27 closes on a premise that was never true; the surviving gap is the new **R53** (🟢 Low, Low because no frontend reads either field). §3's closing line no longer calls the hotspot unresolved |
-| 1.3 | 2026-08-14 | **§6's last open question closes, and like R27 before it, on a premise that was never true.** It asked what `idShopOwner` an Admin-created `company` gets absent an owning ShopOwner; the Admin tier cannot produce that state, because `funCompanyAdd` resolves the explicit `idShopOwner: ID!` against a live, non-soft-deleted `shopOwner` and 404s otherwise. §6 carries no open question at all. The same false premise sat in five other documents — `EVENT_STORMING.md` §5 hotspot 5 and §6 q6, `DDD_AGGREGATES.md` in three places, `RISK_REGISTER.md` R30 and `epics/E04.md` §2/§5 — and is corrected in all of them in the same pass |
+| 1.3 | 2026-08-14 | **§6's last open question closes, and like R27 before it, on a premise that was never true.** It asked what `idShopOwner` an Admin-created `company` gets absent an owning ShopOwner; the Admin tier cannot produce that state, because `funCompanyAdd` resolves the explicit `idShopOwner: ID!` against a live, non-soft-deleted `shopOwner` and 404s otherwise. §6 carries no open question at all. The same false premise sat in five other documents — `EVENT_STORMING.md` §5 hotspot 5 and §6 q6, `DDD_AGGREGATES.md` in three places, `RISK_REGISTER.md` R30 and `COMPANY_LEGAL_ENTITY.md` §2/§5 — and is corrected in all of them in the same pass |
 | 1.4 | 2026-08-14 | Record moved out of `phase5/epics/E03.md` to this file — see §0. No story, criterion, trace or evidence path changed in the move; the four open questions were folded into one table (§6) and the changelog into this one, both because every entry in them was already closed. §5's BC-04 dependency now states the enforcement v1.3 established rather than restating the old "nothing enforces the reference" |

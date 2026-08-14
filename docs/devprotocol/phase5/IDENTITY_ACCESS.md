@@ -12,9 +12,10 @@
 It was `phase5/epics/E01.md` until 2026-08-13. The file was deleted and its record moved here in one pass,
 because nothing in it was a story still ahead: every one of the fifteen is `built`, and the epic file had
 become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md` and that stays true for E04..E18 — E02's record joined this one beside the
-index later the same day ([`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), and E03's on 2026-08-14
-([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md)), both for the same reason.
+stories live in `epics/ENN.md` and that stays true for E05..E18 — E02's record joined this one beside the
+index later the same day ([`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), and E03's and E04's on
+2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md)), all for the same reason.
 
 **The story IDs did not change.** `E01-S01` … `E01-S15` are cited by `phase2/BOUNDED_CONTEXT.md`,
 `phase3/CONSTRAINTS.md` CON-12, `phase4/DDD_AGGREGATES.md`, `phase4/ERROR_HANDLING.md`,

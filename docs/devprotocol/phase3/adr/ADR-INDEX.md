@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-12
 **Author:** adr-agent
 **Changelog:**
@@ -14,6 +14,11 @@ v1.2 - ADR-034 added: the Keygrip pair leaves the five `.env` files for one wrap
 service that cannot unwrap it refuses to boot, and rotation becomes an operator mutation. Three rows in
 §4 and one line in §5 — the KEK is the value a secrets manager would take over, so the ADR-032 gap now
 names it
+v1.3 - 2026-08-14: two rows added to §4 from a decision the platform owner took directly rather than
+through an ADR — the two-writer race on `company` and `item.published` is accepted, and publishing is a
+separate operation on both tiers. Neither is an architectural choice this platform stands on, so neither
+became an ADR; both are the kind of settled question §4 exists to keep settled, and both are cited to the
+record that holds the reasoning
 
 ## 1. How to use this index
 
@@ -104,6 +109,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Put the Keygrip keys in Redis unwrapped, or drop the `KEYGRIP_KEK` because "Redis is internal" | ADR-034 | the signature is the one layer a Redis read does not already defeat: an attacker holding the session tokens still cannot sign a cookie. Unwrapped keys hand that away, and ADR-032 forbids arguing it back with a network boundary that is not written down anywhere |
 | Give the mint to `marketplace-dev-authenticated-logout` because all three tiers already reach it | ADR-034 | that is the reason not to: it is the one service a customer's traffic touches on every tier, and minting a signing key is an operator act that belongs behind the Admin tier's own resource service |
 | Reintroduce `KEYGRIP_KEY_1`/`_2` into an `env` template "as a fallback" | ADR-034 | a fallback is a second source of truth for the value the whole decision exists to make single, and it fails in the one shape that is invisible — a service that quietly boots on the env pair while the other four follow the record |
+| Add a version or optimistic-lock field to `company` or `item`, or a read-then-compare precondition on either tier's update | platform owner, 2026-08-14 — `phase5/COMPANY_LEGAL_ENTITY.md` §6, `phase5/RISK_REGISTER.md` §5 (R29 Accepted) | two writers on one document is the design, and last writer wins is the accepted outcome: an operator unpublishes, the shop owner publishes again, and that is normal. Both tiers `$set` a whole enumerated object rather than a diff, so what was accepted is whole-card last-write-wins — a story proposing a lock reverses the decision instead of extending it |
+| Put `published` back inside `GraphQLInputItem` or `GraphQLInputCompany`, "so a save can set it too" | platform owner, 2026-08-14 — `phase5/COMPANY_LEGAL_ENTITY.md` E04-S08, `phase5/epics/E05.md` E05-S08 | that is the bug the split removed: a whole-object `$set` makes every save a write of the flag, so reopening a stale card republished what somebody had just taken down, without touching anything named publish. `itemUpdatePublished` / `companyUpdatePublished` are the only writers, one pair per tier, and `itemAdd`/`companyAdd` stamp `false`. The DB `$expr` `PUBLISHED_IMPLIES_LINKABLE` then makes save-then-publish two calls by construction |
 | Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
 
 ## 5. Gaps

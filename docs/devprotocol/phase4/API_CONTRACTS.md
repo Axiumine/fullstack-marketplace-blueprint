@@ -434,7 +434,7 @@ copies of both are scoped to the caller's companies. ⚠️ Since 2026-08-14 the
 `*UpdatePublished` writes and **none** of what `companyUpdate`/`itemUpdate` write, so the two tiers race
 only on the operation whose entire subject is publication: a save of a description cannot undo a
 takedown, and an owner republishing after an operator's takedown is a deliberate act, accepted as
-last-writer-wins (`phase5/epics/E04.md` §6, `phase5/RISK_REGISTER.md` §5).
+last-writer-wins (`phase5/COMPANY_LEGAL_ENTITY.md` §6, `phase5/RISK_REGISTER.md` §5).
 
 ## 7. User tier (the customer)
 
