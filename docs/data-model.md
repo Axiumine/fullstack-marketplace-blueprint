@@ -193,8 +193,8 @@ limiter were found, live and documented nowhere, on the day E18-S08 first ran it
 |---|---|---|---|
 | `<prefix><sha256('access:'+token)>` | the access session hash — `_id`, `email`, `tier`, never the refresh token | login, rotation | live (E13-S01) |
 | `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier`, the lineage, and `accessKey`: the *key* of the access session minted beside it, never a token | login, rotation | live (E13-S01; `accessKey` 2026-08-13) |
-| `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing — **read-only fallback** | temporary, removed by E13-S10 |
-| `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | temporary, removed by E13-S10 |
+| `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing, and now read by nothing either | **gone — E13-S10, 2026-08-14**; a key of this shape resolves to nothing |
+| `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | **gone — E13-S10, 2026-08-14**; never non-zero, the cutover was never deployed |
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
 | `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | live (E14-S02) |
 | `<prefix>family:<familyId>` | a set of that family's session keys | rotation | live (E14-S03) |

@@ -202,9 +202,10 @@ themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Red
 - **The key is a digest.** Since E13-S01 a session lives under `<REDIS_KEY><sha256('access:'+token)>`,
   built by `sessionKeys.mts` in `marketplace-common` and nowhere else. Before that the key *was* the
   token, so a `MONITOR` transcript, a dump or the append-only file was a list of live credentials in
-  plain text. Reads currently fall back to the old shape for sessions minted before the cutover; that
-  fallback and its `dual-read-hits` counter are deleted by E13-S10 on the date in
-  `DUAL_READ_REMOVE_AFTER`.
+  plain text. **Reads no longer fall back to the old shape**: E13-S10 deleted the raw-key read path, its
+  `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` on 2026-08-14, so the digest is now the only name
+  a session has and a key that *is* a token resolves to nothing. The window the fallback existed for never
+  opened — the cutover was never deployed, and the counter read zero on the only cluster there is.
 - ⚠️ **The connection is plaintext `redis://`, and this workspace cannot change it.** Every service
   `env` sets `REDIS_IS_CLUSTER=1`, and koa-utils' `dist/dataSources/Redis.mjs` builds its
   `createCluster` rootNodes with a hardcoded `redis://` scheme — so the session hash, `_id`, `email`
