@@ -2,31 +2,36 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-14
 **Author:** epics-agent
 **Bounded context:** BC-03 — Shop Owner Onboarding & Approval
-**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.1 - 2026-08-12: E03-S08 adds public self-service registration, and with it the answer to two of §6's
-open questions — a `ShopOwner` starts parked when they registered themselves and ungated when an operator
-created them. The epic goal, §2, §3 and E03-S01's second acceptance criterion all changed: "no self-service
-registration exists on this platform" was true until this story and is now the opposite of the code.
-`personalData` left the `shopOwner` validator's `required` list in the same change, which is what made both
-operator screens' `NonNull` on that field a page-breaking bug rather than a type detail.
-v1.2 - 2026-08-13: E03-S04 closes, and §6's onboarding question closes with it — on the platform owner's
-call, the operator's hand is the only writer of `onboardingStep`/`onboardingDone` until a shop-owner
-onboarding flow is designed. Nothing was built. What the pass did produce is a correction: E03-S04's second
-acceptance criterion was the only place on the platform that said "no **other** mutation", and four
-documents plus `RISK_REGISTER.md` R27 had dropped that word into the false claim that *nothing* writes
-those fields. R27 closes on a premise that was never true; the surviving gap is the new **R53** (🟢 Low,
-Low because no frontend reads either field). §3's closing line no longer calls the hotspot unresolved.
-v1.3 - 2026-08-14: **§6's last open question closes, and like R27 before it, on a premise that was never
-true.** It asked what `idShopOwner` an Admin-created `company` gets absent an owning ShopOwner; the Admin
-tier cannot produce that state, because `funCompanyAdd` resolves the explicit `idShopOwner: ID!` against a
-live, non-soft-deleted `shopOwner` and 404s otherwise. §6 now carries no open question at all. The same
-false premise sat in five other documents — `EVENT_STORMING.md` §5 hotspot 5 and §6 q6,
-`DDD_AGGREGATES.md` in three places, `RISK_REGISTER.md` R30 and `epics/E04.md` §2/§5 — and is corrected in
-all of them in the same pass.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E03.md` until 2026-08-14. The file was deleted and its record moved here in one pass,
+for the same reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) moved on 2026-08-13: nothing in it was work still
+ahead. All eight stories are `built`, and §6's last open question closed the day this moved — so the file
+had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
+stories live in `epics/ENN.md`, and that stays true for E04..E18; E01, E02 and E03 are the three whose
+records sit beside the index instead of under it.
+
+**The story IDs did not change.** `E03-S01` … `E03-S08` are cited by sixteen files:
+`phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase2/UBIQUITOUS_LANGUAGE.md`,
+`phase3/C4_CONTEXT.md`, `phase3/CONSTRAINTS.md`, `phase3/SECURITY_AUTH.md`, `phase4/API_CONTRACTS.md`,
+`phase4/DDD_AGGREGATES.md`, `phase4/ERD.md`, `EPICS_STORIES.md`, `IDENTITY_ACCESS.md` §6 q3,
+`RISK_REGISTER.md`, `SEQUENCE_DIAGRAMS.md`, `epics/E15.md`, `docs/architecture.md` and
+`BEs/marketplace-common/CLAUDE.md`. Every one of those resolves to a section of this file. Renumbering
+them was refused for the reason E01 gives: an ID cited across sixteen files is a name, and moving a file
+is not a reason to change a name. A further set — `phase1/NFR.md`, `epics/E04.md`, `epics/E13.md`,
+`epics/E14.md`, `epics/E17.md`, `CONFLICT_REPORT.md` and `STATUS.md` — names the epic **E03** without a
+story suffix, and reads the same way.
+
+**What is deliberately not repeated here.** The login gate that *reads* `waitApprov` is E01-S11's story,
+recorded in [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) — this context writes the field and never reads
+it. The write-scoping that keeps `notes` and `waitApprov` out of ShopOwner-tier reach is CON-12, owned by
+E01-S10. What follows says what each story had to satisfy and where the code is.
 
 ## 1. Epic goal
 
@@ -245,53 +250,37 @@ and nothing moves an account between them); NFR-SE05; NFR-SE11; CON-12 (the writ
 
 ## 5. Dependencies
 
-- BC-01 (E01) depends on this epic: `login` cannot correctly refuse an unapproved or deleted account until
-  `shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerDel` exist and are deployed — landing order is E03
-  before E01's approval-gate behaviour is testable. Both are already built, so no live ordering risk
-  remains, but a future edit to either side must respect it.
+- BC-01 (E01, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)) depends on this epic: `login` cannot correctly
+  refuse an unapproved or deleted account until `shopOwnerAdd`/`shopOwnerUpdateStatus`/`shopOwnerDel`
+  exist and are deployed — landing order is E03 before E01's approval-gate behaviour is testable. Both are
+  already built, so no live ordering risk remains, but a future edit to either side must respect it.
 - BC-04 (Legal Entity / Company) depends on this epic for `company.idShopOwner` to point at a real account
-  — a `company` cannot be meaningfully created for a shop owner this epic has not yet provisioned.
+  — a `company` cannot be created for a shop owner this epic has not provisioned, and since 2026-08-14
+  that is stated as enforcement rather than as convention: `funCompanyAdd` 404s an `idShopOwner` naming no
+  live `shopOwner` ([`epics/E04.md`](./epics/E04.md) §5).
 - Shares the `shopOwner` collection with BC-01 through no schema-level wall — only
   `BEs/marketplace-db-setup/lib/schemas/shopOwner.js` keeps both sides' writes honest about the shape
   (BCON-05 applies: an edit to that builder is a `marketplace-db-setup` commit plus a full database
   rebuild, never a same-commit edit alongside a resolver change).
 
-## 6. Open questions
+## 6. Open questions — all four closed
 
-- ~~Does a freshly created `ShopOwner` start with `waitApprov` `true` (gated) or `false`/absent
-  (ungated)?~~ **Closed 2026-08-12 by E03-S08 — it depends on who created it.** `shopOwnerRegister` writes
-  it `true`, `shopOwnerAdd` writes nothing, and the schema comment that conflated "awaiting approval" with
-  "deleted" (`EVENT_STORMING.md` §5 hotspot 1) was rewritten to say what the field actually holds and who
-  writes it. No migration for the existing rows: every document on disk predates the public form, so every
-  one of them was Admin-created and is correctly ungated.
-- ~~What advances `onboardingStep`/`onboardingDone` outside of an Admin manually calling
-  `shopOwnerUpdatePreferences`?~~ **Closed 2026-08-13 by E03-S04 — nothing does, by decision.**
-  `shopOwnerUpdatePreferences` (Admin tier) is the only writer and stays the only writer until a shop-owner
-  onboarding flow is designed; the platform owner deferred that flow rather than have it invented here. The
-  premise the question carried was also wrong in one word: it read "no mutation … writes either field",
-  when the true statement is **no *other* mutation writes them**. That dropped "other" had propagated into
-  four documents and into `RISK_REGISTER.md` R27, all corrected in the same change.
-  ⚠️ **E03-S08 raised the stakes on this one, and that part survives the closure** as `RISK_REGISTER.md`
-  **R53** (🟢 Low). An approved self-registered account has a login and nothing else: no name, no date of
-  birth, no address, no contacts, and no company. Onboarding is the flow that would collect them, and it
-  does not exist — so today the operator either types the details in through `shopOwnerUpdate`, or the
-  account trades under an empty `personalData`. Whoever builds it decides whether the shop-owner app writes
-  those fields directly or asks for an Admin review, which is a product question wearing an implementation
-  question's clothes. R53 is Low and not higher because no frontend reads either field today, so nothing is
-  blocked while the flow is missing.
-- ~~Does self-service ShopOwner registration ever get built, or does Admin-provisioning stay permanent?~~
-  **Closed 2026-08-12 by E03-S08: built, and the two coexist.** Admin-provisioning did not go away — it is
-  the route for a shop the platform recruited, and it skips the queue for that reason.
-- ~~What `idShopOwner` does an Admin-created `company` (BC-04) get absent an owning ShopOwner having
-  created it first via this epic? — same doc, open question 6.~~ **Closed 2026-08-14 — the case the
-  question describes cannot occur: there is no Admin-created `company` absent an owning ShopOwner.**
-  Admin-tier `companyAdd` takes `idShopOwner: ID!` as an explicit argument, and `funCompanyAdd`
-  (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyAdd.mts:34-36`)
-  resolves it before writing — `ShopOwner.exists({ _id: idShopOwner, deleted: { $exists: false } })`,
-  404 `shopOwner not found` otherwise. A soft-deleted owner counts as absent. So an Admin-created
-  company is stamped with the id of a live `shopOwner` document or it is not created at all, and the
-  order this epic worried about is the enforced one: the account exists first, whether it self-registered
-  (E03-S08) or the operator provisioned it. What survives is not a design gap but operator error — a
-  valid id naming the *wrong* ShopOwner — and `idShopOwner` reaches the mutation from the URL of the
-  owner detail page the operator is already on. Closed alongside `EVENT_STORMING.md` §5 hotspot 5 and §6
-  question 6, `DDD_AGGREGATES.md` question 3, and `RISK_REGISTER.md` **R30**.
+None open. Kept because each closure is cited elsewhere and the *shape* of the answer is the knowledge,
+not the fact that a question existed.
+
+| # | Question | Closed by | Answer |
+|---|---|---|---|
+| 1 | Does a freshly created `ShopOwner` start with `waitApprov` `true` (gated) or `false`/absent (ungated)? | E03-S08, 2026-08-12 | **It depends on who created it.** `shopOwnerRegister` writes it `true`, `shopOwnerAdd` writes nothing, and the schema comment that conflated "awaiting approval" with "deleted" (`EVENT_STORMING.md` §5 hotspot 1) was rewritten to say what the field actually holds and who writes it. No migration for the existing rows: every document on disk predates the public form, so every one of them was Admin-created and is correctly ungated |
+| 2 | What advances `onboardingStep`/`onboardingDone` outside of an Admin manually calling `shopOwnerUpdatePreferences`? | E03-S04, 2026-08-13 | **Nothing does, by decision.** `shopOwnerUpdatePreferences` (Admin tier) is the only writer and stays the only writer until a shop-owner onboarding flow is designed; the platform owner deferred that flow rather than have it invented here. The premise the question carried was also wrong in one word: it read "no mutation … writes either field", when the true statement is **no *other* mutation writes them** — a dropped "other" that had propagated into four documents and into `RISK_REGISTER.md` R27, all corrected in the same change. ⚠️ **E03-S08 raised the stakes, and that part survives the closure** as **R53** (🟢 Low). An approved self-registered account has a login and nothing else: no name, no date of birth, no address, no contacts, no company. Onboarding is the flow that would collect them and it does not exist — so today the operator either types the details in through `shopOwnerUpdate`, or the account trades under an empty `personalData`. Whoever builds it decides whether the shop-owner app writes those fields directly or asks for an Admin review, which is a product question wearing an implementation question's clothes. R53 is Low because no frontend reads either field today, so nothing is blocked while the flow is missing |
+| 3 | Does self-service ShopOwner registration ever get built, or does Admin-provisioning stay permanent? | E03-S08, 2026-08-12 | **Built, and the two coexist.** Admin-provisioning did not go away — it is the route for a shop the platform recruited, and it skips the queue for that reason |
+| 4 | What `idShopOwner` does an Admin-created `company` (BC-04) get absent an owning ShopOwner having created it first via this epic? | 2026-08-14, outside any story | **The case the question describes cannot occur: there is no Admin-created `company` absent an owning ShopOwner.** Admin-tier `companyAdd` takes `idShopOwner: ID!` as an explicit argument, and `funCompanyAdd` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyAdd.mts:34-36`) resolves it before writing — `ShopOwner.exists({ _id: idShopOwner, deleted: { $exists: false } })`, 404 `shopOwner not found` otherwise. A soft-deleted owner counts as absent. So an Admin-created company is stamped with the id of a live `shopOwner` document or it is not created at all, and the order this epic worried about is the enforced one: the account exists first, whether it self-registered (E03-S08) or the operator provisioned it. What survives is not a design gap but operator error — a valid id naming the *wrong* ShopOwner — and `idShopOwner` reaches the mutation from the URL of the owner detail page the operator is already on. Closed alongside `EVENT_STORMING.md` §5 hotspot 5 and §6 question 6, `DDD_AGGREGATES.md` question 3, and `RISK_REGISTER.md` **R30** |
+
+## 7. Changelog
+
+| Version | Date | What changed |
+|---|---|---|
+| 1.0 | — | Initial retrofit, reverse-engineered from the 15-repo working tree |
+| 1.1 | 2026-08-12 | E03-S08 adds public self-service registration, and with it the answer to two of §6's open questions — a `ShopOwner` starts parked when they registered themselves and ungated when an operator created them. The epic goal, §2, §3 and E03-S01's second acceptance criterion all changed: "no self-service registration exists on this platform" was true until this story and is now the opposite of the code. `personalData` left the `shopOwner` validator's `required` list in the same change, which is what made both operator screens' `NonNull` on that field a page-breaking bug rather than a type detail |
+| 1.2 | 2026-08-13 | E03-S04 closes, and §6's onboarding question closes with it — on the platform owner's call, the operator's hand is the only writer of `onboardingStep`/`onboardingDone` until a shop-owner onboarding flow is designed. Nothing was built. What the pass did produce is a correction: E03-S04's second acceptance criterion was the only place on the platform that said "no **other** mutation", and four documents plus `RISK_REGISTER.md` R27 had dropped that word into the false claim that *nothing* writes those fields. R27 closes on a premise that was never true; the surviving gap is the new **R53** (🟢 Low, Low because no frontend reads either field). §3's closing line no longer calls the hotspot unresolved |
+| 1.3 | 2026-08-14 | **§6's last open question closes, and like R27 before it, on a premise that was never true.** It asked what `idShopOwner` an Admin-created `company` gets absent an owning ShopOwner; the Admin tier cannot produce that state, because `funCompanyAdd` resolves the explicit `idShopOwner: ID!` against a live, non-soft-deleted `shopOwner` and 404s otherwise. §6 carries no open question at all. The same false premise sat in five other documents — `EVENT_STORMING.md` §5 hotspot 5 and §6 q6, `DDD_AGGREGATES.md` in three places, `RISK_REGISTER.md` R30 and `epics/E04.md` §2/§5 — and is corrected in all of them in the same pass |
+| 1.4 | 2026-08-14 | Record moved out of `phase5/epics/E03.md` to this file — see §0. No story, criterion, trace or evidence path changed in the move; the four open questions were folded into one table (§6) and the changelog into this one, both because every entry in them was already closed. §5's BC-04 dependency now states the enforcement v1.3 established rather than restating the old "nothing enforces the reference" |

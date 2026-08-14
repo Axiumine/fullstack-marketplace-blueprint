@@ -21,7 +21,8 @@ public writer of `company` anywhere. Its finding — that what `idShopOwner` an 
 unexamined — described a case the tier cannot produce: `companyAdd` takes `idShopOwner: ID!` explicitly and
 `funCompanyAdd` resolves it against a live, non-soft-deleted `shopOwner` before the insert, 404ing otherwise.
 The rationale the hotspot called undocumented is that guard's own docblock. `phase5/RISK_REGISTER.md` **R30**,
-`phase4/DDD_AGGREGATES.md` §10 q3 and `phase5/epics/E03.md` §6 close with it. Nothing survives as a residual.
+`phase4/DDD_AGGREGATES.md` §10 q3 and `phase5/SHOPOWNER_ONBOARDING_APPROVAL.md` §6 q4 — E03's record, moved
+out of `phase5/epics/E03.md` the same day — close with it. Nothing survives as a residual.
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Mutability:** living document — refine as domain understanding evolves
 
