@@ -42,7 +42,11 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 `marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners*. `marketplace-shopowner`
 mirrors it — same stack, same conventions, same hooks — and is deliberately thinner because the tier
 behind it is. `marketplace-dev-authenticated-resource` exposes `shopOwnerCompanies`, `companyItems`,
-`itemCategories` and six mutations (`company*` plus `itemAdd` / `itemUpdate` / `itemDel`). The operator
+`itemCategories` and eight mutations (`company*` plus `itemAdd` / `itemUpdate` / `itemUpdatePublished` /
+`itemDel`). ⚠️ **Two of the eight are publish-only** — `companyUpdatePublished` and `itemUpdatePublished`,
+split out on 2026-08-14 because the flag used to sit inside the update inputs and every save wrote it. The
+items screen calls its one; nothing on either frontend calls the company one, which is a missing control
+rather than a missing resolver. The operator
 app's profile, password-change, personal-data, statistics and paginated-table screens have no
 counterpart there and were pruned rather than stubbed.
 

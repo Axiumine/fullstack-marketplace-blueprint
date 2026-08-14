@@ -362,6 +362,8 @@ rest of this section**, because they correct two of its claims.
 src/graphQLApi/schema/
 ├── queries.mts  mutations.mts     # roots
 ├── queries/  mutations/           # one file per operation: <entity>Add|Update|Del|Dis.mts
+│                                 # a flag with its own writer gets its own file too:
+│                                 # <entity>UpdatePublished.mts on both resource services
 ├── types/  GraphQLInput/  interfaces/  frag/
 ```
 

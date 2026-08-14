@@ -564,6 +564,22 @@ requirement of its design, not a default you can flip.
 3. **Storefront** — <http://127.0.0.1:3045>. The published shop and item should appear. Register a
    customer.
 
+⚠️ **Step 3 needs a hand-published company, and always did.** The demo shop is seeded `published: false`
+with no `slug`, `publicName` or `description` — the honest value, since the collection's
+`PUBLISHED_IMPLIES_LINKABLE` `$expr` refuses `published: true` without the first two. Publishing a company
+is `companyUpdatePublished` on either tier since 2026-08-14, and **no frontend calls it**: neither company
+screen has ever carried a publish control, and neither has a box for the three public fields the `$expr`
+wants. Both services accept them, so the gap is UI-only — but until those screens exist the whole step is a
+shell one, and it must set the three fields **before or with** the flag, or MongoDB refuses the write:
+
+```bash
+cd docker-DBs && ./shell.sh dev
+# db.company.updateOne({_id:ObjectId('5c9a013fcf1448b9d885a000')},
+#   {$set:{publicName:'Northwind Trading',slug:'northwind-trading',published:true}})
+```
+
+Publishing an **item** needs no such workaround — step 2's publish control calls `itemUpdatePublished`.
+
 ⚠️ **A customer cannot log in until `emailVerify.valid` is true**, and every login failure returns the
 same generic error — an unconfirmed account is indistinguishable from a wrong password on purpose, so
 nobody can use the login form to discover which addresses are registered. That is also why the login
