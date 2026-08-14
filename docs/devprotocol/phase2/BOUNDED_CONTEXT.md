@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-13
+**Version:** 1.7
+**Date:** 2026-08-14
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
@@ -40,6 +40,17 @@ two onboarding fields, and `shopOwnerUpdatePreferences` has written both since b
 documents existed. The claim E03-S04 makes, and the only one that is true, keeps the word this file
 dropped: no **other** mutation does. The decision is that this stays so until a shop-owner onboarding flow
 is designed.
+v1.7 - 2026-08-14: §7 question 5 closes and BC-05's hotspot line with it — the platform owner accepted the
+`item.published` race as last-writer-wins, taken with the same decision for `company`. No lock field, no
+version field. Both places now add what the finding never said: the two writers are asymmetric, the owner's
+being a whole-card `$set` that carries `published`, so an ordinary save undoes an operator's takedown
+without touching the flag. `phase5/epics/E11.md` §6 q3 stays open on purpose — it is about an order
+referencing a live flag, which is BC-11 design work, not this race.
+v1.8 - 2026-08-14, later the same day: **the asymmetry v1.7 had just written down is gone, by decision.**
+`published` left `GraphQLInputItem` and both `GraphQLInputCompany`s, and publishing became its own
+mutation on both tiers — `itemUpdatePublished` and `companyUpdatePublished`, one writer of each flag per
+tier. The race v1.7 accepted survives and is still last-writer-wins; what does not survive is a save of a
+description undoing a takedown, which was never a decision anyone took.
 **Depends on:** PDR.md ✅ [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) · EVENT_STORMING.md ✅ [`docs/devprotocol/phase2/EVENT_STORMING.md`](./EVENT_STORMING.md) · UBIQUITOUS_LANGUAGE.md ✅ [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./UBIQUITOUS_LANGUAGE.md)
 **Mutability:** the platform owner decides and writes the reason down before the edit — **one developer, so no
 vote and no second approver exists.** Splitting or merging contexts is a major refactor. Carving a new context
@@ -104,8 +115,8 @@ args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
 
 ### BC-04 - Legal Entity / Company
 **Responsibility:** Owns the `company` aggregate - simultaneously the legal entity (`legalName`, `vatNumber`, `certifiedEmail`, `registryExtract`) a `ShopOwner` registers and the shop itself, since no separate shop collection exists or will (`CLAUDE.md` §Terminology).
-**Owns:** `company` collection (`BEs/marketplace-db-setup/lib/schemas/company.js`), its Mongoose model in `BEs/marketplace-common` (shared by both writer services so the shape cannot drift between them), `companyAdd`/`companyUpdate`/`companyDel` in two resource services - `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own companies only, answers `OnlyIdType`) and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (Admin tier, any company, answers plain `Boolean`).
-**Produces:** Company Registered, Company Updated, Company Made Public (`published` flips true once `publicName`/`slug`/`description` are populated), Company Retired (soft delete), Delete Refused - Already Retired (ShopOwner tier, 403), Delete Accepted On Already-Retired Company (Admin tier, 200).
+**Owns:** `company` collection (`BEs/marketplace-db-setup/lib/schemas/company.js`), its Mongoose model in `BEs/marketplace-common` (shared by both writer services so the shape cannot drift between them), `companyAdd`/`companyUpdate`/`companyUpdatePublished`/`companyDel` in two resource services - `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (ShopOwner tier, own companies only, answers `OnlyIdType`) and `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` (Admin tier, any company, answers plain `Boolean`).
+**Produces:** Company Registered, Company Updated, Company Made Public (`companyUpdatePublished` flips `published` true — its own operation on both tiers since 2026-08-14, never a side effect of `companyUpdate`, and refused by the collection's `$expr` unless `publicName` and `slug` are already stored), Company Taken Down (the same mutation, false), Company Retired (soft delete), Delete Refused - Already Retired (ShopOwner tier, 403), Delete Accepted On Already-Retired Company (Admin tier, 200).
 **Consumes:** `idShopOwner` FK from BC-01's `shopOwner` collection (unenforced, checked at read/ownership time by `throwIfShopOwnerDontOwnCompany`).
 **Does not own:** `item` documents (BC-05), the public read projection (BC-08 reads through a fixed pipeline, never writes here).
 
@@ -124,7 +135,7 @@ const PUBLISHED_IMPLIES_LINKABLE = {
 
 ### BC-05 - Catalogue
 **Responsibility:** Owns `item`, the single generic catalogue entry. Domain-neutral by design — presumes nothing about what is sold. One thing a `Company` sells; deliberately carries no price.
-**Owns:** `item` collection (`BEs/marketplace-db-setup/lib/schemas/item.js`), `itemAdd`/`itemUpdate`/`itemDel` (ShopOwner tier, own company only, `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts`), `itemUpdatePublished`/`itemDel` (Admin tier moderation, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts`).
+**Owns:** `item` collection (`BEs/marketplace-db-setup/lib/schemas/item.js`), `itemAdd`/`itemUpdate`/`itemUpdatePublished`/`itemDel` (ShopOwner tier, own company only, `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts`), `itemUpdatePublished`/`itemDel` (Admin tier moderation, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts`).
 **Produces:** Item Added, Add Refused - Company Not Owned, Add Refused - Category Missing, Item Updated, Item Published/Unpublished, Item Deleted, Item Published/Unpublished By Admin, Item Deleted By Admin.
 **Consumes:** `idCompany` FK from BC-04 (ownership checked first), `idCategory` FK from BC-06 (existence checked second, deliberately after ownership):
 ```ts
@@ -136,7 +147,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 ```
 **Does not own:** price, cart membership, order lines - none exist (BC-11, planned). `idCategory` shape or depth cap (BC-06).
 
-Two independent writers of `item.published` (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`) with no version/lock field found in the schema - a race is unexamined (`EVENT_STORMING.md` §5 hotspot 4, open question 5).
+Two independent writers of `item.published` (each tier's own `itemUpdatePublished`) with no version/lock field in the schema - ⚠️ **examined and accepted 2026-08-14: last writer wins, and an owner republishing after an operator's unpublish is a normal outcome** (`EVENT_STORMING.md` §5 hotspot 4 and §6 q5, both closed; `phase5/RISK_REGISTER.md` §5). ⚠️ **The asymmetry this line carried for half a day is gone**: the owner's writer was `itemUpdate`, which `$set`s the whole card and carried the flag inside `GraphQLInputItem`, so an ordinary save undid a takedown without touching it. Publishing was split out the same day — `published` left the input, `itemAdd` stamps `false`, and both tiers now write the flag through a mutation whose entire subject is publication. What races is two deliberate acts, not a save and an act. `itemDel` is still the takedown no republish reverses, `deleted` being outside every input.
 
 ---
 
@@ -365,7 +376,7 @@ Two field names deliberately mean **different things** in different contexts and
 | 2 | ~~What advances `shopOwner.onboardingStep`/`onboardingDone` (BC-01/BC-03 boundary), and where does that write live?~~ ⚠️ The second sentence was wrong and is deleted: `shopOwnerUpdatePreferences` (Admin tier) writes both fields and always has. | Platform dev | **Closed 2026-08-13 (E03-S04) — an operator's hand, by decision. A shop-owner-side write is deferred design, not a missing line; residual R53.** |
 | 3 | Is `waitApprov` (BC-03) true or false/absent by default at account creation? Schema comment conflates "awaiting approval" with "deleted" in one field's own doc comment (`BEs/marketplace-db-setup/lib/schemas/shopOwner.js`). | Platform dev | **Closed 2026-08-12 - the default is per creation route, which is the answer rather than a hedge.** `shopOwnerRegister` writes `waitApprov: true`, `shopOwnerAdd` writes nothing. No migration: every row on disk predates the public form, so all of them are Admin-created and correctly ungated. The doc comment was rewritten in the same change - it now says the field means "may not log in until an admin approves", names both writers, and records that approval `$unset`s it, which is why every reader tests presence and never equality. E03-S08 |
 | 4 | When BC-11 Ordering & Fulfilment design work starts, who signs off the first schema - and does it become one context or split (Cart / Order / Delivery / Payment each their own)? | Product + platform dev | Open |
-| 5 | Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item? | Platform dev | Open |
+| 5 | ~~Should `item.published` (BC-05) get a version/lock field before ShopOwner's `itemUpdate` and Admin's `itemUpdatePublished` can race on the same item?~~ | Platform dev | **Closed 2026-08-14 — no.** Accepted as last-writer-wins by the platform owner, with the same decision for `company` (`phase5/epics/E04.md` §6). `EVENT_STORMING.md` §5 hotspot 4, `phase5/RISK_REGISTER.md` §5. ⚠️ The question names a writer that no longer writes the flag: the same day, `published` left `GraphQLInputItem` and `itemUpdatePublished` became the owner's writer too. The race the answer accepts is between the two tiers' publish operations, which is what the platform owner accepted; a save undoing a takedown was never part of it. ⚠️ `phase5/epics/E11.md` §6 q3 is **not** closed by this: it asks whether an *order* may reference a live `published` flag, which is a BC-11 design question. |
 | 6 | What `idShopOwner` does an Admin-created `company` document (BC-04) get, absent an owning ShopOwner having created it first via BC-03? | Platform dev | Open |
 | 7 | Should the BC-01/BC-03 (`shopOwner`) and BC-01/BC-07 (`user`) convention-only boundaries get a real anti-corruption layer (e.g. each context restricted to its own resolver-level projection) before a fourth tier is added and the pattern is copied a third time? | Platform dev | **Closed 2026-08-12 - no ACL, ever.** Both pairs share one `$jsonSchema` builder and one Mongoose model: that is a Shared Kernel, and a mapper across it would translate a shape into itself at a permanent CON-08 cost. The real defect was field *scope*, not corruption, and E01-S10 closes it with a named field list plus `no-restricted-syntax` in the three ShopOwner-tier repos (CON-12). A fourth tier copies that, not an ACL. Re-open only if the two sides stop sharing the builder |
 | 8 | `shopOwner.waitApprov` gates nothing. It is written by `shopOwnerUpdateStatus`, displayed by the Admin area, and read by no other service on the platform - `login` does not project it, `refresh` renews a session without it, `resetPwdFlow` documents ignoring it on purpose. So an unapproved shop owner can log in and use the ShopOwner tier normally. Is the manual-approval gate meant to bite at login (a deliberate BC-01 read, which E01-S10 would then have to carve an exception for), or is `waitApprov` correctly just an operator-facing flag and every document calling it a gate wrong? Surfaced 2026-08-12 while closing q7. | Product + platform dev | **Closed 2026-08-12 - it is a gate.** `checkShopOwnerApproval` (`BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`) refuses a parked shop owner in `tryLoginShopOwner` (4028) and in `tokenInfoShopOwner` (4029), both projections naming the field. Two places deliberately left alone: the reset-password flow, where refusing would leak account state to an unauthenticated caller, and shop-owner *registration*, which did not exist at the time - `registerNewUser` writes to `user`. ⚠️ **That second half expired on 2026-08-12**, when E03-S08 built `shopOwnerRegister`: registration is now the platform's main *producer* of parked accounts, and it writes the flag rather than reading it, so nothing about this closure changes. E01-S10 carved the exception the question predicted: `OPERATOR_ONLY_FIELDS_SHOP_OWNER` is now `notes` alone, `APPROVAL_GATE_FIELD_SHOP_OWNER` is `waitApprov`, and the lint ban on it is the write shape only, scoped to `src/**` of the two authorization repos. See CON-12 |

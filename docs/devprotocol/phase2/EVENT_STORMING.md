@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-14
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
@@ -23,6 +23,18 @@ unexamined — described a case the tier cannot produce: `companyAdd` takes `idS
 The rationale the hotspot called undocumented is that guard's own docblock. `phase5/RISK_REGISTER.md` **R30**,
 `phase4/DDD_AGGREGATES.md` §10 q3 and `phase5/SHOPOWNER_ONBOARDING_APPROVAL.md` §6 q4 — E03's record, moved
 out of `phase5/epics/E03.md` the same day — close with it. Nothing survives as a residual.
+v1.4 - 2026-08-14: **hotspot 4 and §6 question 5 close on the platform owner's decision, not on work.** The
+`item.published` race is accepted: last writer wins, an operator's unpublish that the owner reverses is a
+normal outcome, and no version or lock field is added. Taken together with the same decision for `company`
+(`phase5/epics/E04.md` §6) and recorded in `phase5/RISK_REGISTER.md` §5. The rows now also say what the code
+says and the finding did not: the two writers are asymmetric — the Admin sets one field, the owner `$set`s
+the whole card with `published` in it — so an owner's ordinary save undoes a takedown without touching the
+flag. `itemDel` stays the takedown that sticks, `deleted` being outside `IItemUpdate`.
+v1.5 - 2026-08-14, later the same day: **the asymmetry v1.4 recorded was removed rather than kept.**
+Publishing is now its own command on both tiers and on both aggregates — `itemUpdatePublished` and
+`companyUpdatePublished` — `published` is a field of no input object, and every add stamps it false. The
+decision v1.4 records stands untouched: the two tiers still race on the flag and last writer still wins.
+What is no longer true anywhere is a save of an unrelated field undoing a takedown.
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Mutability:** living document — refine as domain understanding evolves
 
@@ -166,6 +178,9 @@ Admin →  Update Category (itemCategoryUpdate)        →   Item Category Updat
 Admin →  Delete Category (itemCategoryDel)           →   Item Category Deleted
 Admin →  Set Item Published (itemUpdatePublished)    →   Item Published By Admin
                                                       →   Item Unpublished By Admin
+Admin →  Set Company Published                       →   Company Made Public By Admin
+         (companyUpdatePublished)                     →   Company Taken Down By Admin
+                                                      →   Publish Refused — No slug/publicName (DB $expr)
 Admin →  Delete Item (itemDel, Admin tier)           →   Item Deleted By Admin
 Admin →  Update Shop Owner Note/Preferences          →   Shop Owner Note Recorded
          (shopOwnerUpdateNote, shopOwnerUpdatePreferences)
@@ -186,7 +201,7 @@ export async function funItemCategoryAdd(data: IItemCategoryValidated) {
 }
 ```
 
-Writes to `itemCategory` exist **only** in `marketplace-dev-admin-authenticated-resource` — verified: no `itemCategoryAdd`/`Update`/`Del` file under `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/` or `marketplace-dev-public-resource`. ShopOwner and public tiers read the tree, never write it (`docs/data-model.md` §`item` and `itemCategory`). `itemUpdatePublished.mts` and `itemDel.mts` under the Admin resource service (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`) are a second writer of the same `item.published` flag the owning `ShopOwner` also writes via `itemUpdate` — flagged §5.
+Writes to `itemCategory` exist **only** in `marketplace-dev-admin-authenticated-resource` — verified: no `itemCategoryAdd`/`Update`/`Del` file under `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/` or `marketplace-dev-public-resource`. ShopOwner and public tiers read the tree, never write it (`docs/data-model.md` §`item` and `itemCategory`). `itemUpdatePublished.mts` and `itemDel.mts` under the Admin resource service (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`) are a second writer of the same `item.published` flag the owning `ShopOwner` also writes — flagged §5. ⚠️ The owner's writer is that tier's own `itemUpdatePublished` since 2026-08-14, not `itemUpdate`: the flag left `GraphQLInputItem` when publishing became a separate operation.
 
 ### 2.4 Company lifecycle
 Aggregate: `company` (`BEs/marketplace-db-setup/lib/schemas/company.js`)
@@ -201,8 +216,10 @@ Actor      Command                                Domain Event
 ShopOwner→ Add Company (companyAdd)             → Company Registered
                                                   → Duplicate vatNumber/certifiedEmail/slug Rejected
 ShopOwner→ Update Company (companyUpdate)       → Company Updated
-ShopOwner→ Publish Company (companyUpdate,      → Company Made Public (published=true,
-             published field)                       publicName/slug/description populated)
+ShopOwner→ Publish Company                      → Company Made Public (published=true)
+             (companyUpdatePublished)               → Publish Refused — No slug/publicName (DB $expr)
+Admin   →  Publish/Take Down Any Company        → Company Made Public / Company Taken Down
+             (companyUpdatePublished)                (operator path, any owner)
 ShopOwner→ Delete Company (companyDel)          → Company Retired (soft delete, deleted stamped)
                                                   → Delete Refused — Already Retired (403, this tier only)
 Admin   →  Add/Update/Delete Company             → Company Registered/Updated/Retired (operator path)
@@ -217,7 +234,7 @@ import { OnlyIdType } from '@axiumine/koa-utils/graphQL/schema/types/OnlyIdType'
 type: new GraphQLNonNull(OnlyIdType),
 ```
 
-The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired company — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description` and `published` live on the same collection as the legal fields, declared together by `20260301000200-create-company` — `published` defaults false, nothing indexable until the owner opts in.
+The two tiers diverge on the geo input's `type` field and on delete semantics for an already-retired company — `throwIfShopOwnerDontOwnCompany` filters `deleted` and answers 403, the Admin guard does not and answers 200 (`docs/data-model.md`, §`company`). `publicName`, `slug`, `description` and `published` live on the same collection as the legal fields, declared together by `20260301000200-create-company` — `published` defaults false, nothing indexable until the owner opts in. ⚠️ Opting in is `companyUpdatePublished` and nothing else: since 2026-08-14 `published` is not a field of either tier's `GraphQLInputCompany`, `companyAdd` stamps `false`, and the collection's `$expr` refuses `published: true` until `slug` and `publicName` are stored — so the card is saved first and published second, in two calls.
 
 ### 2.5 Catalogue writes: item
 Aggregate: `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`)
@@ -230,8 +247,10 @@ Actor      Command                        Domain Event
 ShopOwner→ Add Item (itemAdd)           → Item Added
                                           → Add Refused — Company Not Owned
                                           → Add Refused — Category Missing
-ShopOwner→ Update Item (itemUpdate)     → Item Updated
-                                          → Item Published / Item Unpublished (published flag)
+ShopOwner→ Update Item (itemUpdate)     → Item Updated (never Published/Unpublished —
+                                            the flag is not in GraphQLInputItem)
+ShopOwner→ Publish Item                 → Item Published / Item Unpublished
+             (itemUpdatePublished)
 ShopOwner→ Delete Item (itemDel)        → Item Deleted
 ```
 
@@ -387,7 +406,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 1 | ~~`waitApprov` field semantics~~ **Closed 2026-08-12 by E03-S08** | The comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. A freshly created ShopOwner starts gated or ungated **depending on who created it**: `shopOwnerRegister` writes `true`, `shopOwnerAdd` writes nothing. Which mutation ran is the whole meaning of the flag. No backfill was needed — every document on disk predates the public form. |
 | 2 | ~~`onboardingStep` / `onboardingDone` advancement~~ **Closed 2026-08-13 by E03-S04 — decided, not built** | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`; written by `shopOwnerUpdatePreferences`, an Admin typing a value in. **That is now the answer rather than the finding: the operator's hand is the only writer by decision, and a shop-owner-side write is future work.** What it would take is a wizard nobody has designed — what the ≤4-character steps are, what "done" means, and whether the shop-owner app writes the fields itself or asks for an operator's review — and inventing one here would be inventing product design. The gap does not close with the question: it is `RISK_REGISTER.md` **R53**, which records that no frontend reads either field today, so nothing is stuck waiting for them. |
 | 3 | ~~No self-service shop-owner registration~~ **Closed 2026-08-12 by E03-S08** | Built as `shopOwnerRegister` on `marketplace-dev-public-resource`, with `/register/seller` on `marketplace-user` in front of it. Admin-provisioning stayed: it is the route for a shop the platform recruited, and it skips the approval queue for that reason. |
-| 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
+| 4 | ~~Two independent writers of `item.published`~~ **Closed 2026-08-14 — accepted, last writer wins** | ⚠️ **The platform owner's decision, taken with the same race on `company`: an operator unpublishes, the owner publishes it again, and that is fine.** No version or lock field is added to `item.js`. Two things the decision now covers, read off the code rather than assumed. ~~**The two writers are not symmetric:** `funItemUpdatePublished` writes `{ $set: { published } }` and nothing else, while the owner's `funItemUpdate` `$set`s the whole card and `IItemUpdate` keeps `published` — so an owner's ordinary save of an unrelated field restores their own value of the flag, without touching it and without meaning to.~~ ⚠️ **Struck the same day: the asymmetry was removed rather than lived with.** `published` left `GraphQLInputItem` and `IItemUpdate`, `itemAdd` stamps `false`, and the ShopOwner tier got an `itemUpdatePublished` of its own — so both writers now write `{ $set: { published } }` and nothing else. The accepted race is between two publish operations; a save of an unrelated field is no longer one of the writers. **And nothing records that an operator flipped it:** `funItemUpdatePublished`'s docblock called this "a takedown that does not stick", held open on a policy decision nobody had taken. It has now been taken — and half of what made it not stick is gone with the split, since only a deliberate republish reverses it. The takedown that sticks regardless is `itemDel` — `deleted` is outside every input, so no owner save revives a soft-deleted item. |
 | 5 | ~~Public tier's~~ **Admin tier's** `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service ~~— what `idShopOwner` an Admin-created company gets~~ **Closed 2026-08-14** | ⚠️ **Two errors, and the row title carried the first: these three mutations are Admin-tier, not public — they live on `marketplace-dev-admin-authenticated-resource` and there is no public writer of `company`.** The second was the finding itself. [`docs/frontends.md`](../../frontends.md) documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) and not the operator's own create/update/delete rationale, but that rationale was never absent from disk — it is in the three `fun*` docblocks. **An Admin-created company is stamped with the id of a live `shopOwner` or it is not created**: `companyAdd` takes `idShopOwner: ID!` explicitly (the session names the operator, not the owner), and `funCompanyAdd` resolves it with `ShopOwner.exists({ _id, deleted: { $exists: false } })` before the insert, 404 `shopOwner not found` otherwise (`funCompanyAdd.mts:34-36`) — a soft-deleted owner counts as absent. The guard lives in application code because MongoDB holds no FK and the only read path, `shopOwnerCompanies`, lists by owner: an unresolvable id would insert and yield a company reachable only through the same wrong id. `update` and `del` never touch the field — `idShopOwner` is outside `ICompanyValidated`, so no owner reassignment exists, by decision. |
 | 6 | Commerce vocabulary (§2.9) | Named for glossary readiness only. Zero collection, zero resolver, zero migration exists. Do not treat presence in this document as scope. |
 
@@ -401,5 +420,5 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 2 | ~~What advances `onboardingStep`, and where does that write live? Nothing but an operator's hand, today — see hotspot 2~~ | Platform dev | **Closed 2026-08-13 (E03-S04) — an operator's hand, and that is the decision until a shop-owner onboarding flow is designed. Deferred, not built; residual R53.** |
 | 3 | ~~Is `waitApprov`'s state at account creation "approved" or "pending" by default?~~ | Platform dev | **Closed 2026-08-12 (E03-S08) — neither is a default: pending when the seller registered themselves, approved when an operator created them.** |
 | 4 | When order/cart/payment/delivery design work starts, who signs off the first schema? | Product + platform dev | Open |
-| 5 | Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item? | Platform dev | Open |
+| 5 | ~~Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item?~~ | Platform dev | **Closed 2026-08-14 — no.** Last writer wins, and an owner republishing after an operator's unpublish is an accepted outcome rather than a defect. See hotspot 4; recorded as accepted in `phase5/RISK_REGISTER.md` §5 (R29). ⚠️ The ShopOwner writer named here is `itemUpdatePublished` on that tier as of the same day; `itemUpdate` no longer carries the flag. |
 | 6 | ~~What `idShopOwner` does an Admin-created `company` document get, absent an owning ShopOwner having created it first?~~ | Platform dev | **Closed 2026-08-14 — the id of a live `shopOwner`, or the company is not created.** `funCompanyAdd` resolves the explicit `idShopOwner: ID!` argument against `ShopOwner.exists({ _id, deleted: { $exists: false } })` and 404s otherwise (`…/marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyAdd.mts:34-36`), so the "absent an owning ShopOwner" case cannot occur. See hotspot 5. |

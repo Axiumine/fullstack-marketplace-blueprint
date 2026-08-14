@@ -83,6 +83,11 @@ cannot filter anything without the link, `slug` because an SEO URL needs a stabl
 segment, `published` so an owner can draft without appearing on an indexed page, `deleted` because
 soft-delete is the platform convention.
 
+⚠️ **`published` is written by `itemUpdatePublished` alone, on either tier** — never by `itemUpdate`,
+which is not given the field at all. Both update paths `$set` the whole enumerated object, so while the
+flag sat in `GraphQLInputItem` every save wrote it and a card reopened after a takedown republished the
+item on Save. `itemAdd` stamps `false`. Same split on `company`, below.
+
 ⚠️ **No `price` field, deliberately** (ADR-009). Orders, cart, delivery and payment are out of scope
 and have no model to copy.
 
@@ -99,6 +104,13 @@ The customer-facing half is separate: `publicName` (the trading name shown to cu
 `legalName` on a shop card is wrong), `slug` (unique, for `/shop/:slug`), `description` (page body and
 text-search target) and `published`, which defaults to false so nothing is indexable until the owner
 says so.
+
+⚠️ **Saying so is `companyUpdatePublished`, on either tier — not a field of `GraphQLInputCompany`.**
+`companyUpdate` `$set`s the whole document, so the flag is kept off its input for the same reason as on
+`item`, and `companyAdd` stamps `false`. The `PUBLISHED_IMPLIES_LINKABLE` `$expr` refuses `published:
+true` unless `slug` and `publicName` are both stored, which makes the order compulsory rather than
+conventional: the card is saved first and published second, and the refusal arrives from the database
+naming a field the owner may never have been shown.
 
 ### Soft delete (ADR-011)
 

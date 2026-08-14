@@ -9,6 +9,10 @@
 v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
 write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
 serves follow from it; the operator's read of `personalData` is now nullable.
+v1.2 - 2026-08-14: publishing became a separate operation on both authenticated tiers. `published` left
+`GraphQLInputItem` and both `GraphQLInputCompany`s; §5 gains `itemUpdatePublished` and
+`companyUpdatePublished` on the ShopOwner tier, §6 gains `companyUpdatePublished` beside the
+`itemUpdatePublished` it already had. Every add stamps `false`.
 
 ---
 
@@ -312,14 +316,22 @@ category tree, plus uploads.
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
 | `companyAdd` | `company: GraphQLInputCompany!` | `OnlyIdType!` | Creates a company (shop) owned by the caller; answers the new `_id` — deliberate exception to the bare-`Boolean` default, see §2 | `mutations/companyAdd.mts:22,27-32` |
-| `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Updates an owned company | `mutations/companyUpdate.mts:16-22` |
+| `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Updates an owned company — ⚠️ does **not** touch `published`, see below | `mutations/companyUpdate.mts:16-22` |
+| `companyUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Publishes an owned shop or takes it off the public site. `published: true` can still fail **in the database**: the `PUBLISHED_IMPLIES_LINKABLE` `$expr` refuses it unless `slug` and `publicName` are both stored, so an unnamed shop is saved first and published second | `mutations/companyUpdatePublished.mts:25,29-30` |
 | `companyDel` | `_id: ID!` | `Boolean!` | Soft-deletes an owned company (`deleted` date stamp, never a hard remove — `phase4/CONSTRAINTS.md` DCON-03); answers **403** on an already-deleted company, because the ownership guard here filters `deleted` (Admin tier's equivalent does not and answers 200 — `docs/data-model.md`) | `mutations/companyDel.mts:20-25` |
 | `itemAdd` | `item: GraphQLInputItem!` | `OnlyIdType!` | Creates a catalogue item; **also** answers the new `_id`, not `Boolean` — see the §2 correction | `mutations/itemAdd.mts:29,34-39` |
-| `itemUpdate` | `_id: ID!`, `item: GraphQLInputItem!` | `Boolean!` | Updates an item | `mutations/itemUpdate.mts:27-33` |
+| `itemUpdate` | `_id: ID!`, `item: GraphQLInputItem!` | `Boolean!` | Updates an item — ⚠️ does **not** touch `published`, see below | `mutations/itemUpdate.mts:27-33` |
+| `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Publishes an owned item or takes it off the public site — the owner's half of the same lever the operator holds on the Admin tier | `mutations/itemUpdatePublished.mts:27,31-32` |
 | `itemDel` | `_id: ID!` | `Boolean!` | Soft-deletes an item (`deleted` date stamp) | `mutations/itemDel.mts:21-26` |
 
-All six run through `IContextShopOwnerAuthenticatedResource` — the tier assertion described in §2 gates
+All eight run through `IContextShopOwnerAuthenticatedResource` — the tier assertion described in §2 gates
 every one of them; there is no per-operation auth check beyond it.
+
+⚠️ **Publishing is a separate operation on this tier, since 2026-08-14.** `published` is a field of
+neither `GraphQLInputItem` nor `GraphQLInputCompany`, and `itemAdd`/`companyAdd` stamp `false`. Both
+update paths `$set` the whole enumerated object, so while the flag was in those inputs every save wrote
+it: an owner who reopened a card the operator had just taken down republished it on Save, without asking
+to and without seeing the flag. Each collection now has exactly one writer of it per tier.
 
 **Uploads.** `graphql-upload` is mounted as global Koa middleware in front of Apollo, 30 MB / file, 10
 files max:
@@ -331,7 +343,7 @@ app.use(graphqlUploadKoa({ maxFileSize: 30000000, maxFiles: 10 })) // 30MB limit
 
 `sharp`, `clamscan` and `file-type` are dependencies of this service for the same reason (image
 processing, malware scan, MIME sniffing on whatever the middleware receives — `package.json:42,44,49,56`).
-⚠️ **No operation among the six mutations above declares a `GraphQLUpload` argument.** `itemAdd.mts`'s
+⚠️ **No operation among the eight mutations above declares a `GraphQLUpload` argument.** `itemAdd.mts`'s
 own doc comment gestures at a follow-up step ("the flow continues with the item that was just created —
 uploading its image, most obviously" — `itemAdd.mts:30`) but does not implement it inline, and no other
 file under `mutations/` was found to reference `Upload` (`grep -rli upload src --include='*.mts'` returns
@@ -382,8 +394,8 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Catalogue entries of one company | `schema/queries/companyItems.mts:19,21-22` |
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Full two-level category tree | `schema/queries/itemCategories.mts:18` |
 
-Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations.mts:3-18`).
-**All sixteen answer `Boolean!`** — verified, not assumed: every file in `schema/mutations/` declares
+Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations.mts:3-23`).
+**All seventeen answer `Boolean!`** — verified, not assumed: every file in `schema/mutations/` declares
 `type: new GraphQLNonNull(GraphQLBoolean)`, this tier included `companyAdd`.
 
 | Op | Args | Answer | Effect | Source |
@@ -397,12 +409,13 @@ Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/
 | `shopOwnerUpdateStatus` | `_id: ID!`, `disabled: Boolean!`, `waitApprov: Boolean!` | `Boolean!` | The approval lever — `waitApprov` exists on `shopOwner` only, never on `user` | `schema/mutations/shopOwnerUpdateStatus.mts:25,28-30` |
 | `shopOwnerDel` | `_id: ID!` | `Boolean!` | Soft-delete — stamps `deleted`, never removes the document | `schema/mutations/shopOwnerDel.mts:11,12-14` |
 | `companyAdd` | `idShopOwner: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Registers a company **on another shop owner's behalf** — the `idShopOwner` arg is what the ShopOwner tier's own `companyAdd` cannot have | `schema/mutations/companyAdd.mts:23,26-27` |
-| `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Replaces a company on any shop owner's behalf | `schema/mutations/companyUpdate.mts:26,27-30` |
+| `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Replaces a company on any shop owner's behalf — ⚠️ does **not** touch `published`, see below | `schema/mutations/companyUpdate.mts:26,27-30` |
+| `companyUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Moderation lever on the shop itself — publish or take down any company regardless of owner. `published: true` is refused **by the database** unless `slug` and `publicName` are stored (`PUBLISHED_IMPLIES_LINKABLE`) | `schema/mutations/companyUpdatePublished.mts:21,25-26` |
 | `companyDel` | `_id: ID!` | `Boolean!` | Soft-delete; answers 200 even on an already-retired company — see the note below | `schema/mutations/companyDel.mts:18,21` |
 | `itemCategoryAdd` | `itemCategory: GraphQLInputItemCategory!` | `Boolean!` | **Admin-only write.** Depth cap enforced here by `throwIfParentNotTopLevel`, not by the validator | `schema/mutations/itemCategoryAdd.mts:23,26` |
 | `itemCategoryUpdate` | `_id: ID!`, `itemCategory: GraphQLInputItemCategory!` | `Boolean!` | Admin-only write; same depth cap | `schema/mutations/itemCategoryUpdate.mts:26,27-30` |
 | `itemCategoryDel` | `_id: ID!` | `Boolean!` | Admin-only write | `schema/mutations/itemCategoryDel.mts:18,19-21` |
-| `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Moderation lever — unpublish any shop's item regardless of owner | `schema/mutations/itemUpdatePublished.mts:21,24-25` |
+| `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Moderation lever — unpublish any shop's item regardless of owner | `schema/mutations/itemUpdatePublished.mts:20,24-25` |
 | `itemDel` | `_id: ID!` | `Boolean!` | Soft-delete of any shop's item | `schema/mutations/itemDel.mts:17,18-20` |
 
 ⚠️ **`companyAdd` on this tier answers `Boolean!`, not the `OnlyIdType` the ShopOwner tier's `companyAdd`
@@ -415,9 +428,13 @@ answers 403 for the same company.** The Admin guard does not filter `deleted`, `
 on the ShopOwner tier does. Liveness filtering belongs on read paths and ownership guards, never on the
 delete write itself — both answers are correct for their tier (`docs/data-model.md`).
 
-`itemUpdatePublished` is the moderation lever: an operator can unpublish any shop's item regardless of who
-owns it, distinct from the ShopOwner tier's own `itemUpdate`/`itemDel` which are scoped to the caller's
-companies.
+`itemUpdatePublished` and `companyUpdatePublished` are the two moderation levers: an operator can take
+down any shop's item, or the shop itself, regardless of who owns it, while the ShopOwner tier's own
+copies of both are scoped to the caller's companies. ⚠️ Since 2026-08-14 the flag is **all** either tier's
+`*UpdatePublished` writes and **none** of what `companyUpdate`/`itemUpdate` write, so the two tiers race
+only on the operation whose entire subject is publication: a save of a description cannot undo a
+takedown, and an owner republishing after an operator's takedown is a deliberate act, accepted as
+last-writer-wins (`phase5/epics/E04.md` §6, `phase5/RISK_REGISTER.md` §5).
 
 ## 7. User tier (the customer)
 
