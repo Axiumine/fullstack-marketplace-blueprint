@@ -118,6 +118,12 @@ reject a parent that is itself a subcategory — and **writes exist only in
 `marketplace-dev-admin-authenticated-resource`**. The ShopOwner and public tiers read the collection
 and never write it. Adding a write path elsewhere silently removes the depth cap with it.
 
+⚠️ **`itemCategory` has no `published` and will not get one** (platform owner, 2026-08-14). Present or
+soft-deleted is its whole state space, with nothing between: `item.published` and `company.published`
+exist because a shop drafts its own public surface, and the taxonomy is operator-written on one tier. So a
+category is public the moment it is created — created before its items, it shows an empty listing until
+they arrive, and that is the accepted cost. `itemCategories` filters `deleted` and nothing else.
+
 ## `company` — legal entity and public face
 
 `legalName`, `vatNumber`, `certifiedEmail`, `taxCode` and the `address` block are the legal entity.
