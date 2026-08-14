@@ -23,7 +23,8 @@ object enumerating every field rather than a diff. Recorded as accepted in
 v1.3 - 2026-08-14: it was put to the owner immediately after, and answered the same way — an operator
 unpublishing and the shop owner publishing it again is fine. §6's closing paragraph is rewritten: the
 decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
-`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6.
+`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6 (that record moved to
+[`CATALOGUE.md`](./CATALOGUE.md) later on 2026-08-14).
 `epics/E11.md` §6 q3 stays open, being about an order snapshotting catalogue state rather than the race.
 v1.4 - 2026-08-14: accepting the race exposed the thing under it — `published` was a field of
 `GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an operator reopening a stale
@@ -45,12 +46,12 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E05..E18; E01, E02, E03 and E04 are the four whose records sit
-beside the index instead of under it.
+`epics/ENN.md`, and that stays true for E06..E18; E01..E05 are the five whose records sit
+beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day.
 
 **The story IDs did not change.** `E04-S01` … `E04-S08` keep their names, cited as they are from
 `phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase4/API_CONTRACTS.md`,
-`phase4/DDD_AGGREGATES.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `epics/E05.md` and `epics/E11.md`.
+`phase4/DDD_AGGREGATES.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CATALOGUE.md` and `epics/E11.md`.
 Renumbering them was refused for the reason E01 gives: an ID cited across files is a name, and moving a
 file is not a reason to change a name.
 
@@ -190,7 +191,7 @@ as it was **so that** editing an address never republishes a shop that was delib
 - `companyUpdatePublished(_id: ID!, published: Boolean!) : Boolean!` is the single writer on each tier, ownership-guarded on the ShopOwner one — `marketplace-dev-authenticated-resource/…/mutations/companyUpdatePublished.mts:25,28-30`, `marketplace-dev-admin-authenticated-resource/…/mutations/companyUpdatePublished.mts:21,24-26`.
 - `PUBLISHED_IMPLIES_LINKABLE` still refuses `published: true` without a stored `slug` and `publicName`, so the sequence is compulsory: save the card, then publish — two calls, in that order.
 **Traces:** E04-S07 (the storefront fields the `$expr` requires); the §6 race decision, which this narrows without reversing.
-**Evidence:** `3a3874d` (ShopOwner service), `7a60574` (Admin service); the same split on `item` is [`epics/E05.md`](./epics/E05.md) E05-S08.
+**Evidence:** `3a3874d` (ShopOwner service), `7a60574` (Admin service); the same split on `item` is [`CATALOGUE.md`](./CATALOGUE.md) E05-S08.
 
 ⚠️ **No frontend calls it yet, on either tier.** Neither company screen has ever had a publish control —
 the flag moved as a side effect of the whole-card `$set`, and nothing on screen said so. The missing screen
@@ -245,7 +246,7 @@ has written, not a resolver gap.
   outcome that is a re-edit here is a failed takedown there; the platform owner was asked and answered
   that an operator unpublishing and the owner publishing it again is equally fine. So
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
-  `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`epics/E05.md`](./epics/E05.md) §6 all close
+  `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`CATALOGUE.md`](./CATALOGUE.md) §6 all close
   with this one. One question it does **not** close: [`epics/E11.md`](./epics/E11.md) §6 q3, whether an order snapshots
   the catalogue state it was placed against, which is BC-11 design work rather than this race.
 
@@ -253,5 +254,5 @@ has written, not a resolver gap.
   the consequence in full — an ordinary save wrote the flag, so an operator reopening a stale card
   republished a shop somebody had just taken down without touching anything called "publish" — and asked
   for publishing to be its own operation on both tiers. It now is, for `company` (E04-S08) and for `item`
-  ([`epics/E05.md`](./epics/E05.md) E05-S08). What the owner accepted stands: two deliberate publishers still resolve
+  ([`CATALOGUE.md`](./CATALOGUE.md) E05-S08). What the owner accepted stands: two deliberate publishers still resolve
   last-writer-wins. What went away is the accidental publisher.

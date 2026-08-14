@@ -153,7 +153,8 @@ restores the flag without touching it — the takedown is undone by ordinary edi
 deliberate republish. `funItemUpdatePublished`'s docblock had already called it "a takedown that does not
 stick" and named the missing policy decision; this is that decision. `itemDel` remains the operator action
 an owner's save cannot undo. Closed with it: `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
-`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4, `epics/E05.md` §6.
+`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4, `epics/E05.md` §6 (that record
+moved to [`CATALOGUE.md`](./CATALOGUE.md) later on 2026-08-14).
 v1.21 - 2026-08-14, later the same day: **the asymmetry v1.20 recorded was built out, not accepted.** The
 owner's answer to "if an owner updates the item, is it republished?" was that it must not be: publishing is
 now a separate operation on both tiers — `itemUpdatePublished` and `companyUpdatePublished` — `published`

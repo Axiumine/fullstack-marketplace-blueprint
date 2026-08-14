@@ -2,14 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.4
 **Date:** 2026-08-14
 **Author:** epics-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-14: §6's `item.published` race closes on the platform owner's decision — last writer wins,
 no lock field, an owner republishing after an operator's unpublish is accepted. Taken with the same
-decision for `company` ([`COMPANY_LEGAL_ENTITY.md`](../COMPANY_LEGAL_ENTITY.md) §6). The bullet now also records the asymmetry the finding never
+decision for `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6). The bullet now also records the asymmetry the finding never
 named: the owner writes the whole card and the Admin writes one flag, so an ordinary save undoes a takedown
 without touching it. The image-upload question above it is untouched and still open.
 v1.2 - 2026-08-14, later the same day: **publishing became a separate operation and the asymmetry above is
@@ -23,6 +23,36 @@ and the reference lands in a new optional `image` field on `item`, chosen by the
 two alternatives. New story E05-S09; §2's out-of-scope row and §3 updated. Read-side exposure is this tier
 only: `GraphQLItemFrag` is untouched, so neither the Admin nor the public tier sees the field yet, and no
 frontend consumes it.
+v1.4 - 2026-08-14, last that day: **the file left `epics/` and became this record**, for the reason §0
+gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
+resolve from `phase5/` rather than from `phase5/epics/`. Two things E05-S09 put here alone were copied out
+to where a reader looks for them without knowing this file exists: the `image` field is now in
+[`docs/data-model.md`](../../data-model.md) §`item`, and the choice of a field over an `itemImage`
+collection is a row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E05.md` until 2026-08-14. The file was deleted and its record moved here in one pass,
+the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) and
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) moved before it: nothing in it is work still ahead.
+All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
+(E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
+rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that
+stays true for E06..E18; E01..E05 are the five whose records sit beside the index instead of under it.
+
+**The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from
+`COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CONFLICT_REPORT.md`,
+`phase3/adr/ADR-INDEX.md` and `epics/E11.md`. Renumbering them was refused for the reason E01 gives: an ID
+cited across files is a name, and moving a file is not a reason to change a name.
+
+⚠️ **Two things this record holds that no other file does.** E05-S09's failure ordering — store the upload
+in the temp directory, insert the document, publish the file — and the state a failed third step leaves
+behind, which nothing repairs. And E05-S07's two frontend traps: the shop is page state rather than a URL
+segment, and a first item added to an empty shop cannot arrive by cache invalidation because
+`companyItems: []` carries no typename to match. `docs/data-model.md` carries the `image` field itself;
+the ordering and what it costs are here.
 
 ## 1. Epic goal
 
@@ -168,7 +198,7 @@ to and without a control on screen saying so.
 **Acceptance criteria:**
 - `published` leaves `GraphQLInputItem` on both tiers and `IItemUpdate` with it; `itemAdd` stamps `false`. **Met.**
 - The ShopOwner tier gains an `itemUpdatePublished(_id, published)` of its own, guarded by `throwIfShopOwnerDontOwnCompany` like every other write there. **Met** — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts:27,31-32`.
-- Both tiers gain `companyUpdatePublished(_id, published)` for the same reason on `company`. **Met** — see [`COMPANY_LEGAL_ENTITY.md`](../COMPANY_LEGAL_ENTITY.md).
+- Both tiers gain `companyUpdatePublished(_id, published)` for the same reason on `company`. **Met** — see [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md).
 - `marketplace-shopowner`'s catalogue card publishes from a control of its own and its Save carries no flag. **Met** — the header states `Published:` and offers one button, which writes immediately and reads the result back from the refetched `companyItems`; the card's zod schema has no `published` and drops one that reaches it anyway.
 **Traces:** none — a correctness decision on the write shape, not an NFR.
 **Evidence:** `BEs/dev/marketplace-dev-authenticated-resource` `3a3874d`, `BEs/dev/marketplace-dev-admin-authenticated-resource` `7a60574`, `marketplace-shopowner` `11500cc`, `marketplace-admin` `36b99f4` (record only — that app never sent the flag). All four repos green on their own gates.
@@ -237,8 +267,8 @@ writer of the field, `GraphQLItemFrag` does not carry it, and the two other tier
   with no version/lock field in `item.js` — the same race class as E04's open question, unexamined
   (`EVENT_STORMING.md` §5 hotspot 4).~~ ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
   lock field.** An operator unpublishes, the owner publishes it again, and that is an accepted outcome —
-  decided together with the same race on `company` ([`COMPANY_LEGAL_ENTITY.md`](../COMPANY_LEGAL_ENTITY.md) §6) and recorded in
-  [`../RISK_REGISTER.md`](../RISK_REGISTER.md) §5. ⚠️ ~~Worth knowing when writing any story here: the owner
+  decided together with the same race on `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6) and recorded in
+  [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. ⚠️ ~~Worth knowing when writing any story here: the owner
   need not republish deliberately. `funItemUpdatePublished` sets that one flag, `funItemUpdate` `$set`s the
   whole card and `IItemUpdate` keeps `published`, so **an ordinary save of any other field restores the
   owner's value of the flag**.~~ **Struck later the same day**: publishing was split out of `itemUpdate` on
