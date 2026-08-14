@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-13
+**Version:** 1.3
+**Date:** 2026-08-14
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-12: E03-S08 built the self-service registration §2.2 recorded as absent. That flow, its
@@ -15,6 +15,13 @@ operator's hand is the writer, and it stays the only one until a shop-owner onbo
 which is future work, because the wizard behind it does not exist as a design anywhere on this platform.
 The gap outlives the question and is now `phase5/RISK_REGISTER.md` R53, downgraded on a fact this pass
 established rather than assumed: **no frontend reads either field**, so nothing is presently stuck.
+v1.3 - 2026-08-14: **hotspot 5 and §6 question 6 close, and hotspot 5 was wrong twice over.** Its title said
+"public tier" for three mutations that live on `marketplace-dev-admin-authenticated-resource`; there is no
+public writer of `company` anywhere. Its finding — that what `idShopOwner` an Admin-created company gets is
+unexamined — described a case the tier cannot produce: `companyAdd` takes `idShopOwner: ID!` explicitly and
+`funCompanyAdd` resolves it against a live, non-soft-deleted `shopOwner` before the insert, 404ing otherwise.
+The rationale the hotspot called undocumented is that guard's own docblock. `phase5/RISK_REGISTER.md` **R30**,
+`phase4/DDD_AGGREGATES.md` §10 q3 and `phase5/epics/E03.md` §6 close with it. Nothing survives as a residual.
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Mutability:** living document — refine as domain understanding evolves
 
@@ -380,7 +387,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 2 | ~~`onboardingStep` / `onboardingDone` advancement~~ **Closed 2026-08-13 by E03-S04 — decided, not built** | Read at `tokenInfoShopOwner.mts`, `authenticatedAuthorizationHandler.mts`, `makeAuthCtx.mts`; written by `shopOwnerUpdatePreferences`, an Admin typing a value in. **That is now the answer rather than the finding: the operator's hand is the only writer by decision, and a shop-owner-side write is future work.** What it would take is a wizard nobody has designed — what the ≤4-character steps are, what "done" means, and whether the shop-owner app writes the fields itself or asks for an operator's review — and inventing one here would be inventing product design. The gap does not close with the question: it is `RISK_REGISTER.md` **R53**, which records that no frontend reads either field today, so nothing is stuck waiting for them. |
 | 3 | ~~No self-service shop-owner registration~~ **Closed 2026-08-12 by E03-S08** | Built as `shopOwnerRegister` on `marketplace-dev-public-resource`, with `/register/seller` on `marketplace-user` in front of it. Admin-provisioning stayed: it is the route for a shop the platform recruited, and it skips the approval queue for that reason. |
 | 4 | Two independent writers of `item.published` | `ShopOwner`'s own `itemUpdate` and Admin's `itemUpdatePublished` both write the same flag on the same document. No version/lock field was seen in the `item.js` schema excerpts examined — a race between an owner unpublishing and an admin moderating is unexamined. |
-| 5 | Public tier's `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service | [`docs/frontends.md`](../../frontends.md) documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) but not the operator's own create/update/delete rationale — when an Admin creates a company directly (rather than approving one a ShopOwner made), what `idShopOwner` does it get stamped with, is unexamined here. |
+| 5 | ~~Public tier's~~ **Admin tier's** `companyAdd`/`companyUpdate`/`companyDel` on the Admin resource service ~~— what `idShopOwner` an Admin-created company gets~~ **Closed 2026-08-14** | ⚠️ **Two errors, and the row title carried the first: these three mutations are Admin-tier, not public — they live on `marketplace-dev-admin-authenticated-resource` and there is no public writer of `company`.** The second was the finding itself. [`docs/frontends.md`](../../frontends.md) documents the ShopOwner-vs-Admin `companyAdd` divergence (return type, geo input) and not the operator's own create/update/delete rationale, but that rationale was never absent from disk — it is in the three `fun*` docblocks. **An Admin-created company is stamped with the id of a live `shopOwner` or it is not created**: `companyAdd` takes `idShopOwner: ID!` explicitly (the session names the operator, not the owner), and `funCompanyAdd` resolves it with `ShopOwner.exists({ _id, deleted: { $exists: false } })` before the insert, 404 `shopOwner not found` otherwise (`funCompanyAdd.mts:34-36`) — a soft-deleted owner counts as absent. The guard lives in application code because MongoDB holds no FK and the only read path, `shopOwnerCompanies`, lists by owner: an unresolvable id would insert and yield a company reachable only through the same wrong id. `update` and `del` never touch the field — `idShopOwner` is outside `ICompanyValidated`, so no owner reassignment exists, by decision. |
 | 6 | Commerce vocabulary (§2.9) | Named for glossary readiness only. Zero collection, zero resolver, zero migration exists. Do not treat presence in this document as scope. |
 
 ---
@@ -394,4 +401,4 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | 3 | ~~Is `waitApprov`'s state at account creation "approved" or "pending" by default?~~ | Platform dev | **Closed 2026-08-12 (E03-S08) — neither is a default: pending when the seller registered themselves, approved when an operator created them.** |
 | 4 | When order/cart/payment/delivery design work starts, who signs off the first schema? | Product + platform dev | Open |
 | 5 | Should `itemUpdatePublished` (Admin) and `itemUpdate` (ShopOwner) get a version/lock field before two moderators can race on the same item? | Platform dev | Open |
-| 6 | What `idShopOwner` does an Admin-created `company` document get, absent an owning ShopOwner having created it first? | Platform dev | Open |
+| 6 | ~~What `idShopOwner` does an Admin-created `company` document get, absent an owning ShopOwner having created it first?~~ | Platform dev | **Closed 2026-08-14 — the id of a live `shopOwner`, or the company is not created.** `funCompanyAdd` resolves the explicit `idShopOwner: ID!` argument against `ShopOwner.exists({ _id, deleted: { $exists: false } })` and 404s otherwise (`…/marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyAdd.mts:34-36`), so the "absent an owning ShopOwner" case cannot occur. See hotspot 5. |
