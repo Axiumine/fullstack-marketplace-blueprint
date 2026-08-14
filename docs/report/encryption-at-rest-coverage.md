@@ -258,13 +258,17 @@ travels into it unchanged, which is the one part of this that is already solved.
 | `<prefix>family:<uuid>` | `familyKey` | no — `familyId` is a `randomUUID()`, presenting one grants nothing |
 | `<prefix>idx:<tier>:<accountId>` | `sessionIndexKey` | no — a tier constant and an id every query already carries |
 | `<prefix>reuse:<tier>:<accountId>` | `reuseEventsKey` | no — same two segments |
-| `<prefix>dual-read-hits`, `<prefix>grace-hits` | counters | no — a word and an integer |
+| `<prefix>grace-hits` | counter | no — a word and an integer |
 | `<prefix>keygrip`, `<prefix>keygrip:holders` | keygrip record | no — and the record's `wrapped` field is AES-256-GCM under `KEYGRIP_KEK`, which lives in env and is never written to Redis |
-| `<prefix><raw token>` | `legacySessionKey` | ⚠️ **yes** — pre-cutover sessions only |
+**Amended 2026-08-14 (E13-S10).** This table had one more row when it was written: `<prefix><raw token>`,
+built by `legacySessionKey`, the one key shape on the platform whose *name* was a credential. It was a
+read path only — writes have been hashed-only since E13-S01 — and E13-S10 deleted the builder, the read
+and the `dual-read-hits` counter beside it. **No key shape on this platform carries a credential in its
+name any more**, which is what the table above now says without a qualifier.
 
-The last row is the only one, and it is a **read** path: writes have been hashed-only since the E13-S01
-cutover deploy, so the shape drains as sessions rotate or expire and nothing creates a new one. E13-S10
-deletes the fallback, gated on `DUAL_READ_REMOVE_AFTER` and on the `dual-read-hits` counter being zero.
+What that does not reach: an AOF written before the cutover still holds the old key names, and rewriting
+the file is the only thing that drops them. `BGREWRITEAOF` was run on every node as part of E13-S10 — see
+§6.3 below for what an append-only file retains and for how long.
 
 ### 6.2 The values — one plaintext email per access-token session
 

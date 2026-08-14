@@ -294,9 +294,13 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
 
 - **a — fixed (E13-S01).** A session lives under `<REDIS_KEY><sha256('access:'+token)>`, built by
   `marketplace-common/src/others/sessionKeys.mts:52` and nowhere else. The digest is of the **prefixed**
-  token, so the two hashes of one login stay distinguishable. A read still falls back to the old shape for
-  sessions minted before the cutover, counted at `<REDIS_KEY>dual-read-hits`; E13-S10 deletes both, and is
-  the one story of this backlog that a date rather than a decision still holds shut.
+  token, so the two hashes of one login stay distinguishable. **Amended 2026-08-14:** the sentence that
+  stood here said a read still fell back to the old shape for sessions minted before the cutover, counted
+  at `<REDIS_KEY>dual-read-hits`, and that E13-S10 was the one story of this backlog a date still held
+  shut. E13-S10 landed on 2026-08-14 and deleted the fallback, the counter and `DUAL_READ_REMOVE_AFTER`
+  together: the digest is now the only name a session has. Neither precondition ever had to be waited out —
+  the platform has never been deployed, so no pre-cutover session existed anywhere, and the counter read
+  zero on the one dev cluster.
 - **b — fixed (E15-S02, E15-S03; operator half E17).** `<REDIS_KEY>idx:<tier>:<accountId>`, one field per
   live session, each `HEXPIRE`d to its own session's cap (`sessionKeys.mts:104`). It is what E15's
   credential-write revocation and E17's operator console are both built on. No `SCAN` was introduced —
@@ -501,8 +505,12 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
 
 **What this report leaves open, stated so nobody reads the table as "done":**
 
-- **E13-S10** — the pre-cutover dual-read fallback and its counter. Held shut by a date and a counter
-  reading zero, not by a decision, and the only story of §3.6a still owed.
+- ~~**E13-S10** — the pre-cutover dual-read fallback and its counter~~ — **closed 2026-08-14.** It was
+  held shut by a date and a counter reading zero rather than by a decision; both preconditions turned out
+  to be moot, because the cutover was never deployed and the counter key was never created. The raw-key
+  read, `DUAL_READ_REMOVE_AFTER`, the dated test and the counter left in one change, the dual delete
+  became one key, and E13-S02's integration test was **inverted** rather than deleted: it still seeds a
+  session in the pre-cutover shape and now asserts it does not authenticate. §3.6a is owed nothing.
 - **ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
   §3.6c's real subject, and §3.7b's second half depends on the same answer.
 - ~~**Revocation still ends refresh sessions only**~~ — **closed 2026-08-13, hours after it was written
@@ -516,5 +524,6 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
   (R02), the retirement adoption window (R47), unencrypted Redis transport (R45), storage-level encryption
   (R48), `axios@0.21.4` in `public-resource` (R49), and the distinct-token flood against `refresh`. E18-S07
   is the story that gives each of them a row, an owner and a trigger — **landed the same day**: the flood is
-  **R52**, the dual-read fallback's removal is **R51**, and the per-machine `KEYGRIP_KEK` became **R50** when
+  **R52**, the dual-read fallback's removal is **R51** (closed 2026-08-14 by E13-S10), and the per-machine
+  `KEYGRIP_KEK` became **R50** when
   R02 closed, since a closed row may not carry an open residual. The other three were already rows.
