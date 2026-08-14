@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.29
+**Version:** 1.30
 **Date:** 2026-08-14
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -187,6 +187,17 @@ open question closed the same day (the `idShopOwner` one, on a premise the Admin
 `RISK_REGISTER.md` R30). **`E03-S01`..`E03-S08` are unchanged**; sixteen files cite them and every citation
 still resolves. §1's "two exceptions" is now three and §2's E03 row links to the new path; `epics/` holds
 E04..E18.
+v1.30 - 2026-08-14: **E04's record leaves `epics/` the same day, the fourth to do so.**
+`phase5/epics/E04.md` is deleted and its content is
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), on the same condition: all eight stories `built`,
+§6's one open question closed — the two-writer race the platform owner accepted — and the publish split
+under it landed the same day (E04-S08). **`E04-S01`..`E04-S08` are unchanged.** §1's "three exceptions" is
+now four and §2's E04 row links to the new path; `epics/` holds E05..E18.
+v1.31 - 2026-08-14, last that day: **E05's record leaves `epics/` too, the fifth.**
+`phase5/epics/E05.md` is deleted and its content is [`CATALOGUE.md`](./CATALOGUE.md), on the same
+condition: all nine stories `built` and §6 empty — its two open questions closed hours apart, the publish
+split (E05-S08) and the picture upload (E05-S09). **`E05-S01`..`E05-S09` are unchanged.** §1's "four
+exceptions" is now five and §2's E05 row links to the new path; `epics/` holds E06..E18.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -197,14 +208,17 @@ E04..E18.
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 18 epics, states build state against the working tree, and links out.
 
-**Three exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
-E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) and E03's is
-[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) (2026-08-14), beside this index
-rather than under `epics/`. All fifteen of E01's stories are `built`, E02's four built stories sit next to
-one anti-story - a boundary to defend, not work ahead - and all eight of E03's are `built` with its last
-open question closed the day it moved, so all three read as the record of a shipped surface rather
-than a backlog entry. The story IDs `E01-S01`..`E01-S15`, `E02-S01`..`E02-S05` and
-`E03-S01`..`E03-S08` are unchanged and are still what the citing files cite - see each file's §0.
+**Five exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) and E05's is [`CATALOGUE.md`](./CATALOGUE.md) (all
+three 2026-08-14), beside this index rather than under `epics/`. All fifteen of E01's stories are `built`,
+E02's four built stories sit next to one anti-story - a boundary to defend, not work ahead - all eight of
+E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, and all
+nine of E05's are `built` with both of its open questions closed the day it moved, so all five read as the
+record of a shipped surface rather than a backlog entry. The story IDs `E01-S01`..`E01-S15`,
+`E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08` and `E05-S01`..`E05-S09` are unchanged and
+are still what the citing files cite - see each file's §0.
 
 Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
 order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
@@ -220,8 +234,8 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E01 | Identity & Access | BC-01 | Admin, ShopOwner, User, anonymous (registration) | Built | `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-common` | [IDENTITY_ACCESS.md](IDENTITY_ACCESS.md) — not under `epics/`, see §1 |
 | E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [SESSION_TERMINATION.md](SESSION_TERMINATION.md) — not under `epics/`, see §1 |
 | E03 | Shop Owner Onboarding & Approval | BC-03 | ShopOwner, Admin, **anonymous (self-registration)** | Built - onboarding progress is operator-written by decision (E03-S04), a shop-owner flow is future work | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-common`, `marketplace-db-setup`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [SHOPOWNER_ONBOARDING_APPROVAL.md](SHOPOWNER_ONBOARDING_APPROVAL.md) — not under `epics/`, see §1 |
-| E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [E04.md](epics/E04.md) |
-| E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [E05.md](epics/E05.md) |
+| E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [COMPANY_LEGAL_ENTITY.md](./COMPANY_LEGAL_ENTITY.md) — not under `epics/`, see §1 |
+| E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope; an item takes its picture on `itemAdd` and there is no path to replace one | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [CATALOGUE.md](./CATALOGUE.md) — not under `epics/`, see §1 |
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [E06.md](epics/E06.md) |
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [E07.md](epics/E07.md) |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [E08.md](epics/E08.md) |

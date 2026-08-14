@@ -74,7 +74,7 @@ present in `$map` over `addresses`.
 
 ```
 item          _id, idCompany (req), idCategory (req), name (req, ≤150), description (req, ≤2000),
-              slug (req), published (bool), deleted (date, optional)
+              slug (req), published (bool), image (file name, optional), deleted (date, optional)
 itemCategory  _id, name (req, ≤100), slug (req, unique), idParent (optional), position (int)
 ```
 
@@ -88,6 +88,27 @@ which is not given the field at all. Both update paths `$set` the whole enumerat
 flag sat in `GraphQLInputItem` every save wrote it and a card reopened after a takedown republished the
 item on Save. `itemAdd` stamps `false`. Same split on `company`, below.
 
+⚠️ **`image` holds a file name, never a path and never a URL** — `^[a-f0-9]{24}\.[a-z0-9]{3,4}$`,
+anchored at both ends, and the 24 hex are the item's own `_id`, not what the client called the file. The
+directory is `STATIC_FOLDER/item/<idCompany>/` and both segments are already on the document, so a stored
+path would be three ways of saying the same thing and one way of escaping it. Not in `required`: an item
+without a picture is ordinary, and that absence is what a card reads before choosing a placeholder.
+
+⚠️ **`itemAdd` is the only writer of `image`, and there is no way to replace or remove one.** The picture
+travels as an `Upload` inside `GraphQLInputItem` on the ShopOwner tier, so creating an item and giving it a
+picture are one call; `itemUpdate` is not given the field and drops the key at the `$set` even when a save
+arrives carrying one. The three steps straddle the insert in this order — store the upload in the temp
+directory, write the document, publish the file — so nothing reaches the static domain before the document
+exists. **A failed publish after a successful insert is not repaired**: the item exists, the client got a
+500, and a retry collides with its own slug and comes back 409. The upload is re-encoded on the way in
+(koa-utils `uploadTempImage` checks extension and MIME, scans with ClamAV, then rebuilds the file as webp
+from decoded pixels), which is what stops a payload smuggled inside a valid image — and why the pattern
+leaves the extension at 3-4 characters instead of pinning it to `webp`: a second format later is then a
+resolver change and not a rebuild of every database. Read-side exposure is that
+tier alone: the shared `GraphQLItemFrag` does not carry the field, so the Admin and public tiers cannot
+read it and no frontend renders one
+(`docs/devprotocol/phase5/CATALOGUE.md` E05-S09).
+
 ⚠️ **No `price` field, deliberately** (ADR-009). Orders, cart, delivery and payment are out of scope
 and have no model to copy.
 
@@ -96,6 +117,12 @@ and have no model to copy.
 reject a parent that is itself a subcategory — and **writes exist only in
 `marketplace-dev-admin-authenticated-resource`**. The ShopOwner and public tiers read the collection
 and never write it. Adding a write path elsewhere silently removes the depth cap with it.
+
+⚠️ **`itemCategory` has no `published` and will not get one** (platform owner, 2026-08-14). Present or
+soft-deleted is its whole state space, with nothing between: `item.published` and `company.published`
+exist because a shop drafts its own public surface, and the taxonomy is operator-written on one tier. So a
+category is public the moment it is created — created before its items, it shows an empty listing until
+they arrive, and that is the accepted cost. `itemCategories` filters `deleted` and nothing else.
 
 ## `company` — legal entity and public face
 

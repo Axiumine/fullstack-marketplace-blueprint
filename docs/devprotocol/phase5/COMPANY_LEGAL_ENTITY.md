@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-14
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
@@ -12,18 +12,19 @@ nothing, which is what they meant; application code does — `funCompanyAdd` 404
 no live `shopOwner` before it inserts. Both lines now separate the two. Landed with the closure of
 `EVENT_STORMING.md` §5 hotspot 5, `RISK_REGISTER.md` R30 and E03 §6's last open question, which
 all rested on the same reading. E03's record moved to
-[`../SHOPOWNER_ONBOARDING_APPROVAL.md`](../SHOPOWNER_ONBOARDING_APPROVAL.md) later the same day; the
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) later the same day; the
 question is §6 q4 there.
 v1.2 - 2026-08-14: §6's only open question is closed by the platform owner's decision — two writers on one
 `company` is fine, last writer wins, no version or lock field. §3 no longer calls that race the epic's one
 open piece, and §6 spells out what was accepted: whole-card last-write-wins, since both tiers `$set` an
 object enumerating every field rather than a diff. Recorded as accepted in
-[`../RISK_REGISTER.md`](../RISK_REGISTER.md) §5. The `item.published` race the question compared itself to
+[`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. The `item.published` race the question compared itself to
 (R29) stays **Open** — same race class, opposite cost — and was not put to the owner in this pass.
 v1.3 - 2026-08-14: it was put to the owner immediately after, and answered the same way — an operator
 unpublishing and the shop owner publishing it again is fine. §6's closing paragraph is rewritten: the
 decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
-`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6.
+`phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6 (that record moved to
+[`CATALOGUE.md`](./CATALOGUE.md) later on 2026-08-14).
 `epics/E11.md` §6 q3 stays open, being about an order snapshotting catalogue state rather than the race.
 v1.4 - 2026-08-14: accepting the race exposed the thing under it — `published` was a field of
 `GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an operator reopening a stale
@@ -32,6 +33,32 @@ separate operation on both tiers, and it is: `published` left both input types, 
 and `companyUpdatePublished(_id, published)` is the only writer on each tier. §2, §3 and the new **E04-S08**
 record it; §6's "three fields outside the race" is now four. The race decision itself is untouched — two
 writers of `companyUpdatePublished` still last-writer-wins.
+v1.5 - 2026-08-14: **the file left `epics/` and became this record**, for the reason §0 gives. No story
+changed, no ID moved, and nothing was dropped in the move — only the links, which now resolve from
+`phase5/` rather than from `phase5/epics/`.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E04.md` until 2026-08-14. The file was deleted and its record moved here in one pass,
+the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) and
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) moved before it: nothing in it is
+work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
+publish split that closed the last thing under it landed the same day — so the file had become the *record*
+of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
+`epics/ENN.md`, and that stays true for E06..E18; E01..E05 are the five whose records sit
+beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day.
+
+**The story IDs did not change.** `E04-S01` … `E04-S08` keep their names, cited as they are from
+`phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase4/API_CONTRACTS.md`,
+`phase4/DDD_AGGREGATES.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CATALOGUE.md` and `epics/E11.md`.
+Renumbering them was refused for the reason E01 gives: an ID cited across files is a name, and moving a
+file is not a reason to change a name.
+
+⚠️ **One thing this record holds that no other file does:** §6, the two-writer race and what the platform
+owner accepted about it — whole-card last-write-wins, no version field, and the four fields that sit
+outside the race by construction. `RISK_REGISTER.md` §5 carries the decision as a bullet; the reasoning
+about *what exactly* was accepted lives here and is cited from there.
 
 ## 1. Epic goal
 
@@ -139,7 +166,7 @@ own session.
 Technical story, records a deliberate two-tier divergence so nobody "fixes" it into agreement.
 **domains:** backend, testing
 **Acceptance criteria:**
-- Admin-tier delete guard does not filter `deleted` — [`docs/data-model.md`](../../../data-model.md), confirmed no `deleted` check in `marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`.
+- Admin-tier delete guard does not filter `deleted` — [`docs/data-model.md`](../../data-model.md), confirmed no `deleted` check in `marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts`.
 - `vatNumber_unique`/`certifiedEmail_unique` carry no `partialFilterExpression`, so a retired company keeps its `vatNumber` occupied — `BEs/marketplace-db-setup/lib/schemas/company.js`.
 **Traces:** NFR-SE11; policy row "Liveness filters belong on read paths and existence/ownership guards" (`docs/data-model.md`).
 **Evidence:** `marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/companyDel.mts:18,21`.
@@ -164,7 +191,7 @@ as it was **so that** editing an address never republishes a shop that was delib
 - `companyUpdatePublished(_id: ID!, published: Boolean!) : Boolean!` is the single writer on each tier, ownership-guarded on the ShopOwner one — `marketplace-dev-authenticated-resource/…/mutations/companyUpdatePublished.mts:25,28-30`, `marketplace-dev-admin-authenticated-resource/…/mutations/companyUpdatePublished.mts:21,24-26`.
 - `PUBLISHED_IMPLIES_LINKABLE` still refuses `published: true` without a stored `slug` and `publicName`, so the sequence is compulsory: save the card, then publish — two calls, in that order.
 **Traces:** E04-S07 (the storefront fields the `$expr` requires); the §6 race decision, which this narrows without reversing.
-**Evidence:** `3a3874d` (ShopOwner service), `7a60574` (Admin service); the same split on `item` is [`E05.md`](E05.md) E05-S08.
+**Evidence:** `3a3874d` (ShopOwner service), `7a60574` (Admin service); the same split on `item` is [`CATALOGUE.md`](./CATALOGUE.md) E05-S08.
 
 ⚠️ **No frontend calls it yet, on either tier.** Neither company screen has ever had a publish control —
 the flag moved as a side effect of the whole-card `$set`, and nothing on screen said so. The missing screen
@@ -205,7 +232,7 @@ has written, not a resolver gap.
 
   **Four fields sit outside the race by construction and stay there.** `_id` and `idShopOwner` are
   omitted from both payload types, so no save moves a company between owners
-  ([`../RISK_REGISTER.md`](../RISK_REGISTER.md) R30). `deleted` is out too: the ShopOwner type excludes it
+  ([`RISK_REGISTER.md`](./RISK_REGISTER.md) R30). `deleted` is out too: the ShopOwner type excludes it
   outright, and on the Admin tier `ICompanyValidated` nominally admits it while `validateCompany` returns
   a literal that never sets it and `GraphQLInputCompany` declares no such field. Retiring and reviving
   therefore remain `companyDel`'s alone on both tiers, and a stale card cannot resurrect a retired
@@ -218,14 +245,14 @@ has written, not a resolver gap.
   here first as covering `company` alone, because `published` is a moderation flag and the reverted-save
   outcome that is a re-edit here is a failed takedown there; the platform owner was asked and answered
   that an operator unpublishing and the owner publishing it again is equally fine. So
-  [`../RISK_REGISTER.md`](../RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
-  `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`E05.md`](E05.md) §6 all close
-  with this one. One question it does **not** close: [`E11.md`](E11.md) §6 q3, whether an order snapshots
+  [`RISK_REGISTER.md`](./RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
+  `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`CATALOGUE.md`](./CATALOGUE.md) §6 all close
+  with this one. One question it does **not** close: [`epics/E11.md`](./epics/E11.md) §6 q3, whether an order snapshots
   the catalogue state it was placed against, which is BC-11 design work rather than this race.
 
   ⚠️ **Accepting the race is not accepting the trigger.** Hours after answering, the platform owner read
   the consequence in full — an ordinary save wrote the flag, so an operator reopening a stale card
   republished a shop somebody had just taken down without touching anything called "publish" — and asked
   for publishing to be its own operation on both tiers. It now is, for `company` (E04-S08) and for `item`
-  ([`E05.md`](E05.md) E05-S08). What the owner accepted stands: two deliberate publishers still resolve
+  ([`CATALOGUE.md`](./CATALOGUE.md) E05-S08). What the owner accepted stands: two deliberate publishers still resolve
   last-writer-wins. What went away is the accidental publisher.

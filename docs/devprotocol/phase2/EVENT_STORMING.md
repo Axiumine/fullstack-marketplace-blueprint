@@ -26,7 +26,7 @@ out of `phase5/epics/E03.md` the same day — close with it. Nothing survives as
 v1.4 - 2026-08-14: **hotspot 4 and §6 question 5 close on the platform owner's decision, not on work.** The
 `item.published` race is accepted: last writer wins, an operator's unpublish that the owner reverses is a
 normal outcome, and no version or lock field is added. Taken together with the same decision for `company`
-(`phase5/epics/E04.md` §6) and recorded in `phase5/RISK_REGISTER.md` §5. The rows now also say what the code
+(`phase5/COMPANY_LEGAL_ENTITY.md` §6) and recorded in `phase5/RISK_REGISTER.md` §5. The rows now also say what the code
 says and the finding did not: the two writers are asymmetric — the Admin sets one field, the owner `$set`s
 the whole card with `published` in it — so an owner's ordinary save undoes a takedown without touching the
 flag. `itemDel` stays the takedown that sticks, `deleted` being outside `IItemUpdate`.
