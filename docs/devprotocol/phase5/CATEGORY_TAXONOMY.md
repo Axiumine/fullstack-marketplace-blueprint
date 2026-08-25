@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-25
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
@@ -47,6 +47,7 @@ collection" of `marketplace-dev-authenticated-resource` — the flat opposite of
 answered hours earlier, and the sharpest of twelve files under `docs/` where the
 pre-`holdItemCategory` absolute survived. Both now say what holds: every *mutation* is Admin-tier, one field is not. No story
 changed state; E06-S06 stays `built`, since the read-only surface it was written to protect is intact.
+v1.8 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
 ## 0. Why this record is not under `epics/`
 
@@ -59,7 +60,7 @@ it: nothing in it is work still ahead. All seven stories are `built` and §6 has
 the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
 on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E07..E18; E01..E06 are the six whose records sit
+stories live in `epics/ENN.md`, and that stays true for E07..E19; E01..E06 are the six whose records sit
 beside the index instead of under it.
 
 **The story IDs did not change.** `E06-S01` … `E06-S07` keep their names. ⚠️ **This is the first of the six

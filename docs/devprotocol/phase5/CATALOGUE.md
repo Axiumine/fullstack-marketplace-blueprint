@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-14
+**Version:** 1.5
+**Date:** 2026-08-25
 **Author:** epics-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -29,6 +29,7 @@ resolve from `phase5/` rather than from `phase5/epics/`. Two things E05-S09 put 
 to where a reader looks for them without knowing this file exists: the `image` field is now in
 [`docs/data-model.md`](../../data-model.md) §`item`, and the choice of a field over an `itemImage`
 collection is a row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
+v1.5 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
 ## 0. Why this record is not under `epics/`
 
@@ -40,7 +41,7 @@ the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
 (E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
 rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that
-stays true for E07..E18; E01..E06 are the six whose records sit beside the index instead of under it —
+stays true for E07..E19; E01..E06 are the six whose records sit beside the index instead of under it —
 E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25.
 
 **The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from

@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.30
-**Date:** 2026-08-14
+**Version:** 1.33
+**Date:** 2026-08-25
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
@@ -204,11 +204,22 @@ content is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), on the same conditi
 inspection and the read-then-write window by an implementation in two repos. **`E06-S01`..`E06-S07` are
 unchanged**, and are the first such set with no citation outside their own file — the only two anywhere are
 code comments in `marketplace-admin`. §1's "five exceptions" is now six and §2's E06 row links to the new
-path; `epics/` holds E07..E18. Four things that record held alone were copied out first: the `/categories`
+path; `epics/` holds E07..E18 — E07..E19 since E19 opened. Four things that record held alone were copied out first: the `/categories`
 screen's `position` bound and its orphan bucket to [`docs/frontends.md`](../../frontends.md), the reason
 `itemAdd`'s upload stays outside its transaction to `ADR-012`, and `itemCategory`'s global `slug`
 uniqueness, its sort ordinal, the absence of a cascade on delete and the seed that creates no category to
 [`docs/data-model.md`](../../data-model.md).
+v1.33 - 2026-08-25: **a nineteenth epic, and the first one opened by a request rather than by a retrofit or
+an audit.** [`E19.md`](epics/E19.md) — Customer Administration — is the operator's missing surface over the
+`user` collection: a customers list and the enable/disable lever `user.disabled` has never had a writer for.
+It follows directly from E07's §6 closing the same day, which established that no gate stands before a
+customer's first login and then found that none stands after it either. Six stories, **none built**, no code
+written: one migration adding `user`'s second index, `usersActiveTbl`, `userUpdateStatus`, a `/customers`
+screen, an anti-story, and a documentation truth-up. The table reads **clear fields only** — that is the
+whole reason the epic is small, and E19-S05 is the boundary that keeps it that way. §1's count is 19, §2 has
+an E19 row, §2.1 says why 19 is not numbered by context, and `epics/` holds E07..E19. The header version was
+stale at 1.30 while this changelog stood at 1.32; it is corrected here rather than incremented from a number
+that was never written down.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -217,7 +228,7 @@ uniqueness, its sort ordinal, the absence of a cascade on delete and the seed th
 ## 1. Purpose
 
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
-here. This file lists the 18 epics, states build state against the working tree, and links out.
+here. This file lists the 19 epics, states build state against the working tree, and links out.
 
 **Six exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
@@ -238,7 +249,7 @@ only two references anywhere are code comments in `marketplace-admin`, both nami
 Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
 order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
 context**: `phase5/CONSTRAINTS.md` §5 attaches no such rule, an epic never owns a context, and the context
-column above is a reading aid. See §2.1 for why E12-E18 are numbered as they are.
+column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, are numbered as they are.
 
 ---
 
@@ -264,6 +275,7 @@ column above is a reading aid. See §2.1 for why E12-E18 are numbered as they ar
 | E16 | Signing-Key Custody & Rotation | BC-01, BC-10 | Admin (operates), all tiers (affected) | **Built 2026-08-13, by ADR-034's mechanism rather than this epic's** - S01, S02, S03, S05, S06 by E01-S12…E01-S15; S04, S07, S08, S09 in E16's own name. R02 `Mitigated`, residual at R47 | `marketplace-db-setup`, `marketplace-common`, the five cookie-touching services, `marketplace-dev-admin-authenticated-resource` | [E16.md](epics/E16.md) |
 | E17 | Admin Session Console | BC-01, BC-10 | Admin | **Built 2026-08-13 - 9 of 9**, and all four open questions answered: the reuse trail is a **capped Redis list** (50 events) kept **30 days from its last event**, sessions are readable **per account only** — one `hGetAll`, no keyspace scan — and an operator's revoke is **not attributable**, which is a second store's decision rather than a third value in `REUSE_EVENT_ACTIONS`. E17-S04 landed as a *correction* to E15-S04's already-shipped routine: the index is re-read before it is deleted, bounded at three attempts, and left in place on exhaustion. E17-S07 is a gate rather than a convention — a loop over all seven operations on both sides, with fixtures carrying secrets in fields no document selects, a control test proving the app really authenticates, and a coverage test that fails when an eighth operation is added. E17-S09's decision note argues the ninth service from R02/R03/R04 and cites neither ADR-006 nor NFR-AV01, deliberately | `marketplace-dev-admin-authenticated-resource`, `marketplace-admin`, `marketplace-common`, `docs/` | [E17.md](epics/E17.md) |
 | E18 | Auth Regression Coverage & Documentation Truth-Up | hardens BC-09, BC-10 | cross-cutting | **13 of 13 built** - **E18-S01 verified `built` 2026-08-13 and this epic did not build it**: all three resource services now test the wrong tier, the missing tier and 403-not-401 against their own middleware, having gained those tests with the tier discriminator itself. **E18-S02 built 2026-08-13** — eleven cases in `marketplace-common`, tagged in all seven authenticated services, a per-repo contract test that fails on a missing tag, the contract in `docs/testing.md`; it closed two real gaps in the three authorization services (the introspection allowlist, and the replay refusal asserted only from the writing side). **E18-S03 built 2026-08-13** — nine exact `REQUIRED_ENV_VARS` lists asserted by value and by order, nine services proved to reject out of `start()` before touching a datasource, and the silent **exit 0** on a failed required-env check fixed. **E18-S05 built 2026-08-13** — 30 encrypted field paths under 4 DEKs enumerated, the personal data left in the clear written down with a reason each, and the storage layer measured: MongoDB Community carries no encryption option in the binary and both volumes sit on an unencrypted filesystem, with every other environment **unknown** because none exists. It corrected two of its own premises — Redis session values carry a plaintext email into the AOF, and the keyspace stopped being credentials at E13-S01 — closed the audit §5 item and opened **R48**. **E18-S04 built 2026-08-13** — 54 advisories placed and judged across the 14 repos that have a tree, the whole auth path named and versioned and found clean, the external-and-unmodifiable boundary stated once; `yarn audit` turned out unusable here, seven services ship an `axios` they never load, and Qodana's vulnerable-dependency inspection runs on every commit and reports zero. It opened **E18-S10**, **E18-S11**, **E18-S12** and **R49**, and rewrote **R21**. **E18-S10 built 2026-08-13** — the mail SDK and its `axios@0.21.4` closure removed from the seven services that never loaded it, the credential pair no longer required by two services that cannot send mail, and all six mail variables finally required by the one that can. It established that `yarn install` cannot run anywhere in this workspace, so the seven lockfiles were pruned by a rewriter verified byte-identical on a control repo; and its new startup check caught `APP_DOMAIN_USER` missing from this machine's environment, meaning every customer verification link built here carried the string `undefined`. **E18-S13** opened for six variables two services require and nothing reads. **E18-S06 built 2026-08-13** — the audit report amended **in place** as open question 2 decided, an outcome appended under every finding and a §7 closing record added with nothing above it rewritten; the story's own table is 17 rows, the 15 findings plus §4 and §5, each naming the file and line where the document now reads true. `docs/architecture.md` gained *What one session is made of*; ADR-001, ADR-023, `SECURITY_AUTH.md` and `docs/testing.md` lost `KEYGRIP_KEY_1/2` as a live env value and Qodana as an SCA gate. **E18-S07 built 2026-08-13** — `RISK_REGISTER.md` v1.12: R21 and R02 closed, each naming the story that closed it, and R02's closure split its provisioning residual out as **R50** so a closed row carries no open one; **R51** (dual-read fallback, trigger is the cutover date *and* a zero counter) and **R52** (distinct-token flood against `refresh`) added; four of the six residuals the story listed already had rows, because E12, E13, E16 and E18's own investigations took R42–R49 as they found them. §4's totals were recounted and were wrong before the pass: 53 rows, not 49. **E18-S08, E18-S09, E18-S11, E18-S12 and E18-S13 are also `built` 2026-08-13** and are recorded story by story in [E18.md](epics/E18.md) rather than restated here | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, all 9 services, `docs/` | [E18.md](epics/E18.md) |
+| E19 | Customer Administration [PLANNED - NOT BUILT] | BC-07 operated from the Admin tier - no new context | Admin (operates), User (affected) | **Not built - 0 of 6, opened 2026-08-25.** The operator has no customers list and no way to set `user.disabled`, which five read paths gate on and nothing writes; suspending a customer is a hand-written MongoDB update today. The list is **clear fields only** - `registeredAt`, the three status flags, and `login.email` returned but never sorted or prefix-matched - so ADR-029 stands untouched, no field changes algorithm and no database is rebuilt. E19-S05 is an anti-story holding that line | `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-admin` | [E19.md](epics/E19.md) |
 
 ### 2.1 E12-E18 are numbered in landing order
 
@@ -283,6 +295,13 @@ wrong one:
 
 This ordering deviates from the audit's own §6 suggested sequence, which put §3.3/§3.4 first. The reason is
 E13: the audit ranked findings by severity, not by which fix makes the next fix safe to build.
+
+**E19 continues the count and belongs to neither scheme.** It is not a bounded context — BC-07 already has
+E07 — and it is not part of the audit backlog, whose numbering closed at E18 when the last of the seven
+landed. It takes the next free number for the only reason left: it is the nineteenth epic. Its own stories
+are ordered by landing order internally (§5 of that file), which is the E12-E18 idea applied inside one epic
+rather than across a block. A twentieth epic opened the same way takes E20 and needs no scheme either — the
+context rule that would have demanded one has been gone since 2026-08-11 (§2.2).
 
 ### 2.2 Why E12-E18 are a separate block
 
