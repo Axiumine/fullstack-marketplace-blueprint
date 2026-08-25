@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-08-14
+**Version:** 1.8
+**Date:** 2026-08-25
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.8 - 2026-08-25: BC-06's responsibility line said "Admin-only writes; every other tier reads only". The three mutations are still Admin-only, but `holdItemCategory` on the ShopOwner tier writes `__v` on a category inside every item write, on purpose, to close a write-skew window against `itemCategoryDel`. The line now says which of the two claims holds and BC-05 is named as the other half. The depth-cap example was stale by two versions and is replaced with the transaction the guard actually runs in.
 v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
 *adding* a context, which it never described — the gap that left a proposed BC-12 with nowhere to go. That
 BC-12 is **withdrawn** and is not coming: it was proposed only to give E16 and E17 a context to own under an
@@ -152,16 +153,25 @@ Two independent writers of `item.published` (each tier's own `itemUpdatePublishe
 ---
 
 ### BC-06 - Category Taxonomy
-**Responsibility:** Curates the two-level `itemCategory` tree every `item` files under. Admin-only writes; every other tier reads only.
-**Owns:** `itemCategory` collection (`BEs/marketplace-db-setup/lib/schemas/itemCategory.js`), `itemCategoryAdd`/`Update`/`Del`, all three ONLY in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts` and siblings - verified no such file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`.
+**Responsibility:** Curates the two-level `itemCategory` tree every `item` files under. Every mutation on it is Admin-tier; every other tier reads it. ⚠️ **One deliberate exception, one field:** BC-05's `itemAdd`/`itemUpdate` `$inc` a category's `__v` (`holdItemCategory`) inside their own transaction, so an item write and a concurrent `itemCategoryDel` collide on one document instead of skewing past each other. No domain field of this context is reachable from there.
+**Owns:** `itemCategory` collection (`BEs/marketplace-db-setup/lib/schemas/itemCategory.js`), `itemCategoryAdd`/`Update`/`Del`, all three ONLY in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts` and siblings - no such file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`.
 **Produces:** Item Category Created, Deep-Nesting Rejected, Duplicate Slug Rejected, Item Category Updated, Item Category Deleted.
 **Consumes:** nothing from another context - `idParent` is a self-FK, depth-capped in the resolver because a `$jsonSchema` cannot read a sibling document:
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:38-55
 export async function funItemCategoryAdd(data: IItemCategoryValidated) {
-  if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent)
-  try { await ItemCategory.create({ _id: new Types.ObjectId(), ...data }) }
-  catch (e) { if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category'); throw e }
+	const _id = new Types.ObjectId()
+	const session = await mongoose.startSession()
+	try {
+		await session.withTransaction(async () => {
+			// reads the parent WITH a write ($inc __v) — see throwIfParentNotTopLevel
+			if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent, session)
+			await ItemCategory.create([{ _id, ...data }], { session })
+		})
+	} catch (e) {
+		if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
+		throw e
+	} finally { await session.endSession() }
 }
 ```
 **Does not own:** `item` documents themselves (BC-05) - deleting a category leaves items filed under it resolvable, on purpose.

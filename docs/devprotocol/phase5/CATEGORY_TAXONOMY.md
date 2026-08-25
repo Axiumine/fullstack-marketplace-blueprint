@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-25
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
@@ -42,6 +42,11 @@ knowing it exists: the `/categories` screen's own `position` bound and its orpha
 in [`ADR-012`](../phase3/adr/ADR-012-category-depth-cap-in-resolver.md), and `itemCategory`'s global
 `slug` uniqueness, its sort ordinal, the absence of a cascade on delete and the fact that no migration
 seeds a category are in [`docs/data-model.md`](../../data-model.md).
+v1.7 - 2026-08-25, after the move: §1 and E06-S06 still read "no write path exists in this service for the
+collection" of `marketplace-dev-authenticated-resource` — the flat opposite of what §6's third question had
+answered hours earlier, and the sharpest of twelve files under `docs/` where the
+pre-`holdItemCategory` absolute survived. Both now say what holds: every *mutation* is Admin-tier, one field is not. No story
+changed state; E06-S06 stays `built`, since the read-only surface it was written to protect is intact.
 
 ## 0. Why this record is not under `epics/`
 
@@ -80,8 +85,8 @@ for and what an ADR deliberately is not.
 
 ## 1. Epic goal
 
-Curate the two-level `itemCategory` tree every `item` files under. Writes exist only on the Admin tier;
-ShopOwner and public tiers read only. The depth cap lives in the resolver, not the validator, because a
+Curate the two-level `itemCategory` tree every `item` files under. Every mutation on it is Admin-tier;
+ShopOwner and public tiers read it — with the one field-level exception §6 records and ADR-012 carries. The depth cap lives in the resolver, not the validator, because a
 `$jsonSchema` reads one document and cannot check whether a parent is itself a subcategory.
 
 ## 2. Scope
@@ -171,9 +176,9 @@ pointing at it resolvable **so that** deleting taxonomy metadata never breaks a 
 admin-curated tree **so that** I can file my catalogue correctly without being able to alter the taxonomy.
 **domains:** database, backend, testing
 **Acceptance criteria:**
-- `itemCategories` on this tier takes no arguments and returns `[GraphQLItemCategory!]!`, and no write path exists in this service for the collection — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/itemCategories.mts:9,23-24`.
+- `itemCategories` on this tier takes no arguments and returns `[GraphQLItemCategory!]!`, and no *mutation* exists in this service for the collection — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/itemCategories.mts:9,23-24`. ⚠️ **The service does write the collection, in one field**: `lib/item/holdItemCategory.mts:41-53` `$inc`s `__v` on the named category inside every `itemAdd`/`itemUpdate` transaction. It is a concurrency guard, reachable through no mutation of its own and touching no domain field, so what this story protects — the read-only surface of the tier — is intact.
 - The tier assertion still gates the call — a foreign-tier token gets 403, same as every other resource-service call on this tier.
-**Traces:** NFR-SE05/SE06; DCON-05 ("ShopOwner and public tiers read the collection and never write it").
+**Traces:** NFR-SE05/SE06; DCON-05 (restated 2026-08-25: every `itemCategory` mutation is Admin-tier, one field is not).
 **Evidence:** `queries/itemCategories.mts:9,23-24`.
 
 ### E06-S06 — Anonymous visitor and customer browse the category tree `built`

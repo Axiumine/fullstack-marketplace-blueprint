@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-12
+**Version:** 1.2
+**Date:** 2026-08-25
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.2 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites.
 v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
 write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
 serves follow from it; the operator's read of `personalData` is now nullable.
@@ -309,7 +310,7 @@ category tree, plus uploads.
 |---|---|---|---|---|
 | `shopOwnerCompanies` | none | `[GraphQLCompany!]!` | Companies owned by the authenticated caller (scoped via `ctx.state.user`, no explicit id arg) | `queries/shopOwnerCompanies.mts:18-19` |
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Items of one company — unlike the public tier, **not** filtered by `published`; the owner sees drafts too | `queries/companyItems.mts:21,27-32` |
-| `itemCategories` | none | `[GraphQLItemCategory!]!` | Reads the item category tree; **read-only on this tier by design** — write path exists only on the Admin tier (`phase4/CONSTRAINTS.md` DCON-05) | `queries/itemCategories.mts:9,23-24` |
+| `itemCategories` | none | `[GraphQLItemCategory!]!` | Reads the item category tree; **no `itemCategory` mutation on this tier by design** — every one lives on the Admin tier (`phase4/CONSTRAINTS.md` DCON-05); this service's only write to the collection is `holdItemCategory`'s `$inc` on `__v` inside an item write | `queries/itemCategories.mts:9,23-24` |
 
 **Mutations:**
 
@@ -372,12 +373,12 @@ Root wiring: `BEs/dev/marketplace-dev-admin-authenticated-authorization/src/grap
 ### 6.2 `marketplace-dev-admin-authenticated-resource` — port 4024
 
 Domain data for the platform operator: shopOwner moderation, `company` CRUD on any shop owner's behalf,
-and `itemCategory` CRUD. ⚠️ **This is the only tier that writes `itemCategory`.** The ShopOwner and public
-tiers read the collection and never write it (`docs/data-model.md`). The two-level depth cap — a
+and `itemCategory` CRUD. ⚠️ **This is the only tier with an `itemCategory` mutation.** The ShopOwner and public
+tiers read the collection (`docs/data-model.md`). ⚠️ **One deliberate exception, one field:** `holdItemCategory` on the ShopOwner tier `$inc`s `__v` on a category inside every `itemAdd`/`itemUpdate` transaction, so an item write and a concurrent `itemCategoryDel` collide instead of skewing past each other. It reaches no domain field and no `idParent`, so the depth cap keeps exactly one enforcement point (ADR-012). The two-level depth cap — a
 category whose parent already has a parent is rejected — lives in the resolver, not the `$jsonSchema`
 validator, because a schema validator cannot read a second document to check the parent's own parent
 (ADR-012). The check is `throwIfParentNotTopLevel`, called from
-`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:24`,
+`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/throwIfParentNotTopLevel.mts:47-64` (from `funItemCategoryAdd.mts:44` and `funItemCategoryUpdate.mts:52`),
 gated on `data.idParent !== undefined` — an absent `idParent` is accepted unconditionally as a top-level
 category and never reaches the check.
 

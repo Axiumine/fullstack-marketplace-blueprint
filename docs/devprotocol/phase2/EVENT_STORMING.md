@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-14
+**Version:** 1.5
+**Date:** 2026-08-25
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.5 - 2026-08-25: §2.3's `itemCategory` note said the ShopOwner and public tiers never write the tree. The public tier still does not; the ShopOwner tier writes `__v` on one category per item write, deliberately (`holdItemCategory`), and the note now says so. Its code example predated the transaction the depth-cap guard runs in and is replaced.
 v1.1 - 2026-08-12: E03-S08 built the self-service registration §2.2 recorded as absent. That flow, its
 activation route and the events they produce are added; hotspots 1 and 3 and questions 1 and 3 close.
 Hotspot 2 stays open but stops claiming no mutation writes the onboarding fields — `shopOwnerUpdatePreferences`
@@ -189,19 +190,24 @@ Admin →  Update Shop Owner Note/Preferences          →   Shop Owner Note Rec
 `loginAdmin` — `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginAdmin.mts`, backed by `.../src/lib/db/login/tryLoginAdmin.mts`. The depth cap on `itemCategory` lives in the resolver, not the validator — `$jsonSchema` cannot read a sibling document to check whether its parent is itself a subcategory:
 
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:38-55
 export async function funItemCategoryAdd(data: IItemCategoryValidated) {
-  if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent)
-  try {
-    await ItemCategory.create({ _id: new Types.ObjectId(), ...data })
-  } catch (e) {
-    if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
-    throw e
-  }
+	const _id = new Types.ObjectId()
+	const session = await mongoose.startSession()
+	try {
+		await session.withTransaction(async () => {
+			// reads the parent WITH a write ($inc __v) — see throwIfParentNotTopLevel
+			if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent, session)
+			await ItemCategory.create([{ _id, ...data }], { session })
+		})
+	} catch (e) {
+		if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
+		throw e
+	} finally { await session.endSession() }
 }
 ```
 
-Writes to `itemCategory` exist **only** in `marketplace-dev-admin-authenticated-resource` — verified: no `itemCategoryAdd`/`Update`/`Del` file under `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/` or `marketplace-dev-public-resource`. ShopOwner and public tiers read the tree, never write it (`docs/data-model.md` §`item` and `itemCategory`). `itemUpdatePublished.mts` and `itemDel.mts` under the Admin resource service (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`) are a second writer of the same `item.published` flag the owning `ShopOwner` also writes — flagged §5. ⚠️ The owner's writer is that tier's own `itemUpdatePublished` since 2026-08-14, not `itemUpdate`: the flag left `GraphQLInputItem` when publishing became a separate operation.
+Every `itemCategory` **mutation** exists only in `marketplace-dev-admin-authenticated-resource` — no `itemCategoryAdd`/`Update`/`Del` file under `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/` or `marketplace-dev-public-resource`. ⚠️ **One deliberate exception, one field:** `holdItemCategory` on the ShopOwner tier `$inc`s `__v` on a category inside every `itemAdd`/`itemUpdate` transaction, so an item write and a concurrent `itemCategoryDel` collide instead of skewing past each other. It reaches no domain field and no `idParent`, so the depth cap keeps exactly one enforcement point (ADR-012). (`docs/data-model.md` §`itemCategory`). `itemUpdatePublished.mts` and `itemDel.mts` under the Admin resource service (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/`) are a second writer of the same `item.published` flag the owning `ShopOwner` also writes — flagged §5. ⚠️ The owner's writer is that tier's own `itemUpdatePublished` since 2026-08-14, not `itemUpdate`: the flag left `GraphQLInputItem` when publishing became a separate operation.
 
 ### 2.4 Company lifecycle
 Aggregate: `company` (`BEs/marketplace-db-setup/lib/schemas/company.js`)
