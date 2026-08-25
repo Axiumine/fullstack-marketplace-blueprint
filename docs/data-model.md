@@ -49,7 +49,13 @@ The three divergences are intentional and none of them is an accident to "fix":
 1. **`addresses` is an array** where `shopOwner` has one `personalData.address`. Each element carries a
    required `_id`, an optional `label` and the shared address block with an optional `position`.
 2. **No `waitApprov`.** Customers self-serve with nothing to approve; a shop owner who self-serves is
-   parked until an operator clears the flag, and one an Admin created is not parked at all.
+   parked until an operator clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
+   decided 2026-08-25** — no approval, fraud check or spam-signup hold is coming for this collection, and
+   `emailVerify.valid` stays the whole distance between `userRegister` and a session (ADR-INDEX §4,
+   `phase5/epics/E07.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
+   the other two, `tryLoginUser`, `tokenInfoUser` and `funUserUpdatePwd` all refuse an account carrying it
+   — and **nothing writes it**, because the Admin tier has no `user*` mutation at all. Suspending a
+   customer is a direct MongoDB write today. Unbuilt, not refused.
 3. **`defaultAddress`** has no counterpart at all — see below.
 
 ### `defaultAddress` — a pointer, enforced by the database (ADR-010)
