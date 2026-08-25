@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-13
+**Version:** 1.3
+**Date:** 2026-08-25
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.3 - 2026-08-25: §12's `itemCategory` and `idParent` entries said writes to the collection exist ONLY in the Admin resource service. That is true of the three mutations and no longer true of the collection: `holdItemCategory` in `marketplace-dev-authenticated-resource` `$inc`s `__v` on one category inside every `itemAdd`/`itemUpdate` transaction, deliberately, to make the read a write and close a write-skew window against `itemCategoryDel`. The entry now says which claim holds. Its citation and code example were also two versions stale — both predated the transaction the guard now runs in.
 v1.2 - 2026-08-13: E03-S04. §6's `onboardingStep`/`onboardingDone` entry said the fields are written by no mutation on the platform. They are written by `shopOwnerUpdatePreferences` and always were — the entry now names the file and says the shop owner cannot write their own progress. The hotspot closes as a decision (the operator's hand stays the writer until a shop-owner onboarding flow is designed), residual as `RISK_REGISTER.md` R53.
 v1.1 - E03-S08. `shopOwner` gained a second creation route: §6's definition, the new `personalData` (whole block) row, the `waitApprov` rows and the `user` definition all follow from it, and the hotspot §6 carried is closed rather than restated. §14 gained `shopOwnerRegister` and the shop owner's REST verification route, §15 the events they produce, §16 the policy that writes the flag and the order the two login gates run in.
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅
@@ -370,7 +371,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 
 ## 10. Collection: `itemCategory`
 
-**Definition:** Platform-wide taxonomy `item` documents are filed under. Two levels only — a document with no `idParent` is a category, one whose `idParent` names a category is a subcategory, one whose `idParent` names a subcategory is disallowed. Admin-only writes; ShopOwner and public tiers read only.
+**Definition:** Platform-wide taxonomy `item` documents are filed under. Two levels only — a document with no `idParent` is a category, one whose `idParent` names a category is a subcategory, one whose `idParent` names a subcategory is disallowed. Every mutation on it is Admin-tier; ShopOwner and public tiers read it. ⚠️ **One deliberate exception, one field:** `holdItemCategory` on the ShopOwner tier `$inc`s `__v` on a category inside every `itemAdd`/`itemUpdate` transaction, so an item write and a concurrent `itemCategoryDel` collide instead of skewing past each other. It reaches no domain field and no `idParent`, so the depth cap keeps exactly one enforcement point (ADR-012).
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
 
 | Field | Type | Required | Notes |
@@ -385,17 +386,26 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 
 ### idParent
 **Definition:** Self-referencing FK. Depth cap (max 2 levels) is enforced in the resolver, NOT the validator — a `$jsonSchema` reads one document only and cannot check whether its parent is itself a subcategory.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`; enforced by `throwIfParentNotTopLevel` in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33`.
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`; enforced by `throwIfParentNotTopLevel` in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/throwIfParentNotTopLevel.mts:47-64`, called from `funItemCategoryAdd.mts:44` and `funItemCategoryUpdate.mts:52` — both inside a transaction, and the guard reads the parent with a `$inc` on `__v` so the read collides with a concurrent `itemCategoryDel` instead of skewing past it.
 **Example:**
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:38-55
 export async function funItemCategoryAdd(data: IItemCategoryValidated) {
-  if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent)
-  try { await ItemCategory.create({ _id: new Types.ObjectId(), ...data }) }
-  catch (e) { if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category'); throw e }
+	const _id = new Types.ObjectId()
+	const session = await mongoose.startSession()
+	try {
+		await session.withTransaction(async () => {
+			// reads the parent WITH a write ($inc __v) — see throwIfParentNotTopLevel
+			if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent, session)
+			await ItemCategory.create([{ _id, ...data }], { session })
+		})
+	} catch (e) {
+		if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
+		throw e
+	} finally { await session.endSession() }
 }
 ```
-Writes to `itemCategory` exist ONLY in `marketplace-dev-admin-authenticated-resource` — verified, no `itemCategoryAdd`/`Update`/`Del` file exists under either `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`.
+The three mutations that create, re-parent or retire a category — `itemCategoryAdd`/`Update`/`Del` — exist ONLY in `marketplace-dev-admin-authenticated-resource`, and no such file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`. ⚠️ **"Admin-only writes" carries exactly one exception, and it is one field.** `holdItemCategory` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/holdItemCategory.mts:41-53`) `$inc`s `__v` on the named category inside every `itemAdd`/`itemUpdate` transaction. It writes no domain field and changes nothing a reader sees; the `$inc` exists so the ShopOwner tier's read of the category is a *write* on the same document `itemCategoryDel` stamps, which turns a write-skew window into a `WriteConflict` that `withTransaction` retries. The depth cap is untouched by it — `idParent` is not among the fields it can reach. See `docs/data-model.md` and ADR-012.
 
 ### position (sort ordinal, on `itemCategory`)
 **Definition:** Integer sort order within a level, operator-set.

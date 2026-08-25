@@ -50,6 +50,18 @@ rather than a missing resolver. The operator
 app's profile, password-change, personal-data, statistics and paginated-table screens have no
 counterpart there and were pruned rather than stubbed.
 
+⚠️ **The operator app's `/categories` screen is the taxonomy's only UI, and it adds two behaviours no
+other layer has.** `position` is capped at 999999999 in the form
+(`marketplace-admin/src/features/categories/Categories.tsx:55`, `MAX_POSITION`) while the resolver checks
+whole and non-negative only — so without that bound a wider value reaches the collection and fails the
+`$jsonSchema` as a 500 naming no field, which is the failure the cap exists to keep off the screen. And
+the tree is rendered defensively: `orderedCategories` appends a subcategory whose parent it cannot find at
+the end of the list instead of dropping it, and `parentLabel` renders `---` in place of that parent, so an
+orphan stays visible and editable. **No API call can produce one** — `throwIfParentNotTopLevel` has
+refused a missing parent since the three resolvers first shipped — so what the bucket defends against is a
+write made straight against MongoDB, and
+`marketplace-admin/test/features/categories/Categories.test.tsx:174` holds it in place.
+
 ⚠️ **Three shopowner-side differences are deliberate and must not be "corrected" back to the operator
 app's shape:**
 

@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-12
+**Version:** 1.2
+**Date:** 2026-08-25
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.2 - 2026-08-25: the `itemCategory` note said the other three tiers never write the collection. They write no domain field of it; the ShopOwner tier writes `__v`, via `holdItemCategory`, to make an item write collide with a concurrent `itemCategoryDel`. Restated, DCON-05 having been restated the same way.
 v1.1 - 2026-08-12: E03-S08. `personalData` left `shopOwner`'s doc-level `required` list, so §3.2's rows,
 its `required` excerpt and the `waitApprov` description all move, and §4 counts three divergences from
 `user` rather than four.
@@ -263,7 +264,7 @@ Source: `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`. Platform-wide ta
 | `deleted` | date | no | — | soft-delete stamp; a category is never hard-deleted because `item.idCategory` is required and nothing stops a dangling reference |
 | `__v` | int | no | — | versionKey |
 
-Doc-level `required`: `name`, `slug`, `position`. **Writes exist only in the Admin resource service** (`BEs/dev/marketplace-dev-admin-authenticated-resource`) — ShopOwner, User and public tiers read this collection and never write it (DCON-05).
+Doc-level `required`: `name`, `slug`, `position`. **Every mutation on this collection lives in the Admin resource service** (`BEs/dev/marketplace-dev-admin-authenticated-resource`) — ShopOwner, User and public tiers read it (DCON-05). ⚠️ **One deliberate exception, one field:** `holdItemCategory` on the ShopOwner tier `$inc`s `__v` on a category inside every `itemAdd`/`itemUpdate` transaction, so an item write and a concurrent `itemCategoryDel` collide instead of skewing past each other. It reaches no domain field and no `idParent`, so the depth cap keeps exactly one enforcement point (ADR-012).
 
 ```js
 // BEs/marketplace-db-setup/lib/schemas/itemCategory.js

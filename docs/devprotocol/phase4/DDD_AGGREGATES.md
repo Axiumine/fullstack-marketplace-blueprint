@@ -2,12 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-14
+**Version:** 1.6
+**Date:** 2026-08-25
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-25: the `ItemCategory` aggregate's "write path exists ONLY in the Admin resource service"
+invariant is restated. The three mutations still do; the collection has a second writer, `holdItemCategory`
+on the ShopOwner tier, which `$inc`s `__v` and nothing else so that an item write and a concurrent
+`itemCategoryDel` collide rather than skew. The depth-cap example was also stale — it predated the
+transaction both guards now run inside.
 v1.1 - 2026-08-12: §10 question 6 closed — Conformist by design and permanent, no ACL for either
 aggregate. One `$jsonSchema` builder per collection is a Shared Kernel; the gap was field scope, and
 E01-S10 / CON-12 closes it with a named list plus lint rather than a mapper.
@@ -204,7 +209,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 ### ItemCategoryAggregate
 
 **Root entity:** `ItemCategory` — the platform-wide, two-level taxonomy every `Item` files under. Model `BEs/marketplace-common/src/models/MongoDB/ItemCategory.mts`, validator `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
-**Bounded context:** **BC-06** (Category Taxonomy), Admin-only writes.
+**Bounded context:** **BC-06** (Category Taxonomy), every mutation Admin-tier — see the invariants for the one field written from outside it.
 **Boundary:** one `itemCategory` document. The self-FK (`idParent`) points at a SECOND document in the same collection; checking it is a cross-document read within one collection, still not atomic with the eventual insert/update.
 
 **Entities and value objects:**
@@ -215,19 +220,29 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 **Invariants:**
 - Depth capped at 2 levels. `$jsonSchema` cannot express it — "the parent's own `idParent` lives in a different document, and a MongoDB validator sees exactly one document at a time" (`itemCategory.js` header comment). Enforced entirely in the resolver:
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:38-55
 export async function funItemCategoryAdd(data: IItemCategoryValidated) {
-  if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent)
-  try { await ItemCategory.create({ _id: new Types.ObjectId(), ...data }) }
-  catch (e) { if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category'); throw e }
+	const _id = new Types.ObjectId()
+	const session = await mongoose.startSession()
+	try {
+		await session.withTransaction(async () => {
+			// reads the parent WITH a write ($inc __v) — see throwIfParentNotTopLevel
+			if (data.idParent !== undefined) await throwIfParentNotTopLevel(data.idParent, session)
+			await ItemCategory.create([{ _id, ...data }], { session })
+		})
+	} catch (e) {
+		if (duplicateKey(e)) throwAlreadyTakenError('slug already used by another category')
+		throw e
+	} finally { await session.endSession() }
 }
 ```
 via `throwIfParentNotTopLevel` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/throwIfParentNotTopLevel.mts`).
 - `slug_unique` is global across BOTH levels, not per-parent — two subcategories called "drinks" under two different parents cannot both exist, because `/category/:slug` and `/category/:slug/:subSlug` share one URL namespace.
-- Write path exists ONLY in the Admin resource service — verified: no `itemCategoryAdd`/`Update`/`Del` file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource` (`phase2/BOUNDED_CONTEXT.md` BC-06). Adding a write path elsewhere silently removes the depth cap with it (`docs/data-model.md`).
+- The **domain** write path exists ONLY in the Admin resource service — no `itemCategoryAdd`/`Update`/`Del` file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource` (`phase2/BOUNDED_CONTEXT.md` BC-06). Adding a *mutation* elsewhere silently removes the depth cap with it (`docs/data-model.md`).
+- ⚠️ **One non-domain writer exists outside that tier, deliberately, and it is one field.** `holdItemCategory` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/holdItemCategory.mts:41-53`) `$inc`s `__v` on the named category inside every `itemAdd`/`itemUpdate` transaction. No aggregate field is reachable through it, so no invariant above is weakened; the write exists *because* MongoDB transactions are snapshot-isolated rather than serialisable, and a plain read would let this service create an item while `itemCategoryDel` retires the category it names. Touching the document makes the two collide, and `withTransaction` retries the loser. `throwIfParentNotTopLevel` is the same technique on the Admin side for the parent rule (ADR-012); changing one without the other reopens a window.
 - Deleting a category does not cascade to `item` documents filed under it — they stay resolvable pointing at a soft-deleted category, on purpose (BC-06 "Does not own" note). `item.idCategory` is required, so a hard delete of the category would leave items pointing at nothing to stop it — soft delete is the only safe option here, not a stylistic choice.
 
-**Commands:** `itemCategoryAdd`/`itemCategoryUpdate`/`itemCategoryDel` — Admin tier only.
+**Commands:** `itemCategoryAdd`/`itemCategoryUpdate`/`itemCategoryDel` — Admin tier only. No command on any other tier touches this aggregate; `holdItemCategory` is a concurrency guard, not a command, and writes only `__v`.
 
 **Events emitted:** Item Category Created, Deep-Nesting Rejected, Duplicate Slug Rejected, Item Category Updated, Item Category Deleted.
 
