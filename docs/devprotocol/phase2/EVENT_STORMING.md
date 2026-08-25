@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-25
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.6 - 2026-08-25: §2.1 showed the customer lifecycle with no operator in it at all — every command on the
+`user` aggregate was the customer's own. E19 built `userUpdateStatus`; its command, its two outcomes and
+the session revocation that follows a suspension are added to the flow, with the policy pair in §3. Also
+records what it does not do: nothing sets `deleted` on a `user`, and restoring revokes nothing.
 v1.5 - 2026-08-25: §2.3's `itemCategory` note said the ShopOwner and public tiers never write the tree. The public tier still does not; the ShopOwner tier writes `__v` on one category per item write, deliberately (`holdItemCategory`), and the note now says so. Its code example predated the transaction the depth-cap guard runs in and is replaced.
 v1.1 - 2026-08-12: E03-S08 built the self-service registration §2.2 recorded as absent. That flow, its
 activation route and the events they produce are added; hotspots 1 and 3 and questions 1 and 3 close.
@@ -85,7 +89,14 @@ Customer       →   Log In (loginUser)                     →   Customer Logge
 Customer       →   Refresh Session (refresh)               →   Access Token Rotated
                                                             →   Refresh Refused — Foreign Tier
 Customer       →   Log Out (logout, shared service)        →   Session Destroyed
+Admin          →   Set Status (userUpdateStatus)           →   Customer Suspended (disabled→true)
+                                                            →   Customer Restored (disabled→false)
+                                                            →   Every Session Of That Customer Destroyed
+                                                                (on suspension only)
 ```
+
+`userUpdateStatus` is the operator's lever on a registered customer and the one command on this aggregate
+the customer cannot issue — Admin tier, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/userUpdateStatus.mts` (E19, 2026-08-25). It writes `disabled` and nothing else: **no mutation anywhere sets `deleted` on a `user`**, so "Customer Deleted" is not an event this platform emits. Restoring emits no session event — nobody's credentials changed, and signing a customer out for being re-enabled is not a control.
 
 Sources: `userRegister` mutation — `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/userRegister.mts`. Verify route — `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:25`, a **second route**, not a second handler bound to the same path as the shop-owner variant, because the platform docs itself notes email+hash alone cannot say which collection minted the pair. `loginUser` — `BEs/dev/marketplace-dev-public-authorization/src/graphQLPublic/schema/mutations/loginUser.mts`, backed by `BEs/dev/marketplace-dev-public-authorization/src/lib/db/login/tryLoginUser.mts`. Refresh — `BEs/dev/marketplace-dev-user-authenticated-authorization/src/graphQLApi/schema/mutations/refresh.mts`. Logout — one shared service for all 3 tiers, `BEs/dev/marketplace-dev-authenticated-logout/src/graphQLApi/schema/mutations/logout.mts`, resolving through:
 
@@ -385,6 +396,8 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | `companyDel` called on an already-retired company, Admin tier | Guard does not filter `deleted`, answers 200 — liveness belongs on read/ownership paths, never on the delete write itself (`docs/data-model.md` §`company`) |
 | ShopOwner logs in while `waitApprov` is true | Login refused, generic error, same shape as every other login failure |
 | Any account (`Admin`/`ShopOwner`/`User`) is `deleted` or `disabled` | `checkUserAuthorizationDisDel` gates every authenticated resource call, all 3 tiers |
+| Customer Suspended | `endEveryUserSession` → `revokeAllSessionsForAccount(TIER.user)` retires **both halves** of every session that customer holds, access half first. Without it the flag is a label until the next rotation: the three gates that read it bite at refresh, so a suspended customer would keep browsing for a whole access window (E15-S07's rule, applied to `user` by E19) |
+| Customer Restored | No session policy fires, deliberately — nothing was revoked to reinstate, and no credential changed |
 | Logout mutation called, any tier's token | Same Redis keys (`REDIS_KEY` + token) deleted regardless of which service minted them — token-content lookup, not tier-scoped (`authorizationLogoutHandler.mts:60,74`) |
 | `itemAdd`/`itemUpdate` given an `idCategory` that does not exist | `throwIfItemCategoryMissing` rejects — nothing else enforces the reference |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects, checked **before** the category-existence check so a non-owner learns nothing about real category ids |
