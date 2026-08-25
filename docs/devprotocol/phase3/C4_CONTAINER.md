@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-08-07
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. E19 gave it
+`usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the operator still cannot do
+to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
 
@@ -143,7 +146,7 @@ monitoring (`services-status`).
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-resource'` | Domain data for ShopOwner — `shopOwnerCompanies`, `companyItems`, `itemCategories` reads; `company*`, `itemAdd`/`itemUpdate`/`itemDel` mutations; file uploads (`sharp`, `clamscan`, `file-type`, `graphql-upload` — only resource services carry these). |
 | `marketplace-dev-authenticated-logout` | 4030 | **all three tiers** | Koa 3 + Apollo Server 5, `ENDPOINT = '/logout'` | One `logout` mutation, shared by every frontend. Deletes the Redis session key by **token content**, never inspects which collection minted it — the reason `REDIS_KEY` must stay one shared prefix (`docs/architecture.md` §Auth model). |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-authorization'` | Admin token lifecycle, same shared-body pattern as the other two `*-authenticated-authorization` services. |
-| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-resource'` | Domain data for Admin — `shopOwnerAdd`/`shopOwnerUpdateStatus` (approval), **sole writer** of `itemCategory` (`funItemCategoryAdd.mts` enforces the depth-2 cap), moderation (`companyDel` any company, `itemUpdatePublished`/`itemDel`). |
+| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-resource'` | Domain data for Admin — `shopOwnerAdd`/`shopOwnerUpdateStatus` (approval), **sole writer** of `itemCategory` (`funItemCategoryAdd.mts` enforces the depth-2 cap), moderation (`companyDel` any company, `itemUpdatePublished`/`itemDel`). Since 2026-08-25 also the operator's only reach into `user`: `usersActiveTbl` pages customer accounts and `userUpdateStatus` suspends or restores one, ending every session of the suspended account through `endEveryUserSession` (E19). ⚠️ **This is the only service that reads `user` for anyone other than its owner**, and it can do nothing else to one — no create, no delete, no edit of a customer's data. |
 | `marketplace-dev-user-authenticated-authorization` | 4031 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-authorization'` | User (customer) token lifecycle. Signs/verifies the customer refresh cookie together with `public-authorization`'s `loginUser` — both read the same wrapped Redis record and neither boots without `KEYGRIP_KEK` (ADR-034). |
 | `marketplace-dev-user-authenticated-resource` | 4032 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-resource'` | Customer account data — `personalData`, `addresses[]` CRUD, `defaultAddress` pointer maintenance. `funUserAddressDel.mts` is the platform's one pipeline update and must coerce ids to `ObjectId` before they enter it. |
 

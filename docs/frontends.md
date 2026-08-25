@@ -39,7 +39,11 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 `@urql/exchange-auth` · graphql-codegen `client-preset`, one project per access level · TanStack Table
 · react-hook-form + zod · Tailwind 4 · Sentry.
 
-`marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners*. `marketplace-shopowner`
+`marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
+*customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
+one with `userUpdateStatus`, both on 4024 (E19). ⚠️ **That screen has no search box and one sortable
+column, deliberately** — ADR-029 encrypts every other field on `user`, `registeredAt` and the status flags
+being the only ones left to sort or filter on. `marketplace-shopowner`
 mirrors it — same stack, same conventions, same hooks — and is deliberately thinner because the tier
 behind it is. `marketplace-dev-authenticated-resource` exposes `shopOwnerCompanies`, `companyItems`,
 `itemCategories` and eight mutations (`company*` plus `itemAdd` / `itemUpdate` / `itemUpdatePublished` /
@@ -128,7 +132,12 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 
 | App | Test files | Tests | Mutants killed / timed out / survived |
 |---|---|---|---|
-| `marketplace-admin` | 62 | 842 | 2053 / 7 / 0 |
-| `marketplace-shopowner` | 40 | 533 | 1083 / 5 / 0 |
-| `marketplace-user` | 72 | 1304 | 2171 / 7 / 0 |
+| `marketplace-admin` | 71 | 1071 | 2053 / 7 / 0 |
+| `marketplace-shopowner` | 49 | 677 | 1083 / 5 / 0 |
+| `marketplace-user` | 73 | 1312 | 2171 / 7 / 0 |
 | `services-status` | 7 | 379 | 1102 / 1 / 0 |
+
+File and test counts are a `yarn test` run of 2026-08-25. ⚠️ **The mutant columns are older than that** —
+they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
+E19 added. The gate is hook-only in all four repos, so the next push is what re-measures them; do not
+start a run to refresh this table.

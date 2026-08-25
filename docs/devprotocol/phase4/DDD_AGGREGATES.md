@@ -2,12 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-25
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-25: `UserAggregate` listed six commands, all of them the customer's own, and no operator
+write at all. E19 built one: `userUpdateStatus`, Admin-tier, `disabled` only, ending every session of the
+account it suspends. Added to Commands with the service it actually lives in, and its two outcomes plus the
+session revocation added to Events emitted.
 v1.6 - 2026-08-25: the `ItemCategory` aggregate's "write path exists ONLY in the Admin resource service"
 invariant is restated. The three mutations still do; the collection has a second writer, `holdItemCategory`
 on the ShopOwner tier, which `$inc`s `__v` and nothing else so that an item write and a concurrent
@@ -306,9 +310,9 @@ Both `$set` stages run inside ONE `updateOne` pipeline against ONE document — 
 - `disabled`/`deleted` gate every authenticated call via `checkUserAuthorizationDisDel`, same as every collection.
 - Any `ObjectId` entering the pipeline above must be coerced with `new Types.ObjectId(...)` first — Mongoose casts a query filter against the schema but casts NOTHING inside an aggregation pipeline; an uncoerced `GraphQLID` string compared against a real ObjectId via `$ne` is never equal, silently answering `matchedCount:1, modifiedCount:0` (DCON-06, the bug this exact function shipped with before the fix).
 
-**Commands:** `userPersonalDataUpdate`, `userAddressAdd`, `userAddressUpdate`, `userDefaultAddressSet`, `userAddressDel`, `userUpdatePwd` — all in `BEs/dev/marketplace-dev-user-authenticated-resource`.
+**Commands:** `userPersonalDataUpdate`, `userAddressAdd`, `userAddressUpdate`, `userDefaultAddressSet`, `userAddressDel`, `userUpdatePwd` — all in `BEs/dev/marketplace-dev-user-authenticated-resource` — **plus `userUpdateStatus`, the one command on this aggregate the customer cannot issue** (E19, 2026-08-25). It is Admin-tier and lives in `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/userUpdateStatus.mts`: it writes `disabled` alone — never `deleted`, which no mutation on the platform sets on `user` — and when it writes `true` it also ends every session that account holds, through `endEveryUserSession` → `revokeAllSessionsForAccount(TIER.user)`. The aggregate boundary is unchanged by it: a second actor writes one field of the root, which is the same shape `shopOwnerUpdateStatus` has on `ShopOwnerAggregate`.
 
-**Events emitted:** Personal Data Filled In, Address Added, Address Updated, Address Deleted, Default Address Set, Set Refused - Address Not Owned, Default Address Pointer Cleared, Password Changed, Customer Registered, Customer Logged In, Email Verified.
+**Events emitted:** Personal Data Filled In, Address Added, Address Updated, Address Deleted, Default Address Set, Set Refused - Address Not Owned, Default Address Pointer Cleared, Password Changed, Customer Registered, Customer Logged In, Email Verified, Customer Suspended, Customer Restored, Every Session Of That Customer Destroyed.
 
 ---
 

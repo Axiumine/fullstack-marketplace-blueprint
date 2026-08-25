@@ -2,12 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-12
 **Author:** sequence-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
 §2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
+v1.2 - 2026-08-25: E19. §2.8 was the only operator-writes-someone-else's-account flow documented, and it
+covered `shopOwner` only. §2.10 adds the `user` pair — why the table takes no search term or second sort
+key, and why the status write ends the suspended customer's sessions but restoring ends nothing.
 **Depends on:** `phase2/EVENT_STORMING.md` ✅ · `phase4/API_CONTRACTS.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅ · `phase4/DDD_AGGREGATES.md` ✅ · `phase5/CONSTRAINTS.md` ✅ (binding, §4 Flow rules)
 **Mutability:** keep in sync — update when a flow, actor set or branching condition changes.
 
@@ -118,6 +121,26 @@ sent for a document that failed to write.
 is unconfirmed rather than that they are queued. `=== false`, never `!== true`: an *absent* `emailVerify`
 is what every §2.1 account has, and collapsing absent into unverified would lock out every shop owner
 created before this flow existed.
+
+### 2.10 — `usersActiveTbl` / `userUpdateStatus` (the operator's reach into a customer account)
+§2.8's shape on the `user` collection, one tier over and with one extra step (E19, 2026-08-25). Both live on
+`marketplace-dev-admin-authenticated-resource`, the only service that reads `user` for anyone but its owner.
+
+`usersActiveTbl` is a linear paged read and needs no diagram: `disabled` and `deleted` arrive as `Boolean!`
+with server defaults because they are the leading keys of `tbl_active_registeredAt`, so every page is one
+index scan and there is no "either" state to ask for. It sorts on `registeredAt` alone and takes no search
+term — ADR-029 encrypts every other field on `user`, randomly for the names and the addresses, so a prefix
+match would compare against base64 and a sort would order ciphertext.
+
+`userUpdateStatus` is the one that is not linear: it writes `disabled` and then, **only when it wrote
+`true`**, calls `endEveryUserSession` → `revokeAllSessionsForAccount(TIER.user)`, which retires both halves
+of every session that customer holds, access half first (R54). The write is the target state rather than a
+transition, so a re-suspension revokes again over an already-empty index — cheaper than the read that would
+skip it, and with no window between a read and the write for a login to slip through. Re-enabling revokes
+nothing, deliberately: no credential changed. Nothing here sets `deleted`, which no mutation on the platform
+writes on a `user`.
+`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/userUpdateStatus.mts`,
+`.../schema/queries/usersActiveTbl.mts`, front end `/customers` on `marketplace-admin`.
 
 ---
 
