@@ -54,11 +54,12 @@ The three divergences are intentional and none of them is an accident to "fix":
    `emailVerify.valid` stays the whole distance between `userRegister` and a session (ADR-INDEX §4,
    `phase5/epics/E07.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
    the other two, `tryLoginUser`, `tokenInfoUser` and `funUserUpdatePwd` all refuse an account carrying it
-   — and **nothing writes it**, because the Admin tier has no `user*` mutation at all. Suspending a
-   customer is a direct MongoDB write today. Unbuilt, not refused — `phase5/epics/E19.md` is the epic that
-   builds the writer (`userUpdateStatus`) and the customers table to reach it from, and it does so without
-   making one more field queryable: it sorts and filters on `registeredAt` and the status flags, which were
-   never encrypted (ADR-INDEX §4).
+   — and until 2026-08-25 **nothing wrote it**, because the Admin tier had no `user*` mutation at all.
+   `userUpdateStatus` on `marketplace-dev-admin-authenticated-resource` is the writer (E19-S03), and
+   disabling ends every session that customer holds in the same call; re-enabling ends none, because
+   nobody's credentials changed. The operator reaches it from `usersActiveTbl` and the `/customers` screen
+   in `marketplace-admin`, and **no field became queryable that was not already**: the table sorts and
+   filters on `registeredAt` and the status flags, which were never encrypted (ADR-INDEX §4, ADR-029).
 3. **`defaultAddress`** has no counterpart at all — see below.
 
 ### `defaultAddress` — a pointer, enforced by the database (ADR-010)

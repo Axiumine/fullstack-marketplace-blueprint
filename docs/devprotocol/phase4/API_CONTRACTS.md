@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-25
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.3 - 2026-08-25: §6.2 gains the two operations E19 built — `usersActiveTbl` and `userUpdateStatus`, the first `user*` pair on the Admin tier. The "All seventeen answer `Boolean!`" line was counting the table, not the directory, and is recounted from the working tree to twenty-two; the four session-console mutations and three session-console queries it was missing are named as an E15 gap rather than filled in here. Both `mutations.mts` and `queries.mts` citations were stale by a version and now name the field blocks.
 v1.2 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites.
 v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
 write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
@@ -309,6 +310,7 @@ category tree, plus uploads.
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
 | `shopOwnerCompanies` | none | `[GraphQLCompany!]!` | Companies owned by the authenticated caller (scoped via `ctx.state.user`, no explicit id arg) | `queries/shopOwnerCompanies.mts:18-19` |
+| `usersActiveTbl` | `offset: Int! = 0`, `limit: Int! = USERS_TBL_DEFAULT_LIMIT`, `disabled: Boolean! = false`, `deleted: Boolean! = false`, `emailVerified: Boolean`, `sortBy: UsersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLUsersActiveTblPage!` | Paginated, sortable customers table — the first `user*` operation on this tier (E19-S02). ⚠️ **No `search` argument, and none is coming:** every field a search could match on `user` is encrypted, randomly for all but the login address, and a prefix match against ciphertext returns zero rows without erroring (ADR-029, `phase5/epics/E19.md` E19-S05). `sortBy` has exactly one member for the same reason. `disabled` and `deleted` are `Boolean!` rather than nullable filters so the query stays on `tbl_active_registeredAt`; `emailVerified` is nullable because it sits outside that index | `schema/queries/usersActiveTbl.mts:31,33-41` |
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Items of one company — unlike the public tier, **not** filtered by `published`; the owner sees drafts too | `queries/companyItems.mts:21,27-32` |
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Reads the item category tree; **no `itemCategory` mutation on this tier by design** — every one lives on the Admin tier (`phase4/CONSTRAINTS.md` DCON-05); this service's only write to the collection is `holdItemCategory`'s `$inc` on `__v` inside an item write | `queries/itemCategories.mts:9,23-24` |
 
@@ -382,7 +384,7 @@ validator, because a schema validator cannot read a second document to check the
 gated on `data.idParent !== undefined` — an absent `idParent` is accepted unconditionally as a top-level
 category and never reaches the check.
 
-Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries.mts:14-24`):
+Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries.mts:18-31`):
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
@@ -395,9 +397,8 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Catalogue entries of one company | `schema/queries/companyItems.mts:19,21-22` |
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Full two-level category tree | `schema/queries/itemCategories.mts:18` |
 
-Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations.mts:3-23`).
-**All seventeen answer `Boolean!`** — verified, not assumed: every file in `schema/mutations/` declares
-`type: new GraphQLNonNull(GraphQLBoolean)`, this tier included `companyAdd`.
+Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations.mts:28-51`).
+**All twenty-two answer `Boolean!`** — counted in the working tree, not incremented: `schema/mutations/` holds twenty-two files and every one declares `type: new GraphQLNonNull(GraphQLBoolean)`, this tier's `companyAdd` included. The count said seventeen until 2026-08-25, which was the size of the table below rather than of the directory. ⚠️ **The table below still lists eighteen of the twenty-two.** `keygripRotate`, `keygripRetire`, `revokeSession` and `revokeAllSessions` — E15's session console — have never had rows here, and neither have the `keygripStatus`, `sessions` and `reuseEvents` queries above; that gap is E15's to close, not E19's.
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
@@ -409,6 +410,7 @@ Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/
 | `shopOwnerUpdatePreferences` | `_id: ID!`, `rememberMe: Boolean!`, `onboardingDone: Boolean!`, `onboardingStep: String` | `Boolean!` | Sets session and onboarding preferences; `onboardingStep` is the one optional arg | `schema/mutations/shopOwnerUpdatePreferences.mts:25,26-31` |
 | `shopOwnerUpdateStatus` | `_id: ID!`, `disabled: Boolean!`, `waitApprov: Boolean!` | `Boolean!` | The approval lever — `waitApprov` exists on `shopOwner` only, never on `user` | `schema/mutations/shopOwnerUpdateStatus.mts:25,28-30` |
 | `shopOwnerDel` | `_id: ID!` | `Boolean!` | Soft-delete — stamps `deleted`, never removes the document | `schema/mutations/shopOwnerDel.mts:11,12-14` |
+| `userUpdateStatus` | `_id: ID!`, `disabled: Boolean!` | `Boolean!` | The customer suspend lever, and the only thing on any tier that writes `user.disabled` (E19-S03). Disabling revokes every session that customer holds, after the Mongo write and never before it; re-enabling revokes nothing, because nobody's credentials changed. **No `waitApprov` argument and there will not be one** — `user` gets no approval gate, permanently. `disabled` is `Boolean!` rather than nullable for `shopOwnerUpdateStatus`'s reason: a nullable flag makes the mutation a partial update and turning the flag *off* becomes inexpressible | `schema/mutations/userUpdateStatus.mts:31,33-36` |
 | `companyAdd` | `idShopOwner: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Registers a company **on another shop owner's behalf** — the `idShopOwner` arg is what the ShopOwner tier's own `companyAdd` cannot have | `schema/mutations/companyAdd.mts:23,26-27` |
 | `companyUpdate` | `_id: ID!`, `company: GraphQLInputCompany!` | `Boolean!` | Replaces a company on any shop owner's behalf — ⚠️ does **not** touch `published`, see below | `schema/mutations/companyUpdate.mts:26,27-30` |
 | `companyUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Moderation lever on the shop itself — publish or take down any company regardless of owner. `published: true` is refused **by the database** unless `slug` and `publicName` are stored (`PUBLISHED_IMPLIES_LINKABLE`) | `schema/mutations/companyUpdatePublished.mts:21,25-26` |
