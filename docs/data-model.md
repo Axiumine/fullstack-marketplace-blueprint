@@ -75,7 +75,8 @@ present in `$map` over `addresses`.
 ```
 item          _id, idCompany (req), idCategory (req), name (req, ≤150), description (req, ≤2000),
               slug (req), published (bool), image (file name, optional), deleted (date, optional)
-itemCategory  _id, name (req, ≤100), slug (req, unique), idParent (optional), position (int)
+itemCategory  _id, name (req, ≤100), slug (req, unique across both levels), idParent (optional),
+              position (int, sort ordinal)
 ```
 
 Why each field beyond `_id, idCompany, name, description` is there: `idCategory` because categories
@@ -114,9 +115,35 @@ and have no model to copy.
 
 ⚠️ **`itemCategory` depth is capped at two, and the cap is in the resolver, not the validator**
 (ADR-012). A `$jsonSchema` cannot read another document, so `itemCategoryAdd` / `itemCategoryUpdate`
-reject a parent that is itself a subcategory — and **writes exist only in
-`marketplace-dev-admin-authenticated-resource`**. The ShopOwner and public tiers read the collection
-and never write it. Adding a write path elsewhere silently removes the depth cap with it.
+reject a parent that is itself a subcategory — and **the three mutations that create, re-parent or retire
+a category exist only in `marketplace-dev-admin-authenticated-resource`**. A fourth one elsewhere silently
+removes the depth cap with it.
+
+⚠️ **"Admin-only writes" carries exactly one exception, and it is one field.** The ShopOwner tier's
+`holdItemCategory` `$inc`s `__v` on the category an item is filed under, inside the transaction of every
+`itemAdd` and `itemUpdate` — no `idParent`, no `slug`, no `deleted`, no insert. It is there so an item
+write and an `itemCategoryDel` that would strand it collide on one document instead of committing past
+each other, which is the item half of the race the Admin-tier guards close on the category half; the three
+write paths there each run their reads and their write inside one `session.withTransaction`, and
+`throwIfParentNotTopLevel` reads the parent *with* a `$inc` for the same reason (ADR-012, amended
+2026-08-25 — snapshot isolation permits write skew, so a read alone does not collide). The public tier
+writes nothing. A ShopOwner- or public-tier write that touches any domain field of `itemCategory` is the
+violation ADR-012's *Positive* section describes.
+
+⚠️ **`slug` is unique globally, across both levels — not per parent.** One `slug_unique` index covers
+categories and subcategories together, so two subcategories with the same name under different parents
+cannot both exist, and the second create comes back as a named "already taken" rather than a generic write
+failure. `position` beside it is a plain sort ordinal, `int` and `min 0`; it shares a name with the GeoJSON
+`position` on `company.address` and `user.addresses[]` and shares nothing else with it — same word, two
+different shapes, no relation.
+
+⚠️ **`itemCategoryDel` refuses more often than it deletes, and it never cascades.**
+`funItemCategoryDelete` will not retire a category while a live subcategory or a live `item` still points
+at it, so the ordinary answer is a refusal naming what still holds it. When it does go through it stamps
+`deleted` on that one document and writes nothing to `item` — **no cascade touches `item.idCategory`** —
+so anything still pointing at the retired category keeps a reference that resolves. `idCategory` is
+required on `item`, and a cascade or a hard delete is exactly the dangling reference that requirement
+exists to prevent.
 
 ⚠️ **`itemCategory` has no `published` and will not get one** (platform owner, 2026-08-14). Present or
 soft-deleted is its whole state space, with nothing between: `item.published` and `company.published`
@@ -337,6 +364,10 @@ is a call rather than a copy. Current builders: `account.js`, `collection.js`, `
 [`README.md`](../README.md).
 
 Seven migrations, six of which create a collection in its final shape and one of which seeds demo data.
+⚠️ **The seed writes no categories.** `20260301000600-seed-demo.js` inserts one `admin`, one `shopOwner`
+and one `company` and stops there, so an empty taxonomy is the state a fresh database starts in, every
+`itemCategory` document that has ever existed on any machine came out of `itemCategoryAdd` on the Admin
+tier, and every `itemAdd` fails `throwIfItemCategoryMissing` until an operator creates a category.
 There is no `collMod` and no `<ts>-alter-<coll>.js`: a collection is declared once, so `migrations/` reads
 as the schema rather than as its diff history. A new collection gets a builder under `lib/schemas/` and one
 `<ts>-create-<coll>.js` that calls it — never an inline validator.

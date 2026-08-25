@@ -46,8 +46,9 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E06..E18; E01..E05 are the five whose records sit
-beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day.
+`epics/ENN.md`, and that stays true for E07..E18; E01..E06 are the six whose records sit
+beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day,
+and E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25.
 
 **The story IDs did not change.** `E04-S01` … `E04-S08` keep their names, cited as they are from
 `phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase4/API_CONTRACTS.md`,

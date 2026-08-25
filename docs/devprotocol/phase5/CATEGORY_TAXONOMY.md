@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-25
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
@@ -11,7 +11,7 @@ v1.1 - 2026-08-14: §6's first open question closes on the platform owner's deci
 no intermediate draft state**, so no `published` flag and no `itemCategoryDisable` are coming. Nothing was
 built: the shipped design already says so, in `itemCategories`' own docblock ("a category is not a draft"),
 and the decision is what makes it deliberate rather than unexamined. Recorded as not-to-be-reopened in
-[`phase3/adr/ADR-INDEX.md`](../../phase3/adr/ADR-INDEX.md) §4, with the cost the answer accepts.
+[`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, with the cost the answer accepts.
 v1.2 - 2026-08-25: §6's second open question closes by inspection, on a premise that turned out to be
 wrong — a direct GraphQL call against port 4024 meets the same three guards the Admin screen does, and has
 since the resolvers first shipped, so a subcategory with a missing parent identifies no era of the API and
@@ -32,6 +32,51 @@ file — its Decision quotes the guard with the `$inc` and the session, Negative
 Risks carries the write-skew reasoning and the cross-repo coupling, Positive records the one exception to
 "Admin-only writes", and Compliance gained two checks that catch either side of the collision being removed
 alone.
+v1.6 - 2026-08-25, last that day: **the file left `epics/` and became this record**, for the reason §0
+gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
+resolve from `phase5/` rather than from `phase5/epics/`, and three line citations into
+`marketplace-dev-admin-authenticated-resource` that the transaction work under v1.3 had left pointing at
+docblock prose. Four things this file held alone were copied out to where a reader looks for them without
+knowing it exists: the `/categories` screen's own `position` bound and its orphan bucket are in
+[`docs/frontends.md`](../../frontends.md), the reason `itemAdd`'s upload stays outside the transaction is
+in [`ADR-012`](../phase3/adr/ADR-012-category-depth-cap-in-resolver.md), and `itemCategory`'s global
+`slug` uniqueness, its sort ordinal, the absence of a cascade on delete and the fact that no migration
+seeds a category are in [`docs/data-model.md`](../../data-model.md).
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E06.md` until 2026-08-25. The file was deleted and its record moved here in one pass,
+the sixth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) and [`CATALOGUE.md`](./CATALOGUE.md) moved before
+it: nothing in it is work still ahead. All seven stories are `built` and §6 has no open question left —
+the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
+on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
+had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
+stories live in `epics/ENN.md`, and that stays true for E07..E18; E01..E06 are the six whose records sit
+beside the index instead of under it.
+
+**The story IDs did not change.** `E06-S01` … `E06-S07` keep their names. ⚠️ **This is the first of the six
+records to move with no citation in any other document at all** — `E06-S01`..`E06-S07` appear nowhere else
+under `docs/`, and the only two references that exist anywhere are in code, both naming E06-S07: a comment
+in `marketplace-admin/schema/admin-authenticated-resource.graphql:12` and one in
+`marketplace-admin/test/features/categories/Categories.test.tsx:419`. Renumbering was refused all the same,
+for the reason E01 gives — an ID cited across files is a name, and moving a file is not a reason to change
+a name — and here the citations are in another repo, where nothing in this workspace fails if they stop
+resolving.
+
+⚠️ **What this record holds that no other file does, after the move.** Not the decisions: each of §6's
+three answers was written out where a reader looks for it as it closed. The refusal of a draft state is a
+row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 and a paragraph in
+[`docs/data-model.md`](../../data-model.md); the transaction, the `$inc` that supplies the collision, the
+contention it costs and the one exception to "Admin-only writes" are in
+[`ADR-012`](../phase3/adr/ADR-012-category-depth-cap-in-resolver.md), which was amended on the platform
+owner's instruction rather than left pointing here. What stays here alone is the reasoning *under* those
+answers: the inspection that killed the provenance question by finding no era of this API that ever
+accepted a subcategory with a missing parent, and the two interleavings written as sequences of calls
+rather than as a rule. Both describe how a shipped surface was reasoned about, which is what a record is
+for and what an ADR deliberately is not.
 
 ## 1. Epic goal
 
@@ -60,8 +105,8 @@ shipped with E06-S07 on 2026-08-13.**
   `BEs/marketplace-common/src/models/MongoDBInterfaces/IItemCategorySchema.mts`.
 - Admin-tier writer (the ONLY writer): `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts`,
   `itemCategoryUpdate.mts`, `itemCategoryDel.mts`; depth-cap guard
-  `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33`,
-  `throwIfParentNotTopLevel.mts:32`. Verified: no `itemCategoryAdd`/`Update`/`Del` file exists under either
+  `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:44`,
+  `throwIfParentNotTopLevel.mts:52-58`. Verified: no `itemCategoryAdd`/`Update`/`Del` file exists under either
   `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`.
 - ShopOwner-tier read: `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/itemCategories.mts:9,23-24`.
 - Public-tier read: `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/itemCategories.mts:37-38`.
@@ -96,10 +141,10 @@ globally unique across both levels.
 itself a subcategory **so that** the taxonomy never grows a third level.
 **domains:** database, backend, testing
 **Acceptance criteria:**
-- `throwIfParentNotTopLevel` is called only when `data.idParent !== undefined`; an absent `idParent` is accepted unconditionally as top-level — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:23-33`.
-- A duplicate `slug` throws a named "already taken" error, distinguished from other write failures — `funItemCategoryAdd.mts:26` (`duplicateKey(e)` branch).
-**Traces:** DCON-05 (itemCategory depth cap in resolver, admin-only writes) per [`phase4/CONSTRAINTS.md`](../../phase4/CONSTRAINTS.md) §3; ADR-012.
-**Evidence:** `src/lib/itemCategory/funItemCategoryAdd.mts:23-33`, `src/lib/itemCategory/throwIfParentNotTopLevel.mts:32`.
+- `throwIfParentNotTopLevel` is called only when `data.idParent !== undefined`; an absent `idParent` is accepted unconditionally as top-level — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/itemCategory/funItemCategoryAdd.mts:44`.
+- A duplicate `slug` throws a named "already taken" error, distinguished from other write failures — `funItemCategoryAdd.mts:49` (`duplicateKey(e)` branch).
+**Traces:** DCON-05 (itemCategory depth cap in resolver, admin-only writes) per [`phase4/CONSTRAINTS.md`](../phase4/CONSTRAINTS.md) §3; ADR-012.
+**Evidence:** `src/lib/itemCategory/funItemCategoryAdd.mts:43-46`, `src/lib/itemCategory/throwIfParentNotTopLevel.mts:52-58`.
 
 ### E06-S03 — Admin updates a category, same depth cap re-checked `built`
 **As an** Admin, **when** I re-parent an existing category, **I want** `itemCategoryUpdate` to re-run the
@@ -182,7 +227,7 @@ all four metrics, mutation score 100.
   ⚠️ **The accepted cost:** a category created ahead of the items that will fill it is public the moment
   it is created, and shows an empty listing until they arrive. The operator's lever is ordering — create
   it when it is wanted — or `itemCategoryDel`, which soft-deletes and leaves the items that already point
-  at it resolvable. Recorded in [`phase3/adr/ADR-INDEX.md`](../../phase3/adr/ADR-INDEX.md) §4.
+  at it resolvable. Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
 - ~~Until E06-S07 the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
   whether any category documents already exist in `dbMarketplaceDev` from such a call is still unanswered.
   The screen no longer depends on the answer — it renders whatever is there, including a subcategory whose
