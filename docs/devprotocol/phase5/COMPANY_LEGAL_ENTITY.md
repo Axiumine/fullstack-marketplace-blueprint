@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-14
+**Version:** 1.6
+**Date:** 2026-08-25
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -36,6 +36,7 @@ writers of `companyUpdatePublished` still last-writer-wins.
 v1.5 - 2026-08-14: **the file left `epics/` and became this record**, for the reason §0 gives. No story
 changed, no ID moved, and nothing was dropped in the move — only the links, which now resolve from
 `phase5/` rather than from `phase5/epics/`.
+v1.6 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
 ## 0. Why this record is not under `epics/`
 
@@ -46,7 +47,7 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E07..E18; E01..E06 are the six whose records sit
+`epics/ENN.md`, and that stays true for E07..E19; E01..E06 are the six whose records sit
 beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day,
 and E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25.
 

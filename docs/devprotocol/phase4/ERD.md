@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-25
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the operator's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
 v1.2 - 2026-08-25: the `itemCategory` note said the other three tiers never write the collection. They write no domain field of it; the ShopOwner tier writes `__v`, via `holdItemCategory`, to make an item write collide with a concurrent `itemCategoryDel`. Restated, DCON-05 having been restated the same way.
 v1.1 - 2026-08-12: E03-S08. `personalData` left `shopOwner`'s doc-level `required` list, so §3.2's rows,
 its `required` excerpt and the `waitApprov` description all move, and §4 counts three divergences from
@@ -407,6 +408,9 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 | Index | Keys | Serves | Source |
 |---|---|---|---|
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
+| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the operator's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration; `20260301000300-create-user.js` is immutable and untouched |
+
+⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). There is no `registeredAt_series` counterpart either: no `usersPerPeriod` chart exists to need one.
 
 No `2dsphere` over `addresses[].position` — nothing on the platform queries customers by distance.
 

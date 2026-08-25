@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.3
-**Date:** 2026-08-12
+**Version:** 1.4
+**Date:** 2026-08-25
 **Author:** adr-agent
 **Changelog:**
 v1.0 - 31 decisions, one per architectural choice this platform stands on
@@ -19,6 +19,14 @@ through an ADR — the two-writer race on `company` and `item.published` is acce
 separate operation on both tiers. Neither is an architectural choice this platform stands on, so neither
 became an ADR; both are the kind of settled question §4 exists to keep settled, and both are cited to the
 record that holds the reasoning
+v1.4 - 2026-08-25: two more rows from the platform owner, both about the `user` collection and both taken
+directly rather than through an ADR. The first closes `phase5/epics/E07.md` §6 — `user` gets no
+`waitApprov`-equivalent, ever — and was added to §4 on the day it was taken without this header following
+it; it is accounted for here. The second is its consequence: the operator surface that decision leaves
+missing (`phase5/epics/E19.md`) reads clear fields only, so the temptation it creates — make a name or a
+city queryable so the customers table can sort and search like the shop-owner one — is refused in the same
+words ADR-029 refuses the opposite move on `shopOwner`. Neither is an architectural choice this platform
+stands on, so neither became an ADR
 
 ## 1. How to use this index
 
@@ -115,6 +123,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Move the item picture into an `itemImage` collection, or drop the `image` field and derive the name from `_id` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | both were offered and both were refused: a collection is a second document to keep in step with an item that has exactly one picture, and deriving the name means an item with no picture is indistinguishable from one whose file is missing — the optional field *is* how a card knows to draw a placeholder. The value is a file name only — the item's own `_id` plus an extension — because `STATIC_FOLDER/item/<idCompany>/` is reconstructible from the document and a stored path is one more way to escape the directory |
 | Add a second write path for `image` — a replace mutation, or the key back inside `itemUpdate` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | `itemAdd` being the only writer is what keeps the file name derivable from the document and the temp-store/insert/publish ordering in one resolver. Replacing a picture is unbuilt, not forgotten; it needs the orphaned-file question answered first, which the failed-publish-after-insert case already raises and nothing repairs today |
 | Give `user` a `waitApprov`-equivalent — an operator approval, a fraud check or a spam-signup hold between `userRegister` and the first login | platform owner, 2026-08-25 — `phase5/epics/E07.md` §6 | self-service is what a customer account *is*, and the asymmetry with `shopOwner` is what each account gets rather than how far either is trusted: clearing `waitApprov` publishes a shop on this platform's own domain, while a customer's account reads that customer's own document. The flag is also only half a feature — the other half is the operator queue behind it, and `user` is the one collection encrypted whole precisely because nothing sorts, searches or paginates it (ADR-029), so a moderation table over customers reverses that decision instead of extending this one. `emailVerify.valid` stays the only gate. Separate and not refused: nothing writes `user.disabled`, so an operator has no lever after registration either — that is a missing Admin-tier mutation |
+| Make `user.personalData.firstName` / `lastName` / `addresses[].city` deterministic or clear, "so the customers table can sort and search them like the shop-owner one" | platform owner, 2026-08-25 — `phase5/epics/E19.md` E19-S05 | the mirror image of the `shopOwner` row above, and refused for the same reason from the other side: `shopOwner` pays for its operator table in plaintext, and `user` was designed not to have that bill — every personal field on it is encrypted *because* nothing sorts, searches or paginates customers. The customers table added by E19 does not change that; it orders and filters on `registeredAt` and the status flags, which were never encrypted, and returns `login.email` without ever ordering or prefix-matching it. Making one more field queryable to add a column is how the collection loses the property, one column at a time |
 | Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
 
 ## 5. Gaps
