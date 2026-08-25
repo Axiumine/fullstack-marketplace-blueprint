@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-25
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.9 - 2026-08-25: BC-07 gains the answer to the question E07 §6 said it did not carry — a customer tier with no approval gate is the permanent design, not a starting point, and `user.disabled` is read by every gate and written by nothing.
 v1.8 - 2026-08-25: BC-06's responsibility line said "Admin-only writes; every other tier reads only". The three mutations are still Admin-only, but `holdItemCategory` on the ShopOwner tier writes `__v` on a category inside every item write, on purpose, to close a write-skew window against `itemCategoryDel`. The line now says which of the two claims holds and BC-05 is named as the other half. The depth-cap example was stale by two versions and is replaced with the transaction the guard actually runs in.
 v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
 *adding* a context, which it never described — the gap that left a proposed BC-12 with nowhere to go. That
@@ -198,6 +199,8 @@ const DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES = {
 Deleting the default address must `$unset` the pointer in the same aggregation-pipeline update, or the database itself rejects the write (`funUserAddressDel.mts`, `BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/user/funUserAddressDel.mts:50-62`).
 
 **Boundary is convention, not construction:** same story as BC-03/BC-01 - `personalData`/`addresses` and `login`/`resetPwd`/`emailVerify` live on the same `user` document, served by the same resource service, with no MongoDB-level wall between them. Nothing stops a future resolver in this context from reaching into the login sub-document; only code review does.
+
+⚠️ **This tier has no approval gate and permanently will not** (platform owner, 2026-08-25 — `phase5/epics/E07.md` §6, `phase3/adr/ADR-INDEX.md` §4). There is no `waitApprov` on `user` and no equivalent is coming: `emailVerify.valid` is the whole distance between `userRegister` and a session. BC-03's flag exists because approving a shop owner publishes a shop on this platform's domain; nothing equivalent happens when a customer registers. ⚠️ **And no lever exists after registration either** - `user.disabled` is in the validator and every gate reads it (`tryLoginUser`, `tokenInfoUser`, `funUserUpdatePwd`), but no mutation on any tier writes it, so suspending a customer today is a direct MongoDB write. That is unbuilt, not refused.
 
 ---
 
