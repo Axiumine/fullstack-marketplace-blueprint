@@ -379,8 +379,8 @@ indexes, and — because `SEED_DEMO=true` is in `.env` — the demo dataset:
 
 | Seeded | Value |
 |---|---|
-| operator (`admin`) | `info@thedoctorweb.com` |
-| shop owner (`shopOwner`) | `shopOwner@thedoctorweb.com` |
+| operator (`admin`) | `info@example.com` |
+| shop owner (`shopOwner`) | `shopOwner@example.com` |
 | password for both | `1234567890` |
 | company (the shop) | Northwind Trading Ltd |
 
@@ -556,10 +556,10 @@ requirement of its design, not a default you can flip.
 
 ## 12. Smoke test
 
-1. **Operator** — <http://127.0.0.1:3043>, `info@thedoctorweb.com` / `1234567890`. You should see the
+1. **Operator** — <http://127.0.0.1:3043>, `info@example.com` / `1234567890`. You should see the
    seeded shop owner and be able to open Northwind Trading Ltd. Create a category here: category writes
    are Admin-only and the shop-owner app can only read them.
-2. **Shop owner** — <http://127.0.0.1:3044>, `shopOwner@thedoctorweb.com` / `1234567890`. The company is
+2. **Shop owner** — <http://127.0.0.1:3044>, `shopOwner@example.com` / `1234567890`. The company is
    already there; add an item to it, set a category, publish it.
 3. **Storefront** — <http://127.0.0.1:3045>. The published shop and item should appear. Register a
    customer.
