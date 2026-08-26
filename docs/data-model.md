@@ -66,7 +66,7 @@ The three divergences are intentional and none of them is an accident to "fix":
    parked until an operator clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
    decided 2026-08-25** — no approval, fraud check or spam-signup hold is coming for this collection, and
    `emailVerify.valid` stays the whole distance between `userRegister` and a session (ADR-INDEX §4,
-   `phase5/epics/E07.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
+   `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
    the other two, `tryLoginUser`, `tokenInfoUser` and `funUserUpdatePwd` all refuse an account carrying it
    — and until 2026-08-25 **nothing wrote it**, because the Admin tier had no `user*` mutation at all.
    `userUpdateStatus` on `marketplace-dev-admin-authenticated-resource` is the writer (E19-S03), and

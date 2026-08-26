@@ -421,7 +421,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 
 | Read model | Used by | Contains |
 |---|---|---|
-| `me` (`GraphQLUserMe`) | Customer | personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, login/verify state — `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
+| `me` (`GraphQLUserMe`) | Customer | `login.email`, personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, `registeredAt` — no `_id` argument, and the `select` is a positive field list, so `login.password`, `resetPwd` and `emailVerify` never leave the service — `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
 | `shopOwnerCompanies` / `companyItems` / `itemCategories` (ShopOwner tier) | ShopOwner | own `company` documents, own `item` documents per company, the admin-curated category tree (read-only on this tier) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
 | `shopOwnerById` (Admin tier, `GraphQLShopOwnerById`) | Admin | full account incl. `waitApprov`, `disabled`, onboarding fields, note/preferences — the approval-screen read model — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries/shopOwnerById.mts` |
 | `companies` / `companiesNearby` / `companyBySlug` / `items` / `itemBySlug` / `itemCategories` / `search` / `sitemapEntries` (public-resource) | Anon Visitor, Customer | published-only projection of `company`/`item`/`itemCategory`, filtered through `livePublic`/`LIVE_PUBLIC_PIPELINE` — `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |

@@ -221,6 +221,19 @@ an E19 row, §2.1 says why 19 is not numbered by context, and `epics/` holds E07
 stale at 1.30 while this changelog stood at 1.32; it is corrected here rather than incremented from a number
 that was never written down.
 v1.34 - 2026-08-25: **E19 built the same day it opened** — five stories built, the sixth an anti-story held — the first epic here to open and close within one day. Its §1 row stops saying `[PLANNED - NOT BUILT]` and names what closed each story: a new migration for `user`'s second index, `usersActiveTbl`, `userUpdateStatus` and the `/customers` screen, with E19-S05 built by *not* being built and E19-S06 truing up the five documents that said the surface did not exist. Nothing about the encryption boundary moved: the table reads clear fields only, which is what made a one-day epic possible.
+v1.35 - 2026-08-26: **E07's record leaves `epics/`, the seventh.** `phase5/epics/E07.md` is deleted and its
+content is [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md), on the same condition: all
+eleven stories `built` and §6 empty — the absent approval gate closed 2026-08-25 by a decision, and
+`position`'s writer 2026-08-26 by an implementation. **`E07-S01`..`E07-S11` are unchanged**, and are still
+what `docs/data-model.md`, `phase3/adr/ADR-INDEX.md` §4, `CONFLICT_REPORT.md` and §5 of this file cite.
+§1's "six exceptions" is now seven and §2's E07 row links to the new path; `epics/` holds E08..E19. Four
+things that record held alone were copied out first: the address form's one `"lon,lat"` field with its three
+writers, the viewport exemption that stops the map chasing a dragged pin, and the `[longitude, latitude]`
+order with its six-decimal rounding to [`docs/frontends.md`](../../frontends.md); and the corrected meaning
+of `position` — a hand-typed address is placed by the pin alone, not left unplaced until re-picked — plus
+`addresses`' `maxItems: 6` to [`phase2/UBIQUITOUS_LANGUAGE.md`](../phase2/UBIQUITOUS_LANGUAGE.md) §8. That
+pass surfaced a third stale claim and corrected it in two files: `me` does not answer "login/verify state",
+and never did — its `select` is a positive list of six fields.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -231,21 +244,25 @@ v1.34 - 2026-08-25: **E19 built the same day it opened** — five stories built,
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 19 epics, states build state against the working tree, and links out.
 
-**Six exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+**Seven exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
 [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), E05's is [`CATALOGUE.md`](./CATALOGUE.md) (those
-three 2026-08-14) and E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) (2026-08-25), beside this
+three 2026-08-14), E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) (2026-08-25) and E07's is
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26), beside this
 index rather than under `epics/`. All fifteen of E01's stories are `built`,
 E02's four built stories sit next to one anti-story - a boundary to defend, not work ahead - all eight of
-E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, and all
-nine of E05's are `built` with both of its open questions closed the day it moved, and all seven of E06's
-are `built` with its own last two closed the day it moved, so all six read as the
+E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, all
+nine of E05's are `built` with both of its open questions closed the day it moved, all seven of E06's
+are `built` with its own last two closed the day it moved, and all eleven of E07's are `built` with its two
+closed a day apart, so all seven read as the
 record of a shipped surface rather than a backlog entry. The story IDs `E01-S01`..`E01-S15`,
-`E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08`, `E05-S01`..`E05-S09` and
-`E06-S01`..`E06-S07` are unchanged and
+`E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08`, `E05-S01`..`E05-S09`,
+`E06-S01`..`E06-S07` and `E07-S01`..`E07-S11` are unchanged and
 are still what the citing files cite - see each file's §0. E06 is the one set no document cites at all: its
-only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`.
+only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`. ⚠️ **E07 is
+the first to move while part of it is days old** - E07-S10 and E07-S11 landed in the week before the move,
+so that record is not purely retrospective the way the six before it were.
 
 Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
 order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
@@ -264,7 +281,7 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [COMPANY_LEGAL_ENTITY.md](./COMPANY_LEGAL_ENTITY.md) — not under `epics/`, see §1 |
 | E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope; an item takes its picture on `itemAdd` and there is no path to replace one | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [CATALOGUE.md](./CATALOGUE.md) — not under `epics/`, see §1 |
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [CATEGORY_TAXONOMY.md](./CATEGORY_TAXONOMY.md) - not under `epics/`, see §1 |
-| E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [E07.md](epics/E07.md) |
+| E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [CUSTOMER_ACCOUNT_ADDRESSES.md](./CUSTOMER_ACCOUNT_ADDRESSES.md) - not under `epics/`, see §1 |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [E08.md](epics/E08.md) |
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
