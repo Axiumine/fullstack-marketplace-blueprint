@@ -56,6 +56,12 @@ The three divergences are intentional and none of them is an accident to "fix":
    share no library — here, `funUserAddressAdd.mts` on 4032 (a 400 naming the limit instead of a validator
    failure surfacing as a 500), and `AddressList.tsx` (which stops offering the button). Only the first is
    the rule.
+   `position` **stays optional and is written by the client only** (E07-S11, 2026-08-26): `AddressForm` in
+   `marketplace-user` places it from the geocoder suggestion the customer picks and lets them drag a
+   MapLibre pin to correct it, or place one the geocoder never found. No resolver geocodes — a lookup
+   inside the write would add a round trip to every save and would still have no answer for the address
+   that is not in OpenStreetMap. An address saved without a point is a customer nothing can sort by
+   distance, which is the accepted cost of not refusing an address a map cannot find.
 2. **No `waitApprov`.** Customers self-serve with nothing to approve; a shop owner who self-serves is
    parked until an operator clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
    decided 2026-08-25** — no approval, fraud check or spam-signup hold is coming for this collection, and
