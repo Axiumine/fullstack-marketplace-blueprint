@@ -79,7 +79,7 @@ app's shape:**
 
 The customer app, and the only server-rendered thing on the platform. TanStack Start (Vite 8 + React 19
 + TanStack Router SSR) · urql · graphql-codegen `client-preset` · react-hook-form + zod · Tailwind 4 ·
-MapLibre GL 6 + Protomaps PMTiles as a dynamically-imported island · Sentry.
+MapLibre GL 6 + Protomaps PMTiles behind two dynamically-imported islands · Sentry.
 
 Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that matter from outside:
 
@@ -106,7 +106,14 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
   `src/routeOptions/` as router-free constants so loaders, `head` and `validateSearch` are testable
   without mounting a router. Accepted cost: the framework's splitter reads literal properties and cannot
   see into an imported identifier, so no route is split out of the entry chunk. The one chunk worth
-  splitting — MapLibre, ~950 KB — is split anyway by the island's dynamic import.
+  splitting — MapLibre, ~950 KB — is split anyway by the islands' dynamic imports.
+
+- **Two maps, both islands, and the second one writes.** `ShopMap` shows catalogue pins; `PositionPicker`
+  is the draggable pin in the account area's address form, which is how a customer address acquires
+  `position` at all — the geocoder places it when a suggestion is picked, the pin corrects it, and an
+  address Nominatim does not know is placed by hand. `position` stays optional either way. Both are
+  reached only through their island, as is `src/features/map/pmtiles.ts`, which registers the `pmtiles://`
+  protocol once per document and pulls in `maplibre-gl` for anything that imports it.
 
 ## services-status
 
