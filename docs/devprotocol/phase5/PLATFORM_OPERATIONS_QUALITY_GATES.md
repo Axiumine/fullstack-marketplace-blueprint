@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-26
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
@@ -14,6 +14,44 @@ mutation outside the Admin resource service — and names the exception so a fut
 a regression. The story stays `built`: what it was written to protect, the depth cap having exactly one
 enforcement point, is untouched.
 v1.2 - 2026-08-26: §6's first open question removed as a duplicate, not closed as answered here. It restated `phase1/NFR.md` open question 1, which owns it; that question was closed 2026-08-26 when the platform owner decided GDPR is in scope, and the six unimplemented obligations continue as NFR.md open question 6. This context still owns no compliance decision, so a pointer replaces the restatement — the same treatment E08's duplicate got before that epic left `epics/`. §6's second question, who owns publishing `marketplace-common` past `deploy-local.sh`, is untouched and still live, so E09 stays under `epics/`.
+v1.3 - 2026-08-26, later the same day: **that second question closed, and the file left `epics/` to become
+this record**, for the reason §0 gives. The platform owner answered it directly — he owns
+`marketplace-common` and every other repo here, this platform is a blueprint published for the community,
+and `@axiumine/marketplace-common` goes to npmjs with him as the only publisher. That is
+[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes
+[`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part** — the
+publication half only. ⚠️ **The question was also citing the wrong gap.** It pointed at `ADR-INDEX.md` §5's
+*"where the sixteen repos get published, and under which org"*, which is about **git hosting**, not the npm
+registry; the npm question had always been ADR-015 §Risks' own revisit trigger. §6 now cites what actually
+owned it, and §5's bullet gained a clause saying ADR-037 does not close it. No story changed, no ID moved,
+nothing was dropped — only the file's own relative links, which now resolve from `phase5/` rather than from
+`phase5/epics/`, and one that was already wrong before the move: §3's schema-builder `README.md` pointed at
+the workspace root's README rather than at `BEs/marketplace-db-setup/lib/schemas/README.md`, which is the
+file the sentence around it is listing.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E09.md` until 2026-08-26. The file was deleted and its record moved here in one pass,
+the ninth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md),
+[`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md),
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) and
+[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
+still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
+became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E10..E19; E01..E09
+are the nine whose records sit beside the index instead of under it.
+
+**The story IDs did not change.** `E09-S01` … `E09-S09` keep their names and are cited as they are from
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2 and §4.
+
+⚠️ **This is the first record to move on a decision that also supersedes an ADR.** The eight before it moved
+when their last question was answered inside phase 5 or handed to the document that owned it. This one moved
+because a phase-3 architectural decision was taken, so the closure lives in
+[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) and §6 points at it rather than
+restating it — the same discipline §6's first bullet already follows for `NFR-CO02`.
 
 ## 1. Epic goal
 
@@ -42,15 +80,16 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
   one demo seed, no `collMod` anywhere (confirmed count and ordering on disk).
 - Schema builders: `BEs/marketplace-db-setup/lib/schemas/` holds `account.js`, `admin.js`,
   `collection.js`, `company.js`, `encrypted.js`, `geo.js`, `item.js`, `itemCategory.js`, `shopOwner.js`,
-  `user.js`, [`README.md`](../../../../README.md) (confirmed — this is the complete current set of schema builders).
+  `user.js`, [`README.md`](../../../BEs/marketplace-db-setup/lib/schemas/README.md) (confirmed — this is the
+  complete current set of schema builders).
 - `services-status` gate: `services-status/src/server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`,
   `config.ts`, `types.ts` plus `services-status/test/` holding `config.test.ts`, `monitor.test.ts`,
   `probe.test.ts`, `security.live.test.ts`, `security.test.ts`, `server.test.ts`, `systemd.test.ts` (7
-  files, confirmed — matches the "7 test files, 379 tests" row in [`docs/frontends.md`](../../../frontends.md) §Current suite sizes).
+  files, confirmed — matches the "7 test files, 379 tests" row in [`docs/frontends.md`](../../frontends.md) §Current suite sizes).
 - Unit suites beside the end-to-end replay: `BEs/marketplace-db-setup/test/migrateMongoConfig.test.mjs`,
   `test/mongoUrl.test.mjs`, `test/encryption.test.mjs`, `test/migrationCalls.test.mjs` (confirmed
   present) — these are what let the 100% mutation threshold go in for db-setup.
-- Decision record: [`docs/decisions/authorization-service-consolidation.md`](../../../decisions/authorization-service-consolidation.md) (confirmed present) — the
+- Decision record: [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) (confirmed present) — the
   ADR-006-equivalent this epic's AV01/AV02 stories trace to.
 - `.githooks/pre-commit` executability check for `qodana.sh`, confirmed at lines 237-251 (`for required
   in qodana.yaml qodana.sh; do` … `if [ ! -x "$APP_DIR/qodana.sh" ]`).
@@ -134,7 +173,7 @@ expressed at the database layer — the resolver is the only place this invarian
 Technical story: decided against 2026-08-07, re-opening needs a fresh change request, not a refactor PR.
 **domains:** backend, infra
 **Acceptance criteria:**
-- [`docs/decisions/authorization-service-consolidation.md`](../../../decisions/authorization-service-consolidation.md) records the decision and its argument
+- [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) records the decision and its argument
   (confirmed present) — traces NFR-AV01.
 - Each of the three services still calls `process.exit(1)` on an uncaught exception in its own
   `index.mts` — one process is one crash domain per tier; a story proposing a merged dispatcher on a
@@ -146,7 +185,7 @@ Technical story: safe specifically because it never re-reads a tier-specific col
 **domains:** backend
 **Acceptance criteria:**
 - `marketplace-dev-authenticated-logout`'s `start()` connects Redis only, no MongoDB — confirmed by its
-  documented absence of a `MONGO_TEST_*` block in [`docs/testing.md`](../../../testing.md)'s integration-database list.
+  documented absence of a `MONGO_TEST_*` block in [`docs/testing.md`](../../testing.md)'s integration-database list.
 - All three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) point their
   logout call at port 4030 — traces NFR-AV02.
 
@@ -156,7 +195,7 @@ pinned node via nvm before the first gate runs.
 **domains:** infra, testing
 **Acceptance criteria:**
 - `BEs/dev/marketplace-dev-user-authenticated-resource/package.json:30-31` carries
-  `"engines": { "node": "^24.18.0" }` — spot-checked on disk, matches [`docs/conventions.md`](../../../conventions.md) §Node and package manager.
+  `"engines": { "node": "^24.18.0" }` — spot-checked on disk, matches [`docs/conventions.md`](../../conventions.md) §Node and package manager.
 - `.githooks/pre-push` reads `engines.node` and switches via nvm before shelling to yarn in every repo
   that has one — traces NFR-PO01.
 
@@ -174,8 +213,31 @@ pinned node via nvm before the first gate runs.
 
 ## 6. Open questions
 
-- `NFR-CO02` (GDPR applicability) — tracked at [`phase1/NFR.md`](../../phase1/NFR.md) §Open questions.
-  Not decided here: this context owns only the secret-handling layers under NFR-CO01/NFR-SE12.
-- No story here names who owns publishing `marketplace-common` past `deploy-local.sh` to a real npm
-  registry — `phase3/adr/ADR-INDEX.md` §5 logs "repo publish target" as a gap this platform still owes
-  an ADR, not something Phase 5 can resolve by writing a story around it.
+**None live.** Both are closed or owned elsewhere, which is why this record sits beside the index rather
+than under `epics/` — see §0.
+
+- `NFR-CO02` (GDPR applicability) — tracked at [`phase1/NFR.md`](../phase1/NFR.md) §Open questions.
+  Not decided here: this context owns only the secret-handling layers under NFR-CO01/NFR-SE12. A pointer,
+  not a question — it restated NFR.md's own open question 1, which was closed on 2026-08-26 when the
+  platform owner decided GDPR is in scope; what remains of it continues as NFR.md open question 6, and none
+  of the obligations there falls to this context.
+- ~~No story here names who owns publishing `marketplace-common` past `deploy-local.sh` to a real npm
+  registry.~~ **Closed 2026-08-26 by
+  [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md).** The platform owner owns
+  `marketplace-common` and every other repo in this workspace, and decided that
+  `@axiumine/marketplace-common` is published to `registry.npmjs.org` with public access, by him
+  personally, with no CI job and no delegation — this platform is a blueprint published for the community,
+  and a shared library that 404s is a step only its author can perform. ADR-037 supersedes
+  [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part**: the
+  publication half only, since ADR-015 also carries the `deploy-local.sh` bridge and the GPL-3.0-or-later
+  licence decision, and neither is touched by a registry.
+  ⚠️ **`deploy-local.sh` does not go away, and BCON-07 in §5 is unchanged.** A published release is not
+  where an edit lands — the script is what closes the gap *between* releases, and a workspace that deleted
+  it would silently run every consumer against the last published build. ADR-037 §Decision property 2 keeps
+  it and lists its deletion as a violation shape.
+  ⚠️ **This question had been citing the wrong gap.** It pointed at
+  [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the sixteen repos get published, and
+  under which org"*, which is about **git hosting** — ADR-031's territory — not about the npm registry. That
+  bullet is still open and ADR-037 does not close it. The npm question was ADR-015 §Risks' own revisit
+  trigger from the day it was written; §5 now carries a clause saying so, so the two cannot be conflated
+  again.

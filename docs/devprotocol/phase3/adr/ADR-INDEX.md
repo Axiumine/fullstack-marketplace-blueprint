@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.7
+**Version:** 1.9
 **Date:** 2026-08-26
 **Author:** adr-agent
 **Changelog:**
@@ -58,6 +58,20 @@ on. ADR-036's §Risks bullet saying the purge does not exist was corrected with 
 reversed:** row B still stands for `company`, `shopOwner`, `item` and `itemCategory`, and option C —
 a partial unique index — is refused again in the amendment
 
+v1.9 - 2026-08-26, last that day: **ADR-037 added — `@axiumine/marketplace-common` is published to npmjs,
+the platform owner publishes it personally, and `deploy-local.sh` is not deleted.** It is the first
+supersession in this index and it is **partial on purpose**: ADR-015 said it would be "superseded, not
+revised" on the day the owner decided to publish, but ADR-015 also carries the GPL-3.0-or-later licence
+decision and the `deploy-local.sh` bridge, neither of which the registry touches and neither of which is
+recorded anywhere else. Marking it wholly superseded would have orphaned a licence decision, so its §2 row
+and its header read *superseded in part*, and the two now-false sentences in its body are struck in place
+with a pointer rather than deleted — the 404 is the premise its whole argument reasons from. One row in §2,
+one name in §3's **Build and quality gates** line, one clarifying clause in §5. **The header was stale at
+1.7 while this changelog already carried a v1.8**, so this entry is v1.9 and the header now agrees with it;
+no entry was skipped. §5's git-hosting gap is **not** closed by ADR-037 and gains a clause saying so — where
+the sixteen *repositories* live is a different question from which *registry* one npm package ships to, and
+ADR-037 §Compliance lists conflating them as a violation
+
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
@@ -98,7 +112,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, with no carve-out | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
-| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted | 2026-08-04 | — | — | Build and quality gates |
+| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part 2026-08-26** — the publication half only; the bridge and the licence stay | 2026-08-04 | — | ADR-037, in part | Build and quality gates |
 | ADR-016 | 100% coverage on all four metrics + 100 mutation score, everywhere | accepted | 2026-08-06 | — | — | Build and quality gates |
 | ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-018 | SSR public routes, CSR-only /account/*, cache bypasses on session cookie | accepted | 2026-08-05 | — | — | Frontend |
@@ -120,6 +134,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted | 2026-08-12 | — | — | Identity and access |
 | ADR-035 | `user.addresses` capped at six, in the validator and in the write that appends | accepted | 2026-08-26 | — | — | Data model |
 | ADR-036 | Erasure is not something the platform suspends: `userDel` does not gate on `disabled` | accepted | 2026-08-26 | — | — | Identity and access |
+| ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted | 2026-08-26 | ADR-015, in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -131,7 +146,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027
 
-**Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030
+**Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
+ADR-037
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032
 
@@ -183,5 +199,5 @@ Decisions this platform still owes an ADR, once taken:
   identical across nine files that nothing compares (`INFRA.md` §8 q8). Option E of ADR-034 — a secrets
   manager — is the destination and cannot be chosen before ADR-032 says where any of this runs.
 - **Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.
-- **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*).
+- **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
 - **Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.
