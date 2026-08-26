@@ -41,8 +41,9 @@ the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
 (E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
 rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that
-stays true for E07..E19; E01..E06 are the six whose records sit beside the index instead of under it —
-E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25.
+stays true for E08..E19; E01..E07 are the seven whose records sit beside the index instead of under it —
+E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's is
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md), moved 2026-08-26.
 
 **The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from
 `COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CONFLICT_REPORT.md`,
@@ -69,7 +70,7 @@ the ShopOwner-facing management UI is not.
 | `item` `$jsonSchema` validator | `company` aggregate | BC-04 owns it, `item` only holds `idCompany` |
 | ShopOwner-tier `itemAdd`/`Update`/`UpdatePublished`/`Del` | `itemCategory` writes | BC-06, admin-only |
 | Admin-tier `itemUpdatePublished`/`itemDel` (moderation) | price, cart membership, order lines | BC-11, unbuilt, no model to copy |
-| Public catalogue reads (`items`, `itemBySlug`, `search`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
+| Public catalogue reads (`items`, `itemBySlug`, `searchItems`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
 | Item picture upload on `itemAdd`, ShopOwner tier (E05-S09) | the picture on the Admin and public tiers | `image` is on this tier's `GraphQLItem` alone — `GraphQLItemFrag` is shared by three services and stays as it is |
 | Public/customer catalogue frontend (`marketplace-user`) | — | ShopOwner-facing item management screens were the one gap; E05-S07 closed it |
 

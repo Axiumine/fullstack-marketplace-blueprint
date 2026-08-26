@@ -114,6 +114,21 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
   address Nominatim does not know is placed by hand. `position` stays optional either way. Both are
   reached only through their island, as is `src/features/map/pmtiles.ts`, which registers the `pmtiles://`
   protocol once per document and pulls in `maplibre-gl` for anything that imports it.
+- **The picked position is one form field, written by three surfaces.** `AddressForm` holds it as a single
+  `"lon,lat"` **string** — not two numeric fields — and picking a geocoder suggestion, dropping or dragging
+  the pin, and the "Remove position" control all write that one field, which the map then reads back. That
+  is what keeps the three from disagreeing, and `''` is the only honest "no position": a numeric pair would
+  have to spell it as `NaN` or `0`, and half a position is not a degraded one, it is a wrong one. The pin is
+  the **correction** surface, never the primary one — the address fields and their suggestions stay
+  sufficient on their own, because a canvas cannot be dragged with a keyboard.
+- ⚠️ **A point the map itself produced never re-frames the map.** A drag or a click leaves the viewport
+  alone; only a point arriving from the geocoder eases to it, at zoom 16 (`ZOOM_ADDRESS` in
+  `src/features/map/PositionPicker.tsx`, against `ZOOM_COUNTRY` 3 when there is no position yet). Without
+  that exemption the map walks across the screen chasing the pin the customer just let go of.
+- ⚠️ **`[longitude, latitude]`, in that order, on every boundary.** GeoJSON's order — reversed from
+  MapLibre's `{lng, lat}` and from Nominatim's named `lat`/`lon`, so both adapters flip it, and a swap
+  survives every type-check and puts the point in the sea. Stored rounded to **six decimals** (~11 cm),
+  which is shorter than the float that reaches the field and precise past any use this platform has.
 
 ## services-status
 

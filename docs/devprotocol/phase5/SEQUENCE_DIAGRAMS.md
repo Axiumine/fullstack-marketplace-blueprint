@@ -75,7 +75,7 @@ needed because nothing is being removed.
 `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/mutations/`,
 `.../src/lib/user/funUserDefaultAddressSet.mts`.
 
-### 2.6 — Public catalogue reads (`companies`, `items`, `search`, `companyBySlug`, `itemBySlug`, `itemCategories`, `sitemapEntries`)
+### 2.6 — Public catalogue reads (`companies`, `items`, `searchCompanies`, `searchItems`, `companyBySlug`, `itemBySlug`, `itemCategories`, `sitemapEntries`)
 Two actors, no auth, no branching worth a diagram: Anonymous Visitor → `marketplace-dev-public-resource`
 (4027) → MongoDB, straight read. Geo queries hit the `address.position_2dsphere` index. Fully defined by
 their resolver signatures in `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/`

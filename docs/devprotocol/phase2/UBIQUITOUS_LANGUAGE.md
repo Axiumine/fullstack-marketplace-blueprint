@@ -280,8 +280,8 @@ Two tiers diverge on delete semantics for an already-retired company: ShopOwner 
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js`.
 
 ### addresses
-**Definition:** Array of address elements, each carrying required `_id` (Mongoose auto-mints it), optional `label`, the shared street-address block, optional `position`.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js` (`addressItem()`).
+**Definition:** Array of address elements, each carrying required `_id` (Mongoose auto-mints it), optional `label`, the shared street-address block, optional `position`. ⚠️ **Bounded at `maxItems: 6` since 2026-08-26 (ADR-035)** — the whole array lives in one document under a 16 MB ceiling and `me` loads all of it on every account read, and because every member of an element is random ciphertext (ADR-029) counting *elements* is the one length rule the validator has left. The number is spelled in three repos that share no library — the validator (the rule), `funUserAddressAdd.mts` on 4032 (a 400 naming the limit instead of a validator failure surfacing as a 500) and `AddressList.tsx` (which stops offering the button).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js` (`addressItem()`), `migrations/20260826000000-user-cap-addresses.js` (the `collMod` for databases already built).
 **Example:**
 ```js
 // BEs/marketplace-db-setup/lib/schemas/user.js
@@ -326,8 +326,8 @@ const ret = await User.updateOne(
 ```
 
 ### position (GeoJSON, on `user.addresses[]`)
-**Definition:** Optional GeoJSON Point, tuple form `[longitude, latitude]`, filled in when the address is picked from the geocoder autocomplete. Never required — an address typed by hand has no map until re-picked.
-**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js` (`COORDINATE_TUPLE`), `:51-69` (`position()`).
+**Definition:** Optional GeoJSON Point, tuple form `[longitude, latitude]`, **written by the client only and by three surfaces of the account form** (2026-08-26): picking a geocoder suggestion places it, dragging or dropping the MapLibre pin corrects it, and "Remove position" takes it away. ⚠️ **A hand-typed address the geocoder never found is placed by the pin alone** — it does not stay unplaced until re-picked. No resolver geocodes: `userAddressAdd`/`userAddressUpdate` store what arrives, because a lookup inside the write would add a round trip to every save and would still have no answer for the address that is not in OpenStreetMap. **Never required, permanently** (platform owner, 2026-08-26 — `phase3/adr/ADR-INDEX.md` §4): an address nobody could place still saves, and the accepted cost is that it cannot be ordered by distance, so any feature sorting by proximity must treat a missing `position` as a real state rather than as bad data. Stored rounded to six decimals (~11 cm).
+**Used in:** `BEs/marketplace-db-setup/lib/schemas/geo.js` (`COORDINATE_TUPLE`), `:51-69` (`position()`); `marketplace-user/src/features/account/AddressForm.tsx`, `src/features/map/PositionPicker.tsx`.
 **Not to be confused with:** `itemCategory.position` — a SORT ORDINAL integer, unrelated shape, same field name, see §10.
 
 ---
@@ -601,7 +601,7 @@ A read model is the shape of a GraphQL query response an actor reads to decide t
 
 | Read model | Used by | Contains | Source |
 |---|---|---|---|
-| `me` (`GraphQLUserMe`) | Customer | personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, login/verify state | `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
+| `me` (`GraphQLUserMe`) | Customer | `login.email`, personal data (optional until filled in), `addresses[]`, `defaultAddress` pointer, `registeredAt` — takes no `_id` argument, identity comes off the session, and the `select` is a **positive** field list, so `login.password`, `resetPwd` and `emailVerify` are absent from it and so is anything added to the collection later | `BEs/dev/marketplace-dev-user-authenticated-resource/src/graphQLApi/schema/queries/me.mts` |
 | `shopOwnerCompanies` / `companyItems` / `itemCategories` | ShopOwner | own `company` documents, own `item` documents per company, admin-curated category tree (read-only this tier) | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/queries/` |
 | `shopOwnerById` (`GraphQLShopOwnerById`) | Admin | full account incl. `waitApprov`, `disabled`, onboarding fields, note/preferences — the approval-screen read model | `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries/shopOwnerById.mts` |
 | `companies` / `companiesNearby` / `companyBySlug` / `items` / `itemBySlug` / `itemCategories` / `search` / `sitemapEntries` | Anon Visitor, Customer | published-only projection of `company`/`item`/`itemCategory`, filtered through `livePublic`/`LIVE_PUBLIC_PIPELINE` | `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts` |

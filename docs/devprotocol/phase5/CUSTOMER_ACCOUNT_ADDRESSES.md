@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-26
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
@@ -22,12 +22,65 @@ v1.1 - 2026-08-25: §6's first open question closes on the platform owner's deci
 says so in three places, and what was missing was whether it was a starting point or the answer. It is the
 answer. Recorded in `phase3/adr/ADR-INDEX.md` §4. Closing it surfaced one thing the question had not
 asked: `user.disabled` is read by every gate and written by nothing.
-v1.2 - 2026-08-25, later the same day: that finding became an epic. [`E19.md`](./E19.md) — Customer
+v1.2 - 2026-08-25, later the same day: that finding became an epic. [`E19.md`](./epics/E19.md) — Customer
 Administration — owns the missing lever and the operator surface to reach it from, so §6's note names the
 epic rather than leaving a finding with nobody holding it. The decision closed above is untouched and E19
 does not reopen it: it adds no gate before a customer's first login, and its customers table queries no
 encrypted field, so the sentence about a moderation table reversing ADR-029 is narrowed to the *searchable*
 kind it was always about.
+v1.5 - 2026-08-26, last that day: **the file left `epics/` and became this record**, for the reason §0
+gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
+resolve from `phase5/` rather than from `phase5/epics/`. Four things this file held alone were copied out
+first, to where a reader looks for them without knowing it exists: the address form's single `"lon,lat"`
+field and its three writers, the viewport exemption that stops the map chasing a dragged pin, and the
+`[longitude, latitude]` order with its six-decimal rounding are in
+[`docs/frontends.md`](../../frontends.md); the corrected meaning of `position` — a hand-typed address is
+placed by the pin alone, rather than staying unplaced until re-picked — and `addresses`' `maxItems: 6` are
+in [`phase2/UBIQUITOUS_LANGUAGE.md`](../phase2/UBIQUITOUS_LANGUAGE.md) §8, whose two entries still described
+the platform as it stood before E07-S10 and E07-S11. Correcting them surfaced a third stale claim, in the
+same glossary (§17) and in [`phase2/EVENT_STORMING.md`](../phase2/EVENT_STORMING.md) §4: both said `me` answers
+"login/verify state", and it does not — the `select` is a positive list of six fields and `GraphQLUserMe`
+has no field for `emailVerify` at all, which is E07-S01's whole point.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E07.md` until 2026-08-26. The file was deleted and its record moved here in one pass,
+the seventh to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md) and
+[`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) moved before it: nothing in it is work still ahead. All
+eleven stories are `built` and §6 has no open question left — the absent approval gate closed on
+2026-08-25 by a decision, and `position`'s writer on 2026-08-26 by an implementation, which is also where
+the two newest stories came from. So the file had become the *record* of a shipped surface rather than a
+backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
+E08..E19; E01..E07 are the seven whose records sit beside the index instead of under it.
+
+**The story IDs did not change.** `E07-S01` … `E07-S11` keep their names. They are cited by
+[`docs/data-model.md`](../../data-model.md) (E07-S11), [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md)
+§4 (E07-S11, twice), [`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) (E07-S03, E07-S05) and
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §5, which uses `E07-S01` as the example of the ID format itself.
+Every one of those resolves to a section of this file, and renumbering was refused for the reason E01
+gives — an ID cited across files is a name, and moving a file is not a reason to change a name.
+
+⚠️ **This is the first record to move while two of its stories are days old.** E07-S10 and E07-S11 both
+landed in the week before the move, so unlike the six before it this file is not purely a retrospective:
+§3's "built end to end" was written of a surface that has since grown a cap and a map. Both are recorded
+outside this file as well — the cap as [`ADR-035`](../phase3/adr/ADR-035-user-addresses-capped-at-six.md)
+and in [`docs/data-model.md`](../../data-model.md), the map in
+[`docs/frontends.md`](../../frontends.md) and as two rows of ADR-INDEX §4 — so nothing about either
+depends on this file being read.
+
+⚠️ **What this record holds that no other file does, after the move.** Not the decisions, and not the
+contracts: `me`'s six-field positive projection, `userAddressAdd`'s 400 at six and the filter clause that
+buys atomicity, the ownership guard on the other three mutations and the pipeline delete with its two
+Mongoose traps are all in [`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §7.2, and the delete's
+`$$REMOVE` is additionally in [`ADR-010`](../phase3/adr/ADR-010-default-address-pointer.md), DCON-06 and
+R11. What stays here alone is the *shape of the work*: eleven stories with their acceptance criteria, in
+the order they were written, and §6's two questions with the reasoning that closed each — why a customer
+tier that self-serves permanently is not the same question as a shop owner's approval queue, and why an
+address a geocoder cannot find is saved without a point rather than refused. Both describe how a shipped
+surface was reasoned about, which is what a record is for and what an ADR deliberately is not.
 
 ## 1. Epic goal
 
@@ -42,7 +95,7 @@ No order/cart relationship exists yet — addresses point at nothing beyond the 
 |---|---|---|
 | `user.personalData`, `user.addresses[]`, `user.defaultAddress` shape | `user.login`, `emailVerify`, `resetPwd` sub-documents | BC-01 (Identity & Access) owns login/session content, same document, different context by convention |
 | `me`, `userPersonalDataUpdate`, `userAddressAdd/Update/Del`, `userDefaultAddressSet`, `userUpdatePwd` resolvers | `userRegister`, `userVerifyEmailResend` | Those mutations live in `marketplace-dev-public-resource` (BC-08/BC-01), not this service |
-| `marketplace-user` `/account/*` CSR routes reading/writing those ops | Any order/cart linkage from an address | BC-11 unbuilt, no model to copy — see [`CLAUDE.md`](../../../../CLAUDE.md) §Build state |
+| `marketplace-user` `/account/*` CSR routes reading/writing those ops | Any order/cart linkage from an address | BC-11 unbuilt, no model to copy — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state |
 | Ownership guard `throwIfUserDontOwnAddress` | `waitApprov`-style approval gate | Explicitly absent — customers self-serve, divergence #3 from `shopOwner` (`BEs/marketplace-db-setup/lib/schemas/user.js`) |
 
 ## 3. Build state
@@ -151,14 +204,14 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
 - Shares `marketplace-common`'s `assertTier`/`TIER` (BC-10) — an edit there needs `./deploy-local.sh`
   before this service picks it up (BCON-07).
 - `marketplace-user`'s `/account/*` routes (frontend half) depend on this service's schema slice under
-  `marketplace-user/src/gql/` staying in sync with the resolvers — see [`docs/frontends.md`](../../../frontends.md)'s warning that
+  `marketplace-user/src/gql/` staying in sync with the resolvers — see [`docs/frontends.md`](../../frontends.md)'s warning that
   `schema/*.graphql` slices are hand-maintained, not the contract.
 
 ## 6. Open questions
 
 - ~~No `waitApprov`-equivalent exists for `User` by design (self-service) — is there any future gate
   (fraud check, spam signup) planned for this tier, or is self-service permanent? Not answered in
-  `phase2/BOUNDED_CONTEXT.md` BC-07 or [`CLAUDE.md`](../../../../CLAUDE.md).~~ ⚠️ **Closed 2026-08-25 by
+  `phase2/BOUNDED_CONTEXT.md` BC-07 or [`CLAUDE.md`](../../../CLAUDE.md).~~ ⚠️ **Closed 2026-08-25 by
   the platform owner: self-service is permanent, and there is no equivalent for `user`.** No approval, no
   fraud check, no spam-signup hold between `userRegister` and the first login. `emailVerify.valid` stays
   the only gate, checked by `tryLoginUser`
@@ -180,8 +233,8 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
   on any tier wrote it**: the Admin resource service had no `user*` mutation at all. So there was no gate
   before registration *and* no lever after it, and suspending a customer meant a write made straight
   against MongoDB. That was a missing Admin-tier mutation, not a second reading of this decision.
-  Recorded in [`phase3/adr/ADR-INDEX.md`](../../phase3/adr/ADR-INDEX.md) §4, and **closed the same day by
-  [`E19.md`](./E19.md)** — all six stories built 2026-08-25, `userUpdateStatus` the lever among them. The
+  Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, and **closed the same day by
+  [`E19.md`](./epics/E19.md)** — all six stories built 2026-08-25, `userUpdateStatus` the lever among them. The
   gate before registration stays absent, permanently; only the lever after it was the hole.
 - ~~`addresses[].position` is optional — no story here defines when/how it gets populated (client
   geocode vs manual pin). Out of this epic's built scope; flagging because BC-08's map feature
