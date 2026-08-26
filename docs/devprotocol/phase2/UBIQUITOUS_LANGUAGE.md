@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-25
+**Version:** 1.4
+**Date:** 2026-08-26
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.4 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
+
 v1.3 - 2026-08-25: §12's `itemCategory` and `idParent` entries said writes to the collection exist ONLY in the Admin resource service. That is true of the three mutations and no longer true of the collection: `holdItemCategory` in `marketplace-dev-authenticated-resource` `$inc`s `__v` on one category inside every `itemAdd`/`itemUpdate` transaction, deliberately, to make the read a write and close a write-skew window against `itemCategoryDel`. The entry now says which claim holds. Its citation and code example were also two versions stale — both predated the transaction the guard now runs in.
 v1.2 - 2026-08-13: E03-S04. §6's `onboardingStep`/`onboardingDone` entry said the fields are written by no mutation on the platform. They are written by `shopOwnerUpdatePreferences` and always were — the entry now names the file and says the shop owner cannot write their own progress. The hotspot closes as a decision (the operator's hand stays the writer until a shop-owner onboarding flow is designed), residual as `RISK_REGISTER.md` R53.
 v1.1 - E03-S08. `shopOwner` gained a second creation route: §6's definition, the new `personalData` (whole block) row, the `waitApprov` rows and the `user` definition all follow from it, and the hotspot §6 carried is closed rather than restated. §14 gained `shopOwnerRegister` and the shop owner's REST verification route, §15 the events they produce, §16 the policy that writes the flag and the order the two login gates run in.
@@ -45,7 +47,7 @@ The single most important mapping on the platform. Get this wrong and every down
 **Example:** ~~No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd`.~~ **Since 2026-08-12 there are two creation routes and they differ in one field.** `shopOwnerRegister` on the public service writes `waitApprov: true`, so a stranger may ask to become a shop owner; `shopOwnerAdd` on the Admin service writes nothing there, because an operator creating the account by hand has approved it by doing so. The seller's own panel `marketplace-shopowner` has no registration screen — the public form lives on `marketplace-user`, beside the customer's.
 
 ### Admin
-**Definition:** Platform operator, thedoctorweb staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
+**Definition:** Platform operator, the vendor's own staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
 **Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `marketplace-admin`.
 **Not to be confused with:** "superadmin" — never used in code. `ShopOwner` owns companies; `Admin` owns nothing.
 

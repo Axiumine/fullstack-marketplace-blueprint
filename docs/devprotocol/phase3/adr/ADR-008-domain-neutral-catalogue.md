@@ -3,7 +3,7 @@
 
 **Status:** accepted
 **Date:** 2026-08-05
-**Deciders:** platform owner (thedoctorweb)
+**Deciders:** platform owner
 **Supersedes:** —
 **Superseded by:** —
 
@@ -11,7 +11,8 @@
 
 ## Context
 
-Vendor is thedoctorweb, tenants are arbitrary shops (`company`), product types unknown in advance.
+One vendor operates the platform, tenants are arbitrary shops (`company`), product types unknown in
+advance.
 The obvious modelling — and the one a catalogue drifts into — gives each product type its own
 collection, with its own migration, mongoose model, resolver set and test file. Adding a product type
 then means a new collection top to bottom, and the collections differ in their *category*, not in their

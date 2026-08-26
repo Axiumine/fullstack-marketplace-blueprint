@@ -224,7 +224,7 @@ The three `*-authenticated-authorization` services share their body and keep the
 supplies only its own `TIER.*` constant, its own model and its own projection.
 
 - **Merging the three into one process is settled, against.** Do not re-open it as a refactor.
-- ⚠️ **`1.0.0` is a renumber, not a rewrite.** The package was `@thedoctorweb_agency/marketplace-common@4.4.0`
+- ⚠️ **`1.0.0` is a renumber, not a rewrite.** The package sat at `4.4.0` under a private scope
   until it was renamed to `@axiumine/marketplace-common` and restarted at `1.0.0` for its first public
   release. Same code, new name, new number — a `4.x` in an older note means this. Consumers declare
   `^1.0.0`.
