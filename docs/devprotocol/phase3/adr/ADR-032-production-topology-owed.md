@@ -32,7 +32,7 @@ no document that says so.** What exists is:
 - **The edge, in full.** `marketplace-nginx/` carries three vhosts — apex, `shopowner.`, `admin.` —
   terminating TLS for all three and proxying eleven loopback upstreams: the nine backend services, the
   SSR renderer and Nominatim. `test/run.sh` exercises the real configuration in a container: `nginx -t`
-  plus 168 behavioural assertions. ADR-030 makes that suite the `pre-push` gate.
+  plus every behavioural assertion in `test/suite.sh`. ADR-030 makes that suite the `pre-push` gate.
 - **The bind addresses, decided and argued.** ADR-022: the nine services bind the wildcard address
   because they are meant to be reachable from nginx and from each other across the box, and a hardcoded
   loopback bind would break any topology where the proxy is not the same process. `marketplace-user`'s

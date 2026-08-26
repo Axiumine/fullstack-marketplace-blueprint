@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-26
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -32,6 +32,7 @@ reader would otherwise have to check.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
 v1.8 - 2026-08-26: NFR-CO02 restated and open question 9 closed — GDPR applicability was decided by the platform owner out of phase, which is what §5 said should happen. The trace note now separates what §4 actually satisfies (Art. 32 technical measures) from the five limbs it does not, so a reader cannot take the encryption regime for compliance. No control changed.
+v1.9 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
 
@@ -299,7 +300,7 @@ It has no authentication of its own — reaching it directly bypasses every ngin
 
 `marketplace-nginx/` at the workspace root is the edge: `conf.d/` (hardening, upstreams, rate limits, cache, TLS), `snippets/` (the proxy body and two header policies) and a vhost per hostname in `sites-available/` — apex, `shopowner.`, `admin.`. The customer-only copy this section used to cite, `marketplace-user/docs/nginx/*.conf`, is deleted.
 
-**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `marketplace-nginx/test/run.sh` starts a container, runs `nginx -t`, then drives 168 behavioural assertions against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) lists them.
+**Nothing is installed on this machine** — no `/etc/nginx`, no `nginx` binary in `PATH` — so every claim below is still what the config *specifies* rather than a control running in production. It is no longer unverified, though, which is the part that changed: `marketplace-nginx/test/run.sh` starts a container, runs `nginx -t`, then drives every behavioural assertion in `test/suite.sh` against stand-in backends — including that a `Set-Cookie` emitted exactly the way koa-utils emits it comes back `Secure; HttpOnly; SameSite=Strict` from all seven cookie-minting endpoints. Five real defects that `nginx -t` accepts were found and fixed this way; [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) lists them.
 
 Upstream map, all loopback, matching the port table in [`docs/architecture.md`](../../architecture.md) §Services (`marketplace-nginx/conf.d/10-upstreams.conf:24-56`, comments elided):
 

@@ -104,7 +104,7 @@ repos of sixteen and has no exception.
 ## Consequences
 
 ### Positive
-- Every revision that reaches `origin` has had `nginx -t` and 168 behavioural assertions run against it.
+- Every revision that reaches `origin` has had `nginx -t` and every behavioural assertion in `test/suite.sh` run against it.
   Without the gate nothing would have: there is no nginx on the machine, so the configuration's first
   execution would be on a host where a failed reload is an outage.
 - [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) layer 3 has no exception. All sixteen repos carry check 0 and both staged scans.

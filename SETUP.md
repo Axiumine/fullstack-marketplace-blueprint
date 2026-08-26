@@ -487,7 +487,7 @@ is the throwaway container in `test/`:
 
 ```bash
 cd marketplace-nginx
-./test/run.sh                                    # nginx -t, then 168 assertions
+./test/run.sh                                    # nginx -t, then the whole assertion suite
 CONTAINER_ENGINE=podman ./test/run.sh            # podman instead of docker
 NGINX_TEST_IMAGE=nginx:1.29-alpine ./test/run.sh # check a version bump before rollout
 ```

@@ -80,7 +80,7 @@ the only thing on the platform that sets `Secure` on the session cookie.** koa-u
 `secure: false` with a comment saying to rewrite it at the edge. Nothing fails without nginx in front —
 the cookie simply goes out replayable over plain HTTP.
 
-`marketplace-nginx/test/run.sh` runs the whole thing in a throwaway container: `nginx -t`, then 168 assertions
+`marketplace-nginx/test/run.sh` runs the whole thing in a throwaway container: `nginx -t`, then every assertion in `test/suite.sh`
 against a live nginx and stand-in backends. It is the only way to test any of this, since there is no
 nginx here.
 

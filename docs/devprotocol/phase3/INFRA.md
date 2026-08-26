@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-26
 **Author:** infra-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 **Depends on:** `PDR.md` ✅ · `NFR.md` ✅ · `SYSTEM_CONTEXT.md` ✅
+v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
 
@@ -493,7 +494,7 @@ document; the four customer-only files this section used to cite,
 `PATH` on this machine. Nothing is installed — but "uninstalled" no longer means "unverified".
 `marketplace-nginx/test/run.sh` starts a container (`nginx:1.29-alpine` by default), generates a self-signed cert for
 all four names, replaces every upstream with a stand-in that echoes which one answered, runs `nginx -t`,
-and then drives **168 behavioural assertions** over the real config: the path→service map, the `Secure`
+and then drives **every behavioural assertion in `test/suite.sh`** over the real config: the path→service map, the `Secure`
 rewrite on all seven cookie-minting endpoints, CSP nonce equality across a cache MISS *and* a HIT,
 cache BYPASS with a session cookie, `gzip off` on the token endpoints, the redirect and ACME behaviour,
 panel hardening, and each rate-limit zone engaging out of its own budget.

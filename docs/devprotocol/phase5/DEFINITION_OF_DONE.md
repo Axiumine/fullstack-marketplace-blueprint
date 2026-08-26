@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-07
+**Version:** 1.3
+**Date:** 2026-08-26
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or an epic to map onto a bounded context — that
@@ -14,6 +14,7 @@ v1.2 - 2026-08-11: Mutability no longer requires a team vote — single develope
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase4/ERROR_HANDLING.md` ✅ · `phase5/CONSTRAINTS.md` ✅
 **Mutability:** the platform owner decides — no vote exists, there is one developer. Record the reason in the
 changelog above; a change here affects all open stories.
+v1.3 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
 
@@ -220,7 +221,7 @@ document is that doctrine in checklist form.
   is never a DoD claim.
 - No nginx is installed anywhere in this workspace or on this machine — no `/etc/nginx`, no nginx binary on
   `PATH`. The edge under `marketplace-nginx/` at the workspace root (three vhosts, five `conf.d/` files, three snippets)
-  is deployable, real, and passes `nginx -t` plus 168 behavioural assertions in `marketplace-nginx/test/run.sh` — which
+  is deployable, real, and passes `nginx -t` plus every behavioural assertion in `marketplace-nginx/test/suite.sh` — which
   makes "nginx config written" *and* "nginx config tested" claimable, and neither of them is "nginx config
   live" (`phase3/SECURITY_AUTH.md` §5, `marketplace-nginx/README.md`). ⚠️ The suite runs against stand-in backends in a
   container, so it proves the configuration's behaviour, never the platform's.

@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-26
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
 
@@ -376,7 +377,7 @@ rate-limit file and one TLS file.
 
 Still nothing installed on this machine (no `/etc/nginx`, no binary in `PATH`), but "documentation only"
 now understates it: `marketplace-nginx/test/run.sh` runs the whole configuration in a throwaway container —
-`nginx -t` as a hard gate, then 168 assertions through a live nginx against stand-in backends. The
+`nginx -t` as a hard gate, then every assertion in `test/suite.sh` through a live nginx against stand-in backends. The
 directives below are executed, not merely written.
 
 Upstream map, all loopback, now eleven rather than seven — the two panels' tiers were never in the old

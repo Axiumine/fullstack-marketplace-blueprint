@@ -2,14 +2,27 @@
 # Marketplace
 
 **Status:** pass
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-07
 **Author:** conflict-checker-agent
+**Changelog:** v1.3 — 2026-08-26: a staleness banner added to §1 and nothing else touched. Every count and enumeration in this report describes the tree on 2026-08-07 and several have drifted since; correcting them one by one would fake a re-audit this document did not run. v1.2's corrections were arithmetic errors against the tree of its own date, which is a different thing and stays the precedent for correcting in place.
 **Changelog:** v1.2 — two of this report's own counts corrected against disk: §7 said "5 full diagrams" where [`SEQUENCE_DIAGRAMS.md`](./SEQUENCE_DIAGRAMS.md) §3-§9 holds 7 (7 ```mermaid blocks), and §10 said "91 stories" where the 11 epic files hold 77 unique `ENN-SNN` ids. Verdict unchanged.
 v1.1 — C01, C02 and the NFR-SE03 traceability gap all fixed at source; verdict raised from *pass with warnings* to *pass*.
 v1.0 — initial Phase 5 conflict sweep
 
 ## 1. Verdict
+
+> ⚠️ **This is a snapshot of 2026-08-07, and Phase 5 has moved under it. Read the counts as dated, not current.**
+> Phase 5 held eleven epics, all under `epics/`, when this sweep ran. Since then eight of those files have left
+> `epics/` for domain-named records in `phase5/` as their stories completed (E01 → `IDENTITY_ACCESS.md`, E02 →
+> `SESSION_TERMINATION.md`, E03 → `SHOPOWNER_ONBOARDING_APPROVAL.md`, E04 → `COMPANY_LEGAL_ENTITY.md`, E05 →
+> `CATALOGUE.md`, E06 → `CATEGORY_TAXONOMY.md`, E07 → `CUSTOMER_ACCOUNT_ADDRESSES.md`, E08 →
+> `PUBLIC_DISCOVERY_STOREFRONT.md`), eight further epics E12–E19 have been written, and the eleven original epics
+> now hold 90 unique story ids rather than 77 — E01 runs to S15, E03 and E04 to S08, E05 to S09, E07 to S11, E08
+> to S10. **The verdict below is not withdrawn**: nothing here was found to be wrong when it was written, and the
+> three findings it records were fixed at source. What is out of date is the arithmetic, not the conclusion. A
+> current sweep would be a new report, not an edit to this one — [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2 is
+> the live index.
 
 Pass. No blocking conflict found. Two warning-level nits and one traceability gap were found and all three are **fixed at source** — see §3 and §6d. Phase 5 gate closes with no outstanding findings under RULES.md §4.
 
