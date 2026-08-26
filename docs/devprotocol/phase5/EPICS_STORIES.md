@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.37
+**Version:** 1.38
 **Date:** 2026-08-26
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -241,7 +241,7 @@ longer holds a live question — the last one was not answered, it was **removed
 [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2 asks who deploys the edge and on what host, and
 owns PF08 and PF09 along with SE09, SE10, SC01 and SC02. **`E08-S01`..`E08-S10` are unchanged**, and are
 still what `CONFLICT_REPORT.md` cites. §1's "seven exceptions" is now eight and §2's E08 row links to the
-new path; `epics/` holds E09..E19. E08-S10 is itself new that day: NFR-PF09 was in E08's scope and traced
+new path; `epics/` holds E10..E19 (it held E09..E19 until E09 moved later the same day). E08-S10 is itself new that day: NFR-PF09 was in E08's scope and traced
 from no story, because `marketplace-nginx/test/run.sh` probed `/tiles/` for security headers only — a
 `proxy_pass` there would have answered 200 with the whole archive and passed. The suite now asserts the
 range. One thing that record held alone was copied out first, into
@@ -255,6 +255,22 @@ incremented from a number that was never written down.
 **Mutability:** living document - refined every sprint
 v1.37 - 2026-08-26, later still: **E19's §1 row stops saying erasure exists on no tier.** `userDel` was built that day on the customer tier and `user.deleted_ttl` — a 30-day TTL index on the collection E19-S01 indexed — landed with it, so the stamp is carried out rather than kept. No story of this epic changed and no epic opened: the Admin counterpart to `shopOwnerDel` is still absent, which is what E19 §Open questions 3 now carries alone.
 
+v1.38 - 2026-08-26, last that day: **E09's record leaves `epics/` and becomes
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md)** — the ninth to move, and
+the first to move on a decision that supersedes an ADR rather than on a question answered inside phase 5.
+Its §6 held two questions and now holds none: the first became a pointer to `phase1/NFR.md` earlier the same
+day, and the second — who owns publishing `marketplace-common` past `deploy-local.sh` — was answered
+directly by the platform owner, who owns that repo and every other one here. `@axiumine/marketplace-common`
+is published to npmjs, by him personally, and
+[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) records it, superseding
+[`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part** — the
+publication half only, because ADR-015 also carries the `deploy-local.sh` bridge and the GPL-3.0-or-later
+licence and a registry touches neither. ⚠️ **The question had been citing the wrong gap**: it pointed at
+`ADR-INDEX.md` §5's *"where the sixteen repos get published, and under which org"*, which is git hosting,
+not the npm registry; that bullet stays open and now says so. **`E09-S01`..`E09-S09` are unchanged.** §1's
+"eight exceptions" is now nine and §2's E09 row links to the new path; the eight records that had already
+moved carry the corrected range in their own §0.
+
 ---
 
 ## 1. Purpose
@@ -262,23 +278,26 @@ v1.37 - 2026-08-26, later still: **E19's §1 row stops saying erasure exists on 
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 19 epics, states build state against the working tree, and links out.
 
-**Eight exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+**Nine exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
 [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), E05's is [`CATALOGUE.md`](./CATALOGUE.md) (those
 three 2026-08-14), E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) (2026-08-25) and E07's is
-[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26) and E08's is
-[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) (2026-08-26, later the same day),
-beside this index rather than under `epics/`. All fifteen of E01's stories are `built`,
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26), E08's is
+[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) (2026-08-26, later the same day) and
+E09's is [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) (2026-08-26,
+later still), beside this index rather than under `epics/`. All fifteen of E01's stories are `built`,
 E02's four built stories sit next to one anti-story - a boundary to defend, not work ahead - all eight of
 E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, all
 nine of E05's are `built` with both of its open questions closed the day it moved, all seven of E06's
 are `built` with its own last two closed the day it moved, and all eleven of E07's are `built` with its two
-closed a day apart, and all ten of E08's are `built` with its one remaining question moved to the file
-that owns it rather than answered here, so all eight read as the
+closed a day apart, all ten of E08's are `built` with its one remaining question moved to the file
+that owns it rather than answered here, and all nine of E09's are `built` with one question moved the same
+way and the other closed outright by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md),
+so all nine read as the
 record of a shipped surface rather than a backlog entry. The story IDs `E01-S01`..`E01-S15`,
 `E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08`, `E05-S01`..`E05-S09`,
-`E06-S01`..`E06-S07`, `E07-S01`..`E07-S11` and `E08-S01`..`E08-S10` are unchanged and
+`E06-S01`..`E06-S07`, `E07-S01`..`E07-S11`, `E08-S01`..`E08-S10` and `E09-S01`..`E09-S09` are unchanged and
 are still what the citing files cite - see each file's §0. E06 is the one set no document cites at all: its
 only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`. ⚠️ **E07 and E08 both moved
 while part of them was days old** - E07-S10 and E07-S11 landed in the week before their move, E08-S10 the
@@ -303,7 +322,7 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [CATEGORY_TAXONOMY.md](./CATEGORY_TAXONOMY.md) - not under `epics/`, see §1 |
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [CUSTOMER_ACCOUNT_ADDRESSES.md](./CUSTOMER_ACCOUNT_ADDRESSES.md) - not under `epics/`, see §1 |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [PUBLIC_DISCOVERY_STOREFRONT.md](PUBLIC_DISCOVERY_STOREFRONT.md) |
-| E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
+| E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [PLATFORM_OPERATIONS_QUALITY_GATES.md](PLATFORM_OPERATIONS_QUALITY_GATES.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | **The context is not built and nothing here designs it** - no collection, no resolver, no price. Its one story is a *recording* story and **E11-S01 is `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. §6 question 4 stays although it fails the "traceable upstream" criterion, because it is a tier-topology question rather than a commerce design and deleting it would hide a blocker | none | [E11.md](epics/E11.md) |
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built - 26 of 26, closed 2026-08-11. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's log-retention answer added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once, and its cache half is already built. **Every defect either investigation found is fixed**, the 🔴 among them: no service with a `DSN` set ships a request body any more, and E12-S24's browser capture closed the last one — the address bar, query string and fragment included, was reaching Sentry from all three frontends in five distinct places, and `urlQueryParams: false` never gated it. **One item is still not this repo's to close:** E12-S15's config is in the repo but Authenticated Origin Pulls must be switched on in Cloudflare **before** it is deployed, or every handshake fails from the reload. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `docker-DBs`, `marketplace-user`, `marketplace-admin`, `marketplace-shopowner` | [E12.md](epics/E12.md) |

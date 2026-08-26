@@ -41,8 +41,9 @@ the eighth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) and
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) moved before it: nothing in it is work
 still ahead. All ten stories are `built` and §6 has no live question left. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E09..E19; E01..E08 are the eight whose records sit
-beside the index instead of under it.
+stories live in `epics/ENN.md`, and that stays true for E10..E19; E01..E09 are the nine whose records sit
+beside the index instead of under it — E09's is
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), moved later the same day.
 
 ⚠️ **§6's last live question left as a duplicate, not as an answer.** It asked when `NFR-PF08`/`NFR-PF09`
 stop being 🟡 Medium, and the answer is "the day the edge is deployed" — which is not a decision this

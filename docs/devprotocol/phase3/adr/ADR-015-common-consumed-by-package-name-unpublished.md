@@ -1,11 +1,17 @@
 # ADR-015 — marketplace-common is consumed by published package name, is not published, and deploy-local.sh bridges the gap
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-08-26** — the publication half only
 **Date:** 2026-08-04
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md), **in part.** The
+platform owner decided to publish, which is the trigger §Risks names below, so *"the package is not
+published to any registry"* stops being true and ADR-037 owns that half. ⚠️ **The other two halves are not
+superseded and stay here:** the `deploy-local.sh` bridge — which ADR-037 §Decision property 2 keeps
+verbatim, because the script's job is the gap *between* releases and a real registry does not close it —
+and the GPL-3.0-or-later licence decision with its eighteen `LICENSE` copies and fifteen `qodana.yaml` key
+lists, which nothing else records.
 
 ---
 
@@ -13,8 +19,11 @@
 
 Nine backend services (`BEs/dev/*`) share one code library, `BEs/marketplace-common`. Its `package.json`
 names it `@axiumine/marketplace-common` at version `1.0.0`, and every consumer depends on that exact
-string at `^1.0.0` — a real npm-scoped package name. **The package is not published to any registry.**
-`registry.npmjs.org/@axiumine/marketplace-common` 404s.
+string at `^1.0.0` — a real npm-scoped package name. ~~**The package is not published to any registry.**
+`registry.npmjs.org/@axiumine/marketplace-common` 404s.~~ **True when this ADR was written and until
+2026-08-26; [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) ends it.** The 404 is the
+premise the rest of this ADR reasons from, so it is struck rather than removed — everything below is the
+right answer *to that premise*, and ADR-037 changes the premise rather than faulting the answer.
 
 Polyrepo, and no workspace tool (`yarn workspaces`, `pnpm`, Nx) links the repos — each is its own
 independent git checkout with its own `node_modules` (ADR-001, [`docs/workflow.md`](../../../workflow.md) §Repo layout). A plain
@@ -73,7 +82,11 @@ dependency but has never run `yarn install` is still deployed to, not silently s
 checks the declared semver range's major against the built version and warns on mismatch: a version bump
 alone does not fix a stale consumer, the range has to move too.
 
-**The publish is prepared and deliberately not executed.** `package.json` carries
+~~**The publish is prepared and deliberately not executed.**~~ **The trigger fired on 2026-08-26 and the
+publish is decided — see [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md).** Struck rather
+than deleted because the prepared state it describes is exactly what ADR-037 collects, and the sentence
+after it — *running the publish is the platform owner's act and nobody else's* — is not superseded but
+confirmed. `package.json` carries
 `publishConfig: { access: "public", registry: "https://registry.npmjs.org/" }` — a scoped package defaults
 to `restricted`, so that key is what makes a public publish possible at all. Running the publish is the
 platform owner's act and nobody else's. The day it happens, this ADR is superseded rather than revised;
@@ -142,8 +155,12 @@ links `./LICENSE` rather than `../LICENSE` for the same reason.
 - **Licence-gate risk**: a manifest's `license` field is changed without its `qodana.yaml` keys, and the
   SCA licence check silently matches nothing while reporting green. Revisit by asserting the pairing in
   the hook if it ever happens once.
-- **Scope creep risk**: real `npm publish` is deferred by CON-09, not rejected forever. Revisit only when
-  the platform owner explicitly decides to publish — at which point this ADR is superseded, not revised.
+- ~~**Scope creep risk**: real `npm publish` is deferred by CON-09, not rejected forever. Revisit only when
+  the platform owner explicitly decides to publish — at which point this ADR is superseded, not revised.~~
+  **Fired 2026-08-26.** The owner decided to publish and
+  [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) records it. Superseded **in part**
+  rather than wholly, as this bullet expected: the licence half and the `deploy-local.sh` bridge are
+  independent of the registry and stay in force here.
 
 ---
 
