@@ -124,11 +124,16 @@ suite rather than passing quietly.
   it ever also means a legal hold, a chargeback freeze or a retention duty, this decision is wrong and must
   be revisited — but the fix is a **new field with its own semantics**, not a gate re-added to this one.
   Revisit trigger: any story that makes `userUpdateStatus` mean more than "suspended".
-- **Erasure is built and not yet effective, for an unrelated reason.** The 30-day purge decided in
-  `phase1/NFR.md` open question 6 does not exist — no TTL index, no scheduled job. `login.email_unique`
-  carries no `partialFilterExpression`, so the stamped document keeps its address and the same person
-  cannot re-register with it. That gap belongs to the purge, not to this ADR, and this ADR does not close
-  it.
+- ~~**Erasure is built and not yet effective, for an unrelated reason.**~~ **Closed the same day, later:
+  the purge shipped.** It is `user.deleted_ttl`, a TTL index over `deleted` rather than the scheduled job
+  this bullet assumed — so the stamp `funUserDel` writes *is* the erasure order and MongoDB carries it out
+  30 days later with no code involved. `login.email_unique` still carries no `partialFilterExpression`, so
+  the address is freed by the document going rather than by the index ignoring it; re-registering the same
+  address destroys the closed document outright and ends the wait early (ADR-011 §Amendment 2026-08-26).
+  Struck rather than deleted because the reasoning above depends on it: property 1 of §Decision says the
+  delete is soft and *nothing is removed*, and that is now true for 30 days rather than indefinitely. It
+  does not weaken the decision — an operator's hold survives a close for the whole retention window, and
+  a hold that needs to outlive it was never this flag's job (see the `disabled` risk above).
 - **The Admin counterpart is still missing.** An operator can suspend a customer and cannot close one —
   there is no Admin-tier equivalent of `shopOwnerDel` for `user` (`phase5/epics/E19.md` §Open questions 3).
   Whoever builds it inherits this question from the other side and should not assume the answer is

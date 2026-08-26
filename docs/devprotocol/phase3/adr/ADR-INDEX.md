@@ -47,6 +47,17 @@ still close their own account. One row in §2, one number in §3's **Identity an
 no lever after registration either", which stopped being true the same day — `userUpdateStatus` (E19-S03)
 is that lever, and this ADR is the question its arrival created
 
+v1.8 - 2026-08-26: **ADR-011 amended in place** — the first and only amendment in this index, and the
+owner's call rather than the convention's. The 30-day retention purge decided in `phase1/NFR.md` open
+question 6 shipped as `user.deleted_ttl`, and `userRegister` now destroys a closed account so its address
+can be registered again. Both remove documents, which ADR-011 was being read as forbidding platform-wide.
+A new ADR would have left a reader of ADR-011 with a rule that is no longer true and no sign of it, so the
+exception was written where the rule lives. §1 records why the immutability rule was set aside here, the
+§2 row carries the amended status, and §4 gains the `partialFilterExpression` refusal the amendment turns
+on. ADR-036's §Risks bullet saying the purge does not exist was corrected with it. **No decision was
+reversed:** row B still stands for `company`, `shopOwner`, `item` and `itemCategory`, and option C —
+a partial unique index — is refused again in the amendment
+
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
@@ -54,6 +65,15 @@ ADRs are immutable once accepted. Never edit one. To change a decision, write a 
 supersession exists — each decision stands as written, and none contradicts another. Where two ADRs touch
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
+
+⚠️ **One exception exists, and it is the owner's rather than the convention's: ADR-011 carries an
+amendment dated 2026-08-26.** The rule above assumes a superseding ADR is the safer record, and here it
+was not. ADR-011 is *cited* as the statement of the platform's soft-delete convention — by ADR-036, by
+three repository `CLAUDE.md` files and by `funUserDel`'s own header — so a second ADR contradicting it
+would have left every one of those readers with a rule that had stopped being true and nothing on the
+page to say so. The amendment is appended, scoped to the `user` collection alone, and the original
+decision is left standing word for word above it. **This is not licence to edit an ADR**: the next
+change of a decision writes a new one, and an amendment needs the owner to say so, as this one did.
 
 New ADR: copy [`ADR-000-template.md`](./ADR-000-template.md), next free number, fill in `Status`, `Date`, `Deciders`.
 
@@ -74,7 +94,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-008 | Domain-neutral catalogue (item + itemCategory) | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-009 | No price on item | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-010 | Default-address pointer, not a per-address boolean | accepted | 2026-08-05 | — | — | Data model |
-| ADR-011 | Soft delete via `deleted` date, global uniques stay occupied | accepted | 2026-08-04 | — | — | Data model |
+| ADR-011 | Soft delete via `deleted` date, global uniques stay occupied | accepted, **amended 2026-08-26** — `user` is destroyed, by TTL and by one write | 2026-08-04 | — | — | Data model |
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, with no carve-out | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
@@ -143,6 +163,8 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Give `itemCategory` a `published` flag or an `itemCategoryDisable`, "for symmetry with `item` and `company`" | platform owner, 2026-08-14 — `phase5/CATEGORY_TAXONOMY.md` §6 | the symmetry is the misreading: those two flags exist because a shop drafts its own public surface, and the taxonomy has no owner but the operator. Present or soft-deleted is the whole state space, and `itemCategories` filters `deleted` alone. Accepted with it: a category created before its items is public and empty until they arrive — the lever is when it is created, not a flag on it |
 | Move the item picture into an `itemImage` collection, or drop the `image` field and derive the name from `_id` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | both were offered and both were refused: a collection is a second document to keep in step with an item that has exactly one picture, and deriving the name means an item with no picture is indistinguishable from one whose file is missing — the optional field *is* how a card knows to draw a placeholder. The value is a file name only — the item's own `_id` plus an extension — because `STATIC_FOLDER/item/<idCompany>/` is reconstructible from the document and a stored path is one more way to escape the directory |
 | Add a second write path for `image` — a replace mutation, or the key back inside `itemUpdate` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | `itemAdd` being the only writer is what keeps the file name derivable from the document and the temp-store/insert/publish ordering in one resolver. Replacing a picture is unbuilt, not forgotten; it needs the orphaned-file question answered first, which the failed-publish-after-insert case already raises and nothing repairs today |
+| Give `user.login.email_unique` a `partialFilterExpression` so a closed account stops occupying its address | ADR-011 §Amendment, 2026-08-26 | it is the wrong half of the problem and it breaks login. Three call sites look an account up by address with no liveness filter — `tryLoginUser`, `userForRegistration` and koa-utils' verify-email flow — so two documents holding one address makes `findOne` return an arbitrary one of them. The address is freed because the *document* goes, never because the index learns to ignore it: `user.deleted_ttl` removes it after 30 days and `purgeClosedUser` removes it sooner if somebody registers the address again. Option C was refused in 2026-08-04 for `company` and is refused again here for `user`, on a different reason each time |
+| Hard-delete `company`, `shopOwner`, `item` or `itemCategory` "for consistency with `user`" | ADR-011 §Amendment, 2026-08-26 | the amendment turns on one fact that only `user` has: **nothing references it**. `company.idShopOwner`, `item.idCompany`, `item.idCategory` and `itemCategory.idParent` all point at the other four, a removed document strands every one of those, and no retention period has been decided for any of them. `user`'s unique key is also a credential rather than a legal identity — the VAT argument in ADR-011's §Decision is about a key `user` does not have. Per collection, in that ADR, never by pattern |
 | Give `user` a `waitApprov`-equivalent — an operator approval, a fraud check or a spam-signup hold between `userRegister` and the first login | platform owner, 2026-08-25 — `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6 | self-service is what a customer account *is*, and the asymmetry with `shopOwner` is what each account gets rather than how far either is trusted: clearing `waitApprov` publishes a shop on this platform's own domain, while a customer's account reads that customer's own document. The flag is also only half a feature — the other half is the operator queue behind it, and `user` is the one collection encrypted whole precisely because nothing sorts, searches or paginates it (ADR-029), so a moderation table over customers reverses that decision instead of extending this one. `emailVerify.valid` stays the only gate. Separate and not refused: at the time this was taken nothing wrote `user.disabled`, so an operator had no lever after registration either — `userUpdateStatus` (E19-S03) became that lever the same day, and what it may reach is ADR-036 |
 | Make `user.personalData.firstName` / `lastName` / `addresses[].city` deterministic or clear, "so the customers table can sort and search them like the shop-owner one" | platform owner, 2026-08-25 — `phase5/epics/E19.md` E19-S05 | the mirror image of the `shopOwner` row above, and refused for the same reason from the other side: `shopOwner` pays for its operator table in plaintext, and `user` was designed not to have that bill — every personal field on it is encrypted *because* nothing sorts, searches or paginates customers. The customers table added by E19 does not change that; it orders and filters on `registeredAt` and the status flags, which were never encrypted, and returns `login.email` without ever ordering or prefix-matching it. Making one more field queryable to add a column is how the collection loses the property, one column at a time |
 | Drop `maxItems` from the `user` validator and keep the cap in `funUserAddressAdd` alone, "so the number lives in one place" | ADR-035 | the two copies do different jobs, and the validator's is the one that is *true*: it holds against a fixture, a script, a migration and a second service, none of which call the lib function. The service's copy buys the shape of the refusal — a 400 naming the limit instead of a 500 — and buys nothing else. Deleting the validator rule to remove a duplicated constant is how `itemCategory`'s depth cap ended up enforceable only by the one path that remembers to check (ADR-012), which that ADR records as a cost it had no choice about; here there is a choice |
