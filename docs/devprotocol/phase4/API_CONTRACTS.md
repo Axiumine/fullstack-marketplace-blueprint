@@ -203,13 +203,29 @@ Root files: `src/graphQLPublic/schema/{queries,mutations}.mts` (confirmed — th
 | `items` | `companySlug: String`, `idCategory: ID`, `limit: Int`, `offset: Int` | `GraphQLPublicItemPage!` | Published items of one company, or of one category across every company | `queries/items.mts:54-61` |
 | `itemBySlug` | `companySlug: String!`, `slug: String!` | `GraphQLPublicItemHit` (nullable) | One published item by its company slug + own slug, or `null` | `queries/itemBySlug.mts:42-47` |
 | `itemCategories` | none | `[GraphQLPublicItemCategory!]!` | Whole item category tree, flat | `queries/itemCategories.mts:37-38` |
-| `search` | `q: String!`, `near: GraphQLInputNearPoint`, `limit: Int` | `GraphQLPublicSearchResult!` | Full-text search over published companies and items, optionally radius-bounded | `queries/search.mts:63-69` |
+| `searchCompanies` | `q: String!`, `near: GraphQLInputNearPoint`, `limit: Int`, `offset: Int` | `GraphQLPublicCompanyPage!` | Full-text search over published companies, optionally within a radius | `queries/search.mts:99-102` |
+| `searchItems` | `q: String!`, `near: GraphQLInputNearPoint`, `limit: Int`, `offset: Int` | `GraphQLPublicItemPage!` | Full-text search over published items, optionally within a radius of their shop | `queries/search.mts:159-162` |
 | `sitemapEntries` | `kind: GraphQLSitemapKind!`, `afterId: ID`, `limit: Int` | `GraphQLSitemapPage!` | Crawlable paths of one kind, keyset-paginated by `_id` | `queries/sitemapEntries.mts:63-69` |
 | `publicHelloNoArgs`, `publicHelloArgs` | — | — | Smoke-test queries predating the catalogue; kept as the mounted-endpoint check | `schema/queries.mts:33-34` |
 
 ⚠️ Every bounded argument above (`limit`, `offset`, `q`, `radiusMeters`/bbox size) is bounded **in the
 resolver** — nothing upstream of this service bounds it, since no auth middleware runs here
 (`schema/queries.mts:20-23`).
+
+⚠️ **Two search fields, not one `search(kind:)` returning a union.** `textScore` is computed against each
+collection's own term statistics and field weights, so a company's 1.4 and an item's 1.1 have never been
+compared — interleaving them produces an order that looks authoritative and is arbitrary. Both answer the
+same page envelope the listings answer, so `total`/`totalIsExact`/`hasMore` mean the same thing everywhere.
+
+⚠️ **The bounds are not one number.** `clampLimit` (24 default / 60 max), `assertOffset`, `COUNT_CAP`
+(5 000) and `livePublic` all live in `lib/catalogue/publicRead.mts`, but each field picks which maximum it
+enforces: `offset` is capped at `MAX_OFFSET` (10 000) on every single-collection read, and at
+`MAX_CROSS_SHOP_OFFSET` (2 000) on `searchItems` and the cross-shop item listing, where every skipped
+document is multiplied by `OVERFETCH` and then fed through a `$lookup`. A platform-wide maximum would be
+the loosest of the two, which bounds nothing, or the tightest, which shortens the half that could afford
+the depth. `totalIsExact` is `false` on **every** cross-shop item read: the count runs on `item` alone,
+where it can see neither `company.published` nor the radius, so it is an upper bound, honestly labelled.
+`hasMore` never comes from that count — it is `limit + 1` fetched and popped.
 
 **Mutations — both registrations + both tiers' password-reset pair:**
 
