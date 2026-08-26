@@ -212,9 +212,24 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
 - `item`: `idCompany_list`, `idCompany_slug_unique`, `idCompany_published`, `idCategory_published`, the
   `_name` sort variants of both, and `search_text`.
 - `itemCategory`: `slug_unique`, `idParent_position`.
-- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`.
+- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus `deleted_ttl` and the
+  operator table's `tbl_active_registeredAt` — neither of which the public surface reads.
 
 Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, never a `COLLSCAN`.
+
+⚠️ **`user.deleted_ttl` is the only index on this platform that deletes documents.** `{ deleted: 1 }`,
+`expireAfterSeconds` 2592000 — thirty days — so MongoDB's TTL monitor removes a closed customer account
+about a minute after the period elapses. It is what makes `userDel` an erasure rather than a flag:
+`funUserDel` stamps `user.deleted`, revokes every session and writes nothing else, so without the index
+the `personalData` and the `addresses` would stay on disk for ever and `login.email_unique` would hold the
+address against the person who closed the account. It reads `deleted` only because that field is
+deliberately **not** encrypted — a CSFLE `binData` never compares as a date, and the index would expire
+nothing without saying so. Two consequences worth knowing: on `user`, `deleted` is a destruction clock
+rather than a status, so a future flag that must *not* destroy the customer in a month needs its own
+field; and a database built before 2026-08-26 and not rebuilt has no such index while its migration
+changelog claims otherwise — `db.user.getIndexes()` is the check. Re-registering a closed address
+destroys the document immediately instead of waiting, the platform's one application hard delete
+(ADR-011 §Amendment 2026-08-26, ADR-036).
 
 ## PII at rest — explicit CSFLE (ADR-029)
 

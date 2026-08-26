@@ -1,11 +1,14 @@
 # ADR-011 — Soft delete by a deleted date stamp, with global uniques that a retired company keeps occupying
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, amended 2026-08-26
 **Date:** 2026-08-04
 **Deciders:** platform owner
 **Supersedes:** —
 **Superseded by:** —
+**Amended:** 2026-08-26 — see [§Amendment](#amendment--2026-08-26-the-user-collection-is-destroyed-rather-than-kept). Everything below stands for
+`company`, `shopOwner`, `item` and `itemCategory`. It no longer describes `user`, which is the only
+collection on the platform whose documents are removed — by a TTL index, and by one application write.
 
 ---
 
@@ -118,3 +121,154 @@ that `deleted` clause without this ADR being superseded first.
 
 No `price` field, no `Order`/`Cart` reference is implied or required by this decision — soft delete on
 `company` is orthogonal to commerce, which remains unbuilt.
+
+---
+
+## Amendment — 2026-08-26: the `user` collection is destroyed rather than kept
+
+**Status:** accepted
+**Deciders:** platform owner
+**Scope:** the `user` collection only. `company`, `shopOwner`, `item` and `itemCategory` are untouched,
+and none of the reasoning above is withdrawn for them.
+
+### What this ADR was being read as saying
+
+Row B was decided about `company`, but it is the platform's statement of the soft-delete convention and
+it has been cited as one — including by ADR-036, by three repository `CLAUDE.md` files and by
+`funUserDel`'s own header. The sentence people took from it is *no application code on this platform
+removes documents*. That reading was correct on 2026-08-04, when every collection it covered was one
+somebody or something still pointed at.
+
+### What changed under it
+
+Three things, all on 2026-08-26, none of which existed when row B was written.
+
+1. **GDPR became scope as a matter of fact, not of choice** — NFR-CO02, open question 1 closed. Art.
+   5(1)(e) then asks how long personal data is kept after it stops being needed, and the owner answered:
+   **30 days after an account is closed**, open question 6.
+2. **`userDel` shipped** (ADR-036) — the first delete on this platform whose subject is a *person's*
+   relationship with it rather than a business record. It stamps `user.deleted` and revokes every session.
+3. **The stamp made the address unusable.** `login.email_unique` has no `partialFilterExpression` — by
+   this ADR — so a closed account keeps its email. `userRegister` reads a closed document as verified and
+   answers "you are already registered", while `loginUser` refuses the same address 401. There is no
+   un-delete and no Admin counterpart to reach it with. Under the original reading that was permanent:
+   **closing an account burned its email address**, and the only remedy was a hand edit in the database.
+
+A retention period that nothing carries out is not a retention period, and row B as read forbade the only
+mechanism that would carry it out. That is the conflict this amendment resolves.
+
+### Decision
+
+**Two removals are permitted, and only on `user`.**
+
+1. **`user.deleted_ttl`** — a TTL index over `deleted`, `expireAfterSeconds: 2592000`, declared in
+   `BEs/marketplace-db-setup/lib/schemas/user.js` and applied by
+   `migrations/20260301000300-create-user.js`. MongoDB removes the document 30 days after `funUserDel`
+   stamped it. **The stamp is the decision to erase and the index is the erasure** — there is no job, no
+   scheduler and no application code involved, which is also why nothing can forget to run it.
+2. **`purgeClosedUser`** — `BEs/dev/marketplace-dev-public-resource/src/lib/db/purgeClosedUser.mts`, one
+   `deleteOne`, reachable only from `userRegister` and only for a document that is both stamped and
+   verified. It destroys the closed account and registers the address again in the same transaction. This
+   is not a second policy: it is the *same* removal, brought forward to the request that needs the
+   address, so the erasure happens earlier than the retention rule requires rather than later.
+
+Retention therefore reads **"30 days after closure, or until the same address registers again, whichever
+comes first."**
+
+⚠️ **Option C is still rejected, and this amendment is not a way back to it.** The address is freed
+because the *document* goes, never because the index learns to ignore it. Three call sites look an
+account up by email with no liveness filter —
+`marketplace-dev-public-authorization/src/lib/db/login/tryLoginUser.mts`,
+`marketplace-dev-public-resource/src/lib/db/userForRegistration.mts` and the verify-email flow in
+koa-utils — and a `partialFilterExpression` would let two documents hold one address, at which point
+`findOne` returns an arbitrary one of them and login is a coin toss. `user.login.email_unique` keeps
+exactly the shape row B gave it.
+
+### Why `user` and no other collection
+
+| | Referenced by | Its unique key is | Retention decided | Removal |
+|---|---|---|---|---|
+| `company` | `item.idCompany` | a legal identity — VAT, PEC | no | stamp only |
+| `shopOwner` | `company.idShopOwner` | a credential | no | stamp only |
+| `item` | — | a per-company slug | no | stamp only |
+| `itemCategory` | `item.idCategory`, `itemCategory.idParent` | a URL segment | no | stamp only |
+| `user` | **nothing** | a credential | **yes — 30 days** | TTL, plus one write |
+
+`user` is the only row where all four columns line up. Nothing on the platform holds a `user._id`, so a
+removed document strands no reference. Its unique key is an address somebody proves they control, not a
+legal identity that must never be reassigned — the whole of §Decision's VAT argument is about a key
+`user` does not have. And it is the only collection anyone has decided a retention period for, because it
+is the only one holding a *data subject* rather than a trader's registration.
+
+⚠️ **`shopOwner` is deliberately not included, and the two rows above are closer than they look.** A shop
+owner's address is a credential too. What separates them is that `company.idShopOwner` points at it, and
+that no Art. 17 self-service path exists on that tier — a shop owner cannot close their own account today.
+Whoever builds one inherits this question and should answer it here rather than assume symmetry.
+
+### Consequences
+
+#### Positive
+- The retention decision is carried out by the database, so "we purge after 30 days" is a property of the
+  schema rather than a claim about a job somebody has to keep running.
+- Closing an account costs its owner nothing if they come back: the address is theirs again on the next
+  registration, and the account they get is genuinely new — new `_id`, no personal data, unverified.
+- The erasure is complete. Emptying a document in place is a list of paths to `$unset`, and every field
+  added to `user` afterwards is one the next holder of that address silently inherits.
+
+#### Negative
+- The convention now has an exception, and "no application code hard-deletes" is no longer true as
+  written. Anybody reasoning from the shape of the code will find one `deleteOne` and has to come here.
+- A closed account is unrecoverable after the TTL fires, and immediately unrecoverable if the address is
+  registered again. That is what erasure means, and there is no undo to build.
+- `user` carries two indexes over `deleted` — `deleted_ttl` and `tbl_active_registeredAt` — which reads as
+  redundancy and is not: `expireAfterSeconds` is rejected on a compound index, so the TTL cannot ride
+  along on the other one.
+
+#### Risks
+- **The exception widening by analogy.** The next collection that acquires a retention period will look
+  like this one. It is not: this amendment turns on *nothing references `user`*, and the four rows above
+  all fail that test today. Revisit per collection, in this file, never by pattern-matching.
+- **A database built before 2026-08-26 has no `deleted_ttl`.** The index was added by editing an already
+  applied migration — the owner's call, taken because every database here is replayable — and
+  `migrate-mongo-config.js` sets `useFileHash: false`, so the changelog says the migration ran and cannot
+  say which version of it ran. A database that was not dropped and replayed keeps every closed account
+  forever while reporting itself fully migrated.
+- **`deleted` must stay unencrypted.** A TTL index is evaluated server-side and can only read plaintext.
+  `deleted` is absent from `ENCRYPTED_FIELDS_USER` (ADR-029) and adding it would silently stop the purge —
+  no error, no expiry, and the collection's own validator would still accept every write.
+
+### Compliance
+
+Verify the index exists and expires at 30 days, on `user` and nowhere else:
+
+```bash
+# `deleted_ttl`, key { deleted: 1 }, expireAfterSeconds 2592000 — and nothing on any other collection.
+grep -n "deleted_ttl\|CLOSED_ACCOUNT_RETENTION_SECONDS" BEs/marketplace-db-setup/lib/schemas/user.js
+```
+
+`BEs/marketplace-db-setup/test/migrations.test.mjs` pins both halves against a real replay: the index's
+key, period and options, and that no other collection carries an `expireAfterSeconds` at all.
+
+⚠️ **Verify the running database, not the changelog** — they can disagree, and only one of them is
+evidence:
+
+```js
+db.user.getIndexes()   // must list deleted_ttl; if it does not, drop and replay
+```
+
+Verify the hard delete is still the only one, and still unreachable for a live document:
+
+```bash
+# Three hits, exactly one of them a call: purgeClosedUser.mts. The other two are prose in
+# verifyEmailFlow.mts and verifyEmailFlowUser.mts, explaining why koa-utils stopped doing one.
+grep -rn 'deleteOne\|deleteMany\|findOneAndDelete' BEs/dev/*/src/
+```
+
+`purgeClosedUser`'s filter must keep `deleted: trusted({ $exists: true })` — the guard is in the write, not
+in the caller, so a future caller cannot skip it. `test/registrationDb.test.mts` asserts the filter and
+`test/integration/index.itest.mts` proves against a real collection both that a live document survives it
+and that a closed address can be deleted and re-inserted inside one transaction.
+
+A violation on disk looks like: a `partialFilterExpression` appearing on `user.login.email_unique`, a
+second `deleteOne` anywhere under `BEs/dev/*/src/`, `deleted` appearing in `ENCRYPTED_FIELDS_USER`, or
+`purgeClosedUser` losing the `deleted` clause from its filter.

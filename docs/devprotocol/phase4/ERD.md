@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-25
+**Version:** 1.4
+**Date:** 2026-08-26
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.4 - 2026-08-26: §7 `user` gains `deleted_ttl`, the only index on this platform that deletes documents — thirty days after `userDel` stamps `deleted`, MongoDB removes the account. ⚠️ It also **retracts a claim v1.3 made in this document**: `20260301000300-create-user.js` was described as immutable and untouched, and it is neither as of 2026-08-26 — the owner chose to edit the create migration and rebuild the database rather than add a follow-up one, so the note beside `tbl_active_registeredAt` is corrected rather than left standing.
 v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the operator's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
 v1.2 - 2026-08-25: the `itemCategory` note said the other three tiers never write the collection. They write no domain field of it; the ShopOwner tier writes `__v`, via `holdItemCategory`, to make an item write collide with a concurrent `itemCategoryDel`. Restated, DCON-05 having been restated the same way.
 v1.1 - 2026-08-12: E03-S08. `personalData` left `shopOwner`'s doc-level `required` list, so §3.2's rows,
@@ -408,9 +409,26 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 | Index | Keys | Serves | Source |
 |---|---|---|---|
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
-| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the operator's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration; `20260301000300-create-user.js` is immutable and untouched |
+| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the operator's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
+| `deleted_ttl` | `{deleted:1}`, `expireAfterSeconds: 2592000` | the retention purge — thirty days after `userDel` stamps `deleted`, MongoDB's TTL monitor removes the document, its `personalData` and its `addresses` (`phase1/NFR.md` open question 6, GDPR Art. 5(1)(e)) | `lib/schemas/user.js` (`INDEXES_USER`), applied by `20260301000300-create-user.js` — ⚠️ **that migration was edited after it had been applied**, on the owner's call, and the database rebuilt in the same work |
 
 ⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). There is no `registeredAt_series` counterpart either: no `usersPerPeriod` chart exists to need one.
+
+⚠️ **`deleted_ttl` is what makes `userDel` an erasure rather than a flag, and it is `user`'s alone.**
+`funUserDel` stamps `deleted`, revokes every session and writes nothing else, so without the index the
+record and its `login.email_unique` entry would stand for ever and the person who closed the account could
+never register that address again. Three things about its shape are not free choices: it is **single-field**
+because `expireAfterSeconds` is refused on a compound index, so it stands beside `tbl_active_registeredAt`
+rather than riding on it even though that index already leads with `deleted` — read as duplicates and
+merged, the purge disappears; it reads `deleted` only because that field is **not** in
+`ENCRYPTED_FIELDS_USER` (ADR-029), a `binData` never comparing as a date; and it is declared in
+`INDEXES_USER` rather than on the shared `INDEXES_LOGIN_EMAIL`, which would destroy `admin` and
+`shopOwner` accounts thirty days after an operator disabled them. On this collection `deleted` is
+therefore a destruction clock rather than a status. ⚠️ Because the create migration was edited in place and
+`migrate-mongo-config.js` sets `useFileHash: false`, **a database not rebuilt on or after 2026-08-26 has no
+`deleted_ttl` and its changelog will not say so** — `db.user.getIndexes()` is the check. Re-registering a
+closed address destroys the document at once instead of waiting out the thirty days, the platform's one
+application hard delete (ADR-011 §Amendment 2026-08-26).
 
 No `2dsphere` over `addresses[].position` — nothing on the platform queries customers by distance.
 
