@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-26
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
+v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 ---
 
@@ -51,7 +52,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything — `item.js:12-14` has no price field|
 |Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
 |Platform operator|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
-|Platform developer (thedoctorweb)|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
+|Platform developer|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
 
 No `role` field, no permission enum. Actor identity = which MongoDB collection the session authenticated
 against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a role check.

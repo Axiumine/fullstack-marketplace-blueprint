@@ -3,7 +3,7 @@
 
 **Status:** accepted
 **Date:** 2026-08-07
-**Deciders:** platform owner (thedoctorweb)
+**Deciders:** platform owner
 **Supersedes:** —
 **Superseded by:** —
 

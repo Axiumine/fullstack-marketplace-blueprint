@@ -2,17 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-25
+**Version:** 1.2
+**Date:** 2026-08-26
 **Author:** pdr-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-25: the catalogue paragraph's depth-cap citation was two versions stale — the guard now runs inside a transaction and takes a session — and "writes exist only in the Admin-tier resource service" is narrowed to the mutations, `holdItemCategory` having added one deliberate field-level exception.
+v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 ---
 
 ## 1. What are we building?
 
-Multi-tenant marketplace platform. Many independent shops, one operator (thedoctorweb). Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state.
+Multi-tenant marketplace platform. Many independent shops, one operator. Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state.
 
 Polyrepo, 16 independent git repos, no monorepo tooling. Verified: `find . -maxdepth 4 -name ".git" -type d` returns 16 dirs (parent + `BEs/marketplace-common` + `BEs/marketplace-db-setup` + 9 under `BEs/dev/marketplace-dev-*` + `marketplace-admin` + `marketplace-nginx` + `marketplace-shopowner` + `marketplace-user`).
 
@@ -41,7 +42,7 @@ Four surfaces exist at very different depths. Public pages + customer identity l
 
 ## 2. Why are we building it?
 
-Platform vendor thedoctorweb operates a multi-tenant marketplace for independent shop owners who lack own e-commerce infra. Shop owner needs: register shop, manage catalogue, get discovered. Customer needs: browse shops, eventually order. Platform operator needs: onboard/moderate shop owners, curate taxonomy.
+The platform vendor operates a multi-tenant marketplace for independent shop owners who lack own e-commerce infra. Shop owner needs: register shop, manage catalogue, get discovered. Customer needs: browse shops, eventually order. Platform operator needs: onboard/moderate shop owners, curate taxonomy.
 
 Design note, not a current problem: the catalogue (`item` + `itemCategory`) is deliberately domain-neutral, presuming nothing about what is sold — built 2026-08-05 alongside a full customer identity tier. Why now: the catalogue must stay domain-neutral before any product type is addable — that constraint is what "why now" answers. Commerce layer is next but has no decision yet (§8).
 
@@ -53,9 +54,9 @@ Design note, not a current problem: the catalogue (`item` + `itemCategory`) is d
 |---|---|---|
 | End customer (`User`) | registers, confirms email, fills personal data, manages addresses. Cannot buy anything yet — `BEs/marketplace-db-setup/lib/schemas/user.js` carries no order/cart reference | account + browse today; order tomorrow, no timeline |
 | Shop owner (`ShopOwner`) | runs 1+ `company` documents, each a real shop; manages own `item` catalogue under admin-curated `itemCategory` taxonomy | catalogue mgmt + discoverability, no commerce ops yet |
-| Platform operator (`Admin`) | thedoctorweb staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
+| Platform operator (`Admin`) | the vendor's own staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
 | Anonymous visitor | unauthenticated, hits public SSR pages only | browse shops/items, no login required |
-| Platform vendor / developer (thedoctorweb) | operates the 16-repo polyrepo itself — deploys `marketplace-common` across 9 consumers, runs migrations, maintains quality gates | one coherent platform out of 16 independently-committed repos |
+| Platform vendor / developer | operates the 16-repo polyrepo itself — deploys `marketplace-common` across 9 consumers, runs migrations, maintains quality gates | one coherent platform out of 16 independently-committed repos |
 
 No `role` field, no permission enum anywhere in the schema. Role IS which collection a session authenticated against (`CLAUDE.md` §Terminology) — this is a persona-defining fact, not an implementation detail: a 5th persona means a 5th collection, not a role check.
 

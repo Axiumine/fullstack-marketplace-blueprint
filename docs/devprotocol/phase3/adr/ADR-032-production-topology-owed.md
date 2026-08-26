@@ -3,7 +3,7 @@
 
 **Status:** accepted
 **Date:** 2026-08-10
-**Deciders:** platform owner (thedoctorweb)
+**Deciders:** platform owner
 **Supersedes:** —
 **Superseded by:** —
 
@@ -77,7 +77,7 @@ a network that does not exist.
 Option **C**. The production topology is recorded as a decision this platform **owes**, and this ADR is
 the place the three findings point at.
 
-- **Owner:** platform owner (thedoctorweb). **Owed since:** 2026-08-10, the date of the audit that made
+- **Owner:** platform owner. **Owed since:** 2026-08-10, the date of the audit that made
   three separate findings depend on it.
 - **What it must answer, when it is written:** which ports are reachable from where; what sits in front
   of the nine services and whether anything can reach them without passing it; where Redis and MongoDB

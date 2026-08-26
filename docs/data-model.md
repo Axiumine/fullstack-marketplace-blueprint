@@ -375,7 +375,7 @@ platform owner before this section can claim the keyspace is clean:
 
 | Unknown | Why it matters | Owner |
 |---|---|---|
-| Is RDB snapshotting also on in production? | a `.rdb` written before the cutover holds the raw keys, and no AOF rewrite touches it | platform owner (thedoctorweb) |
+| Is RDB snapshotting also on in production? | a `.rdb` written before the cutover holds the raw keys, and no AOF rewrite touches it | platform owner |
 | Where do the AOF and any `.rdb` live on disk? | they cannot be rewritten, moved or destroyed until they are located | platform owner |
 | Is either backed up off-host? | **a backup copy survives every rewrite this epic performs** — it is the one place raw tokens can outlive the whole of E13 | platform owner |
 

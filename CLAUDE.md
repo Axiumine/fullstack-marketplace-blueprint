@@ -1,7 +1,7 @@
 # Marketplace
 
 Multi-tenant marketplace. Customers order from many independent shops; each shop is run by its owner;
-the platform vendor (thedoctorweb) operates it. **This directory is the parent workspace of sixteen
+the platform vendor operates it. **This directory is the parent workspace of sixteen
 independent git repos — work from here, not from inside one repo.** The fifteen sub-repos are tracked
 here as submodules (ADR-031): the parent pins a commit per sub-repo and nothing more, so their files stay
 theirs, and `git clone --recurse-submodules` rebuilds the whole workspace.
