@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.4
-**Date:** 2026-08-25
+**Version:** 1.5
+**Date:** 2026-08-26
 **Author:** adr-agent
 **Changelog:**
 v1.0 - 31 decisions, one per architectural choice this platform stands on
@@ -27,6 +27,12 @@ missing (`phase5/epics/E19.md`) reads clear fields only, so the temptation it cr
 city queryable so the customers table can sort and search like the shop-owner one — is refused in the same
 words ADR-029 refuses the opposite move on `shopOwner`. Neither is an architectural choice this platform
 stands on, so neither became an ADR
+
+v1.5 - 2026-08-26: ADR-035 added — `user.addresses` is capped at six, and the cap is written twice on
+purpose: `maxItems` in the validator is the rule, the service's copy exists only to make the refusal a 400
+that names the limit. One row in §2, one number in §3's **Data model** line, one row in §4. It is the first
+decision here that deliberately duplicates a constant across repos that share no library, so §4 carries the
+temptation that duplication creates
 
 ## 1. How to use this index
 
@@ -79,12 +85,13 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-032 | The production topology is owed, and no control may assume it | accepted | 2026-08-10 | — | — | Infrastructure and delivery |
 | ADR-033 | `SameSite=Strict` on the refresh cookie, enforced twice | accepted | 2026-08-10 | — | — | Identity and access |
 | ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted | 2026-08-12 | — | — | Identity and access |
+| ADR-035 | `user.addresses` capped at six, in the validator and in the write that appends | accepted | 2026-08-26 | — | — | Data model |
 
 ## 3. By area
 
 **Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034
 
-**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029
+**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035
 
 **Catalogue** — ADR-008, ADR-009, ADR-012
 
@@ -124,6 +131,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | Add a second write path for `image` — a replace mutation, or the key back inside `itemUpdate` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | `itemAdd` being the only writer is what keeps the file name derivable from the document and the temp-store/insert/publish ordering in one resolver. Replacing a picture is unbuilt, not forgotten; it needs the orphaned-file question answered first, which the failed-publish-after-insert case already raises and nothing repairs today |
 | Give `user` a `waitApprov`-equivalent — an operator approval, a fraud check or a spam-signup hold between `userRegister` and the first login | platform owner, 2026-08-25 — `phase5/epics/E07.md` §6 | self-service is what a customer account *is*, and the asymmetry with `shopOwner` is what each account gets rather than how far either is trusted: clearing `waitApprov` publishes a shop on this platform's own domain, while a customer's account reads that customer's own document. The flag is also only half a feature — the other half is the operator queue behind it, and `user` is the one collection encrypted whole precisely because nothing sorts, searches or paginates it (ADR-029), so a moderation table over customers reverses that decision instead of extending this one. `emailVerify.valid` stays the only gate. Separate and not refused: nothing writes `user.disabled`, so an operator has no lever after registration either — that is a missing Admin-tier mutation |
 | Make `user.personalData.firstName` / `lastName` / `addresses[].city` deterministic or clear, "so the customers table can sort and search them like the shop-owner one" | platform owner, 2026-08-25 — `phase5/epics/E19.md` E19-S05 | the mirror image of the `shopOwner` row above, and refused for the same reason from the other side: `shopOwner` pays for its operator table in plaintext, and `user` was designed not to have that bill — every personal field on it is encrypted *because* nothing sorts, searches or paginates customers. The customers table added by E19 does not change that; it orders and filters on `registeredAt` and the status flags, which were never encrypted, and returns `login.email` without ever ordering or prefix-matching it. Making one more field queryable to add a column is how the collection loses the property, one column at a time |
+| Drop `maxItems` from the `user` validator and keep the cap in `funUserAddressAdd` alone, "so the number lives in one place" | ADR-035 | the two copies do different jobs, and the validator's is the one that is *true*: it holds against a fixture, a script, a migration and a second service, none of which call the lib function. The service's copy buys the shape of the refusal — a 400 naming the limit instead of a 500 — and buys nothing else. Deleting the validator rule to remove a duplicated constant is how `itemCategory`'s depth cap ended up enforceable only by the one path that remembers to check (ADR-012), which that ADR records as a cost it had no choice about; here there is a choice |
 | Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
 
 ## 5. Gaps

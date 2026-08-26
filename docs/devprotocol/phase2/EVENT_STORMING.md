@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-25
+**Version:** 1.7
+**Date:** 2026-08-26
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.7 - 2026-08-26: §2.6 gains "Add Refused — Address Book Full", the one refusal on this aggregate that is
+not about ownership, and the policy behind it: the database caps `addresses` at six and the service turns
+that into a 400 naming the number.
 v1.6 - 2026-08-25: §2.1 showed the customer lifecycle with no operator in it at all — every command on the
 `user` aggregate was the customer's own. E19 built `userUpdateStatus`; its command, its two outcomes and
 the session revocation that follows a suspension are added to the flow, with the policy pair in §3. Also
@@ -293,6 +296,8 @@ Actor      Command                                    Domain Event
 ────────────────────────────────────────────────────────────────────────────────────────
 Customer → Update Personal Data (userPersonalDataUpdate) → Personal Data Filled In
 Customer → Add Address (userAddressAdd)                → Address Added
+                                                          → Add Refused — Address Book Full
+                                                              (six saved already; same write, no second read)
 Customer → Update Address (userAddressUpdate)           → Address Updated
 Customer → Set Default Address (userDefaultAddressSet)  → Default Address Set
                                                           → Set Refused — Address Not Owned
@@ -301,6 +306,13 @@ Customer → Delete Address (userAddressDel)              → Address Deleted
                                                               (same write, when the deleted one was default)
 Customer → Change Password (userUpdatePwd)              → Password Changed
 ```
+
+**Add Refused — Address Book Full** is the one refusal on this aggregate that is not about ownership. The
+collection caps `addresses` at six (`maxItems: 6`), and the cap is a clause of the `updateOne` filter that
+appends — `'addresses.5': trusted({ $exists: false })` — so the count and the push are one operation and
+two adds fired at once cannot both fit through. The policy is deliberate on both halves (ADR-035): the database
+refuses the seventh whatever any client does, and the service turns that into a 400 naming the number, so
+the account area can say "delete one to add another" instead of showing a customer a 500.
 
 `userDefaultAddressSet` is one atomic `$set` of a root-level pointer, never a two-step clear-then-set — "a customer with addresses who wants none of them preferred is not a state the ordering flow has any use for":
 

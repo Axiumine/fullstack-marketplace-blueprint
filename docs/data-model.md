@@ -47,7 +47,15 @@ is the *shape*: one embedded `personalData.address`, and `contacts` requiring bo
 The three divergences are intentional and none of them is an accident to "fix":
 
 1. **`addresses` is an array** where `shopOwner` has one `personalData.address`. Each element carries a
-   required `_id`, an optional `label` and the shared address block with an optional `position`.
+   required `_id`, an optional `label` and the shared address block with an optional `position`. ⚠️ **It is
+   bounded — `maxItems: 6`, added 2026-08-26 (ADR-035)** (`20260826000000-user-cap-addresses.js` for databases already
+   built; `lib/schemas/user.js` is the statement of record). An unbounded array sits under a 16 MB document
+   ceiling and `me` loads the whole of it on every account read, and because every member of an element is
+   random ciphertext (ADR-029) the validator can measure nothing else about this collection: `maxItems`
+   counts elements, not bytes, which is what leaves it reachable. The number is spelled in three repos that
+   share no library — here, `funUserAddressAdd.mts` on 4032 (a 400 naming the limit instead of a validator
+   failure surfacing as a 500), and `AddressList.tsx` (which stops offering the button). Only the first is
+   the rule.
 2. **No `waitApprov`.** Customers self-serve with nothing to approve; a shop owner who self-serves is
    parked until an operator clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
    decided 2026-08-25** — no approval, fraud check or spam-signup hold is coming for this collection, and

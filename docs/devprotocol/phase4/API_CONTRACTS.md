@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-25
+**Version:** 1.5
+**Date:** 2026-08-26
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.5 - 2026-08-26: `userAddressAdd` gains a refusal it did not have — `addresses` is capped at six by the
+collection validator, so a well-formed address can now answer 400. §6.2's row says so and a note below the
+table records why the guard is a filter clause rather than a count taken first, and the two `sanitizeFilter`
+traps that decide its shape.
 v1.4 - 2026-08-25: the seven operations v1.3 named as E16's and E17's gap are documented here instead of left open — three queries (`keygripStatus`, `sessions`, `reuseEvents`) and four mutations (`keygripRotate`, `keygripRetire`, `revokeSession`, `revokeAllSessions`), read off the resolvers. Two corrections came out of it: **`revokeAllSessions` answers `Int!`**, so v1.3's recounted "all twenty-two answer `Boolean!`" was wrong about the verb even though the count was right; and v1.3's `usersActiveTbl` row had been inserted in §5.2, the ShopOwner tier's table, rather than in §6.2 where the query lives. The row is moved.
 v1.3 - 2026-08-25: §6.2 gains the two operations E19 built — `usersActiveTbl` and `userUpdateStatus`, the first `user*` pair on the Admin tier. The "All seventeen answer `Boolean!`" line was counting the table, not the directory, and is recounted from the working tree to twenty-two; the four mutations and three queries it was missing — E17's session console and E16's key custody surface — are named as those epics' gap rather than filled in here. Both `mutations.mts` and `queries.mts` citations were stale by a version and now name the field blocks.
 v1.2 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites.
@@ -476,7 +480,7 @@ Account, personal data, addresses. One query, six mutations
 | `me` | query | none — identity from the session, no `_id` arg by design | `GraphQLUserMe` | Reads the caller's own account through a positive field list | `schema/queries/me.mts:1-20` |
 | `userPersonalDataUpdate` | mutation | `personalData: GraphQLInputUserPersonalData!` | `Boolean!` | Fills in the optional `personalData` block after email confirmation | `schema/mutations/userPersonalDataUpdate.mts:24` |
 | `userUpdatePwd` | mutation | `passwordOld: String!`, `passwordNew: String!` | `Boolean!` | Customer changes their own password | `schema/mutations/userUpdatePwd.mts:22-23` |
-| `userAddressAdd` | mutation | `address: GraphQLInputUserAddress!` | `OnlyIdType` | Appends to `addresses[]`; answers the new element `_id` so the client can point `defaultAddress` at it | `schema/mutations/userAddressAdd.mts:29` |
+| `userAddressAdd` | mutation | `address: GraphQLInputUserAddress!` | `OnlyIdType` | Appends to `addresses[]`; answers the new element `_id` so the client can point `defaultAddress` at it. **400 at six addresses** — see below | `schema/mutations/userAddressAdd.mts:29` |
 | `userAddressUpdate` | mutation | `_id: ID!`, `address: GraphQLInputUserAddress!` | `Boolean!` | Replaces one owned address | `schema/mutations/userAddressUpdate.mts:28-29` |
 | `userAddressDel` | mutation | `_id: ID!` | `Boolean!` | Removes an address **and** `$unset`s `defaultAddress` in the same write if it pointed there | `schema/mutations/userAddressDel.mts:31` |
 | `userDefaultAddressSet` | mutation | `_id: ID!` | `Boolean!` | One atomic `$set` of the pointer — never a "clear all, then set one" two-step | `schema/mutations/userDefaultAddressSet.mts:31` |
@@ -485,6 +489,19 @@ Account, personal data, addresses. One query, six mutations
 `ctx.state.user._id` off the session, never from client input (`queries/me.mts:10-14`). The `select` behind
 it is a positive field list — `login.password`, `resetPwd`, `emailVerify` are absent from it and so is
 anything added to the collection later (`queries/me.mts:16-19`).
+
+⚠️ **`userAddressAdd` is the only write on this tier that answers 400 for a well-formed input.** The
+collection caps `addresses` at `maxItems: 6` (ADR-035), so the seventh address is refused — with
+`extensions.description` reading `addresses: at most 6 addresses can be saved`
+(`lib/user/funUserAddressAdd.mts`). The cap is a **clause of the update filter** rather than a count taken
+first: `{ _id, 'addresses.5': trusted({ $exists: false }) }`, so counting and pushing are one atomic
+operation and two adds fired at once cannot both fit through. `matchedCount: 0` then costs one
+`countDocuments` to tell a full account (400) from an account that is gone (500). Two traps in that one
+line: koa-utils sets `mongoose.set('sanitizeFilter', true)` process-wide, which **throws** on `$expr` in a
+filter — the aggregation form of this guard fails every call — and silently rewrites an untrusted
+`{$exists: false}` into `{$eq: {$exists: false}}`, which matches no document and would refuse every
+address including the first. `validateUserAddress` cannot see any of this: it is handed one address and
+knows nothing about the document it is going into.
 
 Every address mutation but `userAddressAdd` first runs `throwIfUserDontOwnAddress(ctx.state.user._id,
 args._id)` (`mutations/userAddressUpdate.mts:32`, `mutations/userAddressDel.mts:34`,

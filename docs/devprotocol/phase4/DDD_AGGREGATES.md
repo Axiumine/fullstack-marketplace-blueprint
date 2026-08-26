@@ -2,12 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-08-25
+**Version:** 1.8
+**Date:** 2026-08-26
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-26: `UserAggregate` gains a second DB-enforced invariant, AT_MOST_SIX_ADDRESSES (ADR-035). It belongs
+next to the pointer invariant for the same reason: one document holds the whole array, so the array's growth
+is the document's growth, and the append is guarded inside the write that performs it. ADR-029 is why it is
+the only length rule left on this collection — ciphertext defeats `maxLength`, not `maxItems`.
 v1.7 - 2026-08-25: `UserAggregate` listed six commands, all of them the customer's own, and no operator
 write at all. E19 built one: `userUpdateStatus`, Admin-tier, `disabled` only, ending every session of the
 account it suspends. Added to Commands with the service it actually lives in, and its two outcomes plus the
@@ -263,7 +267,7 @@ via `throwIfParentNotTopLevel` (`BEs/dev/marketplace-dev-admin-authenticated-res
 |---|---|---|
 | `User` | Root entity | `login`/`resetPwd`/`emailVerify` sub-docs, `registeredAt` — only these two (`login`, `registeredAt`) are required at creation |
 | `PersonalData` | Value object | optional at creation, filled in after email confirm; `firstName`/`lastName` required WITHIN it once present; `contacts` requires none of its members (unlike `shopOwner.personalData.contacts`, which requires both) |
-| `Address` | **Entity** — has its own identity (`_id`), no lifecycle outside its owner | array element of `user.addresses[]`: `_id` (required), `label` (optional, ≤50 chars), shared `address` block (≤250 chars, `position` optional) |
+| `Address` | **Entity** — has its own identity (`_id`), no lifecycle outside its owner | array element of `user.addresses[]`: `_id` (required), `label` (optional, ≤50 chars), shared `address` block (≤250 chars, `position` optional); **at most 6 elements** |
 | `defaultAddress` | Value object (pointer) | top-level `ObjectId` pointing into `addresses[]._id`, or absent — no counterpart on `shopOwner` at all |
 
 **Why `Address` is an entity inside `UserAggregate`, not its own aggregate:** it has identity — Mongoose mints an `_id` per sub-document by default (`user.js:19-22` comment: "`_id` is REQUIRED, which is what makes `defaultAddress` expressible: a pointer needs something to point at") — but it has **no lifecycle independent of its owner**: an address is never queried, referenced, or deleted through any path except the `User` document that contains it, and no other aggregate holds a reference into `addresses[]`. That alone would justify treating it as a child entity rather than a bare value object. What forces it to stay INSIDE the `User` aggregate rather than becoming its own aggregate with its own collection is the at-most-one-default invariant below: it is enforceable ONLY if the whole array and the pointer sit in one document, because MongoDB gives this platform no multi-document transaction to fall back on (§5). Split `Address` into its own collection and "at most one default" degrades from a DB-enforced, structurally-inexpressible-otherwise guarantee (ADR-010) into a resolver convention someone has to remember to keep honest — exactly the situation `itemCategory`'s depth cap is already in (DCON-05), and not one to add a second instance of by choice.
@@ -279,6 +283,28 @@ required: [
 ],
 ```
 - `addresses[]._id` required (Mongoose-minted) — the precondition for `defaultAddress` to be expressible at all.
+- **AT_MOST_SIX_ADDRESSES** — DB-enforced `maxItems: 6` on `addresses` (ADR-035; `lib/schemas/user.js`,
+  added to built databases by `migrations/20260826000000-user-cap-addresses.js`). The aggregate boundary is what
+  makes this enforceable and also what makes it necessary: one document holds the whole array, so the
+  array's growth is the document's growth under a 16 MB ceiling, and `me` loads all of it on every read.
+  ⚠️ It is the **only** length rule the server can still measure on this collection — ADR-029 leaves every
+  member of an element as random ciphertext, so `maxLength` on a street or a city measures nothing at rest;
+  `maxItems` counts elements, which ciphertext does not change. `funUserAddressAdd` carries the number a
+  second time to shape the refusal (a 400 naming the limit rather than a validator failure surfacing as a
+  500) and the account area a third time to hide the button — neither is the rule.
+- The cap is enforced **in the same write that appends**, the same discipline as the pointer clear below:
+```ts
+// BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/user/funUserAddressAdd.mts
+const ret = await User.updateOne(
+  { _id: _id, [`addresses.${MAX_ADDRESSES - 1}`]: trusted({ $exists: false }) },
+  { $push: { addresses: { ...address, _id: addressId } } }
+).exec()
+```
+  Index 5 exists exactly when the array already holds six, so requiring it absent is requiring room for one
+  more — and a missing `addresses` has no index 5 either, which is what keeps the *first* address addable.
+  `$expr` is unavailable here rather than merely unidiomatic: koa-utils sets `sanitizeFilter` process-wide,
+  which throws on `$expr` in a filter and rewrites an untrusted `{$exists: false}` into a match-nothing
+  `$eq` — hence `mongoose.trusted()`.
 - **DEFAULT_ADDRESS_POINTS_INTO_ADDRESSES** — DB-enforced `$expr`, `defaultAddress` accepted only if missing or present in `$map` over `addresses`:
 ```js
 // BEs/marketplace-db-setup/lib/schemas/user.js
