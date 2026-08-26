@@ -70,7 +70,7 @@ the ShopOwner-facing management UI is not.
 | `item` `$jsonSchema` validator | `company` aggregate | BC-04 owns it, `item` only holds `idCompany` |
 | ShopOwner-tier `itemAdd`/`Update`/`UpdatePublished`/`Del` | `itemCategory` writes | BC-06, admin-only |
 | Admin-tier `itemUpdatePublished`/`itemDel` (moderation) | price, cart membership, order lines | BC-11, unbuilt, no model to copy |
-| Public catalogue reads (`items`, `itemBySlug`, `search`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
+| Public catalogue reads (`items`, `itemBySlug`, `searchItems`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
 | Item picture upload on `itemAdd`, ShopOwner tier (E05-S09) | the picture on the Admin and public tiers | `image` is on this tier's `GraphQLItem` alone — `GraphQLItemFrag` is shared by three services and stays as it is |
 | Public/customer catalogue frontend (`marketplace-user`) | — | ShopOwner-facing item management screens were the one gap; E05-S07 closed it |
 
