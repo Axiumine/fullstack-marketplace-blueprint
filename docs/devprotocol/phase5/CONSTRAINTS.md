@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-07
+**Version:** 1.2
+**Date:** 2026-08-26
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
 v1.1 - 2026-08-11: the epic-to-bounded-context rule removed from §5 and its inherited-input row in §2. An
@@ -13,6 +13,7 @@ one coherent deliverable, a bounded context is a piece of the domain map, and no
 correspondence in the first place. ⚠️ **§5 is the record of that decision.** `DEFINITION_OF_DONE.md`,
 `EPICS_STORIES.md`, `CONFLICT_REPORT.md` and the seven E12-E18 epics cite it rather than restating it, so
 re-opening the rule means editing §5 and then those nine.
+v1.2 - 2026-08-26: the inherited "GDPR call" out-of-scope row annotated — the call was made by the platform owner on 2026-08-26 (in scope), out of phase exactly as `phase3/CONSTRAINTS.md` §5 required. The constraint is unchanged; only a reader grepping "GDPR call" and stopping at this row would have been misled.
 
 ## 1. Purpose
 
@@ -42,7 +43,7 @@ Already settled. Do NOT restate body, point at source.
 | ADR-001..ADR-028, one row each, by area | `phase3/adr/ADR-INDEX.md` §2-3 |
 | Decisions deliberately NOT re-opened (merge 3 authz, per-tier REDIS_KEY, role field, shop collection, price field, lower threshold, ignoreStatic, domain-specific catalogue vocab) | `phase3/adr/ADR-INDEX.md` §4 |
 | Gaps this platform still owes an ADR (ordering, repo publish target, prod topology) | `phase3/adr/ADR-INDEX.md` §5 |
-| Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call) | `phase3/CONSTRAINTS.md` §5, `phase4/CONSTRAINTS.md` §6 |
+| Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call — ⚠️ the GDPR call was **made** on 2026-08-26, out of phase as intended: in scope, `phase1/NFR.md` §2.7) | `phase3/CONSTRAINTS.md` §5, `phase4/CONSTRAINTS.md` §6 |
 
 Phase 5 agent read `phase3/CONSTRAINTS.md`, `phase4/CONSTRAINTS.md`, `phase3/adr/ADR-INDEX.md` full
 before start. This doc assume all three already read — no re-explain here.

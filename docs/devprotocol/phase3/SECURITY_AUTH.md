@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-08-25
+**Version:** 1.8
+**Date:** 2026-08-26
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.7 - 2026-08-25: the `itemCategory` depth-cap row cited `funItemCategoryAdd.mts:24`, the wrong file and a line of docblock — corrected to the guard and both call sites. Its mitigation column now distinguishes "no mutation on another tier" (true) from "no write on another tier" (not true since `holdItemCategory`).
@@ -31,6 +31,7 @@ any gate, on any tier, which is the fact that makes the deferral free here and i
 reader would otherwise have to check.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
+v1.8 - 2026-08-26: NFR-CO02 restated and open question 9 closed — GDPR applicability was decided by the platform owner out of phase, which is what §5 said should happen. The trace note now separates what §4 actually satisfies (Art. 32 technical measures) from the five limbs it does not, so a reader cannot take the encryption regime for compliance. No control changed.
 
 ---
 
@@ -414,7 +415,7 @@ When any of these get built, this document requires a new version — per its ow
 
 - **NFR-SE01–SE12** (`phase1/NFR.md` §2.4) are the security requirement set this document exists to satisfy — opaque-token sessions, Keygrip-signed cookies, bearer-token validation, bcrypt cost 14, tier assertion with fail-closed missing-tier and 403-not-401, anti-enumeration on `loginUser`, the introspection bypass contract, the SSR/cache boundary, response headers, `$jsonSchema` validation, and the four-layer secret-handling regime. All 12 are 🔴 Critical, non-negotiable per `phase1/NFR.md` §3 priority matrix, requiring a written owner decision + a new `PDR.md` version to change (§4 NFR change control).
 - **NFR-CO01** (secrets) — 🔴 Critical, satisfied by the §4 credential-management layers.
-- **NFR-CO02** (GDPR applicability) — 🟡 Medium, explicitly an **open question, not yet a requirement** (`phase1/NFR.md` §2.7, §3). This document does not claim GDPR compliance; `user.personalData` and `user.addresses[]` are PII by any reasonable reading, and a formal applicability decision is outstanding — deciding it is out of Phase 3 scope (`phase3/CONSTRAINTS.md` §5).
+- **NFR-CO02** (GDPR) — 🟡 Medium, and **no longer an open question**: the platform owner decided on 2026-08-26 that GDPR is in scope (`phase1/NFR.md` §2.7, open question 1 closed). Deciding it was out of Phase 3 scope (`phase3/CONSTRAINTS.md` §5) and it was decided elsewhere, as that constraint intended. ⚠️ **This document still does not claim GDPR compliance, and in scope is not compliant.** `user.personalData` and `user.addresses[]` are PII by any reasonable reading and are encrypted whole (ADR-029); what §4's controls satisfy is the technical measures limb (Art. 32), not lawful basis, erasure, portability, retention or processor agreements — six obligations that have no implementation and are carried by `phase1/NFR.md` open question 6.
 - **NFR-AV01/AV02** (three-authorization-service topology) — 🔴 Critical, load-bearing for availability under the crash-domain argument in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md): one `process.exit(1)` taking down all three tiers' token lifecycle was ranked worse than the deduplication a merge would buy. Security and availability intersect here — do not re-propose the merge as a security simplification; it was evaluated as one and rejected.
 - **NFR-MA01/MA02/MA05** (100/100 coverage+mutation, never-lower gates) — 🔴 Critical, the mechanism that keeps every control in §3-§5 from silently regressing. A weakened threshold is itself a security regression on this platform, not a tooling nicety.
 - No SOC2/HIPAA/PCI-DSS applicability found or claimed anywhere in Phase 1/2 docs — none apply today because there is no payment surface (§6) and no health data.
@@ -433,4 +434,4 @@ When any of these get built, this document requires a new version — per its ow
 | 6 | No automated dependency-audit gate found for npm supply-chain risk (§7) — should one be added to `.githooks/pre-push`? | platform owner | open, raised this session |
 | 7 | No key-rotation schedule found for `SOCKETLABS_SERVER_APIKEY`, `QODANA_TOKEN`, or Keygrip pairs — is rotation cadence a requirement? | platform owner | open, raised this session |
 | 8 | `BEs/marketplace-db-setup/setup/mongodb.js` still carries live-looking, unrotated credentials in tracked source (§4) | platform owner | open, carried from [`.claude/SECRETS.md`](../../../.claude/SECRETS.md) §Not fixed here |
-| 9 | GDPR applicability (NFR-CO02) — decision outstanding, out of Phase 3 scope to resolve | platform owner | open — `phase1/NFR.md` §2.7 |
+| 9 | ~~GDPR applicability (NFR-CO02) — decision outstanding, out of Phase 3 scope to resolve~~ | platform owner | **closed 2026-08-26** — decided out of phase, as §5 intended: GDPR is in scope (`phase1/NFR.md` §2.7). Nothing in this document depended on the answer, and nothing here becomes a compliance claim. The unimplemented obligations continue as `phase1/NFR.md` open question 6 |

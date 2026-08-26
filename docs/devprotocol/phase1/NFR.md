@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-11
+**Version:** 1.3
+**Date:** 2026-08-26
 **Author:** nfr-agent
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
@@ -13,6 +13,12 @@ developer. The change-control weight is unchanged: a 🔴 Critical change still 
 v1.2 - 2026-08-11: open question 1 (NFR-CO02) narrowed, not closed. The owner decided nginx log
 retention and a privacy-policy statement; whether the framework is in scope is still open. No requirement
 changed and NFR-CO02 stays 🟡 Medium.
+v1.3 - 2026-08-26: open question 1 **closed** — the platform owner decided GDPR is in scope. This is a
+reversal of wording, not of evidence: §2.7 already recorded the EU-market legal-entity identifiers, and
+declined to draw the conclusion because inferring compliance scope is forbidden here. The owner drew it.
+Applicability under Art. 3 is a question of fact, not of scope. NFR-CO02 restated from "undecided" to "in
+scope, obligations unimplemented"; §2.7 intro, §3 priority row rewritten; new open question 6 carries the
+six unimplemented obligations so closing question 1 loses nothing. No requirement is asserted as met.
 
 ---
 
@@ -114,12 +120,12 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 
 ### 2.7 Compliance
 
-No formal compliance framework (GDPR, HIPAA, SOC2) is named anywhere in [`CLAUDE.md`](../../../CLAUDE.md), [`PDR.md`](./PDR.md) or [`SYSTEM_CONTEXT.md`](./SYSTEM_CONTEXT.md) — not asserted here as a requirement, per the rule against inventing compliance scope. Two things are documented and load-bearing enough to record as requirements; one gap is logged rather than silently skipped.
+**GDPR is in scope — decided by the platform owner on 2026-08-26**, closing open question 1. No framework is named in [`CLAUDE.md`](../../../CLAUDE.md), [`PDR.md`](./PDR.md) or [`SYSTEM_CONTEXT.md`](./SYSTEM_CONTEXT.md), and this document declined to assert one for two versions, per the rule against inventing compliance scope. What changed is not the evidence but who spoke: applicability under GDPR Art. 3 is a question of **fact** — where the controller is established, whose data subjects are targeted — not a question of scope a retrofit may choose. The evidence was already in the NFR-CO02 row below; the owner drew the conclusion the document was not permitted to draw. HIPAA and SOC2 remain unnamed and are not asserted. Two requirements are recorded here; the obligations GDPR brings beyond them are unimplemented and logged as open question 6 rather than silently skipped.
 
 | ID | Requirement | Rationale |
 |---|---|---|
 | NFR-CO01 | No secret or credential may appear in a terminal output, a tool result, or a committed file | Four enforcement layers, `.claude/SECRETS.md:10,18,45,66,85` (see NFR-SE12) — the closest thing this platform has to a compliance control today |
-| NFR-CO02 | GDPR applicability is undecided, not ruled out | `user` and `shopOwner` store PII (name, address, email, phone) for an EU-market platform storing legal-entity identifiers (`vatNumber`, `taxCode`, `certifiedEmail`) — `BEs/marketplace-db-setup/lib/schemas/user.js`, `CLAUDE.md` §Two naming rules. No retention policy, data-subject-access flow, or lawful-basis documentation exists on this platform. **Logged as an open question (§ below), not asserted as in-scope** — inventing a compliance requirement the platform owner has not raised would violate the brownfield-retrofit rule against fabricating scope |
+| NFR-CO02 | GDPR is in scope. Applicability decided 2026-08-26; its obligations are recorded as **unimplemented**, not as met | Not a scope choice this document made. `company` **requires** `vatNumber` (exactly 11) and `certifiedEmail`, and documents `taxCode` as "the tax identification code **of the legal entity**, exactly 11 characters here — not the 16-character personal form" — Partita IVA, PEC and Codice Fiscale by any reading (`BEs/marketplace-db-setup/lib/schemas/company.js:81-121`, [`UBIQUITOUS_LANGUAGE.md`](../phase2/UBIQUITOUS_LANGUAGE.md) §12). A shop owner cannot register without Italian registration identifiers, so the platform is EU-established and EU-targeting, and Art. 3 settles applicability as fact. `user` and `shopOwner` store PII (name, address, email, phone) — `BEs/marketplace-db-setup/lib/schemas/user.js`. ⚠️ **In scope is not compliant, and this row asserts no compliance.** The technical controls are strong: every personal field across `admin`/`shopOwner`/`user`/`company` is CSFLE-encrypted (`BEs/marketplace-common/src/encryption/encryptedFields.mts:31-113`), that field list is mechanically diffed against the live schemas by a gated test (`BEs/marketplace-common/test/encryption.test.mts:232-266`), Redis session data expires on a fixed cap (`BEs/marketplace-common/src/others/sessionLifetime.mts:20,35`), and Sentry strips client address, credentials and user-agent before an event leaves the process (`BEs/marketplace-common/src/others/sentryBeforeSend.mts:55-78`). What does not exist: lawful basis (Art. 6), erasure (Art. 17), portability (Art. 20), a retention period for PII itself as opposed to logs and sessions (Art. 5(1)(e)), processor agreements with Cloudflare, OpenStreetMap, SocketLabs and Sentry (Art. 28), and controller identity in the privacy notice (Art. 13) — all six carried by open question 6 |
 
 ---
 
@@ -143,7 +149,7 @@ No formal compliance framework (GDPR, HIPAA, SOC2) is named anywhere in [`CLAUDE
 | NFR-PO02–PO05 | Portability (module system, framework, build bridge) | 🟡 Medium | PO04 (deploy-local.sh) is High in practice — skipping it silently stales every consumer |
 | NFR-SC04, SC05 | Scalability (schema/tier growth path) | 🟡 Medium | No — SC05 is doctrine (`PDR.md` §9 change control), not a preference |
 | NFR-CO01 | Compliance (secrets) | 🔴 Critical | No |
-| NFR-CO02 | Compliance (GDPR applicability) | 🟡 Medium | Yes — open question, not yet a requirement |
+| NFR-CO02 | Compliance (GDPR obligations) | 🟡 Medium | **No on applicability** — settled 2026-08-26 and not a preference. Medium reflects exposure, not importance: the platform is installed on no host and holds no real personal data, so nothing is being processed unlawfully today. Becomes 🔴 Critical the day real personal data reaches a host, and what gates that is open question 2, the same trigger as NFR-PF08/PF09 |
 
 ---
 
@@ -163,8 +169,9 @@ Any NFR change must be reviewed against every Phase 3–5 document for downstrea
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Is GDPR (or another data-protection framework) formally in scope, given `user`/`shopOwner` store EU-market PII with no documented retention or data-subject-access flow? (NFR-CO02) | platform owner | **open — narrowed 2026-08-11.** The owner took the first concrete decision inside it, for logs only: nginx keeps full client addresses in the error log, rotated at 14–30 days and shredded; the access log carries no personal data — implemented 2026-08-11 by E12-S16, the rest is not; two lines of a privacy policy say so ([`E12.md`](../phase5/epics/E12.md) §6, measured basis in [`log-sink-inventory.md`](../../report/log-sink-inventory.md)). **Framework applicability itself is still undecided** — a retention decision about two files is not one about the platform |
+| 1 | ~~Is GDPR (or another data-protection framework) formally in scope, given `user`/`shopOwner` store EU-market PII with no documented retention or data-subject-access flow? (NFR-CO02)~~ | platform owner | **closed 2026-08-26 — answered: GDPR is in scope.** The owner decided it; the document had declined to infer it. Basis is `company`'s **required** Italian registration identifiers, which make the platform EU-established and EU-targeting under Art. 3 (§2.7). Kept struck through rather than deleted so the two-stage history stays readable: **narrowed 2026-08-11**, when the owner took the first concrete decision inside it for logs only — nginx keeps full client addresses in the error log, rotated at 14–30 days and shredded; the access log carries no personal data — implemented by E12-S16, with two lines of a privacy policy saying so ([`E12.md`](../phase5/epics/E12.md) §6, measured basis in [`log-sink-inventory.md`](../../report/log-sink-inventory.md)); then **closed 2026-08-26** on applicability. ⚠️ Closing this closes the *scope* question only — the obligations are unimplemented and continue as question 6 |
 | 2 | Who installs the nginx configs that carry NFR-PF08, PF09, SE09, SE10, SC01, SC02, and on what host — they live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but there is no `/etc/nginx` anywhere in this workspace | platform owner / ops | open — carried from [`PDR.md`](./PDR.md) §8 item 4; the configs are no longer the blocker, the topology decision is (`ADR-INDEX.md` §5) |
 | 3 | Does MongoDB collection-level RBAC exist beneath the shared application connection, as a defense-in-depth layer under NFR-SE11? | platform owner / DBA | open, explicitly not verified — [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) §Not verified |
 | 4 | 4 repos (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have no Qodana Cloud project — NFR-MA03/MA04 run with `SKIP_QODANA=1` there today. Who provisions the missing projects? | platform owner | open — `PDR.md` §8 item 8 |
 | 5 | Does a function-length cap or a documented comment policy exist for application code (beyond the caveman-style convention used in decision docs), or is code-style limited to the lint/format/naming rules in §2.6? | platform owner | open — not found in [`CLAUDE.md`](../../../CLAUDE.md), not invented here |
+| 6 | GDPR is in scope (question 1, closed 2026-08-26) but six of its obligations have no implementation and no owner-set parameter: **lawful basis** (Art. 6 — no consent field on `user`/`shopOwner`, no checkbox in either registration flow), **erasure** (Art. 17 — `user.deleted`/`shopOwner.deleted` exist but no live mutation writes them; see [`E19.md`](../phase5/epics/E19.md) §Open questions 3), **portability** (Art. 20 — `me` returns a customer's record but nothing exports it), **retention of PII itself** (Art. 5(1)(e) — decided for nginx logs and Redis sessions, undecided for the collections; no TTL index or purge job exists in `BEs/marketplace-db-setup/migrations`), **processor agreements** (Art. 28 — with Cloudflare, OpenStreetMap, SocketLabs and Sentry; note `marketplace-admin/src/lib/nominatim.ts` and `marketplace-shopowner/src/lib/nominatim.ts` send operator-typed free text to the public OSM instance), and **controller identity** (Art. 13 — `marketplace-user/src/routeOptions/privacy.tsx:14-15` states its own absence). Which of the six are built, in what order, and with what retention period? | platform owner | open — opened 2026-08-26 as the remainder of question 1. Not urgent while the platform is installed on no host and holds no real personal data; the trigger is question 2. ⚠️ Deciding **portability** requires deciding its shape first: a single-customer self-service export leaves ADR-029 intact, an operator-facing bulk export or search over customers reopens it, and [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 already refused the equivalent for the customers table |

@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-25
+**Version:** 1.5
+**Date:** 2026-08-26
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
 v1.4 - 2026-08-25: CON-12's "No `user` counterpart until `user` has such a field" read as a matter of
@@ -18,6 +18,7 @@ BC-01/BC-03 and BC-01/BC-07 boundaries drops its "for now": q7 closed with CON-1
 v1.2 - 2026-08-12: CON-12 added — operator-only fields are listed and linted, not translated. Records the
 closed answer to a question three phase documents had open: no anti-corruption layer across `shopOwner` or
 `user`, now or later.
+v1.5 - 2026-08-26: §5's GDPR line annotated — applicability was decided by the platform owner on 2026-08-26, out of phase, exactly as this constraint required. The constraint itself is unchanged and still applies to the obligations that follow from the decision.
 
 ## 1. Purpose
 
@@ -96,7 +97,7 @@ Also out of scope for Phase 3 doc work (not new domain gaps, just not this phase
 - Installing nginx config (written and container-tested at `marketplace-nginx/` in the workspace root, no nginx binary on this machine).
 - Publishing any repo to a forge / choosing an org — user's undecided call.
 - Publishing `marketplace-common` to a real npm registry.
-- Deciding GDPR applicability (NFR-CO02, open question, not yet a requirement).
+- Deciding GDPR applicability (NFR-CO02). ⚠️ **Decided 2026-08-26, out of phase as this line intended** — GDPR is in scope (`phase1/NFR.md` §2.7, open question 1 closed). The line stays because it still describes correctly what Phase 3 may not do: the six unimplemented obligations behind it (`phase1/NFR.md` open question 6) are not Phase 3's to scope either.
 
 ## 6. Conflict resolution order
 

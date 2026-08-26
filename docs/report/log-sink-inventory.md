@@ -3,8 +3,8 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.9
-**Date:** 2026-08-11
+**Version:** 1.10
+**Date:** 2026-08-26
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
 (E12-S16); §10 gains the two corrections that fixing it produced — §5's two link shapes are four, and the
@@ -51,7 +51,7 @@ to explain a result already observed, and every such line is cited.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
 [`docs/devprotocol/phase5/epics/E12.md`](../devprotocol/phase5/epics/E12.md) E12-S06, E12-S07, E12-S09,
 E12-S11, E12-S14 · [`sentry-event-capture.md`](./sentry-event-capture.md) (E12-S13, the sink this finding
-does not cover)
+does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence.
 
 ---
 
@@ -442,10 +442,11 @@ sights:**
    rather than an answer this finding may give.
 
 Both were routed to the platform owner as open questions rather than fixed here, alongside
-`RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability is
-already logged as undecided. Both came back answered the same day — see below — and `E12.md` §6 now holds no
+`RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability was
+logged as undecided at the time of this finding. Both came back answered the same day — see below — and `E12.md` §6 now holds no
 open question at all: each answer lives on the story that carries it out, item 1 on **E12-S19** (with its
-privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stays open.
+privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stayed open — it was
+closed on 2026-08-26 by a separate decision, see the note at the end of §10.
 
 ### The answer, 2026-08-11
 
@@ -462,6 +463,16 @@ defensible."*
 This closes the routing this finding opened. It does **not** close `phase1/NFR.md` open question 1: whether
 GDPR is formally in scope is a wider question than log retention, and one concrete decision inside it is not
 an answer to it.
+
+> **⚠️ Update — 2026-08-26: open question 1 is closed, and this finding did not close it.** The platform owner
+> decided GDPR is in scope, on evidence outside every log file measured here: `company` requires Italian
+> registration identifiers (`vatNumber` 11, `certifiedEmail`, `taxCode` in its legal-entity form), which makes
+> the platform EU-established and EU-targeting under Art. 3 — `phase1/NFR.md` §2.7. The paragraph above stands
+> as written: it was correct that a log-retention decision is not an applicability decision, and the fifteen
+> days between the two is the proof. **Nothing measured in this document changes**, and the log decisions it
+> records remain the only retention rule this platform has for personal data outside Redis sessions — the
+> collections themselves still have none, which is now one of six unimplemented obligations under
+> `phase1/NFR.md` open question 6.
 
 ### What §5 got right, and the two things it missed
 

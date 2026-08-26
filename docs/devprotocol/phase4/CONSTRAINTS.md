@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-25
+**Version:** 1.2
+**Date:** 2026-08-26
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit
 v1.1 - 2026-08-25: DCON-05 restated. Its second sentence read "Write path for `itemCategory` exists ONLY in Admin tier" and its trigger fired on any design showing another tier writing the collection — which now describes shipped code. The three mutations are still Admin-only; `holdItemCategory` on the ShopOwner tier writes `__v` and nothing else, to close a write-skew window. The constraint now says which of the two it is, so the trigger stops firing on the exception it should permit.
+v1.2 - 2026-08-26: same annotation as phase 5's — the inherited "GDPR call" row now says the call was made on 2026-08-26 and where. No constraint changed.
 
 ## 1. Purpose
 
@@ -28,7 +29,7 @@ Already settled. Do NOT restate body, point at source.
 | CON-01..CON-12 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common deploy-local, SSR/CSR split, English+tabs+node, operator-only fields listed-and-linted rather than translated) | `phase3/CONSTRAINTS.md` §2 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3 could not redesign (6 collections, ownership chain, defaultAddress pointer shape, shared REDIS_KEY, 3 authz deployables, no barrel in common, quality gate regime, SSR/CSR, migration immutability, BC-01/03 + BC-01/07 conformist boundaries) | `phase3/CONSTRAINTS.md` §4 |
-| Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call) | `phase3/CONSTRAINTS.md` §5 |
+| Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call — ⚠️ the GDPR call was **made** on 2026-08-26, out of phase as intended: in scope, `phase1/NFR.md` §2.7) | `phase3/CONSTRAINTS.md` §5 |
 | ADR-001..ADR-028, one row each, by area | `phase3/adr/ADR-INDEX.md` §2-3 |
 | Decisions deliberately NOT re-opened (merge 3 authz, per-tier REDIS_KEY, role field, shop collection, price field, lower threshold, ignoreStatic, domain-neutral catalogue vocab) | `phase3/adr/ADR-INDEX.md` §4 |
 | Gaps this platform still owes an ADR (ordering, repo publish target, prod topology) | `phase3/adr/ADR-INDEX.md` §5 |
