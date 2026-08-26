@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.34
-**Date:** 2026-08-25
+**Version:** 1.36
+**Date:** 2026-08-26
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
@@ -234,6 +234,23 @@ of `position` — a hand-typed address is placed by the pin alone, not left unpl
 `addresses`' `maxItems: 6` to [`phase2/UBIQUITOUS_LANGUAGE.md`](../phase2/UBIQUITOUS_LANGUAGE.md) §8. That
 pass surfaced a third stale claim and corrected it in two files: `me` does not answer "login/verify state",
 and never did — its `select` is a positive list of six fields.
+v1.36 - 2026-08-26, later the same day: **E08's record leaves `epics/`, the eighth.**
+`phase5/epics/E08.md` is deleted and its content is
+[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md). All ten stories `built`, and §6 no
+longer holds a live question — the last one was not answered, it was **removed as a duplicate**:
+[`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2 asks who deploys the edge and on what host, and
+owns PF08 and PF09 along with SE09, SE10, SC01 and SC02. **`E08-S01`..`E08-S10` are unchanged**, and are
+still what `CONFLICT_REPORT.md` cites. §1's "seven exceptions" is now eight and §2's E08 row links to the
+new path; `epics/` holds E09..E19. E08-S10 is itself new that day: NFR-PF09 was in E08's scope and traced
+from no story, because `marketplace-nginx/test/run.sh` probed `/tiles/` for security headers only — a
+`proxy_pass` there would have answered 200 with the whole archive and passed. The suite now asserts the
+range. One thing that record held alone was copied out first, into
+[`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §4.2: the public search's bounds and their
+asymmetry — `clampLimit`, `COUNT_CAP`, `MAX_OFFSET` against `MAX_CROSS_SHOP_OFFSET`, and why
+`totalIsExact` is `false` on every cross-shop item read. That table still listed the `search` field and the
+`GraphQLPublicSearchResult` type deleted when the search was split, so the copy-out corrected it. The
+header version was stale at 1.34 while this changelog stood at 1.35; it is set to 1.36 here rather than
+incremented from a number that was never written down.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** living document - refined every sprint
 
@@ -244,25 +261,27 @@ and never did — its `select` is a positive list of six fields.
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 19 epics, states build state against the working tree, and links out.
 
-**Seven exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+**Eight exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
 [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), E05's is [`CATALOGUE.md`](./CATALOGUE.md) (those
 three 2026-08-14), E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) (2026-08-25) and E07's is
-[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26), beside this
-index rather than under `epics/`. All fifteen of E01's stories are `built`,
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26) and E08's is
+[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) (2026-08-26, later the same day),
+beside this index rather than under `epics/`. All fifteen of E01's stories are `built`,
 E02's four built stories sit next to one anti-story - a boundary to defend, not work ahead - all eight of
 E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, all
 nine of E05's are `built` with both of its open questions closed the day it moved, all seven of E06's
 are `built` with its own last two closed the day it moved, and all eleven of E07's are `built` with its two
-closed a day apart, so all seven read as the
+closed a day apart, and all ten of E08's are `built` with its one remaining question moved to the file
+that owns it rather than answered here, so all eight read as the
 record of a shipped surface rather than a backlog entry. The story IDs `E01-S01`..`E01-S15`,
 `E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08`, `E05-S01`..`E05-S09`,
-`E06-S01`..`E06-S07` and `E07-S01`..`E07-S11` are unchanged and
+`E06-S01`..`E06-S07`, `E07-S01`..`E07-S11` and `E08-S01`..`E08-S10` are unchanged and
 are still what the citing files cite - see each file's §0. E06 is the one set no document cites at all: its
-only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`. ⚠️ **E07 is
-the first to move while part of it is days old** - E07-S10 and E07-S11 landed in the week before the move,
-so that record is not purely retrospective the way the six before it were.
+only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`. ⚠️ **E07 and E08 both moved
+while part of them was days old** - E07-S10 and E07-S11 landed in the week before their move, E08-S10 the
+morning of its own, so neither record is purely retrospective the way the six before them were.
 
 Every epic is bound by `phase5/CONSTRAINTS.md` (read in full before this doc was written), and the conflict
 order in that doc's §7 governs if any epic file disagrees with this index. **No epic is bound to a bounded
@@ -282,7 +301,7 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope; an item takes its picture on `itemAdd` and there is no path to replace one | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [CATALOGUE.md](./CATALOGUE.md) — not under `epics/`, see §1 |
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [CATEGORY_TAXONOMY.md](./CATEGORY_TAXONOMY.md) - not under `epics/`, see §1 |
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [CUSTOMER_ACCOUNT_ADDRESSES.md](./CUSTOMER_ACCOUNT_ADDRESSES.md) - not under `epics/`, see §1 |
-| E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [E08.md](epics/E08.md) |
+| E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [PUBLIC_DISCOVERY_STOREFRONT.md](PUBLIC_DISCOVERY_STOREFRONT.md) |
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `services-status` | [E09.md](epics/E09.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | **The context is not built and nothing here designs it** - no collection, no resolver, no price. Its one story is a *recording* story and **E11-S01 is `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. §6 question 4 stays although it fails the "traceable upstream" criterion, because it is a tier-topology question rather than a commerce design and deleting it would hide a blocker | none | [E11.md](epics/E11.md) |

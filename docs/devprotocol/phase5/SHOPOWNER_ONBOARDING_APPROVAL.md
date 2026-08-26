@@ -14,7 +14,7 @@ for the same reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and
 [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) moved on 2026-08-13: nothing in it was work still
 ahead. All eight stories are `built`, and §6's last open question closed the day this moved — so the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E08..E19; E01..E07 are the seven whose
+stories live in `epics/ENN.md`, and that stays true for E09..E19; E01..E08 are the eight whose
 records sit beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later
 the same day, E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's is
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md), moved 2026-08-26.

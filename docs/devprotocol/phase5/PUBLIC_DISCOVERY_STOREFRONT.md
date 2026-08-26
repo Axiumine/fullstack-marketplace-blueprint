@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-07
 **Author:** epics-agent
 **Bounded context:** BC-08 — Public Discovery / SSR Storefront
@@ -21,6 +21,48 @@ v1.3 - 2026-08-26, later the same day: that work gets the story it was missing. 
 scope and traced from no story at all — E08-S08 owned the cache half of the edge and nothing owned the
 tiles. E08-S10 owns it now, same shape and same citation style. Nothing was built for it; the story
 records what already stands.
+v1.4 - 2026-08-26, last that day: **the file left `epics/` and became this record**, for the reason §0
+gives. No story changed, no ID moved, nothing was dropped — only the one link inside it, which now resolves
+from `phase5/` rather than from `phase5/epics/`. §6's live question went with the move, and it went as a
+duplicate rather than as an answer: `phase1/NFR.md` §Open questions item 2 names PF08 and PF09, names the
+owner, and is where that question has always belonged. One thing this file held alone was copied out first
+— the public search's bounds and their asymmetry, `clampLimit`, `COUNT_CAP`, `MAX_OFFSET` against
+`MAX_CROSS_SHOP_OFFSET`, and why `totalIsExact` is `false` on every cross-shop item read — into
+[`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §4.2, whose table still listed the `search` field
+and the `GraphQLPublicSearchResult` type that the split deleted.
+
+## 0. Why this record is not under `epics/`
+
+It was `phase5/epics/E08.md` until 2026-08-26. The file was deleted and its record moved here in one pass,
+the eighth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md),
+[`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) and
+[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) moved before it: nothing in it is work
+still ahead. All ten stories are `built` and §6 has no live question left. `EPICS_STORIES.md` §1 still says
+stories live in `epics/ENN.md`, and that stays true for E09..E19; E01..E08 are the eight whose records sit
+beside the index instead of under it.
+
+⚠️ **§6's last live question left as a duplicate, not as an answer.** It asked when `NFR-PF08`/`NFR-PF09`
+stop being 🟡 Medium, and the answer is "the day the edge is deployed" — which is not a decision this
+context can take, record, or be blocked by. [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2 asks
+it properly: *who installs the nginx configs that carry PF08, PF09, SE09, SE10, SC01, SC02, and on what
+host*, owner platform owner / ops. Keeping a second copy here meant one question with two homes and no
+owner in this one. What this file does still hold is the mechanism either NFR refers to — E08-S08 for the
+cache, E08-S10 for the tiles — and both are asserted against a live nginx by `marketplace-nginx/test/run.sh`.
+Neither is deployed anywhere; do not read a `built` tag on those two as a deployment.
+
+**The story IDs did not change.** `E08-S01` … `E08-S10` keep their names. They are cited by
+[`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) (E08-S03, E08-S07, E08-S09) and reached through
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E08 row, which now links here. Both resolve to a section of
+this file, and renumbering was refused for the reason E01 gives — an ID cited across files is a name, and
+moving a file is not a reason to change a name.
+
+⚠️ **E08-S10 is one day old at the move.** Like E07 before it, this record is not purely retrospective:
+the story was written on 2026-08-26 for assertions added the same day, so §3's "built end to end" describes
+a surface whose test suite grew that morning. The mechanism it records is older than the story — the
+`location /tiles/` block was written with the rest of the edge; what was new is that anything checked it.
 
 ## 1. Epic goal
 
@@ -179,7 +221,7 @@ Technical story: a shared client would leak one visitor's cached GraphQL respons
 **domains:** backend, frontend
 **Acceptance criteria:**
 - `PUBLIC_RESOURCE_URL` is read server-side only, deliberately not `VITE_`-prefixed so a loopback
-  address never inlines into the client bundle (per [`docs/frontends.md`](../../../frontends.md) §marketplace-user).
+  address never inlines into the client bundle (per [`docs/frontends.md`](../../frontends.md) §marketplace-user).
 - `serve.mjs` binds `127.0.0.1` only, the one deliberate loopback exception on the platform — traces
   NFR-AV04 (partial-negotiable row).
 
@@ -214,14 +256,15 @@ Technical story: a tile-serving process behind `/tiles/` would be invisible from
 
 ## 6. Open questions
 
-- `NFR-PF08`/`NFR-PF09` (cache, PMTiles range requests) stay Medium priority because the edge is
-  installed on no host — **not because the configuration is missing, and no longer because it is
-  unverified.** Both mechanisms now run against a live nginx in `marketplace-nginx/test/run.sh`:
-  MISS → HIT → BYPASS for the cache (E08-S08), and a `Range:` request answered 206 with the exact slice,
-  416 when unsatisfiable, for the tiles. What is left is not a code change — it is *which host and what
-  topology*, which `phase1/NFR.md` §Open questions item 2 already owns, owner platform owner / ops.
-  `phase1/NFR.md` §3 flags both become 🟠 High "the day it is deployed"; no story here can mark that
-  transition, and adding one would restate a decision that lives in NFR.md.
+- ~~`NFR-PF08`/`NFR-PF09` (cache, PMTiles range requests) are Medium priority *today* only because no
+  nginx is installed in this workspace — `phase1/NFR.md` §3 flags they become 🟠 High "the day it is
+  deployed." No story here can mark that transition; it is an operational event, not a code change.~~
+  ⚠️ **Removed 2026-08-26 as a duplicate, not closed as answered** — see §0. The question is real and
+  stays open; it is [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2, owner platform owner / ops,
+  and it covers SE09, SE10, SC01 and SC02 as well as these two. What was wrong here was the reason given:
+  both mechanisms *are* written and *are* verified — E08-S08 drives the cache through MISS → HIT → BYPASS
+  and E08-S10 drives a `Range:` request to a `206` with the exact slice, both against a live nginx in
+  `marketplace-nginx/test/run.sh`. Only the deployment is absent, and no story in any epic can mark that.
 - ~~`search`'s `near` radius bound and `limit` bound are enforced in the resolver, not upstream — is
   there a platform-wide max worth codifying once traffic is real, or is per-resolver bounding the
   permanent design?~~ **Answered v1.1: per-resolver, and it stays that way.** The bound that matters is

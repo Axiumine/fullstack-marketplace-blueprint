@@ -54,7 +54,7 @@ eleven stories are `built` and §6 has no open question left — the absent appr
 2026-08-25 by a decision, and `position`'s writer on 2026-08-26 by an implementation, which is also where
 the two newest stories came from. So the file had become the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E08..E19; E01..E07 are the seven whose records sit beside the index instead of under it.
+E09..E19; E01..E08 are the eight whose records sit beside the index instead of under it.
 
 **The story IDs did not change.** `E07-S01` … `E07-S11` keep their names. They are cited by
 [`docs/data-model.md`](../../data-model.md) (E07-S11), [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md)
