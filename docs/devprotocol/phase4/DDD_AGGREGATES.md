@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-26
+**Version:** 1.10
+**Date:** 2026-08-27
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.10 - 2026-08-27: §9 stops being a waiting room. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so "Planned aggregates — named gaps" becomes "Aggregates that will never exist — named refusals", the four rows say what would have had to exist rather than what still might, and the closing paragraph stops promising each one its own ADR: the ADR that would have unblocked them is the one that closed them. §1 and §3's no-`price` bullet follow ADR-009 into permanence.
 v1.9 - 2026-08-25: the `ItemCategory` aggregate's "write path exists ONLY in the Admin resource service"
 invariant is restated. The three mutations still do; the collection has a second writer, `holdItemCategory`
 on the ShopOwner tier, which `$inc`s `__v` and nothing else so that an item write and a concurrent
@@ -64,7 +65,7 @@ of any decision.
 
 ## 1. Purpose
 
-Defines the tactical domain model of Marketplace: the 6 aggregates that exist on disk (`ShopOwner`, `Company`, `Item`, `ItemCategory`, `User`, `Admin`), each aggregate's root entity, the entities/value objects it contains, the invariants it enforces and where, the commands that mutate it, and the events it emits. Binds to `phase2/BOUNDED_CONTEXT.md` (BC-01..BC-11) — every aggregate below sits inside a named BC and is referred to by that id — and to `phase2/EVENT_STORMING.md` for its commands/events/policies. Per `phase4/CONSTRAINTS.md` §4 ("No new collection this phase"), this document draws boundaries over the 6 collections that already exist. It introduces zero new collections and designs zero commerce concepts — Cart, Order, Delivery, Payment stay named gaps (§9).
+Defines the tactical domain model of Marketplace: the 6 aggregates that exist on disk (`ShopOwner`, `Company`, `Item`, `ItemCategory`, `User`, `Admin`), each aggregate's root entity, the entities/value objects it contains, the invariants it enforces and where, the commands that mutate it, and the events it emits. Binds to `phase2/BOUNDED_CONTEXT.md` (BC-01..BC-11) — every aggregate below sits inside a named BC and is referred to by that id — and to `phase2/EVENT_STORMING.md` for its commands/events/policies. Per `phase4/CONSTRAINTS.md` §4 ("No new collection this phase"), this document draws boundaries over the 6 collections that already exist. It introduces zero new collections and designs zero commerce concepts — Cart, Order, Delivery, Payment are aggregates that will never be drawn here or anywhere else (§9, ADR-038).
 
 The single most load-bearing fact this document states, because nothing upstream states it explicitly: **an aggregate boundary here is a MongoDB single-document write boundary, and nothing more.** There are no cross-collection ACID transactions in any domain-write resolver on this platform (§5). Every invariant that looks like it spans two aggregates is in fact enforced by an application-level resolver guard racing ahead of an unguaranteed second read — not by the database, and not by a saga, and not by an event.
 
@@ -205,7 +206,7 @@ async resolve(_: unknown, args: IArgs, ctx: IContextShopOwnerAuthenticatedResour
 ```
 - `idCategory` existence is unenforced — substituted entirely by `throwIfItemCategoryMissing` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/throwIfItemCategoryMissing.mts`), a second, unguaranteed-atomic read run before the write.
 - `idCompany_slug_unique` — a slug is unique per company, not globally, per [`docs/data-model.md`](../../data-model.md) §Indexes.
-- No `price` field, anywhere — deliberate (ADR-009). Orders/cart/delivery/payment have no model to copy; a price with nothing to buy is a guess at an undesigned decision.
+- No `price` field, anywhere — deliberate (ADR-009) and, since 2026-08-27, permanent (ADR-038). Orders/cart/delivery/payment are not coming, so a price would never acquire the thing that would give it meaning; a price with nothing to buy is a guess at a decision nobody is going to make.
 - Two independent writers of `item.published` — each tier's own `itemUpdatePublished` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts` and its ShopOwner-tier sibling of the same name) — both write the same flag on the same document with **no version/lock field in the schema**, and nothing enforces an order between them. ⚠️ **Accepted 2026-08-14 by the platform owner: last writer wins, and an owner republishing after an operator's unpublish is a normal outcome, not a defect** (`EVENT_STORMING.md` §5 hotspot 4, closed; `phase5/RISK_REGISTER.md` §5). ⚠️ **The ShopOwner writer was `itemUpdate` until later the same day**, `IItemUpdate` keeping `published` while the Admin one set that flag alone — so a save of any other field restored the owner's value without touching it. Publishing was split out rather than left asymmetric: `published` left `GraphQLInputItem` and `IItemUpdate`, `itemAdd` stamps `false`, and the race is now between two operations that are both about publication. `itemDel` is still the operator action no republish reverses, `deleted` being outside every input.
 
 **Commands:** `itemAdd`/`itemUpdate`/`itemUpdatePublished`/`itemDel` (ShopOwner tier, own company only); `itemUpdatePublished`/`itemDel` (Admin tier, moderation).
@@ -463,18 +464,20 @@ No new repository abstraction is proposed here — introducing one is an archite
 
 ---
 
-## 9. Planned aggregates — named gaps, not designed here
+## 9. Aggregates that will never exist — named refusals, not gaps
 
-Four commerce concepts are named in `phase2/BOUNDED_CONTEXT.md` BC-11 ("Ordering & Fulfilment [PLANNED - NOT BUILT]") and in `phase2/EVENT_STORMING.md` §2.9, and every one of them is out of scope for this document by `phase4/CONSTRAINTS.md` §6 and by the operator's explicit instruction (task rule 7). Listed here for completeness only — **no root entity, no boundary, no invariant, no event is defined for any of these**, because none has a collection, a migration, a resolver, or an ADR to ground it:
+Four commerce concepts are named in `phase2/BOUNDED_CONTEXT.md` BC-11 ("Ordering & Fulfilment [WILL NOT BUILD]") and in `phase2/EVENT_STORMING.md` §2.9, and every one of them is out of scope for this document by `phase4/CONSTRAINTS.md` §6 and by the operator's explicit instruction (task rule 7).
 
-| Planned aggregate | Why it has no shape yet | What would need to exist first |
+⚠️ **This section stopped being a to-do list on 2026-08-27.** [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) makes cart, order, delivery and payment permanently out of scope for this platform: they are not deferred, not blocked on a decision, not waiting for an ADR — they are refused. The four rows below stay so that the refusal has somewhere to live and so nobody re-derives them from the glossary. Listed here for completeness only — **no root entity, no boundary, no invariant, no event is defined for any of these**, and none ever will be:
+
+| Refused aggregate | Why it has no shape, permanently | What would have had to exist first — and never will |
 |---|---|---|
-| **Cart** | No collection, no migration, no resolver anywhere on the 16-repo tree | An ADR deciding cart lifecycle (session-bound vs account-bound), and a decision on whether `item` needs a price field at all before a cart line item can mean anything (ADR-009 blocks this) |
-| **Order** | No collection, no state machine, no resolver, no ERD node | An ADR for the state machine itself — order status transitions, who can trigger which, is genuinely new design with no existing pattern on this platform to copy (`CLAUDE.md` §Build state: "ask before inventing them") |
-| **Delivery** | No collection, no resolver, no design exists for this concept | An ADR on fulfilment ownership — `BOUNDED_CONTEXT.md` §4 names `company` as the eventual fulfilment owner once this exists, but nothing today models a delivery zone, cost, or method |
-| **Payment** | No gateway, no integration, no error taxonomy for payment failure modes | An ADR on the payment provider and on how a payment failure surfaces through the (also undesigned) order state machine |
+| **Cart** | No collection, no migration, no resolver anywhere on the 16-repo tree, and none is coming | An ADR deciding cart lifecycle (session-bound vs account-bound), and a decision on whether `item` needs a price field at all before a cart line item can mean anything. ADR-009 blocked it; ADR-038 closed it — the price question is answered `no, permanently` |
+| **Order** | No collection, no state machine, no resolver, no ERD node, and no plan for one | An ADR for the state machine itself — order status transitions, who can trigger which. It was genuinely new design with no existing pattern on this platform to copy, and on 2026-08-27 the owner declined to do that design at all rather than defer it again |
+| **Delivery** | No collection, no resolver, no design exists for this concept and none will | An ADR on fulfilment ownership — `BOUNDED_CONTEXT.md` §4 named `company` as the fulfilment owner *if* this ever existed. It does not, nothing models a delivery zone, cost or method, and the "if" is now settled as never |
+| **Payment** | No gateway, no integration, no error taxonomy for payment failure modes, and no provider will ever be chosen | An ADR on the payment provider and on how a payment failure surfaces through the (equally refused) order state machine |
 
-Each of these needs its own ADR before it gets an aggregate boundary — not a subsection of this document. Pre-building an anti-corruption layer or a resolver stub for any of them ahead of that decision is explicitly the risk `phase2/BOUNDED_CONTEXT.md` §6 flags as worth avoiding: "the protection here is refusing to build the boundary until the context itself is designed."
+None of these gets its own ADR, because the ADR that would have unblocked them is the one that closed them: [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27. Pre-building an anti-corruption layer or a resolver stub for any of them is the risk `phase2/BOUNDED_CONTEXT.md` §6 flags as worth avoiding — "the protection here is refusing to build the boundary until the context itself is designed" — and the context is not going to be designed, so the refusal is not temporary either. Re-opening any of the four takes a superseding ADR, not a story.
 
 ---
 

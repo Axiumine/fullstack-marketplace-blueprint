@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-12
+**Version:** 1.3
+**Date:** 2026-08-27
 **Author:** sequence-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.3 - 2026-08-27: §1 and §10 read as "no flow yet"; they are now "no flow ever". ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §10's table cells move from `UNBUILT` to `WILL NOT BUILD`, its closing paragraph says a speculative diagram contradicts an accepted ADR rather than merely jumping ahead, and the `price` note records that a display-only price was refused the same day.
 v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
 §2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
 v1.2 - 2026-08-25: E19. §2.8 was the only operator-writes-someone-else's-account flow documented, and it
@@ -23,8 +24,9 @@ actors, branching, auth) get a full mermaid `sequenceDiagram` plus a numbered na
 to the file that implements it. Linear 2-actor flows with no branching get one paragraph in §2 and a
 cross-reference, per `phase5/CONSTRAINTS.md` §4 (Flow rules) and the agent skill's own rule against
 diagramming what is already self-evident from `phase4/API_CONTRACTS.md`. Brownfield: every flow below is
-BUILT and running unless its heading says PLANNED — no speculative design, no flow for order/cart/delivery
-/payment (§10).
+BUILT and running unless its heading says PLANNED — no speculative design, and no flow for
+order/cart/delivery/payment will ever be added here, because those four are permanently out of scope
+([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27) — §10.
 
 Participant set is fixed per `phase5/CONSTRAINTS.md` §4: actors `Admin` / `ShopOwner` / `User` / Anonymous
 Visitor; frontends `marketplace-admin` (3043) / `marketplace-shopowner` (3044) / `marketplace-user` (3045,
@@ -616,26 +618,29 @@ sequenceDiagram
 
 ---
 
-## 10. Out of scope — no flow exists, and none is designed here
+## 10. Out of scope, permanently — no flow exists, and none will
 
-Per `phase5/CONSTRAINTS.md` §6 and `phase2/BOUNDED_CONTEXT.md` BC-11, four capabilities are **absent**, not
-merely undocumented — no collection, no resolver, no schema field, no frontend screen:
+Per `phase5/CONSTRAINTS.md` §6, `phase2/BOUNDED_CONTEXT.md` BC-11 and
+[ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), four capabilities are **absent**,
+not merely undocumented — no collection, no resolver, no schema field, no frontend screen — and since
+2026-08-27 they are absent permanently, by the platform owner's decision rather than by build order:
 
 | Capability | State | Why it cannot be diagrammed |
 |---|---|---|
-| Cart | UNBUILT | no `cart` collection; no mutation adds an item to anything persistent |
-| Order | UNBUILT | no `order` collection, no state machine, no order-placed event |
-| Delivery | UNBUILT | no delivery-zone, no courier, no fulfillment status field anywhere |
-| Payment | UNBUILT | no payment-provider integration, no transaction record |
+| Cart | WILL NOT BUILD | no `cart` collection; no mutation adds an item to anything persistent, and none is coming |
+| Order | WILL NOT BUILD | no `order` collection, no state machine, no order-placed event, and none is coming |
+| Delivery | WILL NOT BUILD | no delivery-zone, no courier, no fulfillment status field anywhere, and none is coming |
+| Payment | WILL NOT BUILD | no payment-provider integration, no transaction record, and no provider will ever be chosen |
 
 `item` carries no `price` field for exactly this reason — a price with nothing to buy is a guess at a
-design decision nobody has made (`docs/data-model.md`, "No `price` field, deliberately").
+design decision nobody is going to make (`docs/data-model.md`, "No `price` field, deliberately"). A
+display-only price was offered and refused on the same day the four closed (ADR-009 §Note 2026-08-27).
 The customer tier that shipped 2026-08-05 is identity and catalogue-browsing only: a `User` can register,
 verify email, log in, maintain `personalData` and `addresses[]` — nothing in that tier or any other lets
 them purchase anything.
 
-This section records the gap; it does not fill it. Do not add a speculative checkout/cart/delivery/payment
+This section records the refusal; nothing fills it. Do not add a speculative checkout/cart/delivery/payment
 diagram — `phase5/CONSTRAINTS.md` §6 reserves exactly one epic (BC-11) for recording this absence, not a
-design.
+design, and adding such a diagram now contradicts an accepted ADR rather than merely jumping ahead.
 
 ---

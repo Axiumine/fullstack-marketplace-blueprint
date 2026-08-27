@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-26
+**Version:** 1.5
+**Date:** 2026-08-27
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.5 - 2026-08-27: §8's first four bullets stop being "not this phase" and become "not ever" — ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope. The `price` bullet loses its "it arrives with the ordering tier, in one migration" ending, which described a tier that is not coming, and §9 question 3 closes as moot rather than answered.
 v1.4 - 2026-08-26: §7 `user` gains `deleted_ttl`, the only index on this platform that deletes documents — thirty days after `userDel` stamps `deleted`, MongoDB removes the account. ⚠️ It also **retracts a claim v1.3 made in this document**: `20260301000300-create-user.js` was described as immutable and untouched, and it is neither as of 2026-08-26 — the owner chose to edit the create migration and rebuild the database rather than add a follow-up one, so the note beside `tbl_active_registeredAt` is corrected rather than left standing.
 v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the operator's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
 v1.2 - 2026-08-25: the `itemCategory` note said the other three tiers never write the collection. They write no domain field of it; the ShopOwner tier writes `__v`, via `holdItemCategory`, to make an item write collide with a concurrent `itemCategoryDel`. Restated, DCON-05 having been restated the same way.
@@ -436,13 +437,15 @@ No `2dsphere` over `addresses[].position` — nothing on the platform queries cu
 
 ## 8. What this model does NOT include
 
-Out of scope for this phase, per [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6 — named here only so nobody goes looking for a shape that does not exist, never designed:
+Out of scope for this phase, per [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6 — named here only so nobody goes looking for a shape that does not exist, never designed.
 
-- **Order** — no collection, no state machine, no resolver, no node in section 2's diagram, no aggregate.
-- **Cart** — no collection, no node.
-- **Delivery** — not built: no collection, no resolver, no design.
-- **Payment** — no gateway, no integration, no error taxonomy for a payment failure.
-- **`price` on `item`** — deliberately absent, everywhere, not "TODO." A price implies a currency, a precision, a VAT treatment and a discount model, none of which is decided; `Decimal128`, the BSON type a price would need, is a *rejected* write on this platform anyway because it cannot survive `.lean()` into a GraphQL `Float` (`BEs/marketplace-db-setup/lib/schemas/item.js`). It arrives with the ordering tier, in one migration, after those questions are answered — not before.
+⚠️ **The first four are out of scope permanently, not for this phase** — [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27. There is no later phase in which they get a collection, a node in §2's diagram, or a row anywhere in this document:
+
+- **Order** — no collection, no state machine, no resolver, no node in section 2's diagram, no aggregate. Permanently (ADR-038).
+- **Cart** — no collection, no node. Permanently (ADR-038).
+- **Delivery** — not built and will not be: no collection, no resolver, no design (ADR-038).
+- **Payment** — no gateway, no integration, no error taxonomy for a payment failure, and no provider will ever be chosen (ADR-038).
+- **`price` on `item`** — deliberately absent, everywhere, not "TODO." A price implies a currency, a precision, a VAT treatment and a discount model, none of which is decided; `Decimal128`, the BSON type a price would need, is a *rejected* write on this platform anyway because it cannot survive `.lean()` into a GraphQL `Float` (`BEs/marketplace-db-setup/lib/schemas/item.js`). It does **not** arrive later: there is no ordering tier to arrive with, and a display-only price was offered to the platform owner and refused on 2026-08-27 (ADR-009 §Note, ADR-038). No migration adds this field.
 - **A `shop` collection** — a shop **is** a `company`. There is not going to be a seventh collection for it (`docs/devprotocol/phase4/CONSTRAINTS.md` §4).
 - **A `role` field or permission enum**, on any collection — tier = which collection/service the caller hits, never a stored value (DCON-09).
 - **A fourth tier** — `admin` / `shopOwner` / `user` stays 3.
@@ -471,5 +474,5 @@ All six live in one database, `dbMarketplaceDev` (dev) / `dbMarketplaceTest` (ea
 |---|---|---|---|
 | 1 | `search` on `shopOwner` is unindexed by design at current cardinality — no threshold or alert exists for "collection reached six figures, revisit." | `BEs/marketplace-db-setup/migrations/20260301000100-create-shopOwner.js` | open, no owner |
 | 2 | `company.idShopOwner` has no existence guard at `companyAdd` time beyond trusting the authenticated session's own id — correct today because the id cannot be attacker-supplied, but the absence is implicit rather than a named guard the way `throwIfShopOwnerDontOwnCompany` is for reads. | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` | flagged, not a defect under current call pattern |
-| 3 | Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason. | [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6 | explicitly out of scope this phase — ask before inventing |
+| 3 | ~~Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason.~~ | [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6, [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) | **Closed 2026-08-27 — moot, not answered.** The four are permanently out of scope, so there is no undesigned collection waiting on a designer. Nothing to ask about before inventing, because nothing is to be invented |
 | 4 | Whether a "genuinely new product type" ever needs a 7th collection (vs. an `itemCategory` document) has no decision procedure beyond "check first" — the bar to clear is undocumented as a checklist. | parent [`docs/data-model.md`](../../data-model.md) | owned by whoever proposes the next product type, not this phase |

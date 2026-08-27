@@ -5,7 +5,8 @@
 **Date:** 2026-08-05
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** — (**not** superseded — see the note dated 2026-08-27 at the foot of this file)
+**Related:** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) — the cart/order model this ADR called absent "yet" is now absent permanently
 
 ---
 
@@ -82,3 +83,26 @@ Verify no boolean regression: `grep -n "default.*true\|default:" BEs/marketplace
 Verify the delete path stays pipeline-shaped: `grep -n "updateOne" BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/user/funUserAddressDel.mts` — second argument must be an array (`[ {$set:...}, {$set:...} ]`), not a plain update document.
 
 A violation on disk looks like: an `addresses[]` element carrying a `default` field, an `$expr` clause deleted or narrowed to only the `$jsonSchema` half, or an address-delete mutation calling `User.updateOne` with a bare `$pull` instead of the two-stage pipeline.
+
+---
+
+## Note — 2026-08-27: the "yet" in §Context is now permanent
+
+⚠️ **The decision below is unchanged and this note changes nothing about it.** It records that one factual
+sentence in §Context has stopped being a statement about build order.
+
+§Context reads *"No cart/order model exists **yet** (`item` has no `price`) so `defaultAddress` has no
+consumer beyond 'which saved address does `me` highlight' today."* On 2026-08-27 the platform owner decided
+that cart, order, delivery and payment are **permanently out of scope**
+([ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md)), and that `item` gets no `price` ever
+([ADR-009](./ADR-009-no-price-on-item.md) §Note of the same date). So:
+
+- `defaultAddress` has no consumer beyond the account screen, and never gains one. The "today" in that
+  sentence is every day.
+- An address in `user.addresses[]` is a customer's own saved-address book entry. It is **not** a delivery
+  record, and it will not become one.
+- The decision is therefore *more* firmly right, not less: it was taken on data-shape grounds — atomicity
+  of a pointer versus a boolean-per-element — and those grounds never depended on a consumer arriving.
+
+Nothing in §Decision, §Options considered or §Compliance is amended. Re-opening the commerce question
+takes a superseding ADR against ADR-038, not an edit here.

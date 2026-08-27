@@ -1,10 +1,11 @@
 # DEVPROTOCOL — Phase Status Dashboard
 # Marketplace
 **Status:** Phases 1-5 complete — all five gates closed `pass`
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-27
 **Author:** retrofit-run
-**Changelog:** v1.1 — 2026-08-27: §5's inventory was still the count taken the day the retrofit closed and every row of it had gone stale — the corpus has roughly doubled since. Re-measured against the tree: documents, ADRs, bounded contexts, epics, stories and risks. The NFR row was re-checked and is correct as written (the five §Critical rows expand to 17 ids). §6's *"as of"* sentence now points a reader at each document's own header rather than at one frozen date. Nothing about the phases or the gates changed.
+**Changelog:** v1.2 — 2026-08-27: ADR-038 lands — cart, order, delivery and payment are permanently out of scope, so §5 counts 38 ADRs and marks `E11` `WILL NOT BUILD`, §6's "first commerce collection" trigger is struck through because it can no longer fire, and §7's closing paragraph stops routing the four into Phase 6 behind an ADR they were never going to get. Two counts in §5 were recounted rather than adjusted: documents 83→84 and lines, both moved by this pass, and **stories 88→183**, which had matched neither the corpus-wide count nor the `epics/`-only one for some time.
+v1.1 — 2026-08-27: §5's inventory was still the count taken the day the retrofit closed and every row of it had gone stale — the corpus has roughly doubled since. Re-measured against the tree: documents, ADRs, bounded contexts, epics, stories and risks. The NFR row was re-checked and is correct as written (the five §Critical rows expand to 17 ids). §6's *"as of"* sentence now points a reader at each document's own header rather than at one frozen date. Nothing about the phases or the gates changed.
 v1.0 — initial dashboard, written after the Phase 5 gate closed. Brownfield retrofit: every phase artefact was reverse-engineered from the 15-repo working tree, not written ahead of code.
 
 *Updated: 2026-08-27*
@@ -98,11 +99,11 @@ Epic ids were **hard-coded in the Phase 5 run script** (`E01`↔`BC-01` … `E11
 
 | Thing | Count |
 |---|---|
-| Documents | 83 markdown files, 22 695 lines |
-| ADRs | 37 accepted, `ADR-001`..`ADR-037` (+ index + `ADR-000-template.md`) |
+| Documents | 84 markdown files, 23 041 lines |
+| ADRs | 38 accepted, `ADR-001`..`ADR-038` (+ index + `ADR-000-template.md`) |
 | Bounded contexts | 12 (`BC-01`..`BC-12`) |
-| Epics | 19 (`E01`..`E19`) — 18 **built**, `E11` Ordering & Fulfilment **planned, not built**. `E01`..`E10` are named records at `phase5/*.md` rather than files under `phase5/epics/` |
-| Stories | 88 unique `ENN-SNN` ids |
+| Epics | 19 (`E01`..`E19`) — 18 **built**, `E11` Ordering & Fulfilment **`WILL NOT BUILD`** (ADR-038, 2026-08-27; its two stories are both recording stories and both built). `E01`..`E10` are named records at `phase5/*.md` rather than files under `phase5/epics/` |
+| Stories | 183 unique `ENN-SNN` ids across `phase5/`, 103 of them under `phase5/epics/`. ⚠️ This row read **88** until 2026-08-27 and matched neither count; it was recounted, not adjusted |
 | NFR ids | 48, of which 17 Critical — **all 17 now land on ≥1 story** |
 | Risks | 54 (`R01`..`R54`) |
 | Sequence diagrams | 7 full mermaid flows (§3-§9) + simple flows (§2) |
@@ -123,7 +124,7 @@ These documents described the working tree **as of 2026-08-07** and have been ma
 | New service, or a port change | [`phase3/C4_CONTAINER.md`](./phase3/C4_CONTAINER.md), [`phase3/INFRA.md`](./phase3/INFRA.md), [`phase4/API_CONTRACTS.md`](./phase4/API_CONTRACTS.md) |
 | Any auth-middleware edit | [`phase3/SECURITY_AUTH.md`](./phase3/SECURITY_AUTH.md), [`phase5/RISK_REGISTER.md`](./phase5/RISK_REGISTER.md) R01-R04, `E01` |
 | A decision reversed | a **superseding** ADR — never an edit to an accepted one (RULES.md §10) |
-| The first commerce collection (cart/order) | `E11`, [`phase5/CONSTRAINTS.md`](./phase5/CONSTRAINTS.md) §6, and every "out of scope" claim in phases 3-5 |
+| ~~The first commerce collection (cart/order)~~ | **This trigger cannot fire.** Cart, order, delivery and payment are permanently out of scope ([ADR-038](./phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27), so no first commerce collection arrives to stale anything. A collection appearing anyway is an ADR violation to revert, not a doc refresh to schedule |
 
 ---
 
@@ -151,6 +152,6 @@ Phases 1-5 are the pre-code protocol; Phase 6 is code. The entry condition is me
 Two things bind any code written from here:
 
 1. **[`phase5/DEFINITION_OF_DONE.md`](./phase5/DEFINITION_OF_DONE.md) is the exit criterion for every story**, not a suggestion. It restates the platform's real gates — 100% coverage on all four metrics and a 100 mutation score, `lint:check`, `tsc --noEmit` and Qodana, in `.githooks/pre-commit` and `.githooks/pre-push`. Never lower a threshold; add the test.
-2. **[`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md) §19 is the banned-term list.** Any non-English identifier or string, every product-type term the domain-neutral catalogue must not reintroduce, and the four commerce concepts that have no design yet. Check a name against it before writing it.
+2. **[`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md) §19 is the banned-term list.** Any non-English identifier or string, every product-type term the domain-neutral catalogue must not reintroduce, and the four commerce concepts that will never have a design (ADR-038). Check a name against it before writing it.
 
-Ordering, cart, delivery and payment (`E11`) are **genuinely new design with no existing model to copy**. They do not enter Phase 6 by inference from these documents — they need their own ADRs first.
+~~Ordering, cart, delivery and payment (`E11`) are **genuinely new design with no existing model to copy**. They do not enter Phase 6 by inference from these documents — they need their own ADRs first.~~ ⚠️ **They do not enter Phase 6 at all.** On 2026-08-27 the platform owner decided the four are **permanently out of scope** ([ADR-038](./phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)). The ADR this paragraph said they needed first is the one that closed them; re-opening any of the four takes a superseding ADR, which is the owner's call alone.

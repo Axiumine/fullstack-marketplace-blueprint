@@ -5,7 +5,8 @@
 **Date:** 2026-08-05
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** — (**not** superseded — see the note dated 2026-08-27 at the foot of this file)
+**Related:** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) — the condition in this ADR's title never arrives
 
 ---
 
@@ -108,3 +109,30 @@ landing in the same piece of work. Also a violation: any resolver in
 accepting a `price` argument on `itemAdd`/`itemUpdate` — check
 `src/graphQLApi/schema/mutations/itemAdd.mts` / `itemUpdate.mts` for an unlisted input field, which
 `GraphQLInput` types would surface at the schema-slice level before it ever reached the database.
+
+---
+
+## Note — 2026-08-27: the condition in this ADR's title never arrives
+
+⚠️ **This ADR's decision is unchanged and nothing above is edited.** What changed is outside it: on
+2026-08-27 the platform owner decided that cart, order, delivery and payment are **permanently** out of
+scope — [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md). This ADR is not superseded, because
+the decision it took ("`item` carries no `price`") is exactly the decision that still holds; only its
+title's *until* is now permanent, and every argument above still reads correctly with "until ordering is
+designed" understood as "and ordering is not going to be".
+
+Two things in the text above become permanent rather than pending, and are called out here so a reader does
+not mistake either for an open door:
+
+- **§Consequences → Negative, "won't until the ordering tier lands"** — no ordering tier lands. The
+  shop-owner item screens have nothing to bind a price to, permanently, and that is the shape they were
+  built for rather than a gap in them.
+- **§Risks, both revisit triggers** — the first (a `Cart`/`Order`/`Payment` ADR specifying currency,
+  precision and VAT/discount) cannot fire, because ADR-038 forecloses that ADR. The second (an explicit
+  product decision to add a *display-only* price) was **put to the platform owner on 2026-08-27 and
+  refused in the same breath as ADR-038**: no price on `item`, of any kind, transactional or marketing.
+  Re-opening either needs an ADR superseding ADR-038 first.
+
+§Compliance above is unaffected and is still the check: `price` may appear in `lib/schemas/item.js` only
+inside the explanatory header comment, and the validator's `additionalProperties: false` is what enforces
+it in the database.

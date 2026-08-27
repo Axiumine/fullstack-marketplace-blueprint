@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-26
+**Version:** 1.3
+**Date:** 2026-08-27
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit
+v1.3 - 2026-08-27: the four commerce concepts in §6 are **permanently out of scope**, not merely unbuilt, and §8's no-`price` bullet says the same — it is not a this-phase restriction and there is no later phase that lifts it — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`. BC-11 is `WILL NOT BUILD`. **No constraint changed and none was relaxed**: DDD_AGGREGATES, ERD and API_CONTRACTS still may not draw an aggregate, a node or a contract for any of them, and 6 collections stays 6 — now permanently rather than for this phase.
 v1.1 - 2026-08-25: DCON-05 restated. Its second sentence read "Write path for `itemCategory` exists ONLY in Admin tier" and its trigger fired on any design showing another tier writing the collection — which now describes shipped code. The three mutations are still Admin-only; `holdItemCategory` on the ShopOwner tier writes `__v` and nothing else, to close a write-skew window. The constraint now says which of the two it is, so the trigger stops firing on the exception it should permit.
 v1.2 - 2026-08-26: same annotation as phase 5's — the inherited "GDPR call" row now says the call was made on 2026-08-26 and where. No constraint changed.
 
@@ -69,7 +70,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
 | `admin` stands OUTSIDE the chain | Owns nothing, owned by nothing. Do not draw an FK from `admin` into the chain. |
 | `user` stands OUTSIDE the chain | Owns only its own embedded `addresses[]` (not a chain link — an embedded array on its own doc). Do not draw `user` as a parent/child of `shopOwner`/`company`/`item`. |
 | Aggregate root = collection with a `_id`, always | 6 collections = 6 candidate roots: `admin`, `shopOwner`, `company`, `user`, `item`, `itemCategory`. `user.addresses[]` is embedded (no own collection) — model as a value-object list inside the `User` aggregate, NOT a 7th root. |
-| No new collection this phase | DDD_AGGREGATES may show aggregate boundaries and invariants over the 6 EXISTING collections. It may NOT introduce a 7th (e.g. `Shop`, `Cart`, `Order`) — see §6. |
+| No new collection this phase | DDD_AGGREGATES may show aggregate boundaries and invariants over the 6 EXISTING collections. It may NOT introduce a 7th (e.g. `Shop`, `Cart`, `Order`) — see §6. ⚠️ For `Shop`, `Cart`, `Order`, `Delivery` and `Payment` this is no longer a phase rule but a permanent one: ADR-007 for the first, [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) for the other four. |
 | Naming: aggregate/entity/VO names = the collection/field names already fixed | `ShopOwner`, `Company`, `Item`, `ItemCategory`, `User`, `Admin` for roots; `personalData`, `addresses`, `defaultAddress`, `idParent`, `slug` etc for fields — per `phase2/UBIQUITOUS_LANGUAGE.md` §5-10. Do not coin a new synonym (no "Shop" for `Company`, no "Product" for `Item`). |
 | `defaultAddress` invariant is aggregate-internal | Single top-level ObjectId pointer into `user.addresses[]._id`, enforced by `$and: [$jsonSchema, $expr]` at the DB. Model it as a `User`-aggregate invariant, not a separate rule needing its own enforcement path. |
 | `itemCategory` self-FK depth-2 cap is a resolver-level invariant, not a DB one | See DCON-05. When drawing aggregate boundaries, note the cap lives OUTSIDE the aggregate's own validator. |
@@ -96,14 +97,16 @@ Same 4 unbuilt commerce concepts as Phase 3 — still no shape, still ask before
 
 Also explicitly out of scope for THIS phase's design work:
 
-- **No `price` field on `item`**, anywhere in ERD, aggregate, or contract — DCON already inherited (CON-09/phase3, ADR-009). A price with nothing to buy is a guess at an undesigned decision.
+- **No `price` field on `item`**, anywhere in ERD, aggregate, or contract, in this phase or any later one — DCON already inherited (CON-09/phase3, ADR-009, and ADR-038 which makes it permanent). A price with nothing to buy is a guess at a decision nobody is going to make; a display-only price was offered and refused on 2026-08-27 (ADR-009 §Note).
 - **No new collection** — 6 stays 6. A "genuinely new product type" question (per `docs/data-model.md`) is a decision for whoever owns that scope next, not this phase.
 - **No new tier** — `admin`/`shopOwner`/`user` stays 3. No `role` field as a shortcut around a 4th tier (see DCON-09).
 - **No REST beyond the existing 3 `/check` endpoints** — see §5.
 
-BC-11 "Ordering & Fulfilment [PLANNED - NOT BUILT]" in `phase2/BOUNDED_CONTEXT.md` covers all 4 commerce
-concepts above; naming them in prose (glossary-reference only) is fine, drawing their ERD/aggregate/contract
-shape is not.
+BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" in `phase2/BOUNDED_CONTEXT.md` covers all 4 commerce concepts
+above; naming them in prose (glossary-reference only) is fine, drawing their ERD/aggregate/contract shape is
+not. ⚠️ **Permanent since 2026-08-27** ([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) —
+this was a phase boundary and is now a platform boundary, so a later phase does not inherit permission to
+draw what this one refused.
 
 ## 7. Conflict resolution order
 

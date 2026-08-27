@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-26
+**Version:** 1.4
+**Date:** 2026-08-27
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.4 - 2026-08-27: The three commerce checkboxes said "not designed here", which a reader could satisfy by designing it elsewhere later. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so each now cites it, the `E11` checkbox drops `[PLANNED - NOT BUILT]` for `[WILL NOT BUILD]` and notes its questions are moot rather than pending, and §8's do-not-re-open list gains commerce design alongside the `price` field.
 v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or an epic to map onto a bounded context — that
 rule was removed from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which records the decision. The same edit
 corrects the story-id spelling from `BC-0N-0X` to the `ENN-SNN` every story has always used, which
@@ -38,9 +39,11 @@ document is that doctrine in checklist form.
 - [ ] Story for already-running code is marked BUILT and cites the path proving it — never phrased as
   still-to-build. Built-vs-planned split follows [`CLAUDE.md`](../../../CLAUDE.md)'s §Build state table exactly
   (`phase5/CONSTRAINTS.md` §5).
-- [ ] Story never designs order, cart, delivery or payment shape. `item` deliberately carries no `price`
-  field (ADR-009). A gap here is a risk-register row, never a story with acceptance criteria
-  (`phase5/CONSTRAINTS.md` §6).
+- [ ] Story never designs order, cart, delivery or payment shape — permanently out of scope by
+  [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), so this is a contradiction of an
+  accepted ADR, not a scheduling error. `item` deliberately carries no `price` field, ever (ADR-009 +
+  its 2026-08-27 note). What remains here is a risk-register row (R31), never a story with acceptance
+  criteria (`phase5/CONSTRAINTS.md` §6).
 - [ ] Every acceptance criterion is mechanically checkable — a gate name, a test file path, an `.explain()`
   output — never a feeling (BCON-01).
 
@@ -143,7 +146,8 @@ document is that doctrine in checklist form.
   per-address boolean), ADR-011 (soft delete via `deleted` date), ADR-013 (English-only naming), ADR-014
   (migrations immutable).
 - [ ] Catalogue change checked against ADR-008 (domain-neutral item/itemCategory), ADR-009 (no `price`
-  field), ADR-012 (2-level category cap, admin-only writes).
+  field), ADR-012 (2-level category cap, admin-only writes), ADR-038 (commerce permanently out of scope —
+  the reason ADR-009 has no expiry).
 - [ ] Frontend change checked against ADR-018 (SSR public / CSR `/account/*`), ADR-019 (new urql client per
   SSR request), ADR-020 (route files as one-line `createFileRoute`), ADR-021 (`preferGetMethod` stays
   false), ADR-027 (one app per tier).
@@ -163,10 +167,11 @@ document is that doctrine in checklist form.
 - [ ] Every 🔴 Critical NFR the epic touches lands on ≥1 story inside it — cross-checked against the risk
   register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5). Scope is what the epic changes, not a
   bounded context it is assigned to; no epic is assigned one.
-- [ ] If the epic is `E11` (Ordering & Fulfilment [PLANNED - NOT BUILT]) — it closes with exactly the gap
-  recorded (blocking questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7 Open questions), never a schema,
-  resolver, field, or sequence diagram that presumes order/cart/delivery/payment exists
-  (`phase5/CONSTRAINTS.md` §6).
+- [ ] If the epic is `E11` (Ordering & Fulfilment [WILL NOT BUILD]) — it closes with exactly the refusal
+  recorded (ADR-038, plus the now-moot questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7), never a
+  schema, resolver, field, or sequence diagram that presumes order/cart/delivery/payment exists
+  (`phase5/CONSTRAINTS.md` §6). ⚠️ Since 2026-08-27 those questions are closed as moot, so a story that
+  "answers" one of them is out of scope in the same way a schema would be.
 - [ ] Every ADR under the epic's area (`phase3/adr/ADR-INDEX.md` §3 "By area") re-verified compliant across
   ALL its stories combined, not just per-story.
 
@@ -180,7 +185,7 @@ document is that doctrine in checklist form.
   phase5). A contradiction is fixed in the lower-ranked doc; it is never treated as a supersession.
 - [ ] Phase 5 output does not re-open a decision listed in `phase3/adr/ADR-INDEX.md` §4 — merge-3-authz,
   per-tier `REDIS_KEY`, `role` field, shop collection, `price` field, lowered threshold, `ignoreStatic`,
-  domain-specific catalogue vocabulary.
+  domain-specific catalogue vocabulary, any cart/order/delivery/payment design (ADR-038).
 - [ ] Success-definition items relevant to the phase, from `phase1/PDR.md` §7, individually re-verified
   true on disk — never assumed carried over from a prior phase.
 

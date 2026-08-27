@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.10
-**Date:** 2026-08-26
+**Version:** 1.11
+**Date:** 2026-08-27
 **Author:** adr-agent
 **Changelog:**
 v1.0 - 31 decisions, one per architectural choice this platform stands on
@@ -72,11 +72,14 @@ the sixteen *repositories* live is a different question from which *registry* on
 ADR-037 §Compliance lists conflating them as a violation
 v1.10 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed. Four accepted ADRs carried the same number and were corrected with it — **ADR-018** §Consequences, **ADR-030** §Consequences (which claimed every pushed revision had had 168 assertions run against it, a false gate claim), **ADR-032** §Context and this index §5. No ADR's decision, status or consequence changed; only a number that had stopped being true. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "ADR-INDEX.md v1.6" could not be resolved to one of them. It takes the next free number instead. It is placed at the end, which is where this oldest-first list now carries it — it had been sitting between `v1.4` and `v1.5`, out of sequence as well as out of number. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 
+v1.11 - 2026-08-27: **ADR-038 added — cart, order, delivery and payment are permanently out of scope**, decided by the platform owner when asked what to do with `phase5/epics/E11.md` §6 question 1. It is the ADR §5 said was owed "when the design starts", arriving because the design does not start, so the **Ordering** gap leaves §5 rather than being answered inside it. One row in §2, one number in §3's **Catalogue** line, and two rows in §4 — the existing `price` row keeps ADR-009 and gains ADR-038, because the reason changed from *no design yet* to *no design ever*. ADR-009 is **not** superseded: its decision is unchanged and its title's condition simply never arrives, which its own header now records. Corrected in the same pass: §1 said "no supersession exists", which stopped being true on 2026-08-26 when ADR-037 superseded ADR-015 in part — the sentence predates that row and nothing but the sentence was wrong. **ADR-010 also carries a dated note now** — its §Context called the cart/order model absent *"yet"*, which ADR-038 turns into absent permanently; its decision, taken on atomicity grounds that never depended on a consumer arriving, is untouched
+
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
-`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and no
-supersession exists — each decision stands as written, and none contradicts another. Where two ADRs touch
+`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and exactly one
+supersession exists — ADR-037 supersedes ADR-015 *in part*, and §2 says so in both rows. Every other
+decision stands as written, and none contradicts another. Where two ADRs touch
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
 
@@ -135,6 +138,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-035 | `user.addresses` capped at six, in the validator and in the write that appends | accepted | 2026-08-26 | — | — | Data model |
 | ADR-036 | Erasure is not something the platform suspends: `userDel` does not gate on `disabled` | accepted | 2026-08-26 | — | — | Identity and access |
 | ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted | 2026-08-26 | ADR-015, in part | — | Build and quality gates |
+| ADR-038 | Cart, order, delivery and payment are permanently out of scope | accepted | 2026-08-27 | — | — | Catalogue |
 
 ## 3. By area
 
@@ -142,7 +146,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 
 **Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035
 
-**Catalogue** — ADR-008, ADR-009, ADR-012
+**Catalogue** — ADR-008, ADR-009, ADR-012, ADR-038
 
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027
 
@@ -160,7 +164,8 @@ ADR-037
 | Per-tier `REDIS_KEY` prefixes | ADR-004 | breaks the single logout service (ADR-005), which finds a session by token content alone; the tier assertion is the layer that holds even if a prefix is reused by mistake |
 | Add a `role` field / permission enum | ADR-002 | role = which collection you authenticate against, by design; a role field duplicates that |
 | Add a shop collection | ADR-007 | a shop is a company; a separate shop collection splits one record in two and puts the storefront fields on the wrong side of the split |
-| Add a `price` field to `item` | ADR-009 | order/cart/delivery/payment have no design yet; a price with nothing to buy is a guess at a decision nobody has made |
+| Add a `price` field to `item` | ADR-009, ADR-038 | there is nothing to buy and there never will be — ADR-038 makes ADR-009's "until ordering is designed" permanent, so the four decisions a price drags behind it (currency, precision, VAT, discount) are not pending, they are moot. `price` on `item` is a banned term in `phase2/UBIQUITOUS_LANGUAGE.md` §19 |
+| Design or build cart, order, delivery or payment — a schema, a mutation, a state machine, a checkout sequence diagram, or "a first small step" toward any of them | ADR-038 | permanently out of scope by the platform owner's decision, 2026-08-27. The blueprint demonstrates multi-tenant identity, tenancy and catalogue; a checkout demonstrates none of that a second time. The four stay named in `BOUNDED_CONTEXT.md` BC-11, `UBIQUITOUS_LANGUAGE.md` §18, `EVENT_STORMING.md` §2.9 and `phase5/epics/E11.md` so they are recognisable enough to refuse — presence is not a plan. Re-opening needs an ADR superseding ADR-038, not a story |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
@@ -198,6 +203,6 @@ Decisions this platform still owes an ADR, once taken:
   not an answer to it — `INTROSPECTION_CODE` and `REDIS_PASSWORD` are untouched and still have to be
   identical across nine files that nothing compares (`INFRA.md` §8 q8). Option E of ADR-034 — a secrets
   manager — is the destination and cannot be chosen before ADR-032 says where any of this runs.
-- **Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.
+- ~~**Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.~~ **Closed 2026-08-27 — it is no longer a gap, and it got the ADR from the other side.** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are permanently out of scope, so the design this bullet was waiting on does not start. Struck rather than deleted because the wait is the reason the bullet was here for thirty-seven ADRs, and because the sentence it ends on — *needs its own ADR when the design starts* — is what ADR-038 answers. Everything the bullet asserts about the working tree is still true and stays true: no collection, no resolver, no design, and `item` still has no price.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
 - **Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.

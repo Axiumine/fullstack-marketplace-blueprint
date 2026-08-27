@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.4 - 2026-08-27: §3's `User` row said the tier cannot buy anything because no cart or order model exists, which read as a build-order statement. ADR-038 (2026-08-27) makes that permanent: the models are not coming.
 v1.3 - 2026-08-27, later the same day: v1.2 corrected the npm row in §3 and missed the identical claim in the
 relationships table, which still read *"every package except `marketplace-common`"*. Corrected the same way. No
 actor, system or relationship changed.
@@ -88,7 +89,7 @@ graph TB
 | Actor | Role | Primary interaction |
 |---|---|---|
 | Anonymous visitor | no session | reads public SSR routes on `marketplace-user` (`/`, `/shops`, `/shop/:slug`, `/category/:slug`) — GraphQL over the public-resource service, no auth token |
-| User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything — no cart or order model exists |
+| User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything, ever — no cart or order model exists and none will be built ([ADR-038](./adr/ADR-038-commerce-is-permanently-out-of-scope.md)) |
 | ShopOwner | shop owner, `shopOwner` collection | arrives one of two ways — self-registers at `/register/seller` on the **public** app `marketplace-user` and waits on `waitApprov`, or is provisioned by an Admin through `shopOwnerAdd` and waits on nothing. Then confirms the email, logs in on `marketplace-shopowner`, manages own `company` document(s) and `item` catalogue. ⚠️ `marketplace-shopowner` has **no registration screen** — it is the panel you reach once you have an account |
 | Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
 | Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |

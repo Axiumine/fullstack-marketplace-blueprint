@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
-**Date:** 2026-08-25
+**Version:** 1.9
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.9 - 2026-08-27: The out-of-scope row said BC-11 was merely unbuilt. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope.
 v1.1 - 2026-08-14: §6's first open question closes on the platform owner's decision — **the taxonomy needs
 no intermediate draft state**, so no `published` flag and no `itemCategoryDisable` are coming. Nothing was
 built: the shipped design already says so, in `itemCategories`' own docblock ("a category is not a draft"),
@@ -101,7 +102,7 @@ ShopOwner and public tiers read it — with the one field-level exception §6 re
 | `itemCategory` `$jsonSchema` validator | `item` documents | BC-05 owns catalogue entries; deleting a category leaves its items resolvable, on purpose |
 | Admin-tier `itemCategoryAdd`/`Update`/`Del` + depth cap | ShopOwner/public-tier writes | do not exist and must not — verified, see §3 |
 | ShopOwner-tier read-only `itemCategories` query | `company` | BC-04, unrelated aggregate |
-| Public-tier `itemCategories` query + customer category-browse pages | order/cart/delivery/payment | BC-11, unbuilt |
+| Public-tier `itemCategories` query + customer category-browse pages | order/cart/delivery/payment | BC-11 `WILL NOT BUILD` — permanently out of scope ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) |
 | Admin-frontend category management screens | — | built — see §3 |
 
 ## 3. Build state

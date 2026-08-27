@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-27
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.7 - 2026-08-27: **§18 is no longer "planned".** Cart, order, delivery and payment are permanently out of scope (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`), so the section that named them for *readiness* now names them so they are **refused** consistently — heading, status column and purpose sentence all follow. §2's `User` definition loses "yet", §9's `item` example quotes the rewritten `item.js` comment, and §19's `price` row states the ban as permanent with the display-only escape hatch closed (ADR-009 §Note 2026-08-27). No term was added, renamed or removed, and no definition of a built thing changed: the four entries stay in the glossary precisely because a name that is not written down cannot be refused consistently.
 v1.6 - 2026-08-27, later the same day: v1.5 added *"re-run it after every install in a consumer"* to the
 `deploy-local.sh` definition. That is wrong as an unconditional rule and is removed: nothing in any `yarn install`
 invokes the script, and an install resolving the released `^1.0.1` is the correct result whenever common carries no
@@ -62,7 +63,7 @@ The single most important mapping on the platform. Get this wrong and every down
 **Not to be confused with:** "superadmin" — never used in code. `ShopOwner` owns companies; `Admin` owns nothing.
 
 ### User
-**Definition:** End customer. Authenticates against the `user` collection. Self-service registration + email verify + optional personal data + addresses. Cannot place orders yet — no cart/order model exists on the platform.
+**Definition:** End customer. Authenticates against the `user` collection. Self-service registration + email verify + optional personal data + addresses. Cannot place orders, permanently — no cart/order model exists on the platform and none is coming (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`). The customer tier is identity, personal data and addresses; that is its whole scope by decision, not by sequencing.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/user.js`, `BEs/dev/marketplace-dev-user-authenticated-resource`, `BEs/dev/marketplace-dev-user-authenticated-authorization`, `marketplace-user`.
 **Not to be confused with:** "customer" — fine in prose, never in code/identifiers, code always says `User`.
 
@@ -365,9 +366,10 @@ const ret = await User.updateOne(
 **Example:**
 ```js
 // BEs/marketplace-db-setup/lib/schemas/item.js
-// ⚠️ There is no `price`. Cart, order, delivery and payment have no model anywhere on this
-// platform and no design decision behind them yet, so a price would be a guess at a currency, a
-// precision, a VAT treatment and a discount model all at once
+// ⚠️ **There is no `price`, and there never will be.** Cart, order, delivery and payment are
+// permanently out of scope on this platform — ADR-038, the platform owner's decision of
+// 2026-08-27 — so a price would be a guess at a currency, a precision, a VAT treatment and a
+// discount model all at once, with nothing to resolve the guess against.
 ```
 Ownership checked before category existence, deliberately — "a caller who does not own the shop learns nothing about which category ids are real":
 ```ts
@@ -625,19 +627,19 @@ A read model is the shape of a GraphQL query response an actor reads to decide t
 
 ---
 
-## 18. Planned commerce vocabulary — NOT BUILT
+## 18. Commerce vocabulary — WILL NOT BUILD
 
-Named here for glossary readiness only. No collection, no migration, no resolver, no model, no schema builder exists for any of these four. `item` has no `price` field on purpose (§9). **Ask before inventing any of these** — none has a design yet.
+⚠️ **Permanently out of scope as of 2026-08-27** — the platform owner's decision, [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md). Named here so the four are **refused** consistently, which is the opposite of the reason this section gave until that date ("glossary readiness"). No collection, no migration, no resolver, no model, no schema builder exists for any of them, and none is coming. `item` has no `price` field on purpose and permanently (§9, §19). **Do not invent any of these** — the old instruction was "ask before inventing"; the ask is answered in advance, and the answer is no.
 
 | Term | Status |
 |---|---|
-| Cart | NOT BUILT. No collection. |
-| Order | NOT BUILT. No collection, no state machine. |
-| Delivery | NOT BUILT. No collection, no resolver, no design. |
-| Payment | NOT BUILT. No integration, no gateway chosen. |
+| Cart | WILL NOT BUILD. No collection, ever. |
+| Order | WILL NOT BUILD. No collection, no state machine, ever. |
+| Delivery | WILL NOT BUILD. No collection, no resolver, no design, ever. |
+| Payment | WILL NOT BUILD. No integration, no gateway, ever — none will be chosen. |
 
-**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Build state, ⚠️ callout under Customer area row; [`EVENT_STORMING.md`](./EVENT_STORMING.md) §2.9.
-**Not to be confused with:** treating any of the four as designed because a term exists for it here — the entry exists so a future agent names it consistently, not so it can be assumed built.
+**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Build state, ⚠️ callout under Customer area row; [`EVENT_STORMING.md`](./EVENT_STORMING.md) §2.9; [`BOUNDED_CONTEXT.md`](./BOUNDED_CONTEXT.md) BC-11; [`phase5/epics/E11.md`](../phase5/epics/E11.md).
+**Not to be confused with:** treating any of the four as designed, or as *planned*, because a term exists for it here — the entry exists so a reader and a future agent recognise the four precisely enough to stop. **Presence is not a plan.** Re-opening this needs an ADR superseding ADR-038, taken by the platform owner; it is not a story and not a small first step.
 
 ---
 
@@ -650,7 +652,7 @@ Every term below is forbidden platform-wide. Reintroducing one — even as a com
 | any domain or brand word that presumes what the catalogue sells | Catalogue is domain-neutral by design (§9) — a new product type must not reintroduce vocabulary that presumes one. | `item` (generic catalogue entry) |
 | "shop" as a separate collection | Never existed, never will. | `company` IS the shop |
 | `role` field / permission enum | Never existed anywhere in code, by design. | which collection a session authenticated against — see §2 |
-| `price` on `item` | Deliberately absent — no order/cart/payment to attach it to. | none — do not add without a commerce design |
+| `price` on `item` | Deliberately absent, **permanently** — there is no order/cart/payment to attach it to and there never will be (ADR-009 + ADR-038). A *display-only* price was ADR-009's one named revisit trigger and was offered and refused on 2026-08-27 (ADR-009 §Note). | none, permanently — the only route is an ADR superseding ADR-038 |
 | `JWT` (as a real mechanism) | Stale type name in some `schema.graphql` slices only. Auth is opaque token + Redis session, not JWT. | "access token" / "refresh token" |
 | any identifier, comment, UI string or route that is not English | The platform is English-only, everywhere, with no exception (§1). A second language in one file is a second language in the database the day that file is read. | the English name — this document is the list |
 | "customer" / "admin" / "superadmin" as code identifiers | Business-role words never appear in code — see §2. | `User` / `ShopOwner` / `Admin` |

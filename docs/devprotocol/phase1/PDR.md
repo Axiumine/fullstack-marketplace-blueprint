@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** pdr-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.8 - 2026-08-27: **open question 3 closes as moot and §4 Out of scope stops saying "yet".** The platform owner decided that cart, order, delivery and payment are permanently out of scope — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`. The scope diagram's **Unbuilt** subgraph is renamed and its `blocks` edge removed: customer identity was never blocking anything, it was waiting on a decision that has now gone the other way. The `item.price` half of question 3 closes with it, display-only price included (ADR-009 §Note 2026-08-27). **No built scope, surface or requirement changed** — this document described the commerce absence correctly throughout and still does; the word `yet` is what left it.
 v1.1 - 2026-08-25: the catalogue paragraph's depth-cap citation was two versions stale — the guard now runs inside a transaction and takes a session — and "writes exist only in the Admin-tier resource service" is narrowed to the mutations, `holdItemCategory` having added one deliberate field-level exception.
 v1.7 - 2026-08-27, later still: §4's bullet and §8 item 5 both said a `yarn install` *undoes* `deploy-local.sh`, flatly
 and without condition. Verified otherwise across all 16 repos: no install path anywhere invokes the script, the only
@@ -39,16 +40,15 @@ graph LR
     C[Shop-owner tier<br/>full CRUD]
     D[Operator tier<br/>full CRUD]
   end
-  subgraph Unbuilt [Unbuilt — no model]
+  subgraph OutOfScope [Will not build — permanently out of scope, ADR-038]
     E[Cart]
     F[Order]
     G[Delivery]
     H[Payment]
   end
-  B -.blocks.-> E
 ```
 
-Four surfaces exist at very different depths. Public pages + customer identity landed 2026-08-05 (`marketplace-user`, `user` collection). ShopOwner and Admin tiers pre-date that and are deeper — full item/company CRUD. Commerce (cart/order/delivery/payment) has zero model, zero resolver, zero design — see §4 Out of scope.
+Four surfaces exist at very different depths. Public pages + customer identity landed 2026-08-05 (`marketplace-user`, `user` collection). ShopOwner and Admin tiers pre-date that and are deeper — full item/company CRUD. Commerce (cart/order/delivery/payment) has zero model, zero resolver, zero design, and is **permanently out of scope** as of 2026-08-27 — [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), see §4 Out of scope. It is a boundary of this blueprint, not a stage of it.
 
 ---
 
@@ -64,7 +64,7 @@ Design note, not a current problem: the catalogue (`item` + `itemCategory`) is d
 
 | Persona | Description | Primary need |
 |---|---|---|
-| End customer (`User`) | registers, confirms email, fills personal data, manages addresses. Cannot buy anything yet — `BEs/marketplace-db-setup/lib/schemas/user.js` carries no order/cart reference | account + browse today; order tomorrow, no timeline |
+| End customer (`User`) | registers, confirms email, fills personal data, manages addresses. Cannot buy anything, permanently — `BEs/marketplace-db-setup/lib/schemas/user.js` carries no order/cart reference and never will | account + browse, and that is the whole surface — ADR-038, no order ever |
 | Shop owner (`ShopOwner`) | runs 1+ `company` documents, each a real shop; manages own `item` catalogue under admin-curated `itemCategory` taxonomy | catalogue mgmt + discoverability, no commerce ops yet |
 | Platform operator (`Admin`) | the vendor's own staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
 | Anonymous visitor | unauthenticated, hits public SSR pages only | browse shops/items, no login required |
@@ -116,7 +116,7 @@ graph TD
 
 ### Out of scope
 
-- **Orders, cart, delivery, payment** — no collection, no resolver, no design. `item` has no price field for exactly this reason (`BEs/marketplace-db-setup/lib/schemas/item.js`). Not a backlog item with an owner — genuinely undesigned, "ask before inventing them" per `CLAUDE.md` §Build state.
+- **Orders, cart, delivery, payment** — no collection, no resolver, no design, **permanently** ([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27). `item` has no price field for exactly this reason and will not get one, display-only included (`BEs/marketplace-db-setup/lib/schemas/item.js`, ADR-009 §Note). ⚠️ This bullet used to end *"not a backlog item with an owner — genuinely undesigned, ask before inventing them"*. It is now not a backlog item at all: the ask is answered, and the answer is no. Re-opening needs an ADR superseding ADR-038.
 - **A separate shop collection** — will not exist. A shop IS a `company`. [`CLAUDE.md`](../../../CLAUDE.md) states this twice, deliberately, as a thing not to re-propose.
 - **Vocabulary that presumes a specific product domain** — the catalogue (`item` + `itemCategory`) is domain-neutral by design. Reintroducing domain-presuming vocabulary in a new product type is a regression, not a feature.
 - **`role` field or permission enum** — role = which collection you authenticate against, by design. A dispatcher on `redData.tier` was explicitly evaluated and rejected for the authorization-consolidation question — see option (a) in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md), blocked on doctrine grounds, not merely deferred.
@@ -181,7 +181,7 @@ Complete when a developer or operator can:
 |---|---|---|---|
 | 1 | Where do the 16 repos get published, and under which forge org? | platform owner | open |
 | 2 | Do the 3 repos built 2026-08-05 (`marketplace-dev-user-authenticated-authorization`, `marketplace-dev-user-authenticated-resource`, `marketplace-user`) get a `main` branch the way the other 12 do? | platform owner | open |
-| 3 | Ordering design — cart, order, delivery, payment, and the `item.price` field they all depend on. No collection, no resolver, no schema decision exists yet | platform owner | open, blocks all commerce work |
+| 3 | ~~Ordering design — cart, order, delivery, payment, and the `item.price` field they all depend on. No collection, no resolver, no schema decision exists yet~~ | platform owner | **closed 2026-08-27 — moot: there is no ordering design and there will not be.** The four are permanently out of scope ([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) and `item` gets no `price`, transactional or display-only (ADR-009 §Note 2026-08-27). It blocked "all commerce work" and there is no commerce work to block. Same closure as `phase2/BOUNDED_CONTEXT.md` §7 q4, `phase2/EVENT_STORMING.md` §5 q4 and all five of `phase5/epics/E11.md` §6 |
 | 4 | Who installs the nginx configs in `marketplace-nginx/`, and on what host? No `/etc/nginx` exists in this workspace | platform owner / ops | open — the configs are written and tested (`marketplace-nginx/test/run.sh`); what is missing is the host and the topology ADR (`ADR-INDEX.md` §5) |
 | 5 | ~~Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`?~~ | platform owner | **closed 2026-08-26 — yes, published; no, not retiring the script.** `@axiumine/marketplace-common@1.0.1` is on `registry.npmjs.org` and consumers pin `^1.0.1` (`ADR-037`). `deploy-local.sh` keeps a narrower job — bridging *edited → released* — and is not part of installing: no `yarn install` invokes it, and an install only undoes it while common carries an unreleased edit |
 | 6 | ~~Is there an admin-facing nginx vhost for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner | **closed** — there was not, and one had never been written. `marketplace-nginx/sites-available/admin.marketplace-domain.com.conf` and `shopowner.marketplace-domain.com.conf` now exist, each terminating TLS for its own hostname |
@@ -195,7 +195,7 @@ Complete when a developer or operator can:
 
 Formal change request required before any of the following changes:
 
-- **Scope boundaries** — adding cart, order, delivery, payment, or an `item.price` field. These are explicitly undesigned; adding any of them is scope expansion, not a bugfix.
+- **Scope boundaries** — adding cart, order, delivery, payment, or an `item.price` field. These are permanently out of scope by decision (ADR-038), not merely undesigned; adding any of them is a reversal of a recorded decision, not a bugfix and not scope expansion.
 - **The tier = role = collection rule** — no `role` field, no permission enum, no dispatch on a tier value read out of a session. Already tested once (option (a) in `docs/decisions/authorization-service-consolidation.md`) and rejected on doctrine grounds; re-opening it needs the doctrine in `CLAUDE.md` changed first, not a code review.
 - **The `docs/devprotocol/` namespace** — this document's own home. Downstream Phase 2–5 documents depend on Phase 1 being stable.
 - **The polyrepo split** — collapsing any 2+ repos into 1 (e.g. the 3 authorization services, or logout into resource) is a decision the platform owner has already weighed once per the decision doc above and declined twice (options a and b). A 3rd attempt needs a fresh CR, not a re-read of the existing one.

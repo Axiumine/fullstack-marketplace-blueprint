@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-25
+**Version:** 1.6
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-27: The out-of-scope column said BC-11 was "unbuilt, no model to copy", which reads as pending. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so price/cart-membership/order-lines are refused rather than deferred, and §1 says the deliberate absence of a price is permanent.
 v1.1 - 2026-08-14: §6's `item.published` race closes on the platform owner's decision — last writer wins,
 no lock field, an owner republishing after an operator's unpublish is accepted. Taken with the same
 decision for `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6). The bullet now also records the asymmetry the finding never
@@ -63,7 +64,7 @@ the ordering and what it costs are here.
 ## 1. Epic goal
 
 Own `item` — the single generic, domain-neutral catalogue entry. One thing a `Company` sells, filed
-under an `itemCategory`, deliberately carrying no price. Backend writers and public reads are complete;
+under an `itemCategory`, deliberately and permanently carrying no price (ADR-009 + ADR-038). Backend writers and public reads are complete;
 the ShopOwner-facing management UI is not.
 
 ## 2. Scope
@@ -72,7 +73,7 @@ the ShopOwner-facing management UI is not.
 |---|---|---|
 | `item` `$jsonSchema` validator | `company` aggregate | BC-04 owns it, `item` only holds `idCompany` |
 | ShopOwner-tier `itemAdd`/`Update`/`UpdatePublished`/`Del` | `itemCategory` writes | BC-06, admin-only |
-| Admin-tier `itemUpdatePublished`/`itemDel` (moderation) | price, cart membership, order lines | BC-11, unbuilt, no model to copy |
+| Admin-tier `itemUpdatePublished`/`itemDel` (moderation) | price, cart membership, order lines | BC-11 `WILL NOT BUILD` — permanently out of scope, [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) |
 | Public catalogue reads (`items`, `itemBySlug`, `searchItems`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
 | Item picture upload on `itemAdd`, ShopOwner tier (E05-S09) | the picture on the Admin and public tiers | `image` is on this tier's `GraphQLItem` alone — `GraphQLItemFrag` is shared by three services and stays as it is |
 | Public/customer catalogue frontend (`marketplace-user`) | — | ShopOwner-facing item management screens were the one gap; E05-S07 closed it |

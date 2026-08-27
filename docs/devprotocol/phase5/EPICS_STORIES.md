@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.41
+**Version:** 1.42
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.42 - 2026-08-27: E11 stops being planned. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §1's row reads `[WILL NOT BUILD]` and gains E11-S02, the recording story that landed the decision; §3's "Open story" definition notes E11 has no open story left; and §6 says the prohibition is now backed by an ADR rather than by this document alone. E05's "commerce out of scope" becomes permanent too.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
 These seven do **not** follow the one-epic-per-BC rule; see §2.2. ⚠️ That rule no longer exists — read the
 v1.4 line below before treating this sentence as a live caveat.
@@ -337,13 +338,13 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E02 | Session Termination | BC-02 | Admin, ShopOwner, User - one shared service | Built | `marketplace-dev-authenticated-logout` | [SESSION_TERMINATION.md](SESSION_TERMINATION.md) — not under `epics/`, see §1 |
 | E03 | Shop Owner Onboarding & Approval | BC-03 | ShopOwner, Admin, **anonymous (self-registration)** | Built - onboarding progress is operator-written by decision (E03-S04), a shop-owner flow is future work | `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-common`, `marketplace-db-setup`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [SHOPOWNER_ONBOARDING_APPROVAL.md](SHOPOWNER_ONBOARDING_APPROVAL.md) — not under `epics/`, see §1 |
 | E04 | Legal Entity / Company | BC-04 | ShopOwner, Admin, anonymous (storefront read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-admin`, `marketplace-user` | [COMPANY_LEGAL_ENTITY.md](./COMPANY_LEGAL_ENTITY.md) — not under `epics/`, see §1 |
-| E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field, commerce out of scope; an item takes its picture on `itemAdd` and there is no path to replace one | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [CATALOGUE.md](./CATALOGUE.md) — not under `epics/`, see §1 |
+| E05 | Catalogue | BC-05 | ShopOwner (write), anonymous (read) | Built - no `price` field and never one, commerce permanently out of scope (ADR-038); an item takes its picture on `itemAdd` and there is no path to replace one | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-shopowner`, `marketplace-user` | [CATALOGUE.md](./CATALOGUE.md) — not under `epics/`, see §1 |
 | E06 | Category Taxonomy | BC-06 | Admin (write only), ShopOwner + anonymous (read) | Built | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-admin-authenticated-resource`, `marketplace-dev-authenticated-resource`, `marketplace-dev-public-resource`, `marketplace-admin` | [CATEGORY_TAXONOMY.md](./CATEGORY_TAXONOMY.md) - not under `epics/`, see §1 |
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [CUSTOMER_ACCOUNT_ADDRESSES.md](./CUSTOMER_ACCOUNT_ADDRESSES.md) - not under `epics/`, see §1 |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [PUBLIC_DISCOVERY_STOREFRONT.md](PUBLIC_DISCOVERY_STOREFRONT.md) |
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `marketplace-services-status` | [PLATFORM_OPERATIONS_QUALITY_GATES.md](PLATFORM_OPERATIONS_QUALITY_GATES.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built - 7 of 7, both open questions closed 2026-08-27 | `marketplace-common` | [SHARED_KERNEL.md](./SHARED_KERNEL.md) - not under `epics/`, see §1 |
-| E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | **The context is not built and nothing here designs it** - no collection, no resolver, no price. Its one story is a *recording* story and **E11-S01 is `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. §6 question 4 stays although it fails the "traceable upstream" criterion, because it is a tier-topology question rather than a commerce design and deleting it would hide a blocker | none | [E11.md](epics/E11.md) |
+| E11 | Ordering & Fulfilment [WILL NOT BUILD] | BC-11 | User (intended, and now permanently unbuilt) | **The context will never be built and nothing here designs it** - no collection, no resolver, no price, by [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) of 2026-08-27. Both its stories are *recording* stories. **E11-S01 `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. **E11-S02 `built` 2026-08-27**: the owner's decision that no commerce schema is coming, recorded as ADR-038 and swept through the corpus. All five §6 questions close as moot rather than answered - including question 4, the tier-topology one that survived E11-S01 for hiding a blocker; there is no longer a build for it to block | none | [E11.md](epics/E11.md) |
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built - 26 of 26, closed 2026-08-11. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's log-retention answer added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once, and its cache half is already built. **Every defect either investigation found is fixed**, the 🔴 among them: no service with a `DSN` set ships a request body any more, and E12-S24's browser capture closed the last one — the address bar, query string and fragment included, was reaching Sentry from all three frontends in five distinct places, and `urlQueryParams: false` never gated it. **One item is still not this repo's to close:** E12-S15's config is in the repo but Authenticated Origin Pulls must be switched on in Cloudflare **before** it is deployed, or every handshake fails from the reload. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `marketplace-docker-DBs`, `marketplace-user`, `marketplace-admin`, `marketplace-shopowner` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | **11 of 11 built** - ten on 2026-08-10, **E13-S10 on 2026-08-14**. It deleted the dual-read fallback, the `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` across nine repos, reduced the dual delete to one key, and **inverted rather than deleted** the six E13-S02 tests, so an old-shape key now has a test proving it does *not* authenticate. ⚠️ **Both of its gates — the cutover date plus 90 days, and a zero counter — were moot: the platform has never been deployed**, so no pre-cutover session ever existed and the counter key was never created. `BGREWRITEAOF` run the same day; `RISK_REGISTER` R51 closed. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
@@ -410,15 +411,18 @@ Brownfield retrofit. Most stories in `epics/*.md` describe work ALREADY SHIPPED,
 
 - **Built** story = code exists now, cites the real path proving it (resolver file, migration file,
   frontend route) - never phrased "we will build X" for something already running.
-- **Open** story = genuinely missing, no model to copy. Among E01-E11, only E11 carries these, and per
-  `phase5/CONSTRAINTS.md` §6 even those stop at recording the gap - no schema, no resolver signature, no
-  checkout sequence gets designed in this protocol. **E12-E18 were open throughout when written**, by
+- **Open** story = genuinely missing, no model to copy. Among E01-E11, only E11 carried these, and per
+  `phase5/CONSTRAINTS.md` §6 even those stopped at recording the gap - no schema, no resolver signature, no
+  checkout sequence gets designed in this protocol. ⚠️ **E11 has no open story left**: ADR-038 (2026-08-27)
+  closed the context permanently and E11-S02 recorded that, so its questions are moot rather than pending.
+  The §6 prohibition stands unchanged and is now backed by an ADR rather than by this document alone. **E12-E18 were open throughout when written**, by
   construction: they described remediation that had not been built. E12, E13 and E14 landed on 2026-08-10
   and are open only where each epic's §7 says so; **E15, E16 and E17 are complete since 2026-08-13** — E16 by
   ADR-034's mechanism rather than its own, retargeted in its v2.0 rather than rebuilt — and E18 is still
   open throughout. Unlike E11 they *do*
   carry design detail, because the §6 prohibition scopes to order/cart/delivery/payment, not to security
-  hardening of shipped code.
+  hardening of shipped code. That distinction outlives ADR-038: a permanently-refused context still may not
+  be designed, while everything else here still may.
 - **Status tag vocabulary is two values only** - `built` and `not built`. E18 uses `not built`
   uniformly; E12-E17 now carry a marker per story, and E12-E14 each end with a §7 naming what stayed
   `not built` and why. **E17 has no §7**: all nine of its stories are `built`, every one carries an
@@ -528,7 +532,11 @@ backlog leaves open.
 
 ## 6. Out of scope (binding here too - `phase5/CONSTRAINTS.md` §6)
 
-No story anywhere under `epics/` designs order, cart, delivery, or payment. E11 records the BC-11 gap and
-its blocking open questions from `phase2/BOUNDED_CONTEXT.md` BC-11 - never a schema, a resolver signature,
-a field, or a checkout sequence diagram. A risk-register row naming the gap is in scope for a sibling
-Phase 5 doc; a story designing the fix is not in scope for [`epics/E11.md`](./epics/E11.md).
+No story anywhere under `epics/` designs order, cart, delivery, or payment, and none ever will:
+[ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) (2026-08-27) puts all four
+permanently out of scope. E11 records the BC-11 refusal and the questions that died with it - never a
+schema, a resolver signature, a field, or a checkout sequence diagram. A risk-register row naming it
+(R31) is in scope for a sibling Phase 5 doc; a story designing the fix is not in scope for
+[`epics/E11.md`](./epics/E11.md), and there is no fix to design. ⚠️ **A recording story is still allowed,
+and E11 now has two** - E11-S01 (2026-08-13) recorded the gap, E11-S02 (2026-08-27) recorded that it will
+never be filled.

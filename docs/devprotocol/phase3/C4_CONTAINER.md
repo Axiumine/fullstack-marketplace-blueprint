@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-27: The `price` row in §8 said the four commerce concepts were "unbuilt, undesigned", which invited a reader to supply the missing design. ADR-038 (2026-08-27) refuses it outright, so the row says permanently and cites it alongside ADR-009.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. E19 gave it
 `usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the operator still cannot do
 to a customer account.
@@ -212,7 +213,7 @@ monitoring (`marketplace-services-status`).
 | One logout service for all three authenticated tiers, keyed by token content | `marketplace-dev-authenticated-logout`, port 4030 | [`docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md`](./adr/ADR-005-single-logout-service-all-tiers.md) |
 | Three `*-authenticated-authorization` services share their handler body via `marketplace-common@1.0.0` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | [`docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`](./adr/ADR-006-authorization-services-share-body-keep-deployables.md) — see §7 below |
 | Catalogue is domain-neutral: one `item` + `itemCategory` pair, no per-product-type collection | presumes nothing about what is sold; a new product type must not reintroduce vocabulary that presumes one | [`docs/devprotocol/phase3/adr/ADR-008-domain-neutral-catalogue.md`](./adr/ADR-008-domain-neutral-catalogue.md) |
-| No `price` field on `item` | Order/Cart/Delivery/Payment are unbuilt, undesigned — a price with nothing to buy is a guess | [`docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md`](./adr/ADR-009-no-price-on-item.md) |
+| No `price` field on `item`, permanently | Order/Cart/Delivery/Payment are permanently out of scope (ADR-038, 2026-08-27) — a price with nothing to buy is a guess, and nothing will ever arrive to settle it | [`docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md`](./adr/ADR-009-no-price-on-item.md) |
 | English-only naming across code, routes, comments, fixtures and migrations | no exception anywhere; the `en-GB` locale and `english` text-index stemming are market choices, not names | [`docs/devprotocol/phase3/adr/ADR-013-english-only-naming.md`](./adr/ADR-013-english-only-naming.md) |
 | Opaque tokens + Redis sessions, not JWT | despite a stale `JWT` type name in some `schema.graphql` slices | no dedicated ADR verified on disk — see [`docs/architecture.md`](../../architecture.md) §Auth model and CON-03 in [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) |
 | Public routes SSR, `/account/*` `ssr: false` | pairs with a `proxy_cache` bypass on the session cookie — one security mechanism, two halves | no dedicated ADR verified on disk — see [`docs/frontends.md`](../../frontends.md) §marketplace-user and CON-10 in [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) |

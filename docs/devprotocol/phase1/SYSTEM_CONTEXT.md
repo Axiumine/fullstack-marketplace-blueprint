@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.5 - 2026-08-27: §6's commerce rows described things absent rather than things refused, and the payment-gateway row said it "cannot be designed before" an order model that is now never coming. ADR-038 (2026-08-27) settles both, and the End-customer row in §2 says the `User` tier cannot buy anything ever rather than not yet. The two `item.js:12-14` line anchors drop to a plain file reference — the file has been rewritten since and the line numbers no longer point at the comment.
 v1.4 - 2026-08-27, later the same day: §5.13's closing sentence read as if `yarn install` and `deploy-local.sh` were
 coupled - *"a plain `yarn install` in any consumer now undoes the script"* - stated flatly, with no condition. They are
 not coupled: verified across all 16 repos that the only install-time lifecycle script anywhere is `prepare`, which runs
@@ -56,7 +57,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |Actor|Code identity|Interaction with Marketplace|
 |---|---|---|
 |Anonymous visitor|no session|hits SSR public routes on `marketplace-user` — `/`, `/shops`, `/shop/:slug`, `/category/:slug` (`marketplace-user/CLAUDE.md` §Public is server-rendered) — GraphQL over `/public-resource`, no auth token|
-|End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything — `item.js:12-14` has no price field|
+|End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything, ever — `item.js` has no price field and never gets one (ADR-009, ADR-038)|
 |Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
 |Platform operator|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
 |Platform developer|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
@@ -547,8 +548,8 @@ consumer then restores the last released build over the deployed one, equally si
 
 |System|Reason excluded|
 |---|---|
-|Cart, order, delivery, payment provider|no collection, no resolver, no design anywhere on the platform — `item.js:12-14` has no price field for exactly this reason (`CLAUDE.md` §Build state, `PDR.md` §4 Out of scope)|
-|A payment gateway (Stripe/PayPal/etc.)|downstream of the missing order model — cannot be designed before it|
+|Cart, order, delivery, payment provider|no collection, no resolver, no design anywhere on the platform, and **permanently out of scope since 2026-08-27** ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) — `item.js` has no price field for exactly this reason and never gets one (`CLAUDE.md` §Build state, `PDR.md` §4 Out of scope)|
+|A payment gateway (Stripe/PayPal/etc.)|downstream of an order model that is not missing but refused — there is nothing for it to sit behind, permanently (ADR-038)|
 |GitHub / any git forge|no forge account is wired to this workspace; where/under which org the repos get published is the platform owner's open call (§7 q6)|
 |A separate shop / point-of-sale collection|will not exist — a shop **is** a `company` (`CLAUDE.md` §Terminology, stated twice as a thing not to re-propose)|
 |A CDN in front of PMTiles or static assets|nginx serves `dist/client` and `/tiles/` straight off disk with immutable cache headers — no CDN wired (`marketplace-nginx/sites-available/marketplace-domain.com.conf:80-110`)|

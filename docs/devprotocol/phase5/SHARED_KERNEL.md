@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.2 - 2026-08-27: the record moved out of `epics/E10.md` to this path in the same pass that
+**Changelog:** v1.3 - 2026-08-27: The "not in the kernel" row said no BC-11 shape exists to import. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so no shape will ever exist to import either.
+v1.2 - 2026-08-27: the record moved out of `epics/E10.md` to this path in the same pass that
 closed its last open question — §0 says why. Question 2's answer was upgraded from inference to proof at the
 same time: the Cloud project is named on disk, so the four repos `phase1/NFR.md` open question 4 called
 project-less are provisioned too, and that question, `PDR.md` §8 item 8, `SYSTEM_CONTEXT.md` §7 question 4,
@@ -65,7 +66,7 @@ minus `marketplace-dev-authenticated-logout`, which touches Redis only) import a
 | The 6 Mongoose models (`Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`) | A shop/collection model | Never existed, never will — a shop IS a `company` |
 | `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally; `deploy-local.sh` stays as the between-releases bridge, so BC-10 still owns the sync and not the release calendar |
 | `deploy-local.sh` sync into 9 consumers' `node_modules` | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only |
-| `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 — no shape exists to import (see E11) |
+| `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), see E11) |
 
 ## 3. Build state
 

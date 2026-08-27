@@ -41,14 +41,17 @@ Four surfaces, all present, at very different depths.
 | Shop-owner area | `ShopOwner` | backend + `marketplace-shopowner` |
 | Operator area | `Admin` | backend + `marketplace-admin` |
 
-⚠️ **"Customer area built" means identity, not commerce.** A customer can register, confirm their
-email, log in, fill in personal data, keep several addresses and name one the default. They cannot buy
-anything: **no cart, no order, no order state machine, no delivery, no payment** — no collection, no
-resolver, no design, and `item` carries no price for that reason. Those four are genuinely new design
-with no model to copy. **Ask before inventing them.**
+⚠️ **"Customer area built" means identity, not commerce, permanently.** A customer can register, confirm
+their email, log in, fill in personal data, keep several addresses and name one the default. They cannot
+buy anything and never will: **no cart, no order, no order state machine, no delivery, no payment** — no
+collection, no resolver, no design, and `item` carries no price for that reason. Those four are
+**permanently out of scope** by the platform owner's decision of 2026-08-27
+([`ADR-038`](./docs/devprotocol/phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)).
+**Do not invent them** — this is a refusal, not a gap, and building one contradicts an accepted ADR.
+Re-opening it takes a superseding ADR, which is the platform owner's call alone.
 
 Do not describe the unbuilt parts to the user as if they exist, and do not assume a missing piece is an
-oversight.
+oversight. The commerce four are not merely missing: they are declined.
 
 Adding a fifth tier follows the recipe the four establish: a collection + migration → a `tier` value in
 the session → a service pair of its own → resolvers → a frontend.

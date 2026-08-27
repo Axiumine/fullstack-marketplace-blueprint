@@ -15,8 +15,11 @@ customer owns only the addresses embedded in their own document.
 **There is no shop collection, and there will not be — a shop *is* a `company`** (ADR-007). A shop
 owner may hold several `company` documents; each company holds its own `item` documents.
 
-**Order, cart, delivery and payment do not exist** — no collection, no resolver, no design. Ask before
-inventing them.
+**Order, cart, delivery and payment do not exist, and will not** — no collection, no resolver, no design,
+permanently out of scope by the platform owner's decision of 2026-08-27
+([`ADR-038`](./devprotocol/phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)). ⚠️ Do not invent
+them: this is not a gap waiting on a design, and building one contradicts an accepted ADR. Re-opening it
+takes a superseding ADR, which is the platform owner's call alone.
 
 ## Extension seam — adding a product type
 

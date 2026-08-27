@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
+**Version:** 1.12
 **Date:** 2026-08-27
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.12 - 2026-08-27: §6's "Not yet protected" heading was a schedule, not a boundary, and §1's summary said "nothing exists yet to protect". ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope, so the section becomes "Never protected", each row says why no control is pending rather than late, and the PCI-DSS line in §8 stops being a today-only claim — there is no payment surface and no path to one.
 v1.7 - 2026-08-25: the `itemCategory` depth-cap row cited `funItemCategoryAdd.mts:24`, the wrong file and a line of docblock — corrected to the guard and both call sites. Its mitigation column now distinguishes "no mutation on another tier" (true) from "no write on another tier" (not true since `holdItemCategory`).
 v1.1 - 2026-08-11: §NFR-SE01–SE12 paragraph follows `phase1/NFR.md` to v1.1 — a 🔴 Critical change needs a
 written owner decision, not team sign-off. No requirement changed.
@@ -46,7 +47,7 @@ v1.9 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a ci
 
 ## 1. Purpose
 
-Marketplace = multi-tenant platform, 3 auth tiers (`Admin`, `ShopOwner`, `User`) + anon public traffic, 16 repos, one shared Redis key prefix across 9 backend services. Security posture built on one fence: opaque token + Redis session + per-request `tier` assertion. No `role` field anywhere - identity = which of 3 MongoDB collections a session authenticated against (`CLAUDE.md` §Terminology). This doc states what that fence requires to hold, where each piece lives on disk, what already broke once, and what has zero control because nothing exists yet to protect (Order/Cart/Delivery/Payment - out of scope per `phase3/CONSTRAINTS.md` §5).
+Marketplace = multi-tenant platform, 3 auth tiers (`Admin`, `ShopOwner`, `User`) + anon public traffic, 16 repos, one shared Redis key prefix across 9 backend services. Security posture built on one fence: opaque token + Redis session + per-request `tier` assertion. No `role` field anywhere - identity = which of 3 MongoDB collections a session authenticated against (`CLAUDE.md` §Terminology). This doc states what that fence requires to hold, where each piece lives on disk, what already broke once, and what has zero control because nothing exists to protect and nothing ever will (Order/Cart/Delivery/Payment - permanently out of scope per `phase3/CONSTRAINTS.md` §5 and ADR-038).
 
 Prescriptive, not descriptive: every rule below is a requirement the codebase must keep satisfying, cited to the file that currently satisfies it. Where a control is documentation-only (nginx) or unverified (Mongo RBAC), that is stated plainly rather than implied as done.
 
@@ -391,15 +392,15 @@ Only **resource** services carry the upload/scan toolchain — `sharp` (image re
 | Error/perf traces | Sentry SaaS, opt-in on non-empty `DSN` | `dataCollection` explicitly denies `userInfo`, `cookies`, most `httpHeaders`, `httpBodies`, `urlQueryParams` (`marketplace-user/src/instrument.ts:30-47`) — the app handles customer passwords and a partial block would leak more than the single line it replaced. ⚠️ **Measured 2026-08-11**: `httpBodies: []` denies the **span attribute** only. The raw GraphQL POST body still reaches `event.request.data` and was observed on the wire with a plaintext `password` in it — `docs/report/sentry-event-capture.md` §5, story E12-S21 |
 | Static analysis reports | Qodana Cloud, one project + token per repo | Platform-internal only, never customer-facing; a misdirected token corrupts another repo's baseline, not a data leak to a third party |
 
-### Not yet protected — no design exists
+### Never protected — the feature is permanently out of scope
 
-The following have **no control**, because the feature they belong to does not exist. Do not design a control for them — `phase3/CONSTRAINTS.md` §5 forbids presuming a shape for BC-11 (Ordering & Fulfilment [PLANNED]):
+The following have **no control**, because the feature they belong to does not exist and is never going to. Do not design a control for them — `phase3/CONSTRAINTS.md` §5 forbids presuming a shape for BC-11 (Ordering & Fulfilment [WILL NOT BUILD]), and [ADR-038](./adr/ADR-038-commerce-is-permanently-out-of-scope.md) (2026-08-27) closes the context that would have needed one. ⚠️ **A future control for any row below is not pending work.** An unprotected asset that will never exist is not a residual risk; it is not an asset:
 
 - **Payment data** — no gateway chosen, no integration, no field anywhere on the platform.
 - **Order data** — no `order` collection, no state machine, no resolver.
 - **Cart data** — no `cart` collection.
 - **Delivery addresses in transit to a courier** — no delivery concept exists, no collection, no resolver, no design; `user.addresses[]` is a customer's own saved-address book, not a delivery record, and nothing reads it for fulfilment today.
-- **Price** — deliberately absent from `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`) for exactly this reason: a price with nothing to buy is a guess at an undesigned decision, and so is any control protecting it.
+- **Price** — deliberately and permanently absent from `item` (`BEs/marketplace-db-setup/lib/schemas/item.js`) for exactly this reason: a price with nothing to buy is a guess at a decision nobody is going to make, and so is any control protecting it. A display-only price was offered and refused on 2026-08-27 (ADR-009 §Note).
 
 When any of these get built, this document requires a new version — per its own Mutability header — not a retrofitted paragraph here.
 
@@ -427,7 +428,7 @@ When any of these get built, this document requires a new version — per its ow
 - **NFR-CO02** (GDPR) — 🟡 Medium, and **no longer an open question**: the platform owner decided on 2026-08-26 that GDPR is in scope (`phase1/NFR.md` §2.7, open question 1 closed). Deciding it was out of Phase 3 scope (`phase3/CONSTRAINTS.md` §5) and it was decided elsewhere, as that constraint intended. ⚠️ **This document still does not claim GDPR compliance, and in scope is not compliant.** `user.personalData` and `user.addresses[]` are PII by any reasonable reading and are encrypted whole (ADR-029); what §4's controls satisfy is the technical measures limb (Art. 32), not lawful basis, erasure, portability, retention or processor agreements — six obligations that have no implementation and are carried by `phase1/NFR.md` open question 6.
 - **NFR-AV01/AV02** (three-authorization-service topology) — 🔴 Critical, load-bearing for availability under the crash-domain argument in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md): one `process.exit(1)` taking down all three tiers' token lifecycle was ranked worse than the deduplication a merge would buy. Security and availability intersect here — do not re-propose the merge as a security simplification; it was evaluated as one and rejected.
 - **NFR-MA01/MA02/MA05** (100/100 coverage+mutation, never-lower gates) — 🔴 Critical, the mechanism that keeps every control in §3-§5 from silently regressing. A weakened threshold is itself a security regression on this platform, not a tooling nicety.
-- No SOC2/HIPAA/PCI-DSS applicability found or claimed anywhere in Phase 1/2 docs — none apply today because there is no payment surface (§6) and no health data.
+- No SOC2/HIPAA/PCI-DSS applicability found or claimed anywhere in Phase 1/2 docs — none apply, and PCI-DSS in particular never will: there is no payment surface (§6) and there will not be one (ADR-038, 2026-08-27). No health data either.
 
 ---
 

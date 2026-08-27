@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
-**Date:** 2026-08-25
+**Version:** 1.11
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-01 — Identity & Access
 
@@ -55,7 +55,7 @@ must not be added; tier = which collection you authenticate against.
 | `logout` mutation | Out | BC-02, separate context on purpose — deletes by token content, no tier read |
 | `waitApprov`, `notes`, onboarding field **writes** | Out | BC-03 writes them, and E01-S10's lint keeps it that way. The `waitApprov` **read** is In, and is E01-S11: `login` projects it and refuses on it, `refresh` re-checks it on every rotation. `notes` stays out in every shape — no BC-01 service has a reason to load an operator's private note about the person logging in |
 | `personalData` / `addresses` on `user` | Out | BC-07 Customer Account & Addresses |
-| any order/cart/delivery/payment auth | Out | unbuilt platform-wide, no model to copy (`CLAUDE.md` §Build state) |
+| any order/cart/delivery/payment auth | Out, permanently | not built platform-wide and never will be — [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27 (`CLAUDE.md` §Build state) |
 
 ## 3. Build state
 
@@ -491,3 +491,4 @@ not the fact that a question existed.
 | 1.7 | 2026-08-12 | **E01-S14 built** — the fleet is visible. `marketplace-admin` gains `/security`, a fourth section, where a service that is behind says **"Behind"** in words rather than only in red |
 | 1.8 | 2026-08-12 | **E01-S15 built, and ADR-034 is finished.** R02 moves to `Mitigated` at 🟡 Medium in the same pass and R04 loses its Keygrip half; `.githooks/pre-commit` check 0 is untouched, because a well-formed `.env` is still needed for every other value in it |
 | 1.9 | 2026-08-13 | Record moved out of `phase5/epics/E01.md` to this file — see §0. No story, criterion, trace or evidence path changed in the move; the four open questions were folded into one table (§6) and the changelog into this one, both because every entry in them was already closed. R02 has since been **closed** by E18-S07, with its provisioning residual split out as **R50** and the adoption window as **R47** |
+| 1.11 | 2026-08-27 | §2's out-of-scope row for commerce auth said "unbuilt platform-wide", which reads as pending. [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) makes cart, order, delivery and payment permanently out of scope, so there is no tier whose auth is waiting to be designed. ⚠️ This table has no row for **v1.10** — the header was bumped to 1.10 on 2026-08-25 without one, and this pass did not reconstruct what it changed |

@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-27
 **Author:** error-handling-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.1 - 2026-08-27: ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope. §1 and §11 stop saying those tiers are merely unbuilt; §12 question 3 keeps its gap but loses its deadline — it had scheduled itself for "before those tiers are designed", and they are not being designed — and its owner cell moves from "whoever owns the ordering tier next" to the platform owner, because that person will never exist.
 
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase3/adr/ADR-INDEX.md` ✅ · `phase4/CONSTRAINTS.md` ✅
 **Mutability:** low risk — additive. New error codes/layers don't break existing behaviour. Changing an existing status code or message pattern is breaking wherever a frontend branches on it — check `marketplace-user/src/api/errors.ts` and the equivalent files in the other two frontends first.
@@ -21,8 +22,8 @@ middleware that maps exceptions to responses uniformly. What exists: one shared 
 Apollo Server puts in `extensions.http.status`. This doc names the taxonomy that library already encodes,
 states which layer owns which failure class, and prescribes the two rules the codebase has already
 violated once each in production (silent pipeline failure, wrong-environment secrets) so neither repeats.
-No order/cart/delivery/payment error taxonomy exists here — those tiers are unbuilt, see
-`phase4/CONSTRAINTS.md` §6.
+No order/cart/delivery/payment error taxonomy exists here — those tiers are not built and never will be,
+see `phase4/CONSTRAINTS.md` §6 and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md).
 
 ---
 
@@ -484,9 +485,10 @@ a policy the code does not have:
   `marketplace-db-setup` concern, not a request-time error-handling one.
 
 Nothing above should be read as an oversight to silently fix in this document — it is the accurate
-description of a system with no retry/idempotency layer built. If order/cart/payment ever ships, that
-tier is where idempotency keys and a queue would first become load-bearing; today nothing in scope needs
-them (`phase4/CONSTRAINTS.md` §6).
+description of a system with no retry/idempotency layer built. Order/cart/payment is where idempotency keys
+and a queue would first have become load-bearing — and that tier is permanently out of scope as of
+2026-08-27 (ADR-038), so the trigger that would have forced this work does not exist. Nothing in scope
+needs them, and nothing is going to enter scope that does (`phase4/CONSTRAINTS.md` §6).
 
 ---
 
@@ -522,6 +524,6 @@ them (`phase4/CONSTRAINTS.md` §6).
 |---|---|---|---|
 | 1 | No unified Redis-failure wrapper exists (equivalent of `throwMongoDBErrors` for Mongo) — a mid-request Redis outage falls through to Koa's default handler as an uncaught 500 with no Sentry capture confirmed at every call site. Worth a shared `throwIfRedisErr`? | backend leads | open |
 | 2 | Mail-provider (SocketLabs) send failure on verify-email flows was not traced to a specific throw site in this pass — confirm it surfaces as a typed error rather than an unhandled promise rejection. | backend leads | open |
-| 3 | No idempotency-key mechanism exists anywhere; a network-timeout retry on any mutation can double-execute it. Not urgent while cart/order/payment are unbuilt, but the gap should be named before those tiers are designed. | whoever owns the ordering tier next | open, tracked against `phase4/CONSTRAINTS.md` §6 out-of-scope list |
+| 3 | No idempotency-key mechanism exists anywhere; a network-timeout retry on any mutation can double-execute it. ~~Not urgent while cart/order/payment are unbuilt, but the gap should be named before those tiers are designed.~~ ⚠️ **Those tiers are not being designed (ADR-038, 2026-08-27), so the deadline this row set itself never arrives.** The gap is real and stays open on its own merits — a double-executed `itemAdd` or `addressAdd` is a live defect today — but it is no longer waiting on commerce. | platform owner — the ordering tier that would have owned it is never being built (ADR-038) | open, on its own merits, no longer tracked against `phase4/CONSTRAINTS.md` §6 |
 | 4 | `marketplace-shopowner` and `marketplace-admin`'s own `src/api/errors.ts`-equivalent files were not read in this pass — only `marketplace-user`'s was verified. Confirm the other two frontends share the identical `statusOf`/`messageOf`/`isSessionGone` shape rather than a drifted copy. | frontend leads | open |
 | 5 | Whether `login`/`loginAdmin` (the two non-rate-limited login resolvers) preserve the same generic-error discipline as `loginUser` was not independently re-verified in this pass — [`docs/architecture.md`](../../architecture.md) §Auth model implies they share `checkUserAuthorizationDisDel` and should, but the resolver files themselves were not read. | backend leads | open |

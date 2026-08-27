@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-25
+**Version:** 1.7
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-27: Two BC-11 references framed commerce as pending. ADR-038 (2026-08-27) makes it permanently out of scope, so the out-of-scope row says refused rather than unbuilt and the "which is BC-11 design work" aside notes that design work is never happening.
 v1.1 - 2026-08-14: §2 and §5 both said the `idShopOwner` reference was enforced by nothing. MongoDB enforces
 nothing, which is what they meant; application code does — `funCompanyAdd` 404s an `idShopOwner` that names
 no live `shopOwner` before it inserts. Both lines now separate the two. Landed with the closure of
@@ -80,7 +81,7 @@ answers as correct, not a bug to unify.
 | `company` `$jsonSchema` + `$expr` validator | `item` documents | BC-05 owns catalogue entries |
 | ShopOwner-tier `companyAdd`/`Update`/`UpdatePublished`/`Del` | public read projection of `company` | BC-08 reads through a fixed pipeline, never writes here |
 | Admin-tier `companyAdd`/`Update`/`UpdatePublished`/`Del` | `itemCategory` | BC-06 owns the taxonomy |
-| Public storefront fields (`publicName`,`slug`,`description`,`published`) | order/cart/delivery/payment | BC-11, unbuilt, no model to copy |
+| Public storefront fields (`publicName`,`slug`,`description`,`published`) | order/cart/delivery/payment | BC-11 `WILL NOT BUILD` — permanently out of scope ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) |
 | `Company` Mongoose model in `marketplace-common` | `idShopOwner` FK enforcement in MongoDB | unenforced by the database by design (`docs/data-model.md`); application code checks it at read/ownership time, and at insert on the Admin tier, where `funCompanyAdd` 404s an `idShopOwner` naming no live `shopOwner` |
 | ShopOwner + Admin frontend company CRUD screens | — | — |
 
@@ -254,7 +255,8 @@ has written, not a resolver gap.
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
   `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`CATALOGUE.md`](./CATALOGUE.md) §6 all close
   with this one. One question it does **not** close: [`epics/E11.md`](./epics/E11.md) §6 q3, whether an order snapshots
-  the catalogue state it was placed against, which is BC-11 design work rather than this race.
+  the catalogue state it was placed against, which is BC-11 design work — and BC-11 is permanently out of
+  scope ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), so that comparison never becomes real work rather than this race.
 
   ⚠️ **Accepting the race is not accepting the trigger.** Hours after answering, the platform owner read
   the consequence in full — an ordinary save wrote the flag, so an operator reopening a stale card

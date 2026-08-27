@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
+v1.8 - 2026-08-27: "Planned-but-not-built commerce vocab" is neither planned nor pending — the four are **permanently out of scope** (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`), BC-11 is `WILL NOT BUILD`, and `UBIQUITOUS_LANGUAGE.md` §18 is retitled to match. **No constraint changed**: naming the four in prose that marks something unbuilt is still fine, designing any of them is still banned, and `price` on `item` is still a banned term — now with its display-only escape hatch closed too (ADR-009 §Note 2026-08-27).
 v1.4 - 2026-08-25: CON-12's "No `user` counterpart until `user` has such a field" read as a matter of
 timing. It is not — the platform owner closed `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6 that day: `user` gets no approval
 gate, permanently. The clause now says so, and the row's trigger list keeps refusing an empty `user` list
@@ -63,7 +64,7 @@ Banned terms — full list is UBIQUITOUS_LANGUAGE.md §19, do not copy here, poi
 
 Registration fields whose meaning is not obvious from the name — `vatNumber`, `taxCode`, `certifiedEmail`, `registryExtract`, `legalName` vs `publicName` — are defined once, in UBIQUITOUS_LANGUAGE.md §12. Use those definitions rather than restating them.
 
-Planned-but-not-built commerce vocab (`Cart`, `Order`, `Delivery`, `Payment`) — named for glossary readiness only, UBIQUITOUS_LANGUAGE.md §18. Using the name is fine in prose marking something unbuilt; designing it is not (see §5 below).
+Commerce vocab (`Cart`, `Order`, `Delivery`, `Payment`) — **permanently out of scope**, [`ADR-038`](./adr/ADR-038-commerce-is-permanently-out-of-scope.md), named in UBIQUITOUS_LANGUAGE.md §18 so it is refused consistently rather than for readiness. Using the name is fine in prose marking something unbuilt; designing it is not (see §5 below).
 
 ## 4. Architectural invariants Phase 3 may NOT redesign
 
@@ -90,9 +91,9 @@ No design, no diagram, no ADR that presumes these exist or invents their shape:
 - **Cart** — no collection.
 - **Delivery** — no collection, no resolver, no design.
 - **Payment** — no gateway chosen, no integration.
-- **Price on `item`** — deliberately absent, comment at `BEs/marketplace-db-setup/lib/schemas/item.js` says why. Do not add "just a field" — a price with nothing to buy is a guess at an undesigned decision.
+- **Price on `item`** — deliberately and **permanently** absent (ADR-009 + ADR-038, including display-only), comment at `BEs/marketplace-db-setup/lib/schemas/item.js` says why. Do not add "just a field" — a price with nothing to buy is a guess at an undesigned decision.
 
-These 4 are BC-11 "Ordering & Fulfilment [PLANNED - NOT BUILT]" in `phase2/BOUNDED_CONTEXT.md`. Its own §6 row says explicit: do not pre-build an ACL for a context with no shape yet. Same logic bind Phase 3 — naming the term in a glossary-reference way (already done, UBIQUITOUS_LANGUAGE.md §18) is fine; drawing its schema, its resolver, its state machine is not. **Ask before inventing them** — [`CLAUDE.md`](../../../CLAUDE.md) §Build state, said twice in that file already.
+These 4 are BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" in `phase2/BOUNDED_CONTEXT.md`. Its own §6 row says explicit: do not pre-build an ACL for a context that will not exist. Same logic bind Phase 3 — naming the term in a glossary-reference way (already done, UBIQUITOUS_LANGUAGE.md §18) is fine; drawing its schema, its resolver, its state machine is not. **Ask before inventing them** — [`CLAUDE.md`](../../../CLAUDE.md) §Build state, said twice in that file already.
 
 Also out of scope for Phase 3 doc work (not new domain gaps, just not this phase's job):
 

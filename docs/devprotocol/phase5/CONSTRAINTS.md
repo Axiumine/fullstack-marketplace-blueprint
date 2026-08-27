@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
+v1.5 - 2026-08-27: §6 renamed and rewritten on one word. The four commerce concepts are not "unbuilt", they are **permanently out of scope** — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`, the platform owner's decision. **Every rule in §6 is unchanged and every one of them still binds**: no story designs a state machine, a schema, a delivery-cost model or a gateway, and E11 still gets exactly one epic. What changed is why — the ban used to hold because no design existed, and now holds because none is coming. E11 gained a second recording story (E11-S02) under the same rule, since a story recording a decision *not* to build is not a story designing the fix.
 v1.1 - 2026-08-11: the epic-to-bounded-context rule removed from §5 and its inherited-input row in §2. An
 epic no longer requires, owns or maps to a bounded context; the `E01`..`E11` ↔ `BC-01`..`BC-11` alignment is
 recorded as coincidence. Decided by the platform owner on the grounds that the two are unrelated — an epic is
@@ -92,17 +93,21 @@ How a sequence diagram on this platform must be drawn:
 
 ## 6. Out of scope for Phase 5
 
-Same 4 unbuilt commerce concept as Phase 3/4 — still no shape, no story that designs the thing:
+Same 4 commerce concepts as Phase 3/4, and as of 2026-08-27 **permanently out of scope** rather than merely unbuilt
+([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) — no shape, no story that designs the thing, and no design coming:
 
 - **Order** — no story defines a state machine, no story defines a resolver signature.
 - **Cart** — no story defines a schema, no story defines a mutation.
 - **Delivery** — no story defines a delivery-cost model or any successor concept; nothing was replaced.
 - **Payment** — no gateway story, no integration story, no error-taxonomy story.
 
-BC-11 "Ordering & Fulfilment [PLANNED - NOT BUILT]" gets exactly ONE epic, and that epic RECORDS the gap
-and the blocking questions (from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7 Open questions) — it never gets a
-schema, a resolver, a field, a sequence diagram of a checkout flow, or a "story" with acceptance criteria
-that presume the thing exists. A risk-register row naming the gap is fine; a story designing the fix is not.
+BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" gets exactly ONE epic, and that epic RECORDS the gap and —
+since 2026-08-27 — the decision that closed it ([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)).
+It never gets a schema, a resolver, a field, a sequence diagram of a checkout flow, or a "story" with
+acceptance criteria that presume the thing exists. A risk-register row naming the gap is fine; a story
+designing the fix is not. ⚠️ **A recording story is still allowed and E11 has two** — E11-S01 recorded the
+gap, E11-S02 recorded its closure. The line between them and a design story is unmoved: neither ships a
+shape.
 
 ## 7. Conflict resolution order
 

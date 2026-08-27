@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-26
+**Version:** 1.6
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-27: "No order/cart relationship exists yet" set an expectation ADR-038 (2026-08-27) removes: cart, order, delivery and payment are permanently out of scope, so an address points at the customer's own document permanently and the out-of-scope row says refused rather than unbuilt.
 v1.4 - 2026-08-26, later the same day: **§6's second open question closes, and it closes by being built.**
 `addresses[].position` had no story saying who writes it; it now has E07-S11 — the account form carries a
 MapLibre island with a draggable pin, so a picked geocoder suggestion places the address and the customer
@@ -90,7 +91,7 @@ surface was reasoned about, which is what a record is for and what an ADR delibe
 Own everything a `User` can do to their own record past login: fill in optional `personalData`,
 manage an `addresses[]` array of at most six, hold at most one `defaultAddress` pointer, change own
 password.
-No order/cart relationship exists yet — addresses point at nothing beyond the customer's own document.
+No order/cart relationship exists, and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27) — addresses point at nothing beyond the customer's own document, permanently. ⚠️ An address here is a customer's own saved-address book entry, not a delivery record; nothing reads it for fulfilment and nothing is going to.
 
 ## 2. Scope
 
@@ -98,7 +99,7 @@ No order/cart relationship exists yet — addresses point at nothing beyond the 
 |---|---|---|
 | `user.personalData`, `user.addresses[]`, `user.defaultAddress` shape | `user.login`, `emailVerify`, `resetPwd` sub-documents | BC-01 (Identity & Access) owns login/session content, same document, different context by convention |
 | `me`, `userPersonalDataUpdate`, `userAddressAdd/Update/Del`, `userDefaultAddressSet`, `userUpdatePwd` resolvers | `userRegister`, `userVerifyEmailResend` | Those mutations live in `marketplace-dev-public-resource` (BC-08/BC-01), not this service |
-| `marketplace-user` `/account/*` CSR routes reading/writing those ops | Any order/cart linkage from an address | BC-11 unbuilt, no model to copy — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state |
+| `marketplace-user` `/account/*` CSR routes reading/writing those ops | Any order/cart linkage from an address | BC-11 `WILL NOT BUILD` — permanently out of scope ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state |
 | Ownership guard `throwIfUserDontOwnAddress` | `waitApprov`-style approval gate | Explicitly absent — customers self-serve, divergence #3 from `shopOwner` (`BEs/marketplace-db-setup/lib/schemas/user.js`) |
 
 ## 3. Build state

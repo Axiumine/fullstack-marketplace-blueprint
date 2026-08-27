@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-26
+**Version:** 1.7
+**Date:** 2026-08-27
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-27: §7's "identity only" and §9's out-of-scope bullet stop reading as a phase boundary. ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope, so the User tier is identity permanently rather than identity first, and the four operations now have an ADR — a refusal — where the bullet said there was none.
 v1.6 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.2`, which another entry in this changelog already held — two different edits under one number, and a citation of "API_CONTRACTS.md v1.2" could not be resolved to one of them. It takes the next free number instead. It is placed by version rather than by date, so this list stays descending from its header. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v1.5 - 2026-08-26: `userAddressAdd` gains a refusal it did not have — `addresses` is capped at six by the
 collection validator, so a well-formed address can now answer 400. §6.2's row says so and a note below the
@@ -471,7 +472,8 @@ last-writer-wins (`phase5/COMPANY_LEGAL_ENTITY.md` §6, `phase5/RISK_REGISTER.md
 
 Transport, auth headers and error shape all follow §2. Tier value asserted: `user`. Identity only — see
 [`CLAUDE.md`](../../../CLAUDE.md) §Build state: no cart, no order, no delivery, no payment collection exists on this tier or
-anywhere else on the platform.
+anywhere else on the platform, and none ever will — [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md),
+2026-08-27. This tier is identity permanently, not identity first.
 
 ### 7.1 `marketplace-dev-user-authenticated-authorization` — port 4031
 
@@ -583,7 +585,9 @@ key. That is what lets one process serve every tier: tier-named logout mutations
   itself. ✅ **That particular pair is no longer a cross-service agreement at all** (ADR-034): the keys are
   one wrapped Redis record, and a service that cannot unwrap it refuses to boot. Every other value in this
   class is still unenforced.
-- **Operations that do not exist and are not designed:** anything ordering-related — cart, order, delivery,
-  payment. No collection, no resolver, no schema slice, no ADR. `item` deliberately carries no `price`
-  field for the same reason (`docs/data-model.md`, ADR-009). Name this as a gap; this document does not
-  design the shape of any of the four.
+- **Operations that do not exist and will never be designed:** anything ordering-related — cart, order,
+  delivery, payment. No collection, no resolver, no schema slice. There *is* an ADR now, and it is a
+  refusal: [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27. `item`
+  deliberately carries no `price` field for the same reason, permanently (`docs/data-model.md`, ADR-009
+  §Note 2026-08-27). Name this as a closed boundary rather than a gap; no later version of this document
+  designs the shape of any of the four.

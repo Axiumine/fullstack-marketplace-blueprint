@@ -8,7 +8,9 @@ v1.0 🔴 Critical on `Secure` and the v1.0 §3.7g on the two private vhosts —
 v1.2, 2026-08-13, appends an outcome to every finding and adds [§7](#7-closing-record--what-happened-to-every-finding),
 rewriting none of what was already here)
 **Scope:** access token + refresh token handling only. Password hashing, upload scanning, catalogue
-authorization and the unbuilt Order/Cart/Delivery/Payment surface are out of scope.
+authorization and the Order/Cart/Delivery/Payment surface are out of scope — that surface was unbuilt when
+this audit ran and became **permanently** out of scope on 2026-08-27 (ADR-038), so nothing here is pending
+re-audit once it ships. It does not ship.
 **Method:** static audit. Six independent security lenses over `docs/devprotocol/**`, each finding then
 adversarially refuted by a separate reviewer against the cited source; 25 of 26 findings survived
 refutation. Every finding marked ✅ below was re-verified by hand at the cited source before publication.
