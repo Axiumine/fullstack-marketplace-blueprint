@@ -2,11 +2,23 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-27: `phase5/epics/E11.md` is deleted, its two-story record absorbed into ADR-038's closing
+note and `EPICS_STORIES.md` §6.1, rather than replaced by a record file of its own the way E01..E10's were.
+§0's boilerplate range narrows to E12..E19, since E11 now holds neither a file under `epics/` nor one beside
+the index. The citing-files list for `E04-S01`..`E04-S08` drops `epics/E11.md` — `EPICS_STORIES.md`, already
+in that list, is where the same ids are still cited. §6's closing paragraph is rewritten: the question
+`epics/E11.md` §6 q3 carried — whether an order snapshots the catalogue state it was placed against — is no
+longer merely uncited by this file's decision, it is closed, moot, on the same day and by the same decision
+([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) that closed BC-11 itself. What
+E11.md recorded before it went is kept here: the publish split (E04-S08) made the flip deliberate rather
+than answering the snapshot-versus-live-reference question, so the half died with the context that would
+have asked it, not with an answer of its own. `item.published` itself is untouched by any of this —
+last-writer-wins stands, and the two publish operations stand.
 v1.7 - 2026-08-27: Two BC-11 references framed commerce as pending. ADR-038 (2026-08-27) makes it permanently out of scope, so the out-of-scope row says refused rather than unbuilt and the "which is BC-11 design work" aside notes that design work is never happening.
 v1.1 - 2026-08-14: §2 and §5 both said the `idShopOwner` reference was enforced by nothing. MongoDB enforces
 nothing, which is what they meant; application code does — `funCompanyAdd` 404s an `idShopOwner` that names
@@ -26,7 +38,10 @@ unpublishing and the shop owner publishing it again is fine. §6's closing parag
 decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
 `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6 (that record moved to
 [`CATALOGUE.md`](./CATALOGUE.md) later on 2026-08-14).
-`epics/E11.md` §6 q3 stays open, being about an order snapshotting catalogue state rather than the race.
+~~`epics/E11.md` §6 q3 stays open, being about an order snapshotting catalogue state rather than the race.~~
+⚠️ **It does not stay open.** It closed moot on 2026-08-27, together with the four other BC-11 questions
+([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), and `epics/E11.md` — the file
+that carried it — is deleted; see §6 below for what its record said before it went.
 v1.4 - 2026-08-14: accepting the race exposed the thing under it — `published` was a field of
 `GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an operator reopening a stale
 card republished a shop somebody had just taken down. The platform owner asked for publishing to be a
@@ -48,7 +63,9 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E11..E19; E01..E10 are the ten whose records sit
+`epics/ENN.md`, and that stays true for E12..E19 — E11 is neither under `epics/` nor beside the index; its
+epic id survives its file, per the note in §6 below and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)'s
+closing section. E01..E10 are the ten whose records sit
 beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day,
 E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
@@ -58,7 +75,7 @@ E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and
 
 **The story IDs did not change.** `E04-S01` … `E04-S08` keep their names, cited as they are from
 `phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase4/API_CONTRACTS.md`,
-`phase4/DDD_AGGREGATES.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CATALOGUE.md` and `epics/E11.md`.
+`phase4/DDD_AGGREGATES.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md` and `CATALOGUE.md`.
 Renumbering them was refused for the reason E01 gives: an ID cited across files is a name, and moving a
 file is not a reason to change a name.
 
@@ -254,9 +271,23 @@ has written, not a resolver gap.
   that an operator unpublishing and the owner publishing it again is equally fine. So
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
   `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`CATALOGUE.md`](./CATALOGUE.md) §6 all close
-  with this one. One question it does **not** close: [`epics/E11.md`](./epics/E11.md) §6 q3, whether an order snapshots
-  the catalogue state it was placed against, which is BC-11 design work — and BC-11 is permanently out of
-  scope ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), so that comparison never becomes real work rather than this race.
+  with this one. One question this did **not** close, and now never will by an answer: whether an order
+  snapshots the catalogue state it was placed against, rather than referencing a flag either writer can flip
+  afterwards — `phase5/epics/E11.md` §6 q3, carried from `phase2/BOUNDED_CONTEXT.md` §7 q5 originally, the
+  same race this paragraph closes. It survived this decision and the publish split above (E04-S08): a
+  dedicated writer per flag makes the flip deliberate rather than accidental, but an order holding a live
+  reference would still see whatever the last deliberate publisher left, so the split narrowed the race
+  without ever choosing between snapshot and live reference.
+
+  ⚠️ **It closed anyway, on 2026-08-27 — moot, not answered.** The platform owner decided that cart, order,
+  delivery and payment are permanently out of scope
+  ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), so there is no order to hold
+  either a snapshot or a live reference, and the question asking which one it should hold has no subject
+  left to be about. `phase5/epics/E11.md`, the file that carried it, is deleted; its closing note is in
+  ADR-038 and its two recording stories are in `EPICS_STORIES.md` §6.1. The half that outlived three earlier
+  passes died with the context that would have asked it, not with an answer of its own — and none of this
+  touches `item.published` itself: last-writer-wins stands, and the two publish operations, this one and
+  [`CATALOGUE.md`](./CATALOGUE.md) E05-S08's, stand exactly as decided.
 
   ⚠️ **Accepting the race is not accepting the trigger.** Hours after answering, the platform owner read
   the consequence in full — an ordinary save wrote the flag, so an operator reopening a stale card

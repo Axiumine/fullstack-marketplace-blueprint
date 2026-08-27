@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.6 - 2026-08-27: "No order/cart relationship exists yet" set an expectation ADR-038 (2026-08-27) removes: cart, order, delivery and payment are permanently out of scope, so an address points at the customer's own document permanently and the out-of-scope row says refused rather than unbuilt.
+v1.7 - 2026-08-27, later the same day: §0's range narrows from "E11..E19" to **E12..E19** — `phase5/epics/E11.md` was deleted with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-07 changes.
 v1.4 - 2026-08-26, later the same day: **§6's second open question closes, and it closes by being built.**
 `addresses[].position` had no story saying who writes it; it now has E07-S11 — the account form carries a
 MapLibre island with a draggable pin, so a picked geocoder suggestion places the address and the customer
@@ -55,10 +56,13 @@ eleven stories are `built` and §6 has no open question left — the absent appr
 2026-08-25 by a decision, and `position`'s writer on 2026-08-26 by an implementation, which is also where
 the two newest stories came from. So the file had become the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E11..E19; E01..E10 are the ten whose records sit beside the index instead of under it — E08's is
+E12..E19; E01..E10 are the ten whose records sit beside the index instead of under it — E08's is
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), both moved later the
-same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
+same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's is beside neither list:
+its file was deleted on 2026-08-27 with no record of its own to move, its knowledge distributed instead
+into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
 
 **The story IDs did not change.** `E07-S01` … `E07-S11` keep their names. They are cited by
 [`docs/data-model.md`](../../data-model.md) (E07-S11), [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md)

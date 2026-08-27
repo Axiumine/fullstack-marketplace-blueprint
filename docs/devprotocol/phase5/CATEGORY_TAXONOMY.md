@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
@@ -49,6 +49,11 @@ answered hours earlier, and the sharpest of twelve files under `docs/` where the
 pre-`holdItemCategory` absolute survived. Both now say what holds: every *mutation* is Admin-tier, one field is not. No story
 changed state; E06-S06 stays `built`, since the read-only surface it was written to protect is intact.
 v1.8 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
+v1.10 - 2026-08-27: §0's range narrows for the opposite reason it last grew — `phase5/epics/E11.md` was
+deleted, not moved, so the range this record cites shrinks to **E12..E19** and E11 is named separately, as
+distributed into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note
+2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 rather than moved beside this index. Nothing
+about BC-06 changes.
 
 ## 0. Why this record is not under `epics/`
 
@@ -61,12 +66,15 @@ it: nothing in it is work still ahead. All seven stories are `built` and §6 has
 the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
 on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E11..E19; E01..E10 are the ten whose records sit
+stories live in `epics/ENN.md`, and that stays true for E12..E19; E01..E10 are the ten whose records sit
 beside the index instead of under it — E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
+2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's record sits at neither
+address: its file was deleted on 2026-08-27 with no replacement of its own, distributed instead into
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
 
 **The story IDs did not change.** `E06-S01` … `E06-S07` keep their names. ⚠️ **This is the first of the six
 records to move with no citation in any other document at all** — `E06-S01`..`E06-S07` appear nowhere else

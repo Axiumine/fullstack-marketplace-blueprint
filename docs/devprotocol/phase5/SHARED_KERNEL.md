@@ -2,11 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.3 - 2026-08-27: The "not in the kernel" row said no BC-11 shape exists to import. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so no shape will ever exist to import either.
+**Changelog:** v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
+replaced. §5 absorbs what its own §5 held — the 7th model and the `TIER`-scoped service pair BC-11 would
+have needed, and the tier-vs-concern question that went with them, closed as moot by ADR-038. Every
+citation of `epics/E11.md` in this file is repointed to
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) and `EPICS_STORIES.md` §6.1,
+the two places that now carry what the deleted file carried; the E11..E19 ranges in §0 are corrected to
+E12..E19, since E11 no longer has a file under `epics/`. Nothing about BC-10's own build state changed.
+v1.3 - 2026-08-27: The "not in the kernel" row said no BC-11 shape exists to import. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so no shape will ever exist to import either.
 v1.2 - 2026-08-27: the record moved out of `epics/E10.md` to this path in the same pass that
 closed its last open question — §0 says why. Question 2's answer was upgraded from inference to proof at the
 same time: the Cloud project is named on disk, so the four repos `phase1/NFR.md` open question 4 called
@@ -28,7 +35,7 @@ It was `phase5/epics/E10.md` until 2026-08-27. The file was deleted and its reco
 for the reason the nine before it moved: nothing in it is a story still ahead. All seven are `built`, both
 open questions closed the same day, and what is left is the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that now stays true for
-E11..E19 — E01's and E02's records moved beside the index on 2026-08-13
+E12..E19 — E01's and E02's records moved beside the index on 2026-08-13
 ([`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md), [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), E03's,
 E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md)), E06's on
@@ -36,12 +43,18 @@ E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_
 ([`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md),
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md)), and this one on
-2026-08-27. `epics/` now holds E11..E19, which is the unbuilt half.
+2026-08-27. `epics/` now holds E12..E19, which is the unbuilt half. **E11 is not among them**: unlike the
+ten records above, `phase5/epics/E11.md` was deleted outright on 2026-08-27 rather than moved, and gets no
+replacement file — it named a gap that closed as a permanent refusal rather than as a shipped surface, so
+there was nothing left to keep beside the index. Its record is distributed into
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note and `EPICS_STORIES.md`
+§6.1, and this file's own §5 below absorbs the one paragraph of it that named a BC-10 dependency.
 
 **The IDs did not change.** `E10` and `E10-S01`..`E10-S07` are still the names: `EPICS_STORIES.md` §1 and its
-BC-10 row, [`epics/E11.md`](./epics/E11.md) §5 and `CONFLICT_REPORT.md`'s traceability tables all cite them,
-and every one resolves to a section of this file. Renumbering was not considered — moving a file is not a
-reason to change a name.
+BC-10 row, [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note and
+`EPICS_STORIES.md` §6.1 (the two places that now carry what `epics/E11.md` §5 used to cite them from) and
+`CONFLICT_REPORT.md`'s traceability tables all cite them, and every one resolves to a section of this file.
+Renumbering was not considered — moving a file is not a reason to change a name.
 
 **Why this file is not `PLATFORM_OPERATIONS_QUALITY_GATES.md`.** BC-09 and BC-10 both look like
 "cross-cutting platform plumbing" and are not the same context: BC-09 owns the *gates* — hooks, thresholds,
@@ -66,7 +79,7 @@ minus `marketplace-dev-authenticated-logout`, which touches Redis only) import a
 | The 6 Mongoose models (`Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`) | A shop/collection model | Never existed, never will — a shop IS a `company` |
 | `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally; `deploy-local.sh` stays as the between-releases bridge, so BC-10 still owns the sync and not the release calendar |
 | `deploy-local.sh` sync into 9 consumers' `node_modules` | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only |
-| `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), see E11) |
+| `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27) |
 
 ## 3. Build state
 
@@ -202,8 +215,16 @@ Technical story. `Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`
   by `./deploy-local.sh`, followed by a separate per-consumer commit (BCON-05, BCON-07).
 - **Downstream of nothing** inside this platform — BC-10 consumes no other context
   (`phase2/BOUNDED_CONTEXT.md:181` "Consumes: nothing from the other contexts").
-- E11 (Ordering & Fulfilment) would, once designed, add a 7th model here — but E10 ships nothing for it
-  today; see E11 §3.
+- **E11 (Ordering & Fulfilment) never designed, so it never added anything here, and now never will.** Had
+  BC-11 been built, it would have needed a 7th Mongoose model in this kernel alongside the six in §3
+  above, and a new `TIER`-scoped service pair to go with it — `phase2/UBIQUITOUS_LANGUAGE.md` "Service
+  pair": "A fifth tier means a fifth service pair, not a role check bolted onto the existing ones." Which
+  of the two it would have been — a genuinely new tier with its own service pair, or a new *concern*
+  folded into one of the three tiers that already exist — was never settled, because it was never asked
+  as a design question: it was `phase5/epics/E11.md` §6 question 4, and it closed as **moot**, not
+  answered, the same day as the other four — [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md).
+  E10 ships nothing for it, permanently, not provisionally: see ADR-038 §Note and `EPICS_STORIES.md` §6.1,
+  where `epics/E11.md`'s record now lives.
 
 ## 6. Open questions
 

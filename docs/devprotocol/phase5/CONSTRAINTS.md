@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-27
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
+v1.6 - 2026-08-27, later the same day: `phase5/epics/E11.md` is deleted, its record distributed rather than
+relocated to a single successor. §6's E11 paragraph no longer points at a file under `epics/` — it now
+names `EPICS_STORIES.md` §6.1 and `ADR-038` §Note 2026-08-27 as where the gap and both recording stories
+(E11-S01, E11-S02) are held. §5's `E01`..`E11` ↔ `BC-01`..`BC-11` coincidence row and its own line 11 are
+unchanged: that is a live id-range rule, not a file reference, and this deletion does not touch it. No
+rule in §6 changed; only where its record lives did.
 v1.5 - 2026-08-27: §6 renamed and rewritten on one word. The four commerce concepts are not "unbuilt", they are **permanently out of scope** — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`, the platform owner's decision. **Every rule in §6 is unchanged and every one of them still binds**: no story designs a state machine, a schema, a delivery-cost model or a gateway, and E11 still gets exactly one epic. What changed is why — the ban used to hold because no design existed, and now holds because none is coming. E11 gained a second recording story (E11-S02) under the same rule, since a story recording a decision *not* to build is not a story designing the fix.
 v1.1 - 2026-08-11: the epic-to-bounded-context rule removed from §5 and its inherited-input row in §2. An
 epic no longer requires, owns or maps to a bounded context; the `E01`..`E11` ↔ `BC-01`..`BC-11` alignment is
@@ -101,13 +107,15 @@ Same 4 commerce concepts as Phase 3/4, and as of 2026-08-27 **permanently out of
 - **Delivery** — no story defines a delivery-cost model or any successor concept; nothing was replaced.
 - **Payment** — no gateway story, no integration story, no error-taxonomy story.
 
-BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" gets exactly ONE epic, and that epic RECORDS the gap and —
-since 2026-08-27 — the decision that closed it ([`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)).
-It never gets a schema, a resolver, a field, a sequence diagram of a checkout flow, or a "story" with
-acceptance criteria that presume the thing exists. A risk-register row naming the gap is fine; a story
-designing the fix is not. ⚠️ **A recording story is still allowed and E11 has two** — E11-S01 recorded the
-gap, E11-S02 recorded its closure. The line between them and a design story is unmoved: neither ships a
-shape.
+BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" gets exactly ONE epic, and that epic's record — as of
+2026-08-27 no longer a file under `epics/` — is the gap and the decision that closed it, held at
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
+`EPICS_STORIES.md` §6.1. It never gets a schema, a resolver, a field, a sequence diagram of a checkout
+flow, or a "story" with acceptance criteria that presume the thing exists. A risk-register row naming the
+gap is fine; a story designing the fix is not. ⚠️ **A recording story is still allowed and E11 has two** —
+E11-S01 recorded the gap, E11-S02 recorded its closure; both are recorded in full at `EPICS_STORIES.md`
+§6.1 and the ADR, not in a file of their own. The line between them and a design story is unmoved: neither
+ships a shape.
 
 ## 7. Conflict resolution order
 

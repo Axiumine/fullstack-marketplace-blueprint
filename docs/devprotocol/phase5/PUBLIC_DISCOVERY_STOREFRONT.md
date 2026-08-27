@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-07
+**Version:** 1.5
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-08 — Public Discovery / SSR Storefront
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -30,6 +30,10 @@ owner, and is where that question has always belonged. One thing this file held 
 `MAX_CROSS_SHOP_OFFSET`, and why `totalIsExact` is `false` on every cross-shop item read — into
 [`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §4.2, whose table still listed the `search` field
 and the `GraphQLPublicSearchResult` type that the split deleted.
+v1.5 - 2026-08-27: §0's range narrows from "E11..E19" to **E12..E19** — `phase5/epics/E11.md` was deleted
+with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was
+distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27
+and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-08 changes.
 
 ## 0. Why this record is not under `epics/`
 
@@ -41,10 +45,13 @@ the eighth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) and
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) moved before it: nothing in it is work
 still ahead. All ten stories are `built` and §6 has no live question left. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E11..E19; E01..E10 are the ten whose records sit
+stories live in `epics/ENN.md`, and that stays true for E12..E19; E01..E10 are the ten whose records sit
 beside the index instead of under it — E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), moved later the same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
-moved 2026-08-27.
+moved 2026-08-27. E11's joined neither list: its file was deleted the same day with no record of its own to
+move, its knowledge distributed instead into
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
 
 ⚠️ **§6's last live question left as a duplicate, not as an answer.** It asked when `NFR-PF08`/`NFR-PF09`
 stop being 🟡 Medium, and the answer is "the day the edge is deployed" — which is not a decision this

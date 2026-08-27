@@ -2,11 +2,20 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-27: `phase5/epics/E11.md` is deleted, its two-story record absorbed into ADR-038's closing
+note and `EPICS_STORIES.md` §6.1, rather than replaced by a record file of its own the way E01..E10's were.
+§0's boilerplate range narrows to E12..E19, since E11 now holds neither a file under `epics/` nor one beside
+the index. The citing-files list for `E05-S01`..`E05-S09` drops `epics/E11.md` — `EPICS_STORIES.md`, already
+in that list, is where the same ids are still cited — and the paragraph gains an explicit line drawing the
+connection its own renumbering-refusal argument already implied: the same reason `E05-S01`..`E05-S09` kept
+their names across a file move is the reason the epic id `E11` keeps its own across a file's deletion
+([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Consequences). Nothing about
+`item.published` or the race this file's §6 already closed changes.
 v1.6 - 2026-08-27: The out-of-scope column said BC-11 was "unbuilt, no model to copy", which reads as pending. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so price/cart-membership/order-lines are refused rather than deferred, and §1 says the deliberate absence of a price is permanent.
 v1.1 - 2026-08-14: §6's `item.published` race closes on the platform owner's decision — last writer wins,
 no lock field, an owner republishing after an operator's unpublish is accepted. Taken with the same
@@ -42,7 +51,7 @@ the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
 (E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
 rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that
-stays true for E11..E19; E01..E10 are the ten whose records sit beside the index instead of under it —
+stays true for E12..E19 — E11 lost its file, not its id (below); E01..E10 are the ten whose records sit beside the index instead of under it —
 E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's, E08's and E09's
 are [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
@@ -50,9 +59,20 @@ are [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
 
 **The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from
-`COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CONFLICT_REPORT.md`,
-`phase3/adr/ADR-INDEX.md` and `epics/E11.md`. Renumbering them was refused for the reason E01 gives: an ID
-cited across files is a name, and moving a file is not a reason to change a name.
+`COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CONFLICT_REPORT.md` and
+`phase3/adr/ADR-INDEX.md`. Renumbering them was refused for the reason E01 gives: an ID cited across files
+is a name, and moving a file is not a reason to change a name.
+
+⚠️ **That is the same rule under which the epic id `E11` outlives its file.** `phase5/epics/E11.md` was
+deleted on 2026-08-27 — no replacement record file was written the way E01..E10's were, because by then
+there was no shipped surface left to record, only a decision — and its content moved into
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)'s closing note and
+`EPICS_STORIES.md` §6.1. The id did not move with it as a rename: `E11` stays in the epic numbering and in
+`EPICS_STORIES.md` exactly where it always was
+([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Consequences), for the identical
+reason `E05-S01`..`E05-S09` above kept theirs — an id cited across files is a name regardless of whether the
+file it once labelled still exists to be moved. This is the rule that governs the whole change: the file
+dies, the id does not.
 
 ⚠️ **Two things this record holds that no other file does.** E05-S09's failure ordering — store the upload
 in the temp directory, insert the document, publish the file — and the state a failed third step leaves

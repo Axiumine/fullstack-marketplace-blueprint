@@ -2,10 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
+corpus rather than left in a dedicated epic file, per [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)
+§Note and [`EPICS_STORIES.md`](../phase5/EPICS_STORIES.md) §6.1. §9's ordering-related bullet was rewritten
+by v1.7 below, but the sentence it replaced is quoted nowhere in this document — that verbatim wording
+survived only in the epic file, and the epic file is now gone, so it is recorded here instead: the bullet
+used to end **"no collection, no resolver, no schema slice, no ADR"**, before ADR-038 became that missing
+ADR. This document held no reference to `phase5/epics/E11.md` to repoint — checked and confirmed absent.
+No claim changes.
 v1.7 - 2026-08-27: §7's "identity only" and §9's out-of-scope bullet stop reading as a phase boundary. ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope, so the User tier is identity permanently rather than identity first, and the four operations now have an ADR — a refusal — where the bullet said there was none.
 v1.6 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.2`, which another entry in this changelog already held — two different edits under one number, and a citation of "API_CONTRACTS.md v1.2" could not be resolved to one of them. It takes the next free number instead. It is placed by version rather than by date, so this list stays descending from its header. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v1.5 - 2026-08-26: `userAddressAdd` gains a refusal it did not have — `addresses` is capped at six by the

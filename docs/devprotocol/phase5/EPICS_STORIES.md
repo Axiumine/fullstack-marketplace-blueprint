@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.42
+**Version:** 1.43
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.42 - 2026-08-27: E11 stops being planned. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §1's row reads `[WILL NOT BUILD]` and gains E11-S02, the recording story that landed the decision; §3's "Open story" definition notes E11 has no open story left; and §6 says the prohibition is now backed by an ADR rather than by this document alone. E05's "commerce out of scope" becomes permanent too.
+v1.43 - 2026-08-27, later still: **`phase5/epics/E11.md` is deleted — the eleventh record to leave `epics/`, and the first to leave with no destination file of its own.** E01-E10 each got a sibling document beside this index when their turn came; E11 gets a subsection instead, because a context that will never be built earns no standing record beyond the two stories that said so — §6.1 below now carries E11-S01 and E11-S02 in full, in this file's own voice, since this is where every other epic's stories already live. The epic id is untouched and the §2 table keeps its E11 row; only its File column repoints, from `[E11.md](epics/E11.md)` to §6.1 and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note — 2026-08-27, which holds the deeper correction ledger and the five §6 questions' own closure detail, so the two records point at each other rather than duplicate — save for the owner-cell finding, carried on both sides on purpose, since it is E11-S02's finding here and question 1's reason for closing there. §3's "no open story left" note and §6's own out-of-scope prose lose the same link the same way. The v1.39 entry below, which counted `epics/` as holding `E11..E19` the day E10 left, is annotated rather than rewritten, per this document's own v1.40 rule against editing its history silently.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
 These seven do **not** follow the one-epic-per-BC rule; see §2.2. ⚠️ That rule no longer exists — read the
 v1.4 line below before treating this sentence as a live caveat.
@@ -265,7 +266,7 @@ only the `koa-utils` entry in the lockfile and each suite green after it. The on
 v1.40 - 2026-08-27, later the same day: **the npm 404 that shaped E18 is gone, and this index does not rewrite its own history to hide it.** v1.24 and v1.25 record `yarn install` and `yarn audit` as unrunnable in this workspace because `@axiumine/marketplace-common` answered 404 on both registries; `ADR-037` published it on 2026-08-26, and `yarn audit` now completes (734 packages / 80 advisories in `marketplace-dev-public-resource`). Those entries stay verbatim — they were true when written, and a changelog that edits itself is worth nothing. The correction lives where the claims are load-bearing: `E18.md` v2.7, `docs/report/dependency-tree-advisory-scan.md` §2, `README.md` §Test quality gates. ⚠️ `yarn install` remains unverified and unclaimed. No epic or story changed state.
 v1.39 - 2026-08-27: **E10's record leaves `epics/`, the tenth and the first that was not a phase-5 story problem.**
 `phase5/epics/E10.md` is deleted and its body becomes [`SHARED_KERNEL.md`](./SHARED_KERNEL.md) beside this index,
-named for BC-10 as the nine before it are named for theirs. `epics/` now holds `E11..E19`. Both of E10's open
+named for BC-10 as the nine before it are named for theirs. `epics/` now holds `E11..E19` — ⚠️ narrowed to `E12..E19` on 2026-08-27, when `epics/E11.md` was deleted too and its two stories moved into §6.1 below rather than beside this index, per v1.43. Both of E10's open
 questions closed the same day: the 4th-tier fork is **moot** — the owner is adding no further backend, so the
 authorization-service consolidation stays decided as it is (ADR-002, NFR-AV01) — and the Qodana Cloud project is
 **provisioned**, `MP common`/`b892b`, named by the scan artefact on disk. ⚠️ Two claims in the body were also
@@ -344,7 +345,7 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [PUBLIC_DISCOVERY_STOREFRONT.md](PUBLIC_DISCOVERY_STOREFRONT.md) |
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `marketplace-services-status` | [PLATFORM_OPERATIONS_QUALITY_GATES.md](PLATFORM_OPERATIONS_QUALITY_GATES.md) |
 | E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built - 7 of 7, both open questions closed 2026-08-27 | `marketplace-common` | [SHARED_KERNEL.md](./SHARED_KERNEL.md) - not under `epics/`, see §1 |
-| E11 | Ordering & Fulfilment [WILL NOT BUILD] | BC-11 | User (intended, and now permanently unbuilt) | **The context will never be built and nothing here designs it** - no collection, no resolver, no price, by [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) of 2026-08-27. Both its stories are *recording* stories. **E11-S01 `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. **E11-S02 `built` 2026-08-27**: the owner's decision that no commerce schema is coming, recorded as ADR-038 and swept through the corpus. All five §6 questions close as moot rather than answered - including question 4, the tier-topology one that survived E11-S01 for hiding a blocker; there is no longer a build for it to block | none | [E11.md](epics/E11.md) |
+| E11 | Ordering & Fulfilment [WILL NOT BUILD] | BC-11 | User (intended, and now permanently unbuilt) | **The context will never be built and nothing here designs it** - no collection, no resolver, no price, by [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) of 2026-08-27. Both its stories are *recording* stories. **E11-S01 `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. **E11-S02 `built` 2026-08-27**: the owner's decision that no commerce schema is coming, recorded as ADR-038 and swept through the corpus. All five §6 questions close as moot rather than answered - including question 4, the tier-topology one that survived E11-S01 for hiding a blocker; there is no longer a build for it to block | none | §6.1 below, and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note — 2026-08-27 — no file of its own, `epics/E11.md` deleted 2026-08-27 |
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built - 26 of 26, closed 2026-08-11. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's log-retention answer added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once, and its cache half is already built. **Every defect either investigation found is fixed**, the 🔴 among them: no service with a `DSN` set ships a request body any more, and E12-S24's browser capture closed the last one — the address bar, query string and fragment included, was reaching Sentry from all three frontends in five distinct places, and `urlQueryParams: false` never gated it. **One item is still not this repo's to close:** E12-S15's config is in the repo but Authenticated Origin Pulls must be switched on in Cloudflare **before** it is deployed, or every handshake fails from the reload. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `marketplace-docker-DBs`, `marketplace-user`, `marketplace-admin`, `marketplace-shopowner` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | **11 of 11 built** - ten on 2026-08-10, **E13-S10 on 2026-08-14**. It deleted the dual-read fallback, the `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` across nine repos, reduced the dual delete to one key, and **inverted rather than deleted** the six E13-S02 tests, so an old-shape key now has a test proving it does *not* authenticate. ⚠️ **Both of its gates — the cutover date plus 90 days, and a zero counter — were moot: the platform has never been deployed**, so no pre-cutover session ever existed and the counter key was never created. `BGREWRITEAOF` run the same day; `RISK_REGISTER` R51 closed. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
 | E14 | Refresh Family, Reuse Detection & Absolute Lifetime | hardens BC-01, BC-10 | Admin, ShopOwner, User | Built 2026-08-10 - 9 of 9. E14-S09 was run against the Dev stack and `GRACE_SECONDS = 10` is confirmed on measurement; its finding names two defects *under* the epic that stay open. See [E14.md](epics/E14.md) §7 and [multi-tab-refresh-behaviour.md](../../report/multi-tab-refresh-behaviour.md) | `marketplace-common`, `marketplace-dev-public-authorization`, the three `*-authenticated-authorization` services, `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` | [E14.md](epics/E14.md) |
@@ -414,7 +415,8 @@ Brownfield retrofit. Most stories in `epics/*.md` describe work ALREADY SHIPPED,
 - **Open** story = genuinely missing, no model to copy. Among E01-E11, only E11 carried these, and per
   `phase5/CONSTRAINTS.md` §6 even those stopped at recording the gap - no schema, no resolver signature, no
   checkout sequence gets designed in this protocol. ⚠️ **E11 has no open story left**: ADR-038 (2026-08-27)
-  closed the context permanently and E11-S02 recorded that, so its questions are moot rather than pending.
+  closed the context permanently and E11-S02 recorded that — in §6.1 below since 2026-08-27, rather than in
+  `epics/E11.md`, deleted the same day — so its questions are moot rather than pending.
   The §6 prohibition stands unchanged and is now backed by an ADR rather than by this document alone. **E12-E18 were open throughout when written**, by
   construction: they described remediation that had not been built. E12, E13 and E14 landed on 2026-08-10
   and are open only where each epic's §7 says so; **E15, E16 and E17 are complete since 2026-08-13** — E16 by
@@ -536,7 +538,87 @@ No story anywhere under `epics/` designs order, cart, delivery, or payment, and 
 [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) (2026-08-27) puts all four
 permanently out of scope. E11 records the BC-11 refusal and the questions that died with it - never a
 schema, a resolver signature, a field, or a checkout sequence diagram. A risk-register row naming it
-(R31) is in scope for a sibling Phase 5 doc; a story designing the fix is not in scope for
-[`epics/E11.md`](./epics/E11.md), and there is no fix to design. ⚠️ **A recording story is still allowed,
-and E11 now has two** - E11-S01 (2026-08-13) recorded the gap, E11-S02 (2026-08-27) recorded that it will
-never be filled.
+(R31) is in scope for a sibling Phase 5 doc; a story designing the fix is not in scope for E11, and there
+is no fix to design. ⚠️ **A recording story is still allowed, and E11 now has two** - E11-S01 (2026-08-13)
+recorded the gap, E11-S02 (2026-08-27) recorded that it will never be filled. Both are below, in full,
+since `epics/E11.md` — the file that used to carry them — was deleted the same day E11-S02 was built; §6.1
+is their record now.
+
+### 6.1 The two recording stories (absorbed from `epics/E11.md`, deleted 2026-08-27)
+
+`phase5/epics/E11.md` never held anything but these two stories and a build-state paragraph the §2 table
+above already narrates, so when its turn came to leave `epics/` it followed E01-E10 in substance but not
+in form: there is no `ORDERING_FULFILMENT.md` beside this index, because there is no context to describe —
+only the record of it staying undescribed. The two stories move here instead, verbatim in substance, in
+this file's own voice.
+
+#### E11-S01 — Record the commerce gap and its blocking questions   `built 2026-08-13`
+Technical story. Keep the platform's one authoritative record of what Ordering & Fulfilment would need
+before design can start, so no future agent infers a shape from the other ten contexts and builds ahead of
+a decision nobody made.
+**domains:** documentation
+**Acceptance criteria:**
+- BC-11 and the record agree on the same four named concepts (Cart, Order, Delivery, Payment) — no fifth
+  invented, none dropped.
+- Every blocking question is traceable to a real open question in an upstream Phase 1/2 document, not
+  invented.
+**Traces:** BCON entries n/a (no gate applies to undesigned code); `phase5/CONSTRAINTS.md` §6.
+**Evidence:** absence itself — the grep across all nine backend services and the schemas-directory listing
+that prove it are carried in the §2 table's E11 row above and in
+[ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Consequences.
+
+**Built 2026-08-13.** Criterion 1 held: BC-11 and the record named the same four concepts, Cart / Order /
+Delivery / Payment, with no fifth and none dropped. One defect was found on that comparison and fixed —
+BC-11 had quoted `item.js` with a sentence the file does not contain, "would be a guess at a design
+decision nobody has made," and the record now quotes `item.js:11-13` exactly instead. The evidence behind
+§3 of the deleted file was re-run rather than trusted: zero commerce mutations across the nine services,
+`item` still with no `price`, and the schemas-directory listing stale by three entries, none of them
+commerce.
+
+⚠️ **And here is the part that exists nowhere else in the corpus: criterion 2 held for four of the five
+questions, and question 4 was the deliberate exception.** It says outright that it is raised nowhere
+upstream, and it stays — deleting it to satisfy the criterion would remove a real blocker, and it is a
+question about tier topology (ADR-002, `phase2/UBIQUITOUS_LANGUAGE.md` §Service pair) rather than a
+commerce design decision, so recording it invents no shape. **The criterion is what caught it, which is
+the criterion working.**
+
+**What `built` means here:** the record is current and verified, not that Ordering & Fulfilment exists. No
+collection, migration, model, resolver, state machine or price was added, and none may be — ⚠️ and that
+sentence used to end "*until §6 is answered by product and the platform owner*," a condition that was
+never going to be met. Kept as history rather than quietly dropped: see E11-S02 below.
+
+#### E11-S02 — Record the decision that closed the gap   `built 2026-08-27`
+Technical story. Replace the epic's *pending* frame with the decision that ended it, so that no reader,
+and no agent, mistakes the four named concepts for a backlog.
+**domains:** documentation
+**Acceptance criteria:**
+- The decision has an ADR of its own, and this file, BC-11 and `phase5/CONSTRAINTS.md` §6 all cite it
+  rather than restating it.
+- No question anywhere in the corpus is left waiting on a commerce design: §6 there (the epic's own
+  open-questions table, now folded into ADR-038 §Note — 2026-08-27), `phase2/BOUNDED_CONTEXT.md` §7 q4,
+  `phase2/EVENT_STORMING.md` §6 open question 4 and `phase1/PDR.md` open question 3 all close in the same
+  pass, and all close as **moot** — none is answered, because none can be.
+- Nothing is designed, nothing is invented, nothing on disk changes. No collection, no migration, no
+  resolver, no `price`.
+**Traces:** [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md);
+`phase5/CONSTRAINTS.md` §6.
+**Evidence:** the four closed-question tables and ADR-038 §Compliance — a grep that fails if any document
+pairs a commerce term with deferral language again — both recorded in
+[ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note — 2026-08-27.
+
+**Built 2026-08-27.** ADR-038 is the record; this story is what carried it through the corpus. Two
+findings came out of doing it, both about framing rather than fact. First, **every factual claim about the
+absence was already true and none needed repair** — unusual for this epic, whose two prior passes each
+found stale evidence. Second, the questions that closed had been owned by "Product + platform dev" for
+their whole life, and **that owner does not exist here**: this platform is a blueprint published for the
+community (ADR-037), and the platform owner is the decision-maker of record for all of it. **The owner
+cell was the tell, and nobody had read it as one.**
+
+The deeper correction ledger — the citation defects found and fixed on 2026-08-27, and the five §6
+questions' own closure detail, question by question — lives in
+[ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note — 2026-08-27:
+`phase5/epics/E11.md` deleted, its record absorbed here, so the two halves — this file's stories, that
+file's questions — point at each other rather than duplicate. They overlap in exactly one place, on
+purpose: the owner-cell finding above is also ADR-038's closure detail for question 1, because it is at
+once this story's finding and that question's reason for closing, and neither record reads whole without
+it.

@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-26
+**Version:** 1.4
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -28,6 +28,11 @@ nothing was dropped — only the file's own relative links, which now resolve fr
 `phase5/epics/`, and one that was already wrong before the move: §3's schema-builder `README.md` pointed at
 the workspace root's README rather than at `BEs/marketplace-db-setup/lib/schemas/README.md`, which is the
 file the sentence around it is listing.
+v1.4 - 2026-08-27: §0's range narrows from "E11..E19" to **E12..E19** — `phase5/epics/E11.md` was deleted
+with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was
+distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27
+and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. §5's "E01-E08, E11" dependency list is untouched
+— it names epic ids, not files, and E11 still holds one. Nothing else about BC-09 changes.
 
 ## 0. Why this record is not under `epics/`
 
@@ -41,9 +46,12 @@ the ninth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
 still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
 became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
-`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E11..E19; E01..E10
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E12..E19; E01..E10
 are the ten whose records sit beside the index instead of under it — E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
-moved 2026-08-27.
+moved 2026-08-27. E11's is beside neither list: its file was deleted the same day with no record of its own
+to move, its knowledge distributed instead into
+[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
 
 **The story IDs did not change.** `E09-S01` … `E09-S09` keep their names and are cited as they are from
 [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2 and §4.

@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.5 - 2026-08-27, later the same day: `phase5/epics/E11.md` is deleted, its record distributed rather
+than moved to one successor. §3's `E11` epic-level checkbox no longer cites "ADR-038" bare — it now names
+both `ADR-038` and `EPICS_STORIES.md` §6.1 as where the refusal is recorded, and notes plainly that the
+epic id survives the file's deletion. `NFR-SE11` at §2.5 is untouched — that id names a different NFR and
+was never the epic.
 v1.4 - 2026-08-27: The three commerce checkboxes said "not designed here", which a reader could satisfy by designing it elsewhere later. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so each now cites it, the `E11` checkbox drops `[PLANNED - NOT BUILT]` for `[WILL NOT BUILD]` and notes its questions are moot rather than pending, and §8's do-not-re-open list gains commerce design alongside the `price` field.
 v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or an epic to map onto a bounded context — that
 rule was removed from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which records the decision. The same edit
@@ -168,10 +173,13 @@ document is that doctrine in checklist form.
   register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5). Scope is what the epic changes, not a
   bounded context it is assigned to; no epic is assigned one.
 - [ ] If the epic is `E11` (Ordering & Fulfilment [WILL NOT BUILD]) — it closes with exactly the refusal
-  recorded (ADR-038, plus the now-moot questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7), never a
+  recorded at [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) and
+  `EPICS_STORIES.md` §6.1, plus the now-moot questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7, never a
   schema, resolver, field, or sequence diagram that presumes order/cart/delivery/payment exists
   (`phase5/CONSTRAINTS.md` §6). ⚠️ Since 2026-08-27 those questions are closed as moot, so a story that
-  "answers" one of them is out of scope in the same way a schema would be.
+  "answers" one of them is out of scope in the same way a schema would be. ⚠️ **Since 2026-08-27**
+  `phase5/epics/E11.md` no longer exists — E11's record lives at the two citations above, not a file under
+  `epics/` — the epic id is unaffected and this checkbox still applies to it exactly as before.
 - [ ] Every ADR under the epic's area (`phase3/adr/ADR-INDEX.md` §3 "By area") re-verified compliant across
   ALL its stories combined, not just per-story.
 

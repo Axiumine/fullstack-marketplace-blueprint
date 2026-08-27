@@ -2,10 +2,19 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
+corpus rather than left in a dedicated epic file, per [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)
+§Note and [`EPICS_STORIES.md`](../phase5/EPICS_STORIES.md) §6.1. §18's **Used in:** list named that file
+last; the line now ends at ADR-038 instead, since there is nothing left on disk for it to point to. The
+verbatim heading §18 carried before v1.7 rewrote it — the epic file was the only place that string still
+survived, and the file it survived in is now gone — is recorded here rather than lost:
+**"Planned commerce vocabulary — NOT BUILT"**. §19's `price` row was checked for the same dangling
+reference and carries none — its citations were always ADR-009 and ADR-038, never the epic file. No term
+definition changed.
 v1.7 - 2026-08-27: **§18 is no longer "planned".** Cart, order, delivery and payment are permanently out of scope (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`), so the section that named them for *readiness* now names them so they are **refused** consistently — heading, status column and purpose sentence all follow. §2's `User` definition loses "yet", §9's `item` example quotes the rewritten `item.js` comment, and §19's `price` row states the ban as permanent with the display-only escape hatch closed (ADR-009 §Note 2026-08-27). No term was added, renamed or removed, and no definition of a built thing changed: the four entries stay in the glossary precisely because a name that is not written down cannot be refused consistently.
 v1.6 - 2026-08-27, later the same day: v1.5 added *"re-run it after every install in a consumer"* to the
 `deploy-local.sh` definition. That is wrong as an unconditional rule and is removed: nothing in any `yarn install`
@@ -638,7 +647,7 @@ A read model is the shape of a GraphQL query response an actor reads to decide t
 | Delivery | WILL NOT BUILD. No collection, no resolver, no design, ever. |
 | Payment | WILL NOT BUILD. No integration, no gateway, ever — none will be chosen. |
 
-**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Build state, ⚠️ callout under Customer area row; [`EVENT_STORMING.md`](./EVENT_STORMING.md) §2.9; [`BOUNDED_CONTEXT.md`](./BOUNDED_CONTEXT.md) BC-11; [`phase5/epics/E11.md`](../phase5/epics/E11.md).
+**Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Build state, ⚠️ callout under Customer area row; [`EVENT_STORMING.md`](./EVENT_STORMING.md) §2.9; [`BOUNDED_CONTEXT.md`](./BOUNDED_CONTEXT.md) BC-11; [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md).
 **Not to be confused with:** treating any of the four as designed, or as *planned*, because a term exists for it here — the entry exists so a reader and a future agent recognise the four precisely enough to stop. **Presence is not a plan.** Re-opening this needs an ADR superseding ADR-038, taken by the platform owner; it is not a story and not a small first step.
 
 ---

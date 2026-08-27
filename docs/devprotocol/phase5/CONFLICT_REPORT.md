@@ -2,10 +2,18 @@
 # Marketplace
 
 **Status:** pass
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-07
 **Author:** conflict-checker-agent
-**Changelog:** v1.3 — 2026-08-26: a staleness banner added to §1 and nothing else touched. Every count and enumeration in this report describes the tree on 2026-08-07 and several have drifted since; correcting them one by one would fake a re-audit this document did not run. v1.2's corrections were arithmetic errors against the tree of its own date, which is a different thing and stays the precedent for correcting in place.
+**Changelog:** v1.4 — 2026-08-27: the 2026-08-13 Path note (§2) extended for `epics/E11.md`'s deletion that
+day. Unlike every prior relocation, E11's record has no single successor file — it is distributed across
+the ADR and `EPICS_STORIES.md` §6.1, plus five other corpus files — and the note now says so explicitly,
+first of the eleven original epics handled that way. §2's table row, §5's "E11's whole body", §6a's "E11
+(1/1)", §6b's "E11 S01" (which predates E11-S02, not an omission) and §6c's "All 11 files present" are all
+annotated from within that same note rather than edited at their own lines, matching this document's own
+precedent of not correcting a sweep it did not re-run. Nothing measured or decided here changed; verdict
+unchanged.
+v1.3 — 2026-08-26: a staleness banner added to §1 and nothing else touched. Every count and enumeration in this report describes the tree on 2026-08-07 and several have drifted since; correcting them one by one would fake a re-audit this document did not run. v1.2's corrections were arithmetic errors against the tree of its own date, which is a different thing and stays the precedent for correcting in place.
 **Changelog:** v1.2 — two of this report's own counts corrected against disk: §7 said "5 full diagrams" where [`SEQUENCE_DIAGRAMS.md`](./SEQUENCE_DIAGRAMS.md) §3-§9 holds 7 (7 ```mermaid blocks), and §10 said "91 stories" where the 11 epic files hold 77 unique `ENN-SNN` ids. Verdict unchanged.
 v1.1 — C01, C02 and the NFR-SE03 traceability gap all fixed at source; verdict raised from *pass with warnings* to *pass*.
 v1.0 — initial Phase 5 conflict sweep
@@ -41,6 +49,8 @@ Pass. No blocking conflict found. Two warning-level nits and one traceability ga
 | phase3/adr/ADR-INDEX.md | (sampled) | grep count of ADR rows |
 
 ⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `epics/E01.md` and `epics/E02.md` were both deleted that day and their records moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) beside this file. Every `epics/E01.md`, `epics/E02.md` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present under `epics/`" was true on the day and reads nine today. The `E01-SNN` and `E02-SNN` ids are unchanged.
+
+⚠️ **Path note update, 2026-08-27 — `epics/E11.md` deleted too, and this time differently from E01/E02 above.** E01.md and E02.md were each relocated wholesale to one domain-named successor file; `epics/E11.md` is **deleted with no single successor** — its record is instead **distributed** across [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 (the decision that closed the gap), [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 (both recording stories, E11-S01 and E11-S02, in full), `phase2/BOUNDED_CONTEXT.md`, `phase5/SHARED_KERNEL.md`, `phase2/UBIQUITOUS_LANGUAGE.md` and `phase4/API_CONTRACTS.md`. **This is the first of the eleven original epic records this platform has handled that way** — every prior relocation (E01 above, E02 above, and E03-E10 since, on dates this report was never updated to track) moved a file to exactly one successor; E11 moves to none, because there is no single successor deliverable left to hold it — only the ADR and the index. Every claim below dated 2026-08-07 that describes an `epics/E11.md` on disk is stale on that account too, same treatment as E01/E02 above, not falsified: §2's table row lists `epics/E01.md..E11.md` with an 11-entry line-count list — the file measured for the eleventh entry (91 lines) no longer exists, and the count is left as measured. §5's "E11's whole body" and §6a's "E11 (1/1)" describe a story sample read from that file — the story (E11-S01) is unchanged, only its file moved. §6b's "E11 S01" in the extracted `ENN-SNN` list **predates E11-S02**, which did not exist on 2026-08-07 — not an omission, a fact about the date this sweep ran. §6c's "All E01..E11 exist and index agrees. All 11 files present under `epics/`" was true on 2026-08-07 and is now false on two counts rather than one: none of the original eleven remain under `epics/` as of today (E01-E10 relocated on the dates noted above, E11 deleted with no relocation). The `E11-S01` id, like `E11-S02`, is unchanged.
 
 Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only §1/§2/§5/§9-10 and tier-assert/logout lines sampled), most of epics/E01-E06,E09,E10 bodies beyond story-header + traces-line greps, all of phase1-4 baseline beyond the NFR/BC/ADR tables grepped. This is a grep-first sweep, not a cover-to-cover read.
 
