@@ -23,11 +23,13 @@ Forces:
 - 9 backend services each own a Koa 3 + Apollo Server 5 process, own port, own `.env`, own
   `.githooks/`, own Qodana project/token. Verified: `BEs/dev/marketplace-dev-public-authorization/.git`
   through the other 8 each a separate `.git` dir.
-- `marketplace-common` is consumed as an npm package name
-  (`@axiumine/marketplace-common`) that 404s on npmjs — bridged locally by
-  `BEs/marketplace-common/deploy-local.sh` syncing `dist/` into every consumer's `node_modules/`
-  (`docs/workflow.md` §Repo layout, CON-09). Package-name coupling, not path coupling — already decoupled
-  from source-tree shape before this ADR.
+- `marketplace-common` is consumed as an npm package name (`@axiumine/marketplace-common`), published
+  on npmjs at `1.0.1` since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md))
+  — this bullet said the name 404s there, which was true when it was written and is not now. Edits the
+  registry has not released are bridged locally by `BEs/marketplace-common/deploy-local.sh` syncing
+  `dist/` into every consumer's `node_modules/` (`docs/workflow.md` §Repo layout, CON-09). Package-name
+  coupling, not path coupling — already decoupled from source-tree shape before this ADR, and publication
+  did not change that, which is the only thing this ADR rests on.
 - 3 frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) are independent Vite
   apps, different rendering models (2 SPA, 1 SSR via TanStack Start), different ports (3043/3044/3045).
 - `marketplace-nginx` has no `package.json` at all — its gates are a shell suite of its own (ADR-030),
@@ -101,8 +103,10 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
   side effect of a monorepo-wide build graph — matches the "consumed by package name, not path link"
   reality already baked into `package.json` (CON-09).
 - Qodana Cloud projects stay one-token-per-repo, so a scan never files under the wrong project's
-  baseline (`docs/frontends.md` explicitly names this risk for `marketplace-admin`'s `1rylx` project and
-  `marketplace-services-status`'s `xPKXD`).
+  baseline — fifteen repos, fifteen distinct projects, enumerated in `phase1/SYSTEM_CONTEXT.md` §5.12.
+  ⚠️ This bullet cited `marketplace-admin`'s project as `1rylx` on the authority of `docs/frontends.md`;
+  it is `VOZEg`, and `docs/frontends.md` names only `marketplace-services-status`'s `xPKXD`, which is the
+  repo whose near-miss is the actual example of the risk.
 - Rollback/blame at the sub-repo level works normally — `git log`, `git bisect`, `git blame` inside any
   one of the 16 answer real questions about that package's history.
 - `marketplace-nginx` needs no place in a JS toolchain it does not belong to: its own repo, its own shell

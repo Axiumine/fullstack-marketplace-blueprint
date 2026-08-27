@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-26
+**Version:** 1.3
+**Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. E19 gave it
@@ -11,6 +11,7 @@ v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `u
 to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
+v1.3 - 2026-08-27: the `marketplace-admin/` tree comment cited Qodana project `1rylx`. It is `VOZEg` — enumerated from every repo's scan artefact into `phase1/SYSTEM_CONTEXT.md` §5.12, which is now the one place that list lives. Two ADRs carried the same wrong id and are corrected in the same pass. Nothing about the container split changed.
 v1.2 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
@@ -238,7 +239,7 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 │       ├── marketplace-dev-user-authenticated-authorization/
 │       ├── marketplace-dev-user-authenticated-resource/
 │       └── upload-local/                          # NOT a repo — empty dir the *-resource services write uploads into
-├── marketplace-admin/                             # WHY: separate deployable, separate Qodana project (1rylx), Admin tier only
+├── marketplace-admin/                             # WHY: separate deployable, separate Qodana project (VOZEg — was written 1rylx), Admin tier only
 │   └── src/graphQLApi or src/gql/, src/routes/     # (per-repo CLAUDE.md/README.md/COVERAGE.md — read before editing)
 ├── marketplace-shopowner/                         # WHY: mirror of marketplace-admin, thinner — ShopOwner tier only
 ├── marketplace-user/                              # WHY: the only server-rendered surface — SSR/CSR split is a security boundary

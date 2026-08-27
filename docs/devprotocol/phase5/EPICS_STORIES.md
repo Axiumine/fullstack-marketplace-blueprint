@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.39
+**Version:** 1.40
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -255,6 +255,7 @@ incremented from a number that was never written down.
 **Mutability:** living document - refined every sprint
 v1.37 - 2026-08-26, later still: **E19's §1 row stops saying erasure exists on no tier.** `userDel` was built that day on the customer tier and `user.deleted_ttl` — a 30-day TTL index on the collection E19-S01 indexed — landed with it, so the stamp is carried out rather than kept. No story of this epic changed and no epic opened: the Admin counterpart to `shopOwnerDel` is still absent, which is what E19 §Open questions 3 now carries alone.
 
+v1.40 - 2026-08-27, later the same day: **the npm 404 that shaped E18 is gone, and this index does not rewrite its own history to hide it.** v1.24 and v1.25 record `yarn install` and `yarn audit` as unrunnable in this workspace because `@axiumine/marketplace-common` answered 404 on both registries; `ADR-037` published it on 2026-08-26, and `yarn audit` now completes (734 packages / 80 advisories in `marketplace-dev-public-resource`). Those entries stay verbatim — they were true when written, and a changelog that edits itself is worth nothing. The correction lives where the claims are load-bearing: `E18.md` v2.7, `docs/report/dependency-tree-advisory-scan.md` §2, `README.md` §Test quality gates. ⚠️ `yarn install` remains unverified and unclaimed. No epic or story changed state.
 v1.39 - 2026-08-27: **E10's record leaves `epics/`, the tenth and the first that was not a phase-5 story problem.**
 `phase5/epics/E10.md` is deleted and its body becomes [`SHARED_KERNEL.md`](./SHARED_KERNEL.md) beside this index,
 named for BC-10 as the nine before it are named for theirs. `epics/` now holds `E11..E19`. Both of E10's open

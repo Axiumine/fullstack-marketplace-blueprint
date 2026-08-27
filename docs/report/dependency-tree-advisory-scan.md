@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** finding - closes E18-S04
-**Version:** 1.0
-**Date:** 2026-08-13
+**Version:** 1.1
+**Date:** 2026-08-13, §2 annotated 2026-08-27
 **Author:** claude
 **Scope:** every one of the sixteen repos in this workspace, production and toolchain dependencies alike
 **Method:** the installed tree read from `node_modules` on disk, resolved the way Node resolves it, then queried
@@ -47,6 +47,11 @@ Three things this scan establishes that the audit could not:
 ```
 Error: https://registry.npmjs.org/@axiumine%2fmarketplace-common: Not found
 ```
+
+⚠️ **Expired 2026-08-27, and recorded rather than rewritten — this is a dated finding.** The package was
+published on 2026-08-26 (`ADR-037`), and `yarn audit` in `marketplace-dev-public-resource` now completes: 734
+packages audited, 80 advisories; 268 and 28 with `--groups dependencies`. Everything below was accurate when
+measured and the scan's conclusions do not rest on it.
 
 `@axiumine/marketplace-common` is unpublished by design — it is consumed by package name and deployed with
 `deploy-local.sh` — and yarn 1 aborts the **entire** audit when any single package fails to resolve against the
@@ -366,7 +371,7 @@ it does not run in CI, because there is no CI. It runs in two git hooks, via Qod
 | # | What | Why it is a story and not a note |
 |---|---|---|
 | 1 | ~~Remove `@socketlabs/email` from the seven services that never load it~~ **Done 2026-08-13, E18-S10** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
-| 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that works despite the unpublished package (§2). Without this, every other dependency decision here is unverifiable next month |
+| 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that reports. ⚠️ *"despite the unpublished package (§2)"* dropped 2026-08-27 — the package is published and `yarn audit` runs, so it is a candidate again. Without a reporting gate, every other dependency decision here is unverifiable next month |
 | 3 | ~~Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies`~~ **Done 2026-08-13, E18-S12** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
 
 **Opens — accepted, as a risk row:** the residual `axios@0.21.4` in `marketplace-dev-public-resource` after story 1

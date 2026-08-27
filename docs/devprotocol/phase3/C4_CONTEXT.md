@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-12
+**Version:** 1.2
+**Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.2 - 2026-08-27: the npm-registry row said the registry resolves every dependency *except* `@axiumine/marketplace-common`, *"which 404s there"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, so the exception is gone and `deploy-local.sh` bridges *edited → released* instead. No container, actor or relationship changed.
 v1.1 - 2026-08-12: the ShopOwner actor row said they register through `marketplace-shopowner`, which has no
 registration screen and never had one. E03-S08 built the flow on the public SSR app instead — corrected to
 the two real creation paths.
@@ -107,7 +108,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
-| npm registry | no | resolves every dependency except `@axiumine/marketplace-common`, which 404s there — bridged by `deploy-local.sh` |
+| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published at `1.0.1` since 2026-08-26 (`ADR-037`), where this row recorded a 404. `deploy-local.sh` now bridges *edited → released* rather than *unpublished → published* |
 
 Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.2 and §5.
 

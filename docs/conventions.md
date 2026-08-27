@@ -64,13 +64,16 @@ keeps a root-JS block off the minified Qodana report.
 - ⚠️ **No barrel export.** Consumers import per subpath, and every file needs its own entry in the
   `package.json` `exports` map (~38 entries) or it is unreachable. `yarn test:contract` catches
   omissions.
-- ⚠️ **Consumed as a published package name but not on any registry** (ADR-015). `package.json` names it
-  `@axiumine/marketplace-common`; the nine services depend on that name, which 404s on
-  registry.npmjs.org. `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` +
-  `package.json` into every consumer's `node_modules/`, discovered by globbing this workspace.
-  **Re-run it after every edit to common**, or the consumers keep resolving the previous build — and the
-  edit fails at the call site rather than at import. A fresh `yarn install` in a service still 404s until
-  the package is genuinely published.
+- ⚠️ **Consumed by package name, and published** — ADR-015 for the consumption pattern, `ADR-037` for
+  the publication. `package.json` names it `@axiumine/marketplace-common`; the nine services depend on
+  that name at `^1.0.1`, and `registry.npmjs.org` serves `1.0.1`. Until 2026-08-26 this bullet said the
+  name 404s there and that a fresh `yarn install` keeps 404ing until a real publish; neither is true now.
+  `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every
+  consumer's `node_modules/`, discovered by globbing this workspace, which is how an edit reaches the
+  nine services before a release carries it. **Re-run it after every edit to common**, or the consumers
+  keep resolving the previous build and the edit fails at the call site rather than at import — and
+  **re-run it after every `yarn install`**, which resolves `^1.0.1` from the registry and drops the last
+  released build back on top of a deployed one, just as silently.
 
 ## Leftovers
 

@@ -160,7 +160,11 @@ queries no advisory feed and reports zero on every repo, while the class that do
 log this workspace has ever produced. A check that cannot report is indistinguishable from a passing one,
 which is the same failure the fifteen unrun `semgrep/` directories were.
 
-Not `yarn audit`: yarn 1 aborts the whole run over the unpublished `@axiumine/marketplace-common`, and
+Not `yarn audit`, and ⚠️ **the reason changed on 2026-08-27.** This paragraph said yarn 1 aborts the
+whole run over the unpublished `@axiumine/marketplace-common`. It does not any more — the package is
+published (`ADR-037`), and `yarn audit` in `marketplace-dev-public-resource` now completes: **734 packages
+audited, 80 advisories**, or **268 and 28** with `--groups dependencies`. It is still not the gate, for
+the reason that outlived the 404: it has no way to suppress devDependencies short of that flag, and
 `npm audit` wants a `package-lock.json` nothing here has. Trivy reads `yarn.lock` natively, in a pinned
 container, and **suppresses devDependencies by default** — which is the property that makes the gate
 keepable rather than the one everybody learns to bypass: an advisory in something only `yarn build` loads

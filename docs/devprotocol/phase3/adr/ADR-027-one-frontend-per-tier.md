@@ -101,8 +101,10 @@ GraphQL contracts and needs its own ADR, not a silent PR.
   `marketplace-admin` and `marketplace-shopowner` (both consume `Company`) is duplicated by hand in each
   app's `schema/*.graphql` slice and codegen output, not centrally maintained.
 - 3 separate `yarn dev`, 3 separate `yarn build`, 3 separate `yarn codegen` invocations, 3 separate
-  `qodana.cloud` project tokens to keep straight (`marketplace-admin` is `1rylx` per `docs/frontends.md`) — mixing
-  up a token misroutes a report the way `marketplace-services-status` almost did.
+  `qodana.cloud` project tokens to keep straight (`marketplace-admin` is `VOZEg`, `marketplace-shopowner`
+  `Ggoyw`, `marketplace-user` `dXO5E` — `phase1/SYSTEM_CONTEXT.md` §5.12; this bullet cited `1rylx` for
+  admin, and cited `docs/frontends.md`, which never named it) — mixing up a token misroutes a report the
+  way `marketplace-services-status` almost did.
 - The `companyAdd`/`GraphQLInputCompanyPosition`/`resetPwdFlow` divergences above are undocumented in code
   — nothing stops a future edit reconciling them by mistake; this ADR is presently the only place that
   states they are intentional.

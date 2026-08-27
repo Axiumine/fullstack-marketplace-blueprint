@@ -228,10 +228,18 @@ yarn build
 ./deploy-local.sh
 ```
 
-⚠️ **`marketplace-common` is unpublished and consumed by package name**, so `deploy-local.sh` — which
-syncs `dist/` and `package.json` into every consumer's `node_modules` — is what makes it visible at all.
-Skipping it leaves every service failing to resolve `@axiumine/marketplace-common`. Re-run it after
-every edit to this repo. Rationale: ADR-015.
+⚠️ **`marketplace-common` is consumed by package name, and the registry only carries what was
+released**, so `deploy-local.sh` — which syncs `dist/` and `package.json` into every consumer's
+`node_modules` — is what carries an edit that no release has shipped yet. Re-run it after every edit to
+this repo. Rationale: ADR-015 for the bridge,
+[`ADR-037`](./docs/devprotocol/phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) for the
+publication.
+
+⚠️ **Corrected 2026-08-27.** This paragraph said the package was *unpublished* and that skipping the
+script left every service unable to resolve `@axiumine/marketplace-common`. It is published —
+`registry.npmjs.org`, `1.0.1`, consumers on `^1.0.1` — so resolution succeeds either way, and the failure
+mode is quieter than it was: skipping the script leaves consumers compiling the last *released* build
+with no error, and a plain `yarn install` puts that released build back over a build the script deployed.
 
 `yarn build` is ESM only. `build:all` / `prepare:all` are broken (missing `tsconfig.cjs.json`) — do not
 reach for them.

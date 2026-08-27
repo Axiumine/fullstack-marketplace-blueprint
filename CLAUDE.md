@@ -128,8 +128,11 @@ admin, user — outside the chain
   Merging into `main` is the user's decision alone.
 - **`marketplace-common` is the only repo that may be committed, merged, pushed and published without
   asking. Every other repo is push-on-request, always.**
-- **After every edit to `marketplace-common`, run `./deploy-local.sh`** — it is unpublished and
-  consumed by package name, so an undeployed edit is invisible and fails at the call site.
+- **After every edit to `marketplace-common`, run `./deploy-local.sh`** — it is consumed by package
+  name, and the registry only has what was released, so an undeployed edit is invisible and fails at the
+  call site. ⚠️ It is published (`registry.npmjs.org`, `1.0.1`, consumers on `^1.0.1` — ADR-037), which
+  cuts the other way too: a plain `yarn install` in a consumer silently restores the last released build
+  over whatever the script put there. Re-run it after any install.
 - **One logical change = N+1 commits**: one per affected sub-repo, plus one in the parent bumping the
   submodule pointers (ADR-031). Land dependencies first; say which repos you touched. A sub-repo commit
   with no pointer bump leaves the parent describing a state that no longer exists.
