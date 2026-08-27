@@ -628,8 +628,9 @@ and are gate removals — use them only when you have decided to.
 | `Authentication failed` in a suite | `MONGO_TEST_AUTH_ADMIN` is `admin`. It must be the test database itself |
 | `up.sh` stops at `Unauthorized` on the root user | a root user already exists with a different password than `.env` now holds. Restore the old value or `./down.sh --purge` |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh` |
-| a service exits at boot listing variables | that `.env` is incomplete — remember an empty value counts as missing |
-| `Cannot find module '@axiumine/marketplace-common'` | `./deploy-local.sh` was not run after building it |
+| a service exits at boot naming one missing variable | that `.env` is incomplete. `checkRequiredEnv()` throws on the *first* one it finds, so fixing it can uncover a second — and an empty value counts as missing |
+| a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | `./deploy-local.sh` was not re-run after that edit, or a later `yarn install` in the consumer put the released `^1.0.1` build back over the deployed one |
+| `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@axiumine/marketplace-common' imported from …` | the package is genuinely absent from that consumer's `node_modules` — run `yarn install` there. It resolves from `registry.npmjs.org` since `ADR-037`, and `deploy-local.sh` is not what puts it back |
 | a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else |
 | a service exits with `KEYGRIP_KEK_MISMATCH` | its `KEYGRIP_KEK` is not the one the record was written under. The keys are fine; this one `.env` is wrong |
 | every login returns 401 after a refresh | the five cookie services are not on the same keygrip record. `HGETALL "<REDIS_KEY>keygrip:holders"` — every row must carry the same fingerprint. A stale row means that service has not been restarted since a rotation |

@@ -1,12 +1,13 @@
 # DEVPROTOCOL — Phase Status Dashboard
 # Marketplace
 **Status:** Phases 1-5 complete — all five gates closed `pass`
-**Version:** 1.0
-**Date:** 2026-08-07
+**Version:** 1.1
+**Date:** 2026-08-27
 **Author:** retrofit-run
-**Changelog:** v1.0 — initial dashboard, written after the Phase 5 gate closed. Brownfield retrofit: every phase artefact was reverse-engineered from the 15-repo working tree, not written ahead of code.
+**Changelog:** v1.1 — 2026-08-27: §5's inventory was still the count taken the day the retrofit closed and every row of it had gone stale — the corpus has roughly doubled since. Re-measured against the tree: documents, ADRs, bounded contexts, epics, stories and risks. The NFR row was re-checked and is correct as written (the five §Critical rows expand to 17 ids). §6's *"as of"* sentence now points a reader at each document's own header rather than at one frozen date. Nothing about the phases or the gates changed.
+v1.0 — initial dashboard, written after the Phase 5 gate closed. Brownfield retrofit: every phase artefact was reverse-engineered from the 15-repo working tree, not written ahead of code.
 
-*Updated: 2026-08-07*
+*Updated: 2026-08-27*
 
 Read this file first (RULES.md §12), then [`phase1/PDR.md`](./phase1/PDR.md), then [`phase2/UBIQUITOUS_LANGUAGE.md`](./phase2/UBIQUITOUS_LANGUAGE.md). Nothing else until you need it.
 
@@ -97,13 +98,13 @@ Epic ids were **hard-coded in the Phase 5 run script** (`E01`↔`BC-01` … `E11
 
 | Thing | Count |
 |---|---|
-| Documents | 65 markdown files, 12 011 lines |
-| ADRs | 28 accepted (+ index + `ADR-000-template.md`) |
-| Bounded contexts | 11 (`BC-01`..`BC-11`) |
-| Epics | 11 (`E01`..`E11`) — 10 **built**, `E11` Ordering & Fulfilment **planned, not built** |
-| Stories | 77 unique `ENN-SNN` ids, sequential per epic, no gaps, no duplicates |
+| Documents | 83 markdown files, 22 695 lines |
+| ADRs | 37 accepted, `ADR-001`..`ADR-037` (+ index + `ADR-000-template.md`) |
+| Bounded contexts | 12 (`BC-01`..`BC-12`) |
+| Epics | 19 (`E01`..`E19`) — 18 **built**, `E11` Ordering & Fulfilment **planned, not built**. `E01`..`E10` are named records at `phase5/*.md` rather than files under `phase5/epics/` |
+| Stories | 88 unique `ENN-SNN` ids |
 | NFR ids | 48, of which 17 Critical — **all 17 now land on ≥1 story** |
-| Risks | 41 (`R01`..`R41`) |
+| Risks | 54 (`R01`..`R54`) |
 | Sequence diagrams | 7 full mermaid flows (§3-§9) + simple flows (§2) |
 
 ---
@@ -113,7 +114,7 @@ Epic ids were **hard-coded in the Phase 5 run script** (`E01`↔`BC-01` … `E11
 **Stale artefacts:** none recorded.
 **Failures:** none. No `retry_exhausted` event fired in any phase.
 
-These documents describe the working tree **as of 2026-08-07**. They go stale on their own — nothing here watches them. What invalidates what:
+These documents described the working tree **as of 2026-08-07** and have been maintained against it since; each one carries its own **Version**, **Date** and changelog, and that header is the authority on how current it is, not this page. They go stale on their own — nothing here watches them. What invalidates what:
 
 | Change on disk | Stales |
 |---|---|
