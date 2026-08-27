@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
+**Version:** 1.12
 **Date:** 2026-08-27
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.12 - 2026-08-27, later the same day: BC-10's **Produces** line said the package *"is not published to any
+registry"* and that `deploy-local.sh` is *"the only thing that makes an edit visible"*. `ADR-037` published it at
+`1.0.1` on 2026-08-26, consumers on `^1.0.1`; the script now bridges *edited → released*, and a plain `yarn install`
+undoes it. v1.11's anti-corruption row stands. No context, boundary or relationship changed.
 v1.11 - 2026-08-27: BC-10's anti-corruption row justified the `deploy-local.sh` boundary on the package being *on no registry at all*. `ADR-037` published it on 2026-08-26, so the row is restated on the premise that survives: the registry carries releases, the script carries edits, and a `yarn install` undoes the script. The boundary itself is unchanged - so is every context, aggregate and relationship.
 v1.10 - 2026-08-25: BC-07's "no lever exists after registration either" was true for one day. E19 built `userUpdateStatus`, `usersActiveTbl` and the `/customers` screen the same day the gap was written down, so the paragraph names the writer and the table instead of the hand-made MongoDB write. The approval-gate half of the paragraph is unchanged and still permanent.
 v1.9 - 2026-08-25: BC-07 gains the answer to the question E07 §6 said it did not carry — a customer tier with no approval gate is the permanent design, not a starting point, and `user.disabled` is read by every gate and written by nothing.
@@ -243,7 +247,7 @@ reaching Qodana -> exited non-zero with no results directory -> both hooks repor
 ### BC-10 - Shared Kernel (marketplace-common)
 **Responsibility:** Supplies the code every other backend context compiles against directly rather than calling over the network - session resolution, tier assertion, the disabled/deleted guard, the Mongoose models themselves.
 **Owns:** `BEs/marketplace-common/src/others/Tier.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`, `findAccountForSession.mts`, `refreshSessionTokens.mts`, `checkUserAuthorizationDisDel`, the `Company`/`Item`/`ItemCategory`/`ShopOwner`/`User`/`Admin` Mongoose models, ~139 `exports` map entries in `package.json` (no barrel export - an unlisted file is unreachable, `yarn test:contract` catches omissions).
-**Produces:** the compiled `@axiumine/marketplace-common` package, synced into every consumer's `node_modules` by `BEs/marketplace-common/deploy-local.sh` (the package is not published to any registry - `deploy-local.sh` is the only thing that makes an edit visible).
+**Produces:** the compiled `@axiumine/marketplace-common` package, published to `registry.npmjs.org` at `1.0.1` with every consumer on `^1.0.1` (`ADR-037`), and synced into every consumer's `node_modules` by `BEs/marketplace-common/deploy-local.sh` - which is what makes an edit visible *before* it is released, and which a plain `yarn install` undoes.
 **Consumes:** nothing from the other contexts - by definition a shared kernel is upstream of all of them.
 **Does not own:** any resolver, any GraphQL schema slice, any route.
 

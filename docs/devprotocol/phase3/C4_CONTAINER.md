@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -11,6 +11,10 @@ v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `u
 to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
+v1.4 - 2026-08-27, later the same day: the `COMMON` node label, its edge label and §*Non-deployed but real* all
+said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it at `1.0.1` on
+2026-08-26 and every consumer pins `^1.0.1`. `deploy-local.sh` keeps a narrower job — *edited → released* — which the
+diagram now says. v1.3's Qodana-id correction stands; no container or relationship changed.
 v1.3 - 2026-08-27: the `marketplace-admin/` tree comment cited Qodana project `1rylx`. It is `VOZEg` — enumerated from every repo's scan artefact into `phase1/SYSTEM_CONTEXT.md` §5.12, which is now the one place that list lives. Two ADRs carried the same wrong id and are corrected in the same pass. Nothing about the container split changed.
 v1.2 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
@@ -66,7 +70,7 @@ graph TB
     Mongo[("MongoDB\n6 collections")]
     Redis[("Redis cluster\nshared REDIS_KEY prefix")]
 
-    COMMON["marketplace-common\n(not deployed — deploy-local.sh\nsyncs dist/ into 9 node_modules/)"]
+    COMMON["marketplace-common\n(published @axiumine/marketplace-common 1.0.1;\ndeploy-local.sh bridges edited → released)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
     STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
@@ -108,7 +112,7 @@ graph TB
     UR --> Redis
     LO --> Redis
 
-    COMMON -.compiled in, deploy-local.sh.-> PA
+    COMMON -.compiled in, ^1.0.1 + deploy-local.sh.-> PA
     COMMON -.-> PR
     COMMON -.-> SA
     COMMON -.-> SR
@@ -171,7 +175,7 @@ monitoring (`marketplace-services-status`).
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Not on any npm registry; `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`. An edit here is dead weight to all 9 services until that script runs. |
+| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `1.0.1`, every consumer on `^1.0.1` (`ADR-037`); `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`, which is how an edit becomes visible before it is released. An unreleased, undeployed edit is dead weight to all 9 services, and a plain `yarn install` restores the released build over a deployed one. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
 | `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |

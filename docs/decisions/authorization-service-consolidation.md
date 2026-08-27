@@ -280,13 +280,18 @@ three pin `@axiumine/marketplace-common@^1.21.0` → `1.21.0` from registry.npmj
 `package.json` here has declared for a long time. They were already stale before this work and a `yarn install`
 resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
 edit visible. Regenerating them needs the package published first.
+⚠️ **Both halves expired.** `ADR-037` published `@axiumine/marketplace-common` on 2026-08-26, and the three
+`yarn.lock` files were regenerated on 2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1`,
+and `^1.21.0` appears in no lockfile in the workspace. `./deploy-local.sh` still matters, for the narrower reason
+that it bridges *edited → released* — and a plain `yarn install` now silently puts the released build back.
 
 ## Follow-ups the survey surfaced, independent of this decision
 
 - ~~Promote `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type.~~ **Done** —
   `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@1.0.0`.
 - ~~Resolve the dependency skew listed under option (d).~~ **Done** for the two runtime ranges and the
-  `qodana.yaml` override; the stale `yarn.lock` entries remain and need the package published first.
+  `qodana.yaml` override; ~~the stale `yarn.lock` entries remain and need the package published first~~ **Done
+  2026-08-27** — published (`ADR-037`) and regenerated; all three pin `^1.0.1` → `1.0.1`.
 - Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly
   overtaken**: the mismatch branch itself now lives in `marketplace-common` and is tested there, at 100%
   coverage and a 100 mutation score, so it can no longer be wrong in one service and right in the other two.

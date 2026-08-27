@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.3 - 2026-08-27, later the same day: v1.2 corrected the npm row in §3 and missed the identical claim in the
+relationships table, which still read *"every package except `marketplace-common`"*. Corrected the same way. No
+actor, system or relationship changed.
 v1.2 - 2026-08-27: the npm-registry row said the registry resolves every dependency *except* `@axiumine/marketplace-common`, *"which 404s there"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, so the exception is gone and `deploy-local.sh` bridges *edited → released* instead. No container, actor or relationship changed.
 v1.1 - 2026-08-12: the ShopOwner actor row said they register through `marketplace-shopowner`, which has no
 registration screen and never had one. E03-S08 built the flow on the public SSR app instead — corrected to
@@ -132,7 +135,7 @@ Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CO
 | Marketplace | Protomaps PMTiles | static map tile source for the customer-facing map island |
 | Marketplace | nginx | documented reverse-proxy / cache boundary, not installed in this workspace |
 | Marketplace | Qodana Cloud | static-analysis gate, one project + token per repo |
-| Marketplace | npm registry | dependency resolution for every package except `marketplace-common` |
+| Marketplace | npm registry | dependency resolution for every package, `marketplace-common` included — published at `1.0.1` (`ADR-037`) |
 
 ---
 

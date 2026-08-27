@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-26
+**Version:** 1.10
+**Date:** 2026-08-27
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.7 - 2026-08-25: the `itemCategory` depth-cap row cited `funItemCategoryAdd.mts:24`, the wrong file and a line of docblock — corrected to the guard and both call sites. Its mitigation column now distinguishes "no mutation on another tier" (true) from "no write on another tier" (not true since `holdItemCategory`).
@@ -32,6 +32,11 @@ reader would otherwise have to check.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase1/SYSTEM_CONTEXT.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅
 **Mutability:** requires security review to modify
 v1.8 - 2026-08-26: NFR-CO02 restated and open question 9 closed — GDPR applicability was decided by the platform owner out of phase, which is what §5 said should happen. The trace note now separates what §4 actually satisfies (Art. 32 technical measures) from the five limbs it does not, so a reader cannot take the encryption regime for compliance. No control changed.
+v1.10 - 2026-08-27: §7's supply-chain table said `@axiumine/marketplace-common` is *"not on any registry"* and
+*"404s on `registry.npmjs.org`"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, consumers on `^1.0.1`. The risk
+does not disappear, it inverts: a fresh `yarn install` now resolves the *released* build, so an unreleased edit is
+silently absent and an install after `deploy-local.sh` silently puts the released build back. The `koa-utils` row and
+the `trivy` row are untouched, and no control changed.
 v1.9 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
 ---
@@ -401,7 +406,7 @@ When any of these get built, this document requires a new version — per its ow
 
 | Dependency | Risk | Mitigation |
 |---|---|---|
-| `@axiumine/marketplace-common`, package-name-consumed, not on any registry | 9 services + edits depend on a package that 404s on `registry.npmjs.org` — a fresh `yarn install` alone leaves a consumer on the previous build with no error at the call site | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
+| `@axiumine/marketplace-common`, published to `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` (`ADR-037`) | 9 services depend on a package whose *released* build is what a fresh `yarn install` resolves — so an edit that has not been released is silently absent, with no error at the call site, and an install after `deploy-local.sh` silently puts the released build back. ⚠️ This cell used to read *"not on any registry … 404s on `registry.npmjs.org`"*, true until 2026-08-26 | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
 | `@axiumine/koa-utils` | Second internal package, seventeenth repo outside this workspace, same class of risk | Not deploy-local-bridged the same way — verify its consumption path before assuming parity with `marketplace-common` |
 | npm registry as a whole (`yarn install` across 9 services + 3 frontends) | Malicious or compromised published version of any transitive dependency | `yarn.lock` per repo pins exact versions. ⚠️ **Corrected 2026-08-13.** This cell used to read "no automated dependency-audit gate found … **not a control that exists today**", which was true of what the gate *did* and wrong about what was wired: Qodana's `VulnerableLibrariesLocal` had been running on every commit and every push in all fourteen repos, querying no advisory feed and reporting zero problems — indistinguishable from a passing scan (E18-S04, R21). Since E18-S11 the control is `trivy fs`, pinned at `aquasec/trivy:0.70.0`, HIGH and CRITICAL, production dependencies only, in the `pre-push` of the fourteen repos with a `yarn.lock` plus the parent's for `marketplace-services-status`. It was exercised in both directions before landing and blocks `marketplace-dev-public-resource` today over R49's `axios@0.21.4`. There is no `.trivyignore` anywhere, and no CI to fall back on — the two git hooks are the whole apparatus |
 | `@node-rs/bcrypt` (native binding) | Native code in the password-hashing path | Standard, widely-used package; no additional sandboxing found |

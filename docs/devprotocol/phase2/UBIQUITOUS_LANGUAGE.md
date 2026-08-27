@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-08-26
+**Version:** 1.5
+**Date:** 2026-08-27
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.5 - 2026-08-27: the `deploy-local.sh` definition said it bridges *"consumed as a published package name"* and
+*"not actually on any registry"*, and that `@axiumine/marketplace-common` 404s there. `ADR-037` published it at
+`1.0.1` on 2026-08-26. The term survives with a narrower definition — it bridges an edit and the released build — and
+gains the half that was never written down: re-run it after every install in a consumer, not only after every edit to
+common. No other term changed.
 v1.4 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 v1.3 - 2026-08-25: §12's `itemCategory` and `idParent` entries said writes to the collection exist ONLY in the Admin resource service. That is true of the three mutations and no longer true of the collection: `holdItemCategory` in `marketplace-dev-authenticated-resource` `$inc`s `__v` on one category inside every `itemAdd`/`itemUpdate` transaction, deliberately, to make the read a write and close a write-skew window against `itemCategoryDel`. The entry now says which claim holds. Its citation and code example were also two versions stale — both predated the transaction the guard now runs in.
@@ -493,7 +498,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### deploy-local.sh
-**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between "consumed as a published package name" and "not actually on any registry" — `@axiumine/marketplace-common` 404s on `registry.npmjs.org`. Must be re-run after every edit to common or consumers keep resolving the previous build.
+**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between an edit to `src/` and the *released* build the registry serves — `@axiumine/marketplace-common` is published at `1.0.1` and consumers pin `^1.0.1` (`ADR-037`), so an unreleased edit is invisible until this runs, and a plain `yarn install` silently restores the released build over it. Must be re-run after every edit to common, **and after every install in a consumer**.
 **Used in:** `BEs/marketplace-common/deploy-local.sh`.
 
 ### Migration
