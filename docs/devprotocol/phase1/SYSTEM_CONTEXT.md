@@ -2,11 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-27
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.4 - 2026-08-27, later the same day: §5.13's closing sentence read as if `yarn install` and `deploy-local.sh` were
+coupled - *"a plain `yarn install` in any consumer now undoes the script"* - stated flatly, with no condition. They are
+not coupled: verified across all 16 repos that the only install-time lifecycle script anywhere is `prepare`, which runs
+the git-hooks wiring and `scripts/lockfile-registry-filter.sh`, and that nothing in any install path invokes
+`deploy-local.sh`. The collision is real but conditional - it costs something only while `marketplace-common` is
+carrying an edit no release has shipped. Restated on that condition. No boundary, actor or flow changed.
 v1.3 - 2026-08-27: §5.12 and §5.13 both described a world that had moved. §5.12 replaces a three-repo sample and a *"4 repos still block on a missing token"* claim with all **fifteen** Cloud projects enumerated from each repo's scan artefact — ⚠️ including `marketplace-admin` = `VOZEg`, where this document and three others cite `1rylx` — and open question 4 closes on it: nothing stands on `SKIP_QODANA=1`. §5.13 rewritten after `ADR-037`: the package is published at `1.0.1`, so `deploy-local.sh` bridges *edited → released*, not *unpublished → published*, and a plain `yarn install` now silently undoes it. Open question 5 closes with it. Boundaries, actors and flows unchanged — only claims about them.
 v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
@@ -508,10 +514,14 @@ the package the one dependency in the workspace that does not resolve. It resolv
 `deploy-local.sh` bridges is no longer *unpublished → published* but *edited → released*:
 `BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json` straight into
 each consumer's `node_modules/@axiumine/marketplace-common/`, discovered by globbing this workspace, so
-an edit reaches all 9 services before any release carries it. Two consequences, and the second is new:
-skipping the script after an edit leaves consumers compiling the previous build with no error at the
-call site — and a plain `yarn install` in any consumer now *undoes* the script, resolving `^1.0.1` from
-the registry and restoring the last released build over the local one, equally silently.
+an edit reaches all 9 services before any release carries it. ⚠️ **The script is not part of installing.**
+No `yarn install` in any of the 16 repos invokes it — the only lifecycle script any of them defines is
+`prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an unrelated
+clean/smudge filter for the `yarn.lock` registry host — and none may be wired to it. An install resolving
+`^1.0.1` from the registry is the *correct* result whenever common carries no unreleased edit. What
+remains is one narrow collision, and it exists only while such an edit does: skipping the script after an
+edit leaves consumers compiling the previous build with no error at the call site, and an install in a
+consumer then restores the last released build over the deployed one, equally silently.
 
 ### 5.14 Data flow summary
 

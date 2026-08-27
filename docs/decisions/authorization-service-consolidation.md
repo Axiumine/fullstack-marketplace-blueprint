@@ -283,7 +283,7 @@ edit visible. Regenerating them needs the package published first.
 ⚠️ **Both halves expired.** `ADR-037` published `@axiumine/marketplace-common` on 2026-08-26, and the three
 `yarn.lock` files were regenerated on 2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1`,
 and `^1.21.0` appears in no lockfile in the workspace. `./deploy-local.sh` still matters, for the narrower reason
-that it bridges *edited → released* — and a plain `yarn install` now silently puts the released build back.
+that it bridges *edited → released* — and a plain `yarn install` puts the released build back, which only costs something while such an edit exists. No install invokes the script.
 
 ## Follow-ups the survey surfaced, independent of this decision
 

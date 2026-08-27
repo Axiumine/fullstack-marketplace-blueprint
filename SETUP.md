@@ -231,7 +231,9 @@ yarn build
 ⚠️ **`marketplace-common` is consumed by package name, and the registry only carries what was
 released**, so `deploy-local.sh` — which syncs `dist/` and `package.json` into every consumer's
 `node_modules` — is what carries an edit that no release has shipped yet. Re-run it after every edit to
-this repo. Rationale: ADR-015 for the bridge,
+this repo. ⚠️ It is not part of installing: no `yarn install` in any repo calls it, and none may. Only if
+this repo is carrying an unreleased edit does an install in a consumer undo the deploy, and only then does
+it need re-running. Rationale: ADR-015 for the bridge,
 [`ADR-037`](./docs/devprotocol/phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) for the
 publication.
 

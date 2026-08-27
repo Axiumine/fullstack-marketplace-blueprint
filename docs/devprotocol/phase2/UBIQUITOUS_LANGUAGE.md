@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-27
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.6 - 2026-08-27, later the same day: v1.5 added *"re-run it after every install in a consumer"* to the
+`deploy-local.sh` definition. That is wrong as an unconditional rule and is removed: nothing in any `yarn install`
+invokes the script, and an install resolving the released `^1.0.1` is the correct result whenever common carries no
+unreleased edit. The definition keeps the conditional form - redeploy after an install only while such an edit is
+outstanding. No other term changed.
 v1.5 - 2026-08-27: the `deploy-local.sh` definition said it bridges *"consumed as a published package name"* and
 *"not actually on any registry"*, and that `@axiumine/marketplace-common` 404s there. `ADR-037` published it at
 `1.0.1` on 2026-08-26. The term survives with a narrower definition — it bridges an edit and the released build — and
@@ -498,7 +503,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### deploy-local.sh
-**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between an edit to `src/` and the *released* build the registry serves — `@axiumine/marketplace-common` is published at `1.0.1` and consumers pin `^1.0.1` (`ADR-037`), so an unreleased edit is invisible until this runs, and a plain `yarn install` silently restores the released build over it. Must be re-run after every edit to common, **and after every install in a consumer**.
+**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between an edit to `src/` and the *released* build the registry serves — `@axiumine/marketplace-common` is published at `1.0.1` and consumers pin `^1.0.1` (`ADR-037`), so an unreleased edit is invisible until this runs. ⚠️ It is **not** part of installing: nothing in any `yarn install` path invokes it, and nothing may — an install resolves the released `^1.0.1`, which is the right answer whenever common carries no unreleased edit. Must be re-run after every edit to common, and after an install in a consumer **only while common is carrying such an edit**, because that install drops the released build back over the deployed one.
 **Used in:** `BEs/marketplace-common/deploy-local.sh`.
 
 ### Migration

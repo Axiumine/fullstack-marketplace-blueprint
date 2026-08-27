@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
@@ -11,6 +11,9 @@ v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `u
 to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
+v1.5 - 2026-08-27, later the same day: the `marketplace-common` container row said a plain `yarn install` restores the
+released build over a deployed one, without saying that this costs nothing unless an unreleased edit exists, and without
+saying that no install path invokes the script. Both added. No container or relationship changed.
 v1.4 - 2026-08-27, later the same day: the `COMMON` node label, its edge label and §*Non-deployed but real* all
 said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it at `1.0.1` on
 2026-08-26 and every consumer pins `^1.0.1`. `deploy-local.sh` keeps a narrower job — *edited → released* — which the
@@ -175,7 +178,7 @@ monitoring (`marketplace-services-status`).
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `1.0.1`, every consumer on `^1.0.1` (`ADR-037`); `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`, which is how an edit becomes visible before it is released. An unreleased, undeployed edit is dead weight to all 9 services, and a plain `yarn install` restores the released build over a deployed one. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
+| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `1.0.1`, every consumer on `^1.0.1` (`ADR-037`); `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`, which is how an edit becomes visible before it is released. An unreleased, undeployed edit is dead weight to all 9 services, and a plain `yarn install` restores the released build over a deployed one — which costs nothing unless such an edit exists. No install path invokes the script. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
 | `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |

@@ -71,9 +71,11 @@ keeps a root-JS block off the minified Qodana report.
   `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every
   consumer's `node_modules/`, discovered by globbing this workspace, which is how an edit reaches the
   nine services before a release carries it. **Re-run it after every edit to common**, or the consumers
-  keep resolving the previous build and the edit fails at the call site rather than at import — and
-  **re-run it after every `yarn install`**, which resolves `^1.0.1` from the registry and drops the last
-  released build back on top of a deployed one, just as silently.
+  keep resolving the previous build and the edit fails at the call site rather than at import. ⚠️ `yarn
+  install` does **not** need this script and must not be wired to it — it resolves `^1.0.1` from the
+  registry, which is the correct answer whenever common has no unreleased edit. The one case where the
+  two collide: while common *does* carry an unreleased edit, an install in a consumer drops the released
+  build back over the deployed one, so redeploy after that install — and only in that case.
 
 ## Leftovers
 

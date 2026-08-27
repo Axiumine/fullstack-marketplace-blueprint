@@ -130,9 +130,11 @@ admin, user — outside the chain
   asking. Every other repo is push-on-request, always.**
 - **After every edit to `marketplace-common`, run `./deploy-local.sh`** — it is consumed by package
   name, and the registry only has what was released, so an undeployed edit is invisible and fails at the
-  call site. ⚠️ It is published (`registry.npmjs.org`, `1.0.1`, consumers on `^1.0.1` — ADR-037), which
-  cuts the other way too: a plain `yarn install` in a consumer silently restores the last released build
-  over whatever the script put there. Re-run it after any install.
+  call site. ⚠️ It is published (`registry.npmjs.org`, `1.0.1`, consumers on `^1.0.1` — ADR-037), so
+  `yarn install` is authoritative and never needs this script: no install path anywhere calls it, and
+  none may. The two collide in exactly one case — **while common carries an edit no release has shipped**,
+  an install in a consumer drops the released build back over the deployed one. Redeploy then, and only
+  then.
 - **One logical change = N+1 commits**: one per affected sub-repo, plus one in the parent bumping the
   submodule pointers (ADR-031). Land dependencies first; say which repos you touched. A sub-repo commit
   with no pointer bump leaves the parent describing a state that no longer exists.

@@ -2,11 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-27
 **Author:** pdr-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-25: the catalogue paragraph's depth-cap citation was two versions stale — the guard now runs inside a transaction and takes a session — and "writes exist only in the Admin-tier resource service" is narrowed to the mutations, `holdItemCategory` having added one deliberate field-level exception.
+v1.7 - 2026-08-27, later still: §4's bullet and §8 item 5 both said a `yarn install` *undoes* `deploy-local.sh`, flatly
+and without condition. Verified otherwise across all 16 repos: no install path anywhere invokes the script, the only
+install-time lifecycle script being `prepare`. Both places are restated on the condition that actually carries the
+claim - while common holds an edit no release has shipped. Question 5 stays closed. Scope and boundaries untouched.
 v1.6 - 2026-08-27, later still: two places this document still asserted the npm 404 that `ADR-037` ended on
 2026-08-26, both missed by the v1.3 sweep that corrected §6. §4's non-scope bullet said the package *"404s on
 `registry.npmjs.org`"* and called it *"a standing gap"*; §8 **open question 5** — *does it ever get published,
@@ -119,7 +123,7 @@ graph TD
 - **Merging the 3 `*-authenticated-authorization` services into 1** — decided against, 2026-08-07, same decision doc. Crash-domain coupling (`process.exit(1)` on any uncaught exception) taking 3 tiers down for 1 bug is an availability cost the platform owner ranked above deduplication.
 - **Installing nginx configs anywhere** — the edge lives in its own repo at `marketplace-nginx/`, in the workspace root: three vhosts (apex, `shopowner.`, `admin.`), shared `conf.d/` and `snippets/`, and `test/` which runs the lot in a container. Written and exercised, not deployed: no `/etc/nginx` and no nginx binary exist in this workspace or on this machine. ⚠️ Until it is installed, nothing sets `Secure` on the session cookie — koa-utils ships `secure: false` and the rewrite is the edge's.
 - **Publishing any of the 16 repos to a forge** — deciding where/under-which-org is explicitly the user's undecided call (`docs/workflow.md` §Repo layout).
-- ~~**`marketplace-common` on an npm registry**~~ — **no longer a gap.** It is published to `registry.npmjs.org` at `1.0.1` and every consumer pins `^1.0.1` (`ADR-037`, 2026-08-26). `BEs/marketplace-common/deploy-local.sh` stays for the narrower job it now has: making an edit visible *before* it is released, which a plain `yarn install` in a consumer undoes. This bullet said the package 404s there; it did until 2026-08-26.
+- ~~**`marketplace-common` on an npm registry**~~ — **no longer a gap.** It is published to `registry.npmjs.org` at `1.0.1` and every consumer pins `^1.0.1` (`ADR-037`, 2026-08-26). `BEs/marketplace-common/deploy-local.sh` stays for the narrower job it now has: making an edit visible *before* it is released, which a plain `yarn install` in a consumer undoes while such an edit exists — and which no install path may be wired to call. This bullet said the package 404s there; it did until 2026-08-26.
 
 ---
 
@@ -179,7 +183,7 @@ Complete when a developer or operator can:
 | 2 | Do the 3 repos built 2026-08-05 (`marketplace-dev-user-authenticated-authorization`, `marketplace-dev-user-authenticated-resource`, `marketplace-user`) get a `main` branch the way the other 12 do? | platform owner | open |
 | 3 | Ordering design — cart, order, delivery, payment, and the `item.price` field they all depend on. No collection, no resolver, no schema decision exists yet | platform owner | open, blocks all commerce work |
 | 4 | Who installs the nginx configs in `marketplace-nginx/`, and on what host? No `/etc/nginx` exists in this workspace | platform owner / ops | open — the configs are written and tested (`marketplace-nginx/test/run.sh`); what is missing is the host and the topology ADR (`ADR-INDEX.md` §5) |
-| 5 | ~~Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`?~~ | platform owner | **closed 2026-08-26 — yes, published; no, not retiring the script.** `@axiumine/marketplace-common@1.0.1` is on `registry.npmjs.org` and consumers pin `^1.0.1` (`ADR-037`). `deploy-local.sh` keeps a narrower job — bridging *edited → released* — and a plain `yarn install` now silently restores the released build over what it deployed |
+| 5 | ~~Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`?~~ | platform owner | **closed 2026-08-26 — yes, published; no, not retiring the script.** `@axiumine/marketplace-common@1.0.1` is on `registry.npmjs.org` and consumers pin `^1.0.1` (`ADR-037`). `deploy-local.sh` keeps a narrower job — bridging *edited → released* — and is not part of installing: no `yarn install` invokes it, and an install only undoes it while common carries an unreleased edit |
 | 6 | ~~Is there an admin-facing nginx vhost for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner | **closed** — there was not, and one had never been written. `marketplace-nginx/sites-available/admin.marketplace-domain.com.conf` and `shopowner.marketplace-domain.com.conf` now exist, each terminating TLS for its own hostname |
 | 7 | ~~`marketplace-dev-public-resource/package.json` pins `@axiumine/koa-utils: ^5.9.0` (verified `BEs/dev/marketplace-dev-public-resource/package.json:38`) while `koa-utils` 5.9.0 is committed but unpushed by user instruction (`TODO`) — `yarn install` fails there until it is published. Publish timeline?~~ | platform owner | **closed 2026-08-27 — published, and the pin moved on.** `registry.npmjs.org` serves `@axiumine/koa-utils` up to `7.0.0`, `5.9.0` and `6.0.0` included. The service pinned `^6.0.0` (`package.json:40`), not `^5.9.0`. ⚠️ **Superseded the same day:** all nine services and `marketplace-common` were bumped to `^7.0.0`, so no repo in the workspace is on `^6.0.0` any more. Nothing blocks on this publish |
 | 8 | ~~4 repos (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have a `qodana.yaml` and no Cloud project — Qodana step blocks on missing `QODANA_TOKEN`, bypassed today with `SKIP_QODANA=1`. Who creates the 4 projects?~~ | platform owner | **closed 2026-08-27 — nobody has to; the 4 projects exist.** Each of the fifteen code-shipping repos uploads to its own Cloud project, named on disk by the `.qodana/results/open-in-ide.json` its last scan wrote: `MP Service Status` (`xPKXD`), `MP User` (`dXO5E`), `MP User Authenticated Authorization` (`B5NEV`), `MP User Authenticated Resources` (`eobk1`). No repo stands on `SKIP_QODANA=1`. Detail in [`NFR.md`](./NFR.md) §7 question 4 |
