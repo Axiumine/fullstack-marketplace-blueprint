@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
+**Version:** 1.12
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-01 — Identity & Access
@@ -491,4 +491,6 @@ not the fact that a question existed.
 | 1.7 | 2026-08-12 | **E01-S14 built** — the fleet is visible. `marketplace-admin` gains `/security`, a fourth section, where a service that is behind says **"Behind"** in words rather than only in red |
 | 1.8 | 2026-08-12 | **E01-S15 built, and ADR-034 is finished.** R02 moves to `Mitigated` at 🟡 Medium in the same pass and R04 loses its Keygrip half; `.githooks/pre-commit` check 0 is untouched, because a well-formed `.env` is still needed for every other value in it |
 | 1.9 | 2026-08-13 | Record moved out of `phase5/epics/E01.md` to this file — see §0. No story, criterion, trace or evidence path changed in the move; the four open questions were folded into one table (§6) and the changelog into this one, both because every entry in them was already closed. R02 has since been **closed** by E18-S07, with its provisioning residual split out as **R50** and the adoption window as **R47** |
-| 1.11 | 2026-08-27 | §2's out-of-scope row for commerce auth said "unbuilt platform-wide", which reads as pending. [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) makes cart, order, delivery and payment permanently out of scope, so there is no tier whose auth is waiting to be designed. ⚠️ This table has no row for **v1.10** — the header was bumped to 1.10 on 2026-08-25 without one, and this pass did not reconstruct what it changed |
+| 1.10 | 2026-08-25 | §0's "that stays true for E07..E18" became **E07..E19** when E19 opened — the epic for the customers list and the missing `user.disabled` writer (`57f18f7`). That was the whole edit: no story, criterion, trace, evidence path or open question in this record changed. ⚠️ **Row written 2026-08-27.** The header was bumped to 1.10 on 2026-08-25 with no entry here, so this table skipped from 1.9 to 1.11; the gap was reconstructed from the commit rather than left, and nothing about the document changed in writing it |
+| 1.11 | 2026-08-27 | §2's out-of-scope row for commerce auth said "unbuilt platform-wide", which reads as pending. [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) makes cart, order, delivery and payment permanently out of scope, so there is no tier whose auth is waiting to be designed. The missing **v1.10** row this entry flagged was reconstructed the same day and now sits above it |
+| 1.12 | 2026-08-27, later the same day | The **v1.10** row above was written, closing the one hole in this table: the header had been at 1.10 since 2026-08-25 with no entry to say what it covered, so any citation of "IDENTITY_ACCESS v1.10" resolved to nothing. The entry was reconstructed from the commit that made the bump, not invented. §2's wording, every story and every open question are untouched |

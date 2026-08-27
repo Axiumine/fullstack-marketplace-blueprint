@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.11
+**Version:** 1.12
 **Date:** 2026-08-27
 **Author:** adr-agent
 **Changelog:**
@@ -73,6 +73,7 @@ ADR-037 §Compliance lists conflating them as a violation
 v1.10 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed. Four accepted ADRs carried the same number and were corrected with it — **ADR-018** §Consequences, **ADR-030** §Consequences (which claimed every pushed revision had had 168 assertions run against it, a false gate claim), **ADR-032** §Context and this index §5. No ADR's decision, status or consequence changed; only a number that had stopped being true. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "ADR-INDEX.md v1.6" could not be resolved to one of them. It takes the next free number instead. It is placed at the end, which is where this oldest-first list now carries it — it had been sitting between `v1.4` and `v1.5`, out of sequence as well as out of number. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 
 v1.11 - 2026-08-27: **ADR-038 added — cart, order, delivery and payment are permanently out of scope**, decided by the platform owner when asked what to do with `phase5/epics/E11.md` §6 question 1. It is the ADR §5 said was owed "when the design starts", arriving because the design does not start, so the **Ordering** gap leaves §5 rather than being answered inside it. One row in §2, one number in §3's **Catalogue** line, and two rows in §4 — the existing `price` row keeps ADR-009 and gains ADR-038, because the reason changed from *no design yet* to *no design ever*. ADR-009 is **not** superseded: its decision is unchanged and its title's condition simply never arrives, which its own header now records. Corrected in the same pass: §1 said "no supersession exists", which stopped being true on 2026-08-26 when ADR-037 superseded ADR-015 in part — the sentence predates that row and nothing but the sentence was wrong. **ADR-010 also carries a dated note now** — its §Context called the cart/order model absent *"yet"*, which ADR-038 turns into absent permanently; its decision, taken on atomicity grounds that never depended on a consumer arriving, is untouched
+v1.12 - 2026-08-27, later the same day: **ADR-038 gains a dated note of its own** — its §Context and §Consequences both cited `phase2/EVENT_STORMING.md` **§5** open question 4, and that question is in **§6**; §5 is the hotspot table. Both pointers now read §6, the correction is recorded at the foot of the ADR rather than made silently, and nothing it decides changed. The same wrong section number was corrected in `phase5/epics/E11.md`. No ADR status, decision or consequence moved.
 
 ## 1. How to use this index
 

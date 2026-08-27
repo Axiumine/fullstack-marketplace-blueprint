@@ -7,7 +7,7 @@
 with `phase5/epics/E11.md` §6 question 1 — who signs off the first commerce schema — the answer was that
 no first schema is coming.
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** — (**not** superseded; the note at the foot of this file is a citation fix, dated 2026-08-27)
 
 ---
 
@@ -31,7 +31,7 @@ What was wrong is the one thing a document can get wrong while every sentence in
 cost of that word is measurable, and it compounded:
 
 - **Six live open-question rows, none with a real owner.** `E11.md` §6 questions 1–5, `BOUNDED_CONTEXT.md`
-  §7 q4, `EVENT_STORMING.md` §5 open question 4, [`phase1/PDR.md`](../../phase1/PDR.md) §open question 3,
+  §7 q4, `EVENT_STORMING.md` §6 open question 4, [`phase1/PDR.md`](../../phase1/PDR.md) §open question 3,
   and [`phase5/RISK_REGISTER.md`](../../phase5/RISK_REGISTER.md) R31. Most are owned by "Product + platform
   dev" — a product function this platform does not have.
 - **Three passes that narrowed questions rather than answering them.** `E11.md` v1.2, v1.3 and v1.4 each
@@ -76,7 +76,7 @@ Three consequences follow directly and are part of the decision, not inferences 
    `accepted` and gains a pointer here. `price` stays a banned term in `UBIQUITOUS_LANGUAGE.md` §19, with
    the replacement column now reading *none, permanently*.
 2. **Every open question waiting on a commerce design closes as moot.** `E11.md` §6 q1–q5,
-   `BOUNDED_CONTEXT.md` §7 q4, `EVENT_STORMING.md` §5 open question 4, `PDR.md` §open question 3. None was
+   `BOUNDED_CONTEXT.md` §7 q4, `EVENT_STORMING.md` §6 open question 4, `PDR.md` §open question 3. None was
    answered; each asked what to do when design work starts, and design work does not start. They are struck
    through in place with this ADR cited, in the same form as every other closure in those tables.
 3. **The commerce vocabulary stays where it is, with its framing inverted.** UL §18, ES §2.9, BC-11 and E11
@@ -162,3 +162,17 @@ grep -rniE '(cart|checkout|payment|fulfilment|ordering)' --include='*.md' --incl
 A violation on disk looks like: `BC-11 [PLANNED]` anywhere, a `price` field in any builder or model, a story
 in any epic with acceptance criteria that presume an order exists, a sequence diagram of a checkout flow, or
 a re-opened question row asking who signs off the first commerce schema.
+
+---
+
+## Note — 2026-08-27, later the same day: two section pointers corrected
+
+§Context and §Consequences both cited `EVENT_STORMING.md` **§5** open question 4. That question is in
+**§6**; §5 is the hotspot table, and that document's hotspot 6 is cited correctly elsewhere in this ADR.
+Both pointers now read §6. The same wrong number was corrected in `phase5/epics/E11.md` and in
+`BOUNDED_CONTEXT.md` §7 q4 in the same pass.
+
+**Nothing decided here changed.** This is the pointer, not the decision: the row it names is the same row,
+already struck through and already citing this ADR. Nothing else in the body above is amended — a wrong
+section number in a citation is corrected in place and recorded here rather than left to send the next
+reader to the wrong table.
