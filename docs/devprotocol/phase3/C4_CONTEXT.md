@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.5 - 2026-08-27, later the same day: the npm-registry row and its changelog note carry `2.0.0` rather than the
+`1.0.1` of 2026-08-26. No system, actor or relationship changed.
 v1.4 - 2026-08-27: §3's `User` row said the tier cannot buy anything because no cart or order model exists, which read as a build-order statement. ADR-038 (2026-08-27) makes that permanent: the models are not coming.
 v1.3 - 2026-08-27, later the same day: v1.2 corrected the npm row in §3 and missed the identical claim in the
 relationships table, which still read *"every package except `marketplace-common`"*. Corrected the same way. No
@@ -112,7 +114,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
-| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published at `1.0.1` since 2026-08-26 (`ADR-037`), where this row recorded a 404. `deploy-local.sh` now bridges *edited → released* rather than *unpublished → published* |
+| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`), `2.0.0` since 2026-08-27, where this row recorded a 404. `deploy-local.sh` now bridges *edited → released* rather than *unpublished → published* |
 
 Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.2 and §5.
 
@@ -136,7 +138,7 @@ Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CO
 | Marketplace | Protomaps PMTiles | static map tile source for the customer-facing map island |
 | Marketplace | nginx | documented reverse-proxy / cache boundary, not installed in this workspace |
 | Marketplace | Qodana Cloud | static-analysis gate, one project + token per repo |
-| Marketplace | npm registry | dependency resolution for every package, `marketplace-common` included — published at `1.0.1` (`ADR-037`) |
+| Marketplace | npm registry | dependency resolution for every package, `marketplace-common` included — published at `2.0.0` (`ADR-037`) |
 
 ---
 

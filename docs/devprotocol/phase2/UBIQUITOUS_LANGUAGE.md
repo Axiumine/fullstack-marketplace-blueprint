@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-27
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.9 - 2026-08-27, later the same day: the v1.6 entry pinned the correct install result to `^1.0.1`, which
+moved when `marketplace-common` `2.0.0` shipped hours later. It now names the released range and both versions,
+so the rule does not go stale at the next major. No term changed.
 v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
 corpus rather than left in a dedicated epic file, per [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)
 §Note and [`EPICS_STORIES.md`](../phase5/EPICS_STORIES.md) §6.1. §18's **Used in:** list named that file
@@ -18,7 +21,8 @@ definition changed.
 v1.7 - 2026-08-27: **§18 is no longer "planned".** Cart, order, delivery and payment are permanently out of scope (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`), so the section that named them for *readiness* now names them so they are **refused** consistently — heading, status column and purpose sentence all follow. §2's `User` definition loses "yet", §9's `item` example quotes the rewritten `item.js` comment, and §19's `price` row states the ban as permanent with the display-only escape hatch closed (ADR-009 §Note 2026-08-27). No term was added, renamed or removed, and no definition of a built thing changed: the four entries stay in the glossary precisely because a name that is not written down cannot be refused consistently.
 v1.6 - 2026-08-27, later the same day: v1.5 added *"re-run it after every install in a consumer"* to the
 `deploy-local.sh` definition. That is wrong as an unconditional rule and is removed: nothing in any `yarn install`
-invokes the script, and an install resolving the released `^1.0.1` is the correct result whenever common carries no
+invokes the script, and an install resolving the released range (`^1.0.1` that day, `^2.0.0` since) is the
+correct result whenever common carries no
 unreleased edit. The definition keeps the conditional form - redeploy after an install only while such an edit is
 outstanding. No other term changed.
 v1.5 - 2026-08-27: the `deploy-local.sh` definition said it bridges *"consumed as a published package name"* and

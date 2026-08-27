@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-27
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-27, later the same day: the `marketplace-common` container row, the Mermaid edge label and the
+published-at note carry `2.0.0` / `^2.0.0`. Structure unchanged — same containers, same edges.
 v1.6 - 2026-08-27: The `price` row in §8 said the four commerce concepts were "unbuilt, undesigned", which invited a reader to supply the missing design. ADR-038 (2026-08-27) refuses it outright, so the row says permanently and cites it alongside ADR-009.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. E19 gave it
 `usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the operator still cannot do
@@ -17,7 +19,8 @@ released build over a deployed one, without saying that this costs nothing unles
 saying that no install path invokes the script. Both added. No container or relationship changed.
 v1.4 - 2026-08-27, later the same day: the `COMMON` node label, its edge label and §*Non-deployed but real* all
 said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it at `1.0.1` on
-2026-08-26 and every consumer pins `^1.0.1`. `deploy-local.sh` keeps a narrower job — *edited → released* — which the
+2026-08-26; it is `2.0.0` since 2026-08-27 and every consumer pins `^2.0.0`. `deploy-local.sh` keeps a narrower
+job — *edited → released* — which the
 diagram now says. v1.3's Qodana-id correction stands; no container or relationship changed.
 v1.3 - 2026-08-27: the `marketplace-admin/` tree comment cited Qodana project `1rylx`. It is `VOZEg` — enumerated from every repo's scan artefact into `phase1/SYSTEM_CONTEXT.md` §5.12, which is now the one place that list lives. Two ADRs carried the same wrong id and are corrected in the same pass. Nothing about the container split changed.
 v1.2 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
@@ -74,7 +77,7 @@ graph TB
     Mongo[("MongoDB\n6 collections")]
     Redis[("Redis cluster\nshared REDIS_KEY prefix")]
 
-    COMMON["marketplace-common\n(published @axiumine/marketplace-common 1.0.1;\ndeploy-local.sh bridges edited → released)"]
+    COMMON["marketplace-common\n(published @axiumine/marketplace-common 2.0.0;\ndeploy-local.sh bridges edited → released)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
     STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
@@ -116,7 +119,7 @@ graph TB
     UR --> Redis
     LO --> Redis
 
-    COMMON -.compiled in, ^1.0.1 + deploy-local.sh.-> PA
+    COMMON -.compiled in, ^2.0.0 + deploy-local.sh.-> PA
     COMMON -.-> PR
     COMMON -.-> SA
     COMMON -.-> SR

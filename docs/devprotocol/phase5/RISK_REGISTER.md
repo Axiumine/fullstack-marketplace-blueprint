@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.34
+**Version:** 1.35
 **Date:** 2026-08-27
 **Author:** risk-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.35 - 2026-08-27, later still: R15's v1.30 entry is annotated — the nine services pinned `^1.0.1` when it was
+written and pin `^2.0.0` since `marketplace-common` `2.0.0` shipped the same day. R15 stays open at its score:
+publication was never the half that mattered.
 v1.33 - 2026-08-27: R31's mitigation was a convention; it is now an accepted ADR. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so the trigger moves from "without a product decision on record" to "without a superseding ADR", the owner cell drops the product function this platform does not have, and the status says explicitly that the risk does not close: the decision it awaited arrived and was `no`, and the vocabulary that creates the temptation is still deliberately in the glossary.
 v1.34 - 2026-08-27, later: R44's owner cell moves from `Platform dev` to the adopter who deploys this blueprint, and the status cell says why the score is held. The certificate this row waits on cannot be issued here — no zone, no host — so the owner named was a role that does not exist in this checkout (`ADR-037`; E12-S15 reclassified the same day). ⚠️ **Score unchanged at 3×5=15 🟠 High, deliberately**: `ADR-032` forbids closing a control by appeal to a network boundary, and an absent host is an absence of exposure rather than a mitigation. R45 and R46 untouched. No risk added, removed or re-scored.
 v1.32 - 2026-08-25: R19's mitigation cited `funItemCategoryAdd.mts:24`, which is docblock prose and the
@@ -21,7 +24,7 @@ install-time lifecycle script is `prepare` (git-hooks wiring plus `scripts/lockf
 actually true - an install *while common is carrying an unreleased edit*. Score, category, owner and status unchanged.
 v1.30 - 2026-08-27, later still: **R15's premise is corrected, the risk stays open.** The row said `marketplace-common`
 *"is consumed by a package name that 404s on the real npm registry"*; `ADR-037` published it at `1.0.1` on 2026-08-26
-and all nine services pin `^1.0.1`. What is left is the half that was always the real one - an edit is invisible until
+and all nine services pin `^1.0.1` (`^2.0.0` since 2026-08-27). What is left is the half that was always the real one - an edit is invisible until
 deployed or released - plus a new way to lose it that publication created: a plain `yarn install` in a consumer
 silently restores the released build over a `deploy-local.sh` one, so the trigger column gains it. Score, category and
 owner unchanged; no other row touched.

@@ -281,8 +281,9 @@ three pin `@axiumine/marketplace-common@^1.21.0` → `1.21.0` from registry.npmj
 resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
 edit visible. Regenerating them needs the package published first.
 ⚠️ **Both halves expired.** `ADR-037` published `@axiumine/marketplace-common` on 2026-08-26, and the three
-`yarn.lock` files were regenerated on 2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1`,
-and `^1.21.0` appears in no lockfile in the workspace. `./deploy-local.sh` still matters, for the narrower reason
+`yarn.lock` files were regenerated on 2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1`
+— `^2.0.0` → `2.0.0` since later that day — and `^1.21.0` appears in no lockfile in the workspace.
+`./deploy-local.sh` still matters, for the narrower reason
 that it bridges *edited → released* — and a plain `yarn install` puts the released build back, which only costs something while such an edit exists. No install invokes the script.
 
 ## Follow-ups the survey surfaced, independent of this decision
@@ -291,7 +292,8 @@ that it bridges *edited → released* — and a plain `yarn install` puts the re
   `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@1.0.0`.
 - ~~Resolve the dependency skew listed under option (d).~~ **Done** for the two runtime ranges and the
   `qodana.yaml` override; ~~the stale `yarn.lock` entries remain and need the package published first~~ **Done
-  2026-08-27** — published (`ADR-037`) and regenerated; all three pin `^1.0.1` → `1.0.1`.
+  2026-08-27** — published (`ADR-037`) and regenerated; all three pin `^1.0.1` → `1.0.1`, then `^2.0.0` → `2.0.0`
+  later the same day.
 - Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly
   overtaken**: the mismatch branch itself now lives in `marketplace-common` and is tested there, at 100%
   coverage and a 100 mutation score, so it can no longer be wrong in one service and right in the other two.

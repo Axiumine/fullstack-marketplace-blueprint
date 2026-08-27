@@ -239,7 +239,7 @@ publication.
 
 ⚠️ **Corrected 2026-08-27.** This paragraph said the package was *unpublished* and that skipping the
 script left every service unable to resolve `@axiumine/marketplace-common`. It is published —
-`registry.npmjs.org`, `1.0.1`, consumers on `^1.0.1` — so resolution succeeds either way, and the failure
+`registry.npmjs.org`, `2.0.0`, consumers on `^2.0.0` — so resolution succeeds either way, and the failure
 mode is quieter than it was: skipping the script leaves consumers compiling the last *released* build
 with no error, and a plain `yarn install` puts that released build back over a build the script deployed.
 
@@ -629,7 +629,7 @@ and are gate removals — use them only when you have decided to.
 | `up.sh` stops at `Unauthorized` on the root user | a root user already exists with a different password than `.env` now holds. Restore the old value or `./down.sh --purge` |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh` |
 | a service exits at boot naming one missing variable | that `.env` is incomplete. `checkRequiredEnv()` throws on the *first* one it finds, so fixing it can uncover a second — and an empty value counts as missing |
-| a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | `./deploy-local.sh` was not re-run after that edit, or a later `yarn install` in the consumer put the released `^1.0.1` build back over the deployed one |
+| a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | `./deploy-local.sh` was not re-run after that edit, or a later `yarn install` in the consumer put the released `^2.0.0` build back over the deployed one |
 | `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@axiumine/marketplace-common' imported from …` | the package is genuinely absent from that consumer's `node_modules` — run `yarn install` there. It resolves from `registry.npmjs.org` since `ADR-037`, and `deploy-local.sh` is not what puts it back |
 | a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else |
 | a service exits with `KEYGRIP_KEK_MISMATCH` | its `KEYGRIP_KEK` is not the one the record was written under. The keys are fine; this one `.env` is wrong |

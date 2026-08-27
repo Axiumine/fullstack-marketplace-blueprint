@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.12
+**Version:** 1.13
 **Date:** 2026-08-27
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.13 - 2026-08-27, later the same day: the two `marketplace-common` version strings follow the release of
+`2.0.0` — the supply-chain row and the published-at note read `2.0.0` / `^2.0.0`, with `1.0.1` kept where it
+records what 2026-08-26 shipped. `2.0.0` makes `isIntrospectionBypassAllowed` a re-export of
+`@axiumine/koa-utils` and narrows that peer to `>=6`; the six gated `INTROSPECTION_CODE` sites this document
+describes are unchanged by it.
 v1.12 - 2026-08-27: §6's "Not yet protected" heading was a schedule, not a boundary, and §1's summary said "nothing exists yet to protect". ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope, so the section becomes "Never protected", each row says why no control is pending rather than late, and the PCI-DSS line in §8 stops being a today-only claim — there is no payment surface and no path to one.
 v1.7 - 2026-08-25: the `itemCategory` depth-cap row cited `funItemCategoryAdd.mts:24`, the wrong file and a line of docblock — corrected to the guard and both call sites. Its mitigation column now distinguishes "no mutation on another tier" (true) from "no write on another tier" (not true since `holdItemCategory`).
 v1.1 - 2026-08-11: §NFR-SE01–SE12 paragraph follows `phase1/NFR.md` to v1.1 — a 🔴 Critical change needs a
@@ -37,8 +42,9 @@ v1.11 - 2026-08-27, later the same day: v1.10's supply-chain cell read as though
 coupled. They are not - no install path in any of the 16 repos invokes the script. The residual risk is narrowed to the
 window where it is real: while `marketplace-common` carries an edit no release has shipped. No control changed.
 v1.10 - 2026-08-27: §7's supply-chain table said `@axiumine/marketplace-common` is *"not on any registry"* and
-*"404s on `registry.npmjs.org`"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, consumers on `^1.0.1`. The risk
-does not disappear, it inverts: a fresh `yarn install` now resolves the *released* build, so an unreleased edit is
+*"404s on `registry.npmjs.org`"*. `ADR-037` published it on 2026-08-26 at `1.0.1` —
+`2.0.0` since 2026-08-27, consumers on `^2.0.0`. The risk does not disappear, it inverts: a fresh
+`yarn install` now resolves the *released* build, so an unreleased edit is
 silently absent and an install after `deploy-local.sh` silently puts the released build back. The `koa-utils` row and
 the `trivy` row are untouched, and no control changed.
 v1.9 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
@@ -410,7 +416,7 @@ When any of these get built, this document requires a new version — per its ow
 
 | Dependency | Risk | Mitigation |
 |---|---|---|
-| `@axiumine/marketplace-common`, published to `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` (`ADR-037`) | 9 services depend on a package whose *released* build is what a fresh `yarn install` resolves — the correct answer whenever common carries no unreleased edit, and nothing in any install path invokes `deploy-local.sh` to change that. The residue is narrow: while such an edit exists it is silently absent, with no error at the call site, and an install after `deploy-local.sh` puts the released build back. ⚠️ This cell used to read *"not on any registry … 404s on `registry.npmjs.org`"*, true until 2026-08-26 | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
+| `@axiumine/marketplace-common`, published to `registry.npmjs.org` at `2.0.0`, consumers on `^2.0.0` (`ADR-037`) | 9 services depend on a package whose *released* build is what a fresh `yarn install` resolves — the correct answer whenever common carries no unreleased edit, and nothing in any install path invokes `deploy-local.sh` to change that. The residue is narrow: while such an edit exists it is silently absent, with no error at the call site, and an install after `deploy-local.sh` puts the released build back. ⚠️ This cell used to read *"not on any registry … 404s on `registry.npmjs.org`"*, true until 2026-08-26 | `BEs/marketplace-common/deploy-local.sh` syncs `dist/` + `package.json` into every consumer's `node_modules/` after every edit; `yarn test:contract` gates the `exports` map |
 | `@axiumine/koa-utils` | Second internal package, seventeenth repo outside this workspace, same class of risk | Not deploy-local-bridged the same way — verify its consumption path before assuming parity with `marketplace-common` |
 | npm registry as a whole (`yarn install` across 9 services + 3 frontends) | Malicious or compromised published version of any transitive dependency | `yarn.lock` per repo pins exact versions. ⚠️ **Corrected 2026-08-13.** This cell used to read "no automated dependency-audit gate found … **not a control that exists today**", which was true of what the gate *did* and wrong about what was wired: Qodana's `VulnerableLibrariesLocal` had been running on every commit and every push in all fourteen repos, querying no advisory feed and reporting zero problems — indistinguishable from a passing scan (E18-S04, R21). Since E18-S11 the control is `trivy fs`, pinned at `aquasec/trivy:0.70.0`, HIGH and CRITICAL, production dependencies only, in the `pre-push` of the fourteen repos with a `yarn.lock` plus the parent's for `marketplace-services-status`. It was exercised in both directions before landing and blocks `marketplace-dev-public-resource` today over R49's `axios@0.21.4`. There is no `.trivyignore` anywhere, and no CI to fall back on — the two git hooks are the whole apparatus |
 | `@node-rs/bcrypt` (native binding) | Native code in the password-hashing path | Standard, widely-used package; no additional sandboxing found |
