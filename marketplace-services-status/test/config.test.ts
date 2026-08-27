@@ -12,7 +12,7 @@ import { loadConfig } from '../src/config';
 // __dirname and is not a parameter — a real file would have to be written into the project root,
 // where it would shadow the real services.json for every other suite in the same run.
 //
-// `dotenv` is mocked to a no-op, and that is not a convenience: services-status/.env holds a live
+// `dotenv` is mocked to a no-op, and that is not a convenience: marketplace-services-status/.env holds a live
 // AUTH_TOKEN, and letting it load would make every assertion below depend on a file that is not in
 // the repo and differs per machine — the BIND_ALL guard in particular flips on it.
 // ---------------------------------------------------------------------------

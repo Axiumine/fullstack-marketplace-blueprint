@@ -12,7 +12,7 @@ rules:
   # `execFile('systemctl', args)` with an argv array — a unit name is an argument,
   # never a token the shell re-reads. `exec`/`execSync`, or `shell: true`, hand the
   # string back to `/bin/sh`, and every unit id in this app arrives from a browser.
-  - id: services-status-no-shell-command
+  - id: marketplace-services-status-no-shell-command
     languages: [typescript, javascript]
     severity: ERROR
     message: >-
@@ -35,7 +35,7 @@ rules:
   # The control token authenticates every start/stop/restart. It arrives as a
   # `Bearer` header or a `?token=` query parameter, and a log line carrying either
   # hands out the ability to restart the platform.
-  - id: services-status-no-log-control-token
+  - id: marketplace-services-status-no-log-control-token
     languages: [typescript, javascript]
     severity: ERROR
     message: >-
@@ -61,7 +61,7 @@ rules:
   # `server.ts`. A `WebSocketServer` built with `server:` instead of
   # `noServer: true` attaches its own upgrade listener and answers the handshake
   # before either check runs — which is the DNS-rebinding hole those checks close.
-  - id: services-status-ws-must-not-self-attach
+  - id: marketplace-services-status-ws-must-not-self-attach
     languages: [typescript, javascript]
     severity: ERROR
     message: >-

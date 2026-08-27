@@ -35,9 +35,9 @@ the three rules guard that power rather than the data it reports.
 
 | Rule | Why it exists |
 |---|---|
-| `services-status-no-shell-command` | `src/systemd.ts` runs `execFile('systemctl', args)` with an argv array, so a unit name arriving from a browser is an argument and never a token the shell re-reads. `exec`, `execSync` and `shell: true` hand the string back to `/bin/sh` — the same input becomes command injection. |
-| `services-status-no-log-control-token` | The control token is the only thing between a request and `systemctl stop`, and it travels in a `?token=` query parameter as well as a header — so logging a request URL leaks it just as thoroughly as logging the header. |
-| `services-status-ws-must-not-self-attach` | A `WebSocketServer` built with `server:` or `port:` attaches its own upgrade listener and completes the handshake before `src/server.ts` validates `Origin` and `Host`. `noServer: true` plus an explicit `handleUpgrade` is what keeps the DNS-rebinding check on the path. |
+| `marketplace-services-status-no-shell-command` | `src/systemd.ts` runs `execFile('systemctl', args)` with an argv array, so a unit name arriving from a browser is an argument and never a token the shell re-reads. `exec`, `execSync` and `shell: true` hand the string back to `/bin/sh` — the same input becomes command injection. |
+| `marketplace-services-status-no-log-control-token` | The control token is the only thing between a request and `systemctl stop`, and it travels in a `?token=` query parameter as well as a header — so logging a request URL leaks it just as thoroughly as logging the header. |
+| `marketplace-services-status-ws-must-not-self-attach` | A `WebSocketServer` built with `server:` or `port:` attaches its own upgrade listener and completes the handshake before `src/server.ts` validates `Origin` and `Host`. `noServer: true` plus an explicit `handleUpgrade` is what keeps the DNS-rebinding check on the path. |
 
 ## Provenance / reproducibility
 

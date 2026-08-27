@@ -59,7 +59,7 @@ const configOf = (services: ServiceDescriptor[], patch: Partial<AppConfig> = {})
     authToken: null,
     allowedHosts: [],
     workspaceRoot: '/workspace',
-    servicesJsonPath: '/workspace/services-status/services.json',
+    servicesJsonPath: '/workspace/marketplace-services-status/services.json',
     unitTarget: 'marketplace.target',
     monitorUnit: 'marketplace-status.service',
     groups: [{ id: 'public', title: 'Public tier', description: 'Anonymous traffic', serviceIds: services.map((s) => s.id) }],

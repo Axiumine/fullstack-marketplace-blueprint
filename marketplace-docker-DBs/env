@@ -1,4 +1,4 @@
-# Committed template for docker-DBs/.env. Copy it, fill in the four passwords, keep the names.
+# Committed template for marketplace-docker-DBs/.env. Copy it, fill in the four passwords, keep the names.
 #
 #     cp env .env
 #

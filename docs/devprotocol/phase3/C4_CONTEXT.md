@@ -41,7 +41,7 @@ graph TB
     end
 
     subgraph SYS["MARKETPLACE — this system"]
-        M["3 frontends · 9 Koa+Apollo services<br/>marketplace-common · marketplace-db-setup<br/>services-status"]
+        M["3 frontends · 9 Koa+Apollo services<br/>marketplace-common · marketplace-db-setup<br/>marketplace-services-status"]
     end
 
     Mongo[(MongoDB)]

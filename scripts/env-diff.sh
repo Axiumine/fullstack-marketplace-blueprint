@@ -32,7 +32,7 @@ keys() { grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z_0-9]*' "$1" | tr -d '[:space:]'
 if [ "$#" -gt 0 ]; then
 	targets=("$@")
 else
-	targets=(BEs/dev/*/ BEs/marketplace-common BEs/marketplace-db-setup services-status marketplace-admin marketplace-shopowner marketplace-user)
+	targets=(BEs/dev/*/ BEs/marketplace-common BEs/marketplace-db-setup marketplace-services-status marketplace-admin marketplace-shopowner marketplace-user)
 fi
 
 for dir in "${targets[@]}"; do

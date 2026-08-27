@@ -13,7 +13,7 @@
 
 Platform is 15 packages: 9 Koa/Apollo backend services under `BEs/dev/`, `BEs/marketplace-common`,
 `BEs/marketplace-db-setup`, 3 frontends (`marketplace-admin`, `marketplace-shopowner`,
-`marketplace-user`), plus `services-status` (tracked by the parent repo, no repo of its own). Coverage
+`marketplace-user`), plus `marketplace-services-status` (tracked by the parent repo, no repo of its own). Coverage
 alone was already the house rule and every package sat at 100% on it — and mutants still survived under
 that green number. `marketplace-common` scored 45.95% mutation score, `marketplace-db-setup` 52.92%, both
 with 100% line/branch/function/statement coverage reported at the same time (`README.md` §Test quality gates). Coverage asks whether a line ran during a suite; mutation asks whether any assertion would fail if
@@ -84,10 +84,10 @@ now house convention rather than a one-off discovery.
 - Every new file needs a genuine assertion against its own logic, not just execution — a smoke test that
   merely calls a function and checks it doesn't throw passes coverage but is killed instantly by mutation,
   so the bar for "done" moved for every contributor.
-- `services-status` is the standing illustration of a gate that exists on paper: it carries
+- `marketplace-services-status` is the standing illustration of a gate that exists on paper: it carries
   `stryker.config.mjs` and a 100% threshold, and it has no `.githooks/` of its own to invoke either —
   a config with no runner is an appearance of a gate rather than a gate, which is why its steps live in
-  the parent's hooks instead (ADR-025, [`docs/frontends.md`](../../../frontends.md) §services-status).
+  the parent's hooks instead (ADR-025, [`docs/frontends.md`](../../../frontends.md) §marketplace-services-status).
 
 ### Risks
 - **Equivalent-mutant creep.** A contributor under deadline pressure reaches for `ignoreStatic` or a
@@ -100,9 +100,9 @@ now house convention rather than a one-off discovery.
   `git hook run pre-commit` is what proves it is wired. Revisit trigger: a merge lands on `main` with a
   coverage or mutation regression that no hook caught.
 - **A gate with no invoking mechanism reads identically to a passing one from outside**, exactly the
-  `services-status` case — a `stryker.config.mjs` with no `.githooks/` of its own to run it. Revisit trigger: any package
+  `marketplace-services-status` case — a `stryker.config.mjs` with no `.githooks/` of its own to run it. Revisit trigger: any package
   added to the platform that has a `stryker.config.mjs` / coverage threshold but no `.githooks/` (or, for
-  `services-status`, no scoped step in the parent's own `.githooks/pre-commit` / `pre-push`) referencing it.
+  `marketplace-services-status`, no scoped step in the parent's own `.githooks/pre-commit` / `pre-push`) referencing it.
 
 ---
 
@@ -130,5 +130,5 @@ A violation on disk looks like: a `thresholds.break` value under 100 in any `str
 `ignoreStatic: true` line anywhere in a Stryker config; a `// Stryker disable` comment with no `<Mutator>`
 name or no reason string after the colon; a `.githooks/pre-push` missing the `test:mutation` step or
 reordering it before `test:cov`; or a package with a `stryker.config.mjs` present but no
-`.githooks/` directory (or, for `services-status`, no matching scoped step in the parent's own hooks)
+`.githooks/` directory (or, for `marketplace-services-status`, no matching scoped step in the parent's own hooks)
 invoking it. A threshold nothing reads is the failure shape to look for, because it reports nothing.

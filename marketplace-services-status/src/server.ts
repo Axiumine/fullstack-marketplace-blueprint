@@ -718,7 +718,7 @@ export async function main(): Promise<RunningServer> {
 }
 
 export function printBanner(config: AppConfig): void {
-  console.log('services-status monitor listening');
+  console.log('marketplace-services-status monitor listening');
   console.log(`  bind:       http://${config.host}:${config.port}`);
   console.log(`  scope:      systemctl --${config.systemctlScope}`);
   console.log(`  target:     ${config.unitTarget}`);

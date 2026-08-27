@@ -47,7 +47,7 @@ Two further constraints shaped the option that was picked:
   ADR-025 records for the parent workspace, and the second of exactly two repos with it.
 - **The parent's hooks never fire for a change made here.** A submodule is a pointer, not a merge of
   histories (ADR-031): a commit or a push inside `marketplace-nginx` is an event in `marketplace-nginx`,
-  so ADR-025's answer for `services-status` — gate it from the parent — has nothing to hang on.
+  so ADR-025's answer for `marketplace-services-status` — gate it from the parent — has nothing to hang on.
 
 Separately, [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) §3 lists the `pre-commit` secret guard as layer 3 of four: check 0 (a
 working-tree env value split across two physical lines, R05b) plus two staged-secret scans. A repo with no
@@ -64,7 +64,7 @@ every mechanism that puts one here by default.
 | B — one `pre-commit` and one `pre-push`, both running `test/run.sh` | Symmetric with the other fifteen; the suite runs as early as possible | The suite needs a container engine and an image, and this repo's ordinary commit is one directive in one file — paying a container run per commit is exactly how a hook gets bypassed out of habit, the reasoning ADR-025 already applied to keep mutation push-only |
 | C — `pre-push` runs `test/run.sh`; `pre-commit` runs the secret guard and stops | Each gate is paid where its cost is worth it; the secret guard is cheap and belongs at commit, the container suite is not and belongs at push; [`.claude/SECRETS.md`](../../../../.claude/SECRETS.md) layer 3 becomes exceptionless | Two hooks in one repo doing unrelated jobs, neither shaped like any other repo's; a sixth variant of the secret-guard body to keep in sync |
 | D — add a `package.json` purely to get `prepare` and a script chain | `core.hooksPath` would self-arm on `yarn install`, matching the fourteen packages | Invents a JavaScript toolchain to host one line of git config, and makes `yarn install` a prerequisite for editing an nginx conf; it also invites a `lint`/`test` script with nothing behind it, which is the appearance of a gate that ADR-025 spent a whole decision removing |
-| E — gate it from the parent workspace's hooks, as ADR-025 does for `services-status` | Reuses hooks that already exist and are already armed | Structurally impossible: `services-status` has no `.git`, so its changes *are* parent commits. `marketplace-nginx` has its own `.git`, and the parent's gitlink records its SHA rather than its commits, so no parent hook ever fires for a change made here |
+| E — gate it from the parent workspace's hooks, as ADR-025 does for `marketplace-services-status` | Reuses hooks that already exist and are already armed | Structurally impossible: `marketplace-services-status` has no `.git`, so its changes *are* parent commits. `marketplace-nginx` has its own `.git`, and the parent's gitlink records its SHA rather than its commits, so no parent hook ever fires for a change made here |
 
 ---
 

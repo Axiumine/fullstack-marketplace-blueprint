@@ -55,7 +55,7 @@ against the same Redis. A tenth service would duplicate that set to gain nothing
 would pay for the boundary in exactly the currency R02, R03 and R04 are denominated in.
 
 The secondary costs are the ordinary ones and are listed only so nobody has to rediscover them: a port, an
-nginx upstream and location block on the admin vhost, a `services-status` entry, a systemd unit, a
+nginx upstream and location block on the admin vhost, a `marketplace-services-status` entry, a systemd unit, a
 `codegen.ts` project and a `schema/` slice in `marketplace-admin`, a vite proxy entry, a GitNexus group
 member, and a repo with its own coverage, mutation and Qodana gates to keep at 100.
 

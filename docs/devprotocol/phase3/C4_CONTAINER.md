@@ -67,7 +67,7 @@ graph TB
 
     COMMON["marketplace-common\n(not deployed — deploy-local.sh\nsyncs dist/ into 9 node_modules/)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
-    STATUS["services-status :varies\n(monitor, parent-tracked, no own repo)"]
+    STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
 
     FEU -->|"GraphQL, SSR bypasses nginx"| PR
@@ -131,7 +131,7 @@ graph TB
 
 Solid arrows: real runtime calls (GraphQL over HTTP, Mongoose driver calls, Redis client calls). Dashed
 arrows: compile-time (`marketplace-common`, synced not linked), documentation-only (`nginx`), or
-monitoring (`services-status`).
+monitoring (`marketplace-services-status`).
 
 ---
 
@@ -172,7 +172,7 @@ monitoring (`services-status`).
 |---|---|---|
 | `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Not on any npm registry; `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`. An edit here is dead weight to all 9 services until that script runs. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
-| `services-status` | Node monitoring app, parent-tracked (`services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
+| `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |
 
 ---
@@ -191,7 +191,7 @@ monitoring (`services-status`).
 | Any service | any other service (declared, not concretely traced) | `x-introspectioncode` header (`INTROSPECTION_CODE`) | bypasses the access-token check for service-to-service calls — treated as a secret, never logged, never sent to a browser (`docs/architecture.md` §Auth model) |
 | `marketplace-common` (compile-time) | all 9 backend services | filesystem sync, not a network call | `BEs/marketplace-common/deploy-local.sh` builds `dist/` and copies it + `package.json` into each consumer's `node_modules/@axiumine/marketplace-common/` |
 | `marketplace-db-setup` | MongoDB | migrate-mongo | `yarn migrate:up` applies migrations that define every collection's `$jsonSchema` |
-| `services-status` | all 9 backend services | HTTP health poll | no GraphQL — reads whatever health surface each service exposes |
+| `marketplace-services-status` | all 9 backend services | HTTP health poll | no GraphQL — reads whatever health surface each service exposes |
 
 ---
 
@@ -245,7 +245,7 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 │   ├── src/routeOptions/                          #      behaviour as router-free constants, testable without mounting a router
 │   ├── serve.mjs                                  #      binds loopback only — the one deliberate exception on the platform
 │   └── docs/nginx/README.md                       #      pointer only — the edge moved to marketplace-nginx/ at the workspace root
-├── services-status/                               # WHY: monitor with no repo of its own — tracked + gated by THIS parent repo
+├── marketplace-services-status/                               # WHY: monitor with no repo of its own — tracked + gated by THIS parent repo
 ├── docs/
 │   ├── decisions/                                 # ADRs referenced from CLAUDE.md prose (e.g. authorization-service-consolidation.md)
 │   └── devprotocol/                               # this document set — phase1 (PDR/SYSTEM_CONTEXT/NFR), phase2 (UL/EventStorming/BoundedContext),

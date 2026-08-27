@@ -29,7 +29,7 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 ├── marketplace-nginx/               # the edge — nginx config + its test container, no package.json
 ├── marketplace-shopowner/           # React + Vite shop-owner SPA (ShopOwner)
 ├── marketplace-user/                # TanStack Start SSR app (User + anonymous)
-└── services-status/                 # tracked by THIS repo, not a repo of its own
+└── marketplace-services-status/                 # tracked by THIS repo, not a repo of its own
 ```
 
 The parent tracks each of the fifteen as a **submodule** (ADR-031): a gitlink pinning one commit SHA, and
@@ -152,7 +152,7 @@ nothing about it.
   true"` in `package.json`, so `yarn install` restores it.
 - ⚠️ **Two repos have no `package.json` and so no such mechanism: this parent workspace and
   `marketplace-nginx`.** After a fresh clone of either, run `git config core.hooksPath .githooks` by
-  hand — or, in the parent, the secret guard and all of `services-status`'s coverage, mutation and
+  hand — or, in the parent, the secret guard and all of `marketplace-services-status`'s coverage, mutation and
   Qodana gates are off, and in `marketplace-nginx` the edge configuration is pushed without ever being
   validated.
 - `marketplace-nginx` carries both, and both are unlike every other repo's (ADR-030). Its `pre-push`
@@ -265,7 +265,7 @@ Node **v24.18.0** via nvm, **yarn** everywhere.
 ⚠️ **All of this assumes a reachable MongoDB replica set** — a commit needs one, not only a test run,
 because coverage is a pre-commit gate. The platform's own cluster is external and does not travel
 with a clone, and neither does `marketplace-db-setup/setup/mongodb.js`, the gitignored runbook that
-provisions its users. `docker-DBs/` is the stand-in: `cp env .env && ./up.sh` brings up a
+provisions its users. `marketplace-docker-DBs/` is the stand-in: `cp env .env && ./up.sh` brings up a
 three-node `rs0` with every account the backend services expect, an optional Redis, and a CSFLE master
 key. Its [`README.md`](../README.md) also carries the boot order for the whole platform and the per-repo
 `MONGO_TEST_DB` table.

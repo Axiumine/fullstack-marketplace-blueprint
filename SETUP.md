@@ -91,7 +91,7 @@ it. The other fourteen repos re-arm themselves from `package.json`'s `prepare` s
 ## 3. Start the databases
 
 ```bash
-cd docker-DBs
+cd marketplace-docker-DBs
 cp env .env
 ```
 
@@ -129,14 +129,14 @@ Other commands: `./shell.sh dev` for an authenticated `mongosh`, `./down.sh` to 
 
 ## 4. The CSFLE master key
 
-`up.sh` already minted it: `docker-DBs/secrets/csfle-master-key`, 96 random bytes — the length the
+`up.sh` already minted it: `marketplace-docker-DBs/secrets/csfle-master-key`, 96 random bytes — the length the
 `local` KMS provider needs, since it splits the file into a 32-byte encryption key, a 32-byte MAC key
 and 32 bytes of reserve. There is nothing to generate by hand.
 
 Every repo that touches encrypted fields points at **that one file**:
 
 ```
-CSFLE_MASTER_KEY_PATH=/absolute/path/to/docker-DBs/secrets/csfle-master-key
+CSFLE_MASTER_KEY_PATH=/absolute/path/to/marketplace-docker-DBs/secrets/csfle-master-key
 CSFLE_KEY_VAULT_NAMESPACE=dbMarketplaceDev.__keyVault
 ```
 
@@ -246,8 +246,8 @@ Every repo ships a committed `env` template and reads a gitignored `.env` you cr
 cp env .env
 ```
 
-Sixteen of them: `docker-DBs` (done in step 3), `BEs/marketplace-common` (step 6),
-`BEs/marketplace-db-setup`, the nine services, the three frontends, and `services-status`.
+Sixteen of them: `marketplace-docker-DBs` (done in step 3), `BEs/marketplace-common` (step 6),
+`BEs/marketplace-db-setup`, the nine services, the three frontends, and `marketplace-services-status`.
 
 The templates are heavily commented and the comments are the real documentation for each variable —
 read them rather than guessing. What follows is only what has to agree across files.
@@ -286,7 +286,7 @@ SEED_DEMO=true
 **The `MONGO_TEST_*` block**, in every repo that runs integration tests. Three variables name the same
 database and all three must agree — the suite refuses to build a URL otherwise. Each repo's own test
 database name is already filled into its template, and the full table is in
-[`docker-DBs/README.md`](./docker-DBs/README.md) §Wiring the repos. `marketplace-dev-authenticated-logout` has no such block on
+[`marketplace-docker-DBs/README.md`](./marketplace-docker-DBs/README.md) §Wiring the repos. `marketplace-dev-authenticated-logout` has no such block on
 purpose: its integration suite never touches MongoDB.
 
 **Email**, in `marketplace-dev-public-resource` only — it is the one service that sends mail:
@@ -532,13 +532,13 @@ service → port matrix, the seven nginx traps and the live-deployment verificat
 
 ---
 
-## 11. Optional — the services-status dashboard
+## 11. Optional — the marketplace-services-status dashboard
 
-Twelve processes started by hand is tedious. `services-status` is a local control panel on port 2901
+Twelve processes started by hand is tedious. `marketplace-services-status` is a local control panel on port 2901
 that starts, stops and restarts them as systemd **user** units and tails their journal.
 
 ```bash
-cd services-status
+cd marketplace-services-status
 cp env .env
 yarn install
 yarn build
@@ -573,7 +573,7 @@ wants. Both services accept them, so the gap is UI-only — but until those scre
 shell one, and it must set the three fields **before or with** the flag, or MongoDB refuses the write:
 
 ```bash
-cd docker-DBs && ./shell.sh dev
+cd marketplace-docker-DBs && ./shell.sh dev
 # db.company.updateOne({_id:ObjectId('5c9a013fcf1448b9d885a000')},
 #   {$set:{publicName:'Northwind Trading',slug:'northwind-trading',published:true}})
 ```
@@ -587,7 +587,7 @@ screen offers "resend confirmation" unconditionally: it cannot say which account
 SocketLabs credentials the mail never arrives, so flip the flag by hand:
 
 ```bash
-cd docker-DBs && ./shell.sh dev
+cd marketplace-docker-DBs && ./shell.sh dev
 # db.user.updateOne({'login.email':'you@example.com'},{$set:{'emailVerify.valid':true}})
 ```
 
@@ -635,7 +635,7 @@ and are gate removals — use them only when you have decided to.
 | Topic | File |
 |---|---|
 | services, ports, auth model, resolver layout | [`docs/architecture.md`](./docs/architecture.md) |
-| the cluster, per-repo `.env` wiring, the full test-database table | [`docker-DBs/README.md`](./docker-DBs/README.md) |
+| the cluster, per-repo `.env` wiring, the full test-database table | [`marketplace-docker-DBs/README.md`](./marketplace-docker-DBs/README.md) |
 | collections, validators, indexes, migrations, PII encryption | [`docs/data-model.md`](./docs/data-model.md) |
 | git rules, secrets, hooks, the full command list | [`docs/workflow.md`](./docs/workflow.md) |
 | the edge — three vhosts, TLS, the `Secure` rewrite | [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) |

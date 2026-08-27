@@ -146,7 +146,7 @@ is not a stand-in for a second topology that exists.
 | MongoDB topology | single `dbMarketplaceDev` instance, reachable via `MONGODB_URI` | open |
 | Redis topology | 3-node cluster (`REDIS_DB1/2/3_HOST/_PORT`), reachable directly | open |
 | Secrets source | untracked per-repo `.env`, never committed | open |
-| Process supervision | none observed — no systemd unit, no pm2 config found for the 9 services/3 frontends themselves (`services-status` *monitors* systemd units by name, `services-status/src/systemd.ts:173`, but nothing in this tree defines those units) | open |
+| Process supervision | none observed — no systemd unit, no pm2 config found for the 9 services/3 frontends themselves (`marketplace-services-status` *monitors* systemd units by name, `marketplace-services-status/src/systemd.ts:173`, but nothing in this tree defines those units) | open |
 
 ---
 
@@ -430,14 +430,14 @@ Two layers exist. Nothing else is wired.
 - **Sentry** — in all 3 frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) and
   every backend service, per `SYSTEM_CONTEXT.md` §3.2 external systems table (Sentry row) and §5.14 data
   flow summary ("exception events, sampled traces (10%)"). Opt-in via DSN presence — no DSN, no traffic.
-- **`services-status`** — the monitoring surface itself. Not an APM or a metrics backend: it shells out to
+- **`marketplace-services-status`** — the monitoring surface itself. Not an APM or a metrics backend: it shells out to
   `systemctl show`/`start`/`stop`/`restart` against named systemd units and reports their state —
-  `services-status/src/systemd.ts:173` (`showUnits`), `:213` (`controlUnit`). It presumes systemd units
+  `marketplace-services-status/src/systemd.ts:173` (`showUnits`), `:213` (`controlUnit`). It presumes systemd units
   already exist for whatever it monitors; this tree defines no such units for the 9 backend services or 3
   frontends themselves — it is a control panel for services *someone* installed as systemd units, not a
   process supervisor this repo ships wired up end to end. Its own HTTP server binds
   `(config.port, config.host)` from its own config, not a hardcoded literal —
-  `services-status/src/server.ts:710`.
+  `marketplace-services-status/src/server.ts:710`.
 
 **Not present anywhere in the 16 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
 log aggregator (each vhost's `access_log`/`error_log` write to local files under
@@ -614,7 +614,7 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 | 6 | What is the production Redis cluster's node count, placement, and failover story? | Dev topology (§2) is 3 nodes reachable directly by hostname/port; production sizing/placement is unspecified. |
 | 7 | Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`? | `PDR.md` §4 Out of scope marks this a standing gap, not a future-phase item with a date; [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5 marks it out of scope for Phase 3. |
 | 8 | Where do `QODANA_TOKEN`, `MONGODB_URI`, `REDIS_PASSWORD`, `KEYGRIP_KEK`, `INTROSPECTION_CODE` and the other secrets get provisioned outside a developer's local `.env`? | No secrets manager, vault, or provisioning script for production values exists anywhere in this tree — only local `.env` templates, the `mongodb.js` test-user loop (§8) and `seedKeygrip.js`, which provisions the *wrapped record* but not the KEK that opens it. |
-| 9 | Does process supervision (systemd units, pm2, container orchestration) get added for the 9 backend services and 3 frontends themselves? | `services-status` (§9) monitors named systemd units but nothing in this tree defines those units for these 12 processes — it presumes they already exist. |
+| 9 | Does process supervision (systemd units, pm2, container orchestration) get added for the 9 backend services and 3 frontends themselves? | `marketplace-services-status` (§9) monitors named systemd units but nothing in this tree defines those units for these 12 processes — it presumes they already exist. |
 | 10 | Is TLS terminated at the nginx in `marketplace-nginx/`, or somewhere else (load balancer, CDN) with nginx behind it? | §13 — no TLS exists in Topology A. `marketplace-nginx/conf.d/40-tls.conf` is the only TLS design on disk and it assumes it is the termination point: it pins TLS 1.2/1.3, staples nothing (Let's Encrypt retired OCSP), and refuses unknown `Host` with `ssl_reject_handshake`. Putting a terminator in front changes the rate-limit keying too — every zone keys on `$binary_remote_addr`, which would become the proxy's. |
 
 **Do not treat any row above as answered by this document.** A future ADR or a Phase-1/2 change-control

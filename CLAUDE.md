@@ -16,12 +16,12 @@ Load the file that matches the task. Do not guess from this page alone.
 | services, ports, auth model, resolver layout | [`docs/architecture.md`](./docs/architecture.md) |
 | the edge — three vhosts, TLS, the `Secure` cookie rewrite, its test container | [`marketplace-nginx/CLAUDE.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/CLAUDE.md) |
 | collections, validators, indexes, migrations, PII encryption | [`docs/data-model.md`](./docs/data-model.md) |
-| the three apps + `services-status` | [`docs/frontends.md`](./docs/frontends.md) |
+| the three apps + `marketplace-services-status` | [`docs/frontends.md`](./docs/frontends.md) |
 | vitest layout, integration + mutation traps | [`docs/testing.md`](./docs/testing.md) |
 | repos, git rules, cloning the workspace, secrets, `.env`, commands | [`docs/workflow.md`](./docs/workflow.md) |
 | lint, formatting, engines, package plumbing | [`docs/conventions.md`](./docs/conventions.md) |
 | GitNexus MCP + CLI | [`docs/gitnexus.md`](./docs/gitnexus.md) |
-| no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | [`docker-DBs/CLAUDE.md`](./docker-DBs/CLAUDE.md) |
+| no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | [`marketplace-docker-DBs/CLAUDE.md`](./marketplace-docker-DBs/CLAUDE.md) |
 | gate policy — which layer blocks what | [`README.md`](./README.md) |
 | **why** any of this is the way it is | [`docs/devprotocol/phase3/adr/ADR-INDEX.md`](./docs/devprotocol/phase3/adr/ADR-INDEX.md) |
 | traps of one specific repo | that repo's own `CLAUDE.md` |

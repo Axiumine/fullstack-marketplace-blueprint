@@ -115,7 +115,7 @@ every repo rather than left to drift out of sync with the tracked one. Each repo
 |frontend|`marketplace-admin`, `-shopowner`, `-user`|adds `yarn typecheck` between lint and coverage|
 |`marketplace-common`|1|its own lint/coverage chain|
 |`marketplace-db-setup`|1|no lint — no `eslint.config.js` on that repo (`README.md`)|
-|parent workspace|this directory|scoped to `services-status/`, no lint|
+|parent workspace|this directory|scoped to `marketplace-services-status/`, no lint|
 |`marketplace-nginx`|1|**no tail at all** — no `package.json`, so the guard runs and the hook exits|
 
 The secret-guard body — check 0 and the two staged-secret scans, from `set -uo pipefail` to the end of

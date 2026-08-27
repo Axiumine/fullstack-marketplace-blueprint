@@ -1,0 +1,8 @@
+# Rewrite the yarn.lock registry host on the way in and out of git, so a local
+# npm proxy never leaks into history. See scripts/lockfile-registry-filter.sh.
+# Clones without the filter configured get the public registry URLs verbatim.
+#
+# The pattern has no slash, so it matches at any depth under this directory —
+# marketplace-services-status/node_modules is git-ignored, so marketplace-services-status/yarn.lock is
+# the only file it can ever reach.
+yarn.lock filter=yarnlock-registry

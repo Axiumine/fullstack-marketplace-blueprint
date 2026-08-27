@@ -367,14 +367,14 @@ E14-S03, which is always deleted: that one has no per-field TTL to fall back on.
 before it, and Redis refuses an unknown command at the first call rather than at startup. `up.sh
 --with-redis` checks the container's version, and each of the four authorization services probes its own
 connection with an `HTTL` at boot and exits rather than serving a login it cannot file. Both are
-single-key commands, so BCON-08 holds. `docker-DBs/README.md` §Redis is the operational half.
+single-key commands, so BCON-08 holds. `marketplace-docker-DBs/README.md` §Redis is the operational half.
 
 ### Persistence — AOF is on in both environments
 
 Both environments run Redis with the append-only file **enabled**, and they are configured separately, so
 each is cited on its own — one is not evidence for the other:
 
-- **Dev**: `docker-DBs/docker-compose.yml:62` — `command: [redis-server, --appendonly, 'yes', …]`.
+- **Dev**: `marketplace-docker-DBs/docker-compose.yml:62` — `command: [redis-server, --appendonly, 'yes', …]`.
 - **Production**: `appendonly yes` in that host's `redis.conf`, per the platform owner, 2026-08-10. That
   file is not in this workspace and cannot be verified from it.
 

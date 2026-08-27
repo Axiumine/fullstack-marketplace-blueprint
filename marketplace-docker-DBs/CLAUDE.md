@@ -1,4 +1,4 @@
-# docker-DBs
+# marketplace-docker-DBs
 
 The local MongoDB replica set (`rs0` — `mdb1` 27017 / `mdb2` 27018 / `mdb3` 27019) and the optional
 Redis the nine services keep their sessions in. Not a repo of its own — a tracked directory of the
@@ -21,7 +21,7 @@ write a second script that does part of its job.
 
 ⚠️ **`.env` and `secrets/` are secret-bearing — never read, echo, diff or commit them.** `env`
 without the dot is the committed template and is safe. To answer "is X set", print key names only:
-`grep -oE '^[A-Za-z_0-9]+' docker-DBs/.env`.
+`grep -oE '^[A-Za-z_0-9]+' marketplace-docker-DBs/.env`.
 
 ⚠️ **The Redis password lives in `secrets/redis.conf`, which `up.sh` rewrites on every run** (E12-S17).
 It is not in `command:` any more — interpolating it there put it in the container's argv, where

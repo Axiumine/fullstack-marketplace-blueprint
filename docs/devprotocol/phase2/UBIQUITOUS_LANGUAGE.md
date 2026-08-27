@@ -505,7 +505,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** [`BEs/marketplace-db-setup/lib/schemas/README.md`](https://github.com/Axiumine/marketplace-db-setup/blob/main/lib/schemas/README.md), all six `lib/schemas/*.js` files.
 
 ### Coverage gate
-**Definition:** 100% required on all four v8 metrics (statements/branches/functions/lines) in every package that ships code — 9 backend services, `marketplace-common`, `marketplace-db-setup`, 3 frontends, `services-status`. Gated four times over: `thresholds` in vitest config, `testCoverageThresholds` in `qodana.yaml`, and a `yarn test:cov` step in both `.githooks/pre-commit` and `.githooks/pre-push`.
+**Definition:** 100% required on all four v8 metrics (statements/branches/functions/lines) in every package that ships code — 9 backend services, `marketplace-common`, `marketplace-db-setup`, 3 frontends, `marketplace-services-status`. Gated four times over: `thresholds` in vitest config, `testCoverageThresholds` in `qodana.yaml`, and a `yarn test:cov` step in both `.githooks/pre-commit` and `.githooks/pre-push`.
 **Used in:** [`README.md`](../../../README.md) §Test quality gates and [`docs/testing.md`](../../testing.md).
 
 ### Mutation score

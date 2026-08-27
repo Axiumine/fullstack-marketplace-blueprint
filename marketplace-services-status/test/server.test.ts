@@ -107,7 +107,7 @@ const configOf = (patch: Partial<AppConfig> = {}): AppConfig =>
     authToken: null,
     allowedHosts: [],
     workspaceRoot: '/workspace',
-    servicesJsonPath: '/workspace/services-status/services.json',
+    servicesJsonPath: '/workspace/marketplace-services-status/services.json',
     unitTarget: 'marketplace.target',
     monitorUnit: 'marketplace-status.service',
     groups: GROUPS,
@@ -1415,7 +1415,7 @@ describe('printBanner', () => {
     // Every line, in order. The banner is what an operator reads out of `systemctl status` when
     // the page will not load, so a line that silently stopped being printed is a real loss.
     expect(log.mock.calls.map((call) => String(call[0]))).toEqual([
-      'services-status monitor listening',
+      'marketplace-services-status monitor listening',
       '  bind:       http://127.0.0.1:2901',
       '  scope:      systemctl --user',
       '  target:     marketplace.target',

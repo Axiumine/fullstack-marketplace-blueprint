@@ -1,5 +1,5 @@
 /**
- * services-status frontend — plain ES2020, no bundler, no framework.
+ * marketplace-services-status frontend — plain ES2020, no bundler, no framework.
  *
  * Talks to the server exclusively over the WS contract in CONTRACT.md
  * (ServerMessage / ClientMessage / ServiceState). The DOM is built once

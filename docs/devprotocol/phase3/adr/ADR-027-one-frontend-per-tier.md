@@ -44,7 +44,7 @@ in `marketplace-admin` or `marketplace-shopowner`, which are pure SPA.
 | Option | Pros | Cons |
 |---|---|---|
 | One frontend app, role switch at runtime (read tier from session, branch UI/router/queries) | Single codebase, single build, single deploy artifact, shared components trivially reused | Ships operator+shopOwner+customer code to every browser regardless of tier; reintroduces `role`-shaped branching backend explicitly rejected (ADR-002); one urql client config must reconcile 3 different endpoint sets and 3 different codegen outputs; a bug in the switch is a cross-tier data leak, not a build error; SSR-vs-CSR split (`marketplace-user` only) would infect the other 2 tiers' routing for no reason |
-| One frontend app, 3 separate build entry points (multi-page build, shared `src/`) | Some code sharing without runtime role switch; still 1 repo, 1 `package.json`, 1 `node_modules` | Still 1 dependency tree — a `marketplace-user`-only package (MapLibre GL, PMTiles) ships to operator/shopOwner installs too; 1 `.githooks/pre-push` gate (100% coverage + mutation, `README.md` §Test quality gates) now spans 3 apps' worth of code, so an operator-only test failure blocks a shopOwner-only change from shipping; 1 Qodana project/token for 3 surfaces corrupts the per-tier baseline the way a misrouted token does elsewhere on this platform (`docs/frontends.md` warns against exactly this for `services-status`); still needs a build-time (not runtime) role split, which is a smaller version of the same coupling |
+| One frontend app, 3 separate build entry points (multi-page build, shared `src/`) | Some code sharing without runtime role switch; still 1 repo, 1 `package.json`, 1 `node_modules` | Still 1 dependency tree — a `marketplace-user`-only package (MapLibre GL, PMTiles) ships to operator/shopOwner installs too; 1 `.githooks/pre-push` gate (100% coverage + mutation, `README.md` §Test quality gates) now spans 3 apps' worth of code, so an operator-only test failure blocks a shopOwner-only change from shipping; 1 Qodana project/token for 3 surfaces corrupts the per-tier baseline the way a misrouted token does elsewhere on this platform (`docs/frontends.md` warns against exactly this for `marketplace-services-status`); still needs a build-time (not runtime) role split, which is a smaller version of the same coupling |
 | Three separate repos/apps, one per tier — `marketplace-admin` (3043), `marketplace-shopowner` (3044), `marketplace-user` (3045) | No tier's code ever reaches another tier's browser; each app talks only to its own tier's endpoints (CON_ports above), so an operator bug cannot touch customer traffic; each gets its own coverage/mutation/Qodana gate and project token, matching the backend's per-service gating pattern already established; `marketplace-user` free to be the one SSR app without dragging SSR concerns into the 2 pure-SPA tiers; mirrors the backend split 1:1 (tier × concern), so the pattern engineers already learned reading [`docs/architecture.md`](../../../architecture.md) §Services applies again here | 3 codegen setups, 3 dependency trees, 3 things to keep in sync when a shared concept (e.g. `Company` shape) changes on all 3 — no shared package like `marketplace-common` exists for frontend code; genuinely divergent behaviour between `marketplace-admin` and `marketplace-shopowner` (see Decision) must be tracked per-repo, nothing enforces they stay consistent where they should be |
 
 ---
@@ -60,7 +60,7 @@ concept the backend refuses at `assertTier` (`BEs/marketplace-common/src/others/
 (shared repo, split entry points) was rejected for the same underlying reason at smaller scale, plus it
 would have forced the SSR/CSR split (CON-10) onto 2 apps that need no such thing, and it would have made
 one Qodana project cover 3 tiers' worth of surface — the platform's stated position (`docs/frontends.md`, on the
-`services-status` misrouted-token risk) is that a shared token/project across unrelated surfaces corrupts
+`marketplace-services-status` misrouted-token risk) is that a shared token/project across unrelated surfaces corrupts
 the baseline.
 
 `marketplace-shopowner` is explicitly built as "a mirror of the operator app: same stack, same
@@ -102,7 +102,7 @@ GraphQL contracts and needs its own ADR, not a silent PR.
   app's `schema/*.graphql` slice and codegen output, not centrally maintained.
 - 3 separate `yarn dev`, 3 separate `yarn build`, 3 separate `yarn codegen` invocations, 3 separate
   `qodana.cloud` project tokens to keep straight (`marketplace-admin` is `1rylx` per `docs/frontends.md`) — mixing
-  up a token misroutes a report the way `services-status` almost did.
+  up a token misroutes a report the way `marketplace-services-status` almost did.
 - The `companyAdd`/`GraphQLInputCompanyPosition`/`resetPwdFlow` divergences above are undocumented in code
   — nothing stops a future edit reconciling them by mistake; this ADR is presently the only place that
   states they are intentional.
