@@ -60,12 +60,12 @@ it: nothing in it is work still ahead. All seven stories are `built` and §6 has
 the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
 on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E10..E19; E01..E09 are the nine whose records sit
+stories live in `epics/ENN.md`, and that stays true for E11..E19; E01..E10 are the ten whose records sit
 beside the index instead of under it — E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26.
+2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
 
 **The story IDs did not change.** `E06-S01` … `E06-S07` keep their names. ⚠️ **This is the first of the six
 records to move with no citation in any other document at all** — `E06-S01`..`E06-S07` appear nowhere else

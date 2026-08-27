@@ -41,8 +41,9 @@ the ninth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
 still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
 became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
-`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E10..E19; E01..E09
-are the nine whose records sit beside the index instead of under it.
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E11..E19; E01..E10
+are the ten whose records sit beside the index instead of under it — E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
+moved 2026-08-27.
 
 **The story IDs did not change.** `E09-S01` … `E09-S09` keep their names and are cited as they are from
 [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2 and §4.

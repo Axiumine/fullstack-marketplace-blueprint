@@ -14,14 +14,14 @@ for the same reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) moved earlier t
 was work still ahead. Four of the five stories are `built`, and the fifth is an **anti-story** — a boundary
 to defend, not a task queue item — so the file had become the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E10..E19; E01..E09 are the nine whose records sit beside the index instead of under it —
+E11..E19; E01..E10 are the ten whose records sit beside the index instead of under it —
 E03's is [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) and E05's is [`CATALOGUE.md`](./CATALOGUE.md), all
 three moved 2026-08-14, E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and
 E07's is [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md), E08's is
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26.
+2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
 
 **The story IDs did not change.** `E02-S01` … `E02-S05` are cited by `SEQUENCE_DIAGRAMS.md` (via
 `CONFLICT_REPORT.md` §5's flow↔story map) and by this file's own cross-references. Every one of those

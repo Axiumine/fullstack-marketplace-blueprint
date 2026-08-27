@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-26
+**Version:** 1.3
+**Date:** 2026-08-27
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.3 - 2026-08-27: §5.12 and §5.13 both described a world that had moved. §5.12 replaces a three-repo sample and a *"4 repos still block on a missing token"* claim with all **fifteen** Cloud projects enumerated from each repo's scan artefact — ⚠️ including `marketplace-admin` = `VOZEg`, where this document and three others cite `1rylx` — and open question 4 closes on it: nothing stands on `SKIP_QODANA=1`. §5.13 rewritten after `ADR-037`: the package is published at `1.0.1`, so `deploy-local.sh` bridges *edited → released*, not *unpublished → published*, and a plain `yarn install` now silently undoes it. Open question 5 closes with it. Boundaries, actors and flows unchanged — only claims about them.
 v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
@@ -71,7 +72,7 @@ against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a
 |Protomaps PMTiles archive|static basemap tile source|`marketplace-user` browser ↔ nginx `/tiles/` (self-hosted static file)|vector map tiles via HTTP range requests — not a live 3rd-party tile server|
 |nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|three vhosts at `marketplace-nginx/` in the workspace root, exercised by `marketplace-nginx/test/run.sh`; still installed on no host|
 |Qodana Cloud (JetBrains)|static-analysis SaaS|every repo's `pre-commit`/`pre-push` hook → Qodana Cloud|SARIF-shaped scan report, one project + token per repo|
-|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency **except** `@axiumine/marketplace-common`, which 404s there|
+|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency, `@axiumine/marketplace-common` included — published at `1.0.1` since 2026-08-26 (`ADR-037`), where this row recorded a 404|
 
 ---
 
@@ -460,28 +461,57 @@ other two tiers looked missing rather than unwritten.
 
 One-directional outbound from every repo's `.githooks/pre-commit` and `.githooks/pre-push`. One Cloud
 project + one `QODANA_TOKEN` per repo, never shared — a shared token interleaves two repos' baselines
-(`docs/architecture.md` §Services, `README.md` §Linter version). Verified project ids:
-`marketplace-admin` = `1rylx` (`docs/frontends.md`), `marketplace-services-status` = `xPKXD` (`docs/frontends.md` §marketplace-services-status),
-`marketplace-db-setup` = `ObD0L` (`README.md:233`). 4 repos still block on a missing token —
-`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services — bypassed today with
-`SKIP_QODANA=1` (`PDR.md` §8, open question 8).
+(`docs/architecture.md` §Services, `README.md` §Linter version).
+
+⚠️ **Enumerated from disk 2026-08-27, replacing a three-repo sample and a claim that four repos had no
+project at all.** Fifteen code-shipping repos, fifteen distinct Cloud projects, each named by the
+`.qodana/results/open-in-ide.json` that repo's last scan wrote:
+
+|Repo|Cloud project|id|
+|---|---|---|
+|`marketplace-admin`|MP Admin|`VOZEg`|
+|`marketplace-shopowner`|MP Shop Owner|`Ggoyw`|
+|`marketplace-user`|MP User|`dXO5E`|
+|`marketplace-services-status`|MP Service Status|`xPKXD`|
+|`marketplace-common`|MP common|`b892b`|
+|`marketplace-db-setup`|MP DB setup|`ObD0L`|
+|`marketplace-dev-admin-authenticated-authorization`|MP Admin Authenticated Authorization|`YO2El`|
+|`marketplace-dev-admin-authenticated-resource`|MP Admin Authenticated Resource|`qbKvd`|
+|`marketplace-dev-authenticated-authorization`|MP Authenticated Authorization|`kwKvb`|
+|`marketplace-dev-authenticated-resource`|MP Authenticated Resource|`9kVGN`|
+|`marketplace-dev-authenticated-logout`|MP Authenticated Logout|`xPKvo`|
+|`marketplace-dev-public-authorization`|MP Public Authorization|`YO522`|
+|`marketplace-dev-public-resource`|MP Public Resource|`oDK2l`|
+|`marketplace-dev-user-authenticated-authorization`|MP User Authenticated Authorization|`B5NEV`|
+|`marketplace-dev-user-authenticated-resource`|MP User Authenticated Resources|`eobk1`|
+
+`marketplace-admin` is `VOZEg`, not the `1rylx` this section and three other documents cite. No repo
+stands on `SKIP_QODANA=1`; it is the one-shot operator bypass `README.md` describes, and the four repos
+named here as blocked on a missing token are not (`PDR.md` §8 item 8, closed 2026-08-27). ⚠️ The
+artefact records where the *last* scan uploaded, not live account state — a project deleted in the Cloud
+UI would still read as present on disk.
 
 ### 5.13 `yarn install` → npm registry, and the gap `deploy-local.sh` bridges
 
-`@axiumine/marketplace-common` is consumed as a package name by 9 services but is not
-published:
+`@axiumine/marketplace-common` is consumed as a package name by 9 services, and since 2026-08-26 it is
+also published — `registry.npmjs.org`, version `1.0.1`, consumers on `^1.0.1`
+([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes the
+publication half of `ADR-015`):
 
 ```json
 // BEs/marketplace-common/package.json:2
 "name": "@axiumine/marketplace-common",
 ```
 
-`registry.npmjs.org` 404s on that name (`docs/workflow.md` §Repo layout). Every other dependency of every repo
-here resolves normally against the real registry — this is the one exception, and it is bridged locally,
-not fixed: `BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json`
-straight into each consumer's `node_modules/@axiumine/marketplace-common/`, discovered by
-globbing this workspace. Skipping it after an edit leaves consumers compiling the previous build with no
-error at the call site.
+⚠️ **Rewritten 2026-08-27.** This paragraph read *"`registry.npmjs.org` 404s on that name"* and called
+the package the one dependency in the workspace that does not resolve. It resolves. The gap
+`deploy-local.sh` bridges is no longer *unpublished → published* but *edited → released*:
+`BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json` straight into
+each consumer's `node_modules/@axiumine/marketplace-common/`, discovered by globbing this workspace, so
+an edit reaches all 9 services before any release carries it. Two consequences, and the second is new:
+skipping the script after an edit leaves consumers compiling the previous build with no error at the
+call site — and a plain `yarn install` in any consumer now *undoes* the script, resolving `^1.0.1` from
+the registry and restoring the last released build over the local one, equally silently.
 
 ### 5.14 Data flow summary
 
@@ -524,6 +554,6 @@ error at the call site.
 |1|~~Does the `/api/register` SSR route that the apex vhost proxies get built, or does the block go?~~|platform owner|**closed — the block went.** Neither thing it claimed to add was missing: the Turnstile secret is already server-side and `guardPublicWrite` already limits per IP *and per email*, which no `$binary_remote_addr` zone can do. Both `location`s and the `mkt_register` zone are deleted, §5.11|
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
-|4|Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
-|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 5|
+|4|~~Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?~~|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
+|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published; `deploy-local.sh` stays.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)). The second half of the question answered no: the script is what carries an edit that has not been released yet, so publication changed what it bridges rather than retiring it (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

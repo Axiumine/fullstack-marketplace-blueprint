@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.2
-**Date:** 2026-08-26
+**Version:** 1.3
+**Date:** 2026-08-27
 **Author:** pdr-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-25: the catalogue paragraph's depth-cap citation was two versions stale — the guard now runs inside a transaction and takes a session — and "writes exist only in the Admin-tier resource service" is narrowed to the mutations, `holdItemCategory` having added one deliberate field-level exception.
+v1.3 - 2026-08-27: two facts this document asserted had stopped being true. Open question 8 is **closed — the 4 Qodana Cloud projects were never missing**, each named by the scan artefact on disk (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`); all fifteen code-shipping repos hold fifteen distinct projects, and no repo stands on `SKIP_QODANA=1`. §6's `marketplace-common` row corrected after `ADR-037`: the package is published at `1.0.1`, so `deploy-local.sh` bridges the gap between releases rather than the absence of one. Scope, boundaries and scores untouched.
 v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 ---
@@ -137,7 +138,7 @@ graph TD
 | Shallow history | history starts here; the working trees predate the first commit in each repo, so `git log` explains little |
 | Node `^24.18.0` hard gate under yarn classic | `.nvmrc` = `24.18.0`; a mismatch is `exit 1` with "The engine node is incompatible", not a warning — bump all 14 `package.json` in one sweep if it ever moves |
 | yarn everywhere, `packageManager` pinned in all 15 packages | the same `yarn@1.22.22+sha512.…` string in every `package.json`. It used to be in 7 of them, with the other 8 — `marketplace-common` and the seven original backend services — resolving to whatever yarn Corepack found on `PATH` |
-| `marketplace-common` unpublished, package-name-consumed | bridged by `BEs/marketplace-common/deploy-local.sh`; a fresh `yarn install` in any service still 404s until real publish |
+| `marketplace-common` consumed by package name at `^1.0.1` | ⚠️ **Corrected 2026-08-27 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"unpublished"* and *"a fresh `yarn install` in any service still 404s until real publish"*. It is published, on `registry.npmjs.org` at `1.0.1`, and `yarn install` resolves it. `BEs/marketplace-common/deploy-local.sh` is no longer a substitute for the registry but a bridge over it: it carries edits the registry has not released yet, and a plain `yarn install` puts the last released build back on top of them |
 | Migrations immutable | never edit an applied migration; `$jsonSchema` shapes live in `BEs/marketplace-db-setup/lib/schemas/`, shared across migrations that restate them — a schema change means a full rebuild of every DB that ran the migrations |
 | English-only naming, no exception | Identifiers, routes, UI text, comments, fixtures and migrations. The `en-GB` locale the SPAs format dates with is a market choice, not a name |
 | Tabs, not spaces | eslint `indent: ['error','tab']` AND prettier `useTabs: true` in all 13 linted repos — running only one used to reindent against the other |
@@ -174,7 +175,7 @@ Complete when a developer or operator can:
 | 5 | Does `marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh`? | platform owner | open |
 | 6 | ~~Is there an admin-facing nginx vhost for `marketplace-admin`/`marketplace-shopowner`?~~ | platform owner | **closed** — there was not, and one had never been written. `marketplace-nginx/sites-available/admin.marketplace-domain.com.conf` and `shopowner.marketplace-domain.com.conf` now exist, each terminating TLS for its own hostname |
 | 7 | `marketplace-dev-public-resource/package.json` pins `@axiumine/koa-utils: ^5.9.0` (verified `BEs/dev/marketplace-dev-public-resource/package.json:38`) while `koa-utils` 5.9.0 is committed but unpushed by user instruction (`TODO`) — `yarn install` fails there until it is published. Publish timeline? | platform owner | open, blocking |
-| 8 | 4 repos (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have a `qodana.yaml` and no Cloud project — Qodana step blocks on missing `QODANA_TOKEN`, bypassed today with `SKIP_QODANA=1`. Who creates the 4 projects? | platform owner | open |
+| 8 | ~~4 repos (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) have a `qodana.yaml` and no Cloud project — Qodana step blocks on missing `QODANA_TOKEN`, bypassed today with `SKIP_QODANA=1`. Who creates the 4 projects?~~ | platform owner | **closed 2026-08-27 — nobody has to; the 4 projects exist.** Each of the fifteen code-shipping repos uploads to its own Cloud project, named on disk by the `.qodana/results/open-in-ide.json` its last scan wrote: `MP Service Status` (`xPKXD`), `MP User` (`dXO5E`), `MP User Authenticated Authorization` (`B5NEV`), `MP User Authenticated Resources` (`eobk1`). No repo stands on `SKIP_QODANA=1`. Detail in [`NFR.md`](./NFR.md) §7 question 4 |
 | 9 | Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application-layer check? | platform owner / DBA | not verified, explicitly logged as such in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) §Not verified |
 
 ---
@@ -194,4 +195,4 @@ Minor updates, no CR needed:
 - New product types that are genuinely `item` + a new `idCategory` value, following the existing seam.
 - New Papa-Agent-style resolvers/queries within an existing service, following the existing `queries/` `mutations/` layout.
 - Wording clarifications to this document that do not move a scope boundary.
-- Adding a Qodana Cloud project to one of the 4 repos currently blocked on `SKIP_QODANA=1` (open question 8) — operational, not scope.
+- Provisioning or re-provisioning a repo's Qodana Cloud project — operational, not scope. (The 4 repos this line named as blocked on `SKIP_QODANA=1` were not; open question 8 closed 2026-08-27.)

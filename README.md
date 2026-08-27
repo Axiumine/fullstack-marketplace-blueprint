@@ -235,10 +235,13 @@ meant deleting eight guards no input could reach — a `typeof value === 'string
 `.toLowerCase()` the WHATWG URL parser had already applied — which is the same "delete the dead code"
 verdict `marketplace-db-setup` reached, one repo over.
 
-⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step
-**blocks today**, because `marketplace-services-status` has no Cloud project and therefore no `QODANA_TOKEN` — it
-prints the fixing command and exits 1, exactly as designed, so a commit here needs `SKIP_QODANA=1` until
-the user creates one (the placeholder key is in `marketplace-services-status/env`). And this repo has **no
+⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step scans
+`marketplace-services-status` and uploads to its own Cloud project, `MP Service Status` (`xPKXD`) — the
+scan artefact under `marketplace-services-status/.qodana/results/` is the proof it got there. It **no
+longer blocks**: this paragraph said it did, because that project did not exist when it was written, and
+`SKIP_QODANA=1` went from a standing workaround back to the one-shot bypass it is described as below. The
+hook still fails closed if the token goes missing — it prints the fixing command and exits 1, by design.
+And this repo has **no
 `package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
 fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one restores
 it never. After a fresh clone of this directory, run the line by hand or all three gates and the secret
@@ -341,12 +344,14 @@ running `test/suite.sh`, which is the gate that fits what it does ship. **Every 
 something on push, and that is the invariant to keep.** A new repo without a config and without a hook
 is silently outside every layer described above.
 
-⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
-missing `QODANA_TOKEN` rather than passing: `marketplace-services-status`, `marketplace-user` and the two
-`*-user-authenticated-*` services, all built after the Cloud projects were created. Creating a project is
-the user's call; until then those four commit with `SKIP_QODANA=1`, and the coverage and mutation gates
-still run. **Do not point them at an existing repo's token** — that is exactly the interleaving described
-above.
+⚠️ **All fifteen have a config and a project of their own to upload it to** — verified 2026-08-27 from
+the `.qodana/results/open-in-ide.json` each repo's last scan left behind. This paragraph used to name
+four that had a config and nowhere to send it (`marketplace-services-status`, `marketplace-user` and the
+two `*-user-authenticated-*` services, all built after the first Cloud projects were created); they are
+`xPKXD`, `dXO5E`, `B5NEV` and `eobk1`, and no repo commits with `SKIP_QODANA=1` as its normal mode. The
+full repo → project table is in [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](./docs/devprotocol/phase1/SYSTEM_CONTEXT.md)
+§5.12. **Do not point a new repo at an existing repo's token** — that is exactly the interleaving
+described above, and it is the reason each of the fifteen has its own.
 
 ### The mutation layers
 

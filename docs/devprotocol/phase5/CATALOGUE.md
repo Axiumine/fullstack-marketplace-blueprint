@@ -41,12 +41,12 @@ the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
 (E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
 rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that
-stays true for E10..E19; E01..E09 are the nine whose records sit beside the index instead of under it —
+stays true for E11..E19; E01..E10 are the ten whose records sit beside the index instead of under it —
 E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's, E08's and E09's
 are [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26.
+2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
 
 **The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from
 `COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `EPICS_STORIES.md`, `CONFLICT_REPORT.md`,

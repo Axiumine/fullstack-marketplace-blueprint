@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.38
-**Date:** 2026-08-26
+**Version:** 1.39
+**Date:** 2026-08-27
 **Author:** epics-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - added E12-E18, the remediation backlog for `docs/report/token-handling-security-audit.md` v1.1.
@@ -255,6 +255,14 @@ incremented from a number that was never written down.
 **Mutability:** living document - refined every sprint
 v1.37 - 2026-08-26, later still: **E19's §1 row stops saying erasure exists on no tier.** `userDel` was built that day on the customer tier and `user.deleted_ttl` — a 30-day TTL index on the collection E19-S01 indexed — landed with it, so the stamp is carried out rather than kept. No story of this epic changed and no epic opened: the Admin counterpart to `shopOwnerDel` is still absent, which is what E19 §Open questions 3 now carries alone.
 
+v1.39 - 2026-08-27: **E10's record leaves `epics/`, the tenth and the first that was not a phase-5 story problem.**
+`phase5/epics/E10.md` is deleted and its body becomes [`SHARED_KERNEL.md`](./SHARED_KERNEL.md) beside this index,
+named for BC-10 as the nine before it are named for theirs. `epics/` now holds `E11..E19`. Both of E10's open
+questions closed the same day: the 4th-tier fork is **moot** — the owner is adding no further backend, so the
+authorization-service consolidation stays decided as it is (ADR-002, NFR-AV01) — and the Qodana Cloud project is
+**provisioned**, `MP common`/`b892b`, named by the scan artefact on disk. ⚠️ Two claims in the body were also
+corrected rather than relocated: `ADR-037` had already made the *"publishing 404s by design"* scope row and
+E10-S03's second acceptance criterion false. No story added, removed or re-scoped; all 7 stay `built`.
 v1.38 - 2026-08-26, last that day: **E09's record leaves `epics/` and becomes
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md)** — the ninth to move, and
 the first to move on a decision that supersedes an ADR rather than on a question answered inside phase 5.
@@ -278,7 +286,7 @@ moved carry the corrected range in their own §0.
 Index only. Stories live in `epics/ENN.md` - one file per epic, written by 4 parallel agents, never inline
 here. This file lists the 19 epics, states build state against the working tree, and links out.
 
-**Nine exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+**Ten exceptions, all since 2026-08-13:** E01's record is [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 E02's is [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md), E03's is
 [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md), E04's is
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), E05's is [`CATALOGUE.md`](./CATALOGUE.md) (those
@@ -286,7 +294,8 @@ three 2026-08-14), E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) (20
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) (2026-08-26), E08's is
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) (2026-08-26, later the same day) and
 E09's is [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) (2026-08-26,
-later still), beside this index rather than under `epics/`. All fifteen of E01's stories are `built`,
+later still) and E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md) (2026-08-27), beside this index rather
+than under `epics/`. All fifteen of E01's stories are `built`,
 E02's four built stories sit next to one anti-story - a boundary to defend, not work ahead - all eight of
 E03's are `built` with its last open question closed the day it moved, all eight of E04's are too, all
 nine of E05's are `built` with both of its open questions closed the day it moved, all seven of E06's
@@ -294,10 +303,13 @@ are `built` with its own last two closed the day it moved, and all eleven of E07
 closed a day apart, all ten of E08's are `built` with its one remaining question moved to the file
 that owns it rather than answered here, and all nine of E09's are `built` with one question moved the same
 way and the other closed outright by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md),
-so all nine read as the
+and all seven of E10's are `built` with both of its open questions closed the day it moved — the 4th-tier
+fork answered moot by the owner, the Qodana Cloud project answered provisioned by the scan artefact that
+names it — so all ten read as the
 record of a shipped surface rather than a backlog entry. The story IDs `E01-S01`..`E01-S15`,
 `E02-S01`..`E02-S05`, `E03-S01`..`E03-S08`, `E04-S01`..`E04-S08`, `E05-S01`..`E05-S09`,
-`E06-S01`..`E06-S07`, `E07-S01`..`E07-S11`, `E08-S01`..`E08-S10` and `E09-S01`..`E09-S09` are unchanged and
+`E06-S01`..`E06-S07`, `E07-S01`..`E07-S11`, `E08-S01`..`E08-S10`, `E09-S01`..`E09-S09` and
+`E10-S01`..`E10-S07` are unchanged and
 are still what the citing files cite - see each file's §0. E06 is the one set no document cites at all: its
 only two references anywhere are code comments in `marketplace-admin`, both naming `E06-S07`. ⚠️ **E07 and E08 both moved
 while part of them was days old** - E07-S10 and E07-S11 landed in the week before their move, E08-S10 the
@@ -323,7 +335,7 @@ column above is a reading aid. See §2.1 for why E12-E18, and E19 after them, ar
 | E07 | Customer Account & Addresses | BC-07 | User | Built - identity/account only, no commerce | `marketplace-common`, `marketplace-db-setup`, `marketplace-dev-user-authenticated-resource`, `marketplace-dev-user-authenticated-authorization`, `marketplace-dev-public-resource`, `marketplace-user` | [CUSTOMER_ACCOUNT_ADDRESSES.md](./CUSTOMER_ACCOUNT_ADDRESSES.md) - not under `epics/`, see §1 |
 | E08 | Public Discovery / SSR Storefront | BC-08 | anonymous | Built | `marketplace-dev-public-resource`, `marketplace-user` | [PUBLIC_DISCOVERY_STOREFRONT.md](PUBLIC_DISCOVERY_STOREFRONT.md) |
 | E09 | Platform Operations & Quality Gates | BC-09 | cross-cutting - engineering concern, not a business tier | Built | all 16 repos' `.githooks/`, `marketplace-db-setup` (migration pipeline), `marketplace-services-status` | [PLATFORM_OPERATIONS_QUALITY_GATES.md](PLATFORM_OPERATIONS_QUALITY_GATES.md) |
-| E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built | `marketplace-common` | [E10.md](epics/E10.md) |
+| E10 | Shared Kernel (marketplace-common) | BC-10 | cross-cutting - consumed by all 9 backend services | Built - 7 of 7, both open questions closed 2026-08-27 | `marketplace-common` | [SHARED_KERNEL.md](./SHARED_KERNEL.md) - not under `epics/`, see §1 |
 | E11 | Ordering & Fulfilment [PLANNED - NOT BUILT] | BC-11 | User (intended, unbuilt) | **The context is not built and nothing here designs it** - no collection, no resolver, no price. Its one story is a *recording* story and **E11-S01 is `built` 2026-08-13**: the two criteria were run against the working tree and both found drift - BC-11 quoted `item.js` with a sentence that file does not contain, and the schemas listing was three entries stale. Neither changed a claim. §6 question 4 stays although it fails the "traceable upstream" criterion, because it is a tier-topology question rather than a commerce design and deleting it would hide a blocker | none | [E11.md](epics/E11.md) |
 | E12 | Telemetry & Egress Hardening | hardens BC-09 | cross-cutting - all 9 backend services + the edge | Built - 26 of 26, closed 2026-08-11. E12-S12 and E12-S13 ran against the running Dev stack and found eight defects the static audit could not, which are the new E12-S16 … E12-S23, checking one of those against the frontends added E12-S24, the owner's log-retention answer added E12-S25, and the owner refusing to accept E12-S16's residual added E12-S26 — the customer reset link moves into the URL fragment, out of every log and cache at once, and its cache half is already built. **Every defect either investigation found is fixed**, the 🔴 among them: no service with a `DSN` set ships a request body any more, and E12-S24's browser capture closed the last one — the address bar, query string and fragment included, was reaching Sentry from all three frontends in five distinct places, and `urlQueryParams: false` never gated it. **One item is still not this repo's to close:** E12-S15's config is in the repo but Authenticated Origin Pulls must be switched on in Cloudflare **before** it is deployed, or every handshake fails from the reload. See [E12.md](epics/E12.md) §7 | all 9 backend services, `marketplace-common`, `marketplace-nginx`, `marketplace-docker-DBs`, `marketplace-user`, `marketplace-admin`, `marketplace-shopowner` | [E12.md](epics/E12.md) |
 | E13 | Session-Store Hardening & Recorded Decisions | hardens BC-01, BC-09, BC-10 | cross-cutting | **11 of 11 built** - ten on 2026-08-10, **E13-S10 on 2026-08-14**. It deleted the dual-read fallback, the `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` across nine repos, reduced the dual delete to one key, and **inverted rather than deleted** the six E13-S02 tests, so an old-shape key now has a test proving it does *not* authenticate. ⚠️ **Both of its gates — the cutover date plus 90 days, and a zero counter — were moot: the platform has never been deployed**, so no pre-cutover session ever existed and the counter key was never created. `BGREWRITEAOF` run the same day; `RISK_REGISTER` R51 closed. See [E13.md](epics/E13.md) §7 | `marketplace-common`, `marketplace-dev-authenticated-logout`, the three resource services, the four authorization services, `docs/` | [E13.md](epics/E13.md) |
