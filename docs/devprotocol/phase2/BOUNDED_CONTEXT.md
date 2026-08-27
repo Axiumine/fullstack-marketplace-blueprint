@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
+**Version:** 1.14
 **Date:** 2026-08-27
 **Author:** bounded-context-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.14 - 2026-08-25: BC-06's responsibility line said "Admin-only writes; every other tier reads only". The three mutations are still Admin-only, but `holdItemCategory` on the ShopOwner tier writes `__v` on a category inside every item write, on purpose, to close a write-skew window against `itemCategoryDel`. The line now says which of the two claims holds and BC-05 is named as the other half. The depth-cap example was stale by two versions and is replaced with the transaction the guard actually runs in. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.8`, which the 2026-08-14 entry further down already held — two different edits under one number, and a citation of "BOUNDED_CONTEXT v1.8" could not be resolved. It takes the next free number instead, which puts it out of date order at the top of this list and in the right place in the version order. Nothing in the entry itself, or in the document, changed with the renumber. No other document cited either number.
 v1.13 - 2026-08-27, later the same day: BC-10's boundary row said a `yarn install` *silently restores the last released
 build over a deployed one* with no condition attached, and its mitigation cell did not say that no install invokes the
 script. Both corrected. The boundary is unchanged - so is every context, aggregate and relationship.
@@ -16,7 +17,6 @@ undoes it. v1.11's anti-corruption row stands. No context, boundary or relations
 v1.11 - 2026-08-27: BC-10's anti-corruption row justified the `deploy-local.sh` boundary on the package being *on no registry at all*. `ADR-037` published it on 2026-08-26, so the row is restated on the premise that survives: the registry carries releases, the script carries edits, and a `yarn install` undoes the script. The boundary itself is unchanged - so is every context, aggregate and relationship.
 v1.10 - 2026-08-25: BC-07's "no lever exists after registration either" was true for one day. E19 built `userUpdateStatus`, `usersActiveTbl` and the `/customers` screen the same day the gap was written down, so the paragraph names the writer and the table instead of the hand-made MongoDB write. The approval-gate half of the paragraph is unchanged and still permanent.
 v1.9 - 2026-08-25: BC-07 gains the answer to the question E07 §6 said it did not carry — a customer tier with no approval gate is the permanent design, not a starting point, and `user.disabled` is read by every gate and written by nothing.
-v1.8 - 2026-08-25: BC-06's responsibility line said "Admin-only writes; every other tier reads only". The three mutations are still Admin-only, but `holdItemCategory` on the ShopOwner tier writes `__v` on a category inside every item write, on purpose, to close a write-skew window against `itemCategoryDel`. The line now says which of the two claims holds and BC-05 is named as the other half. The depth-cap example was stale by two versions and is replaced with the transaction the guard actually runs in.
 v1.1 - 2026-08-11: the Mutability line drops team sign-off (single developer) and states the route for
 *adding* a context, which it never described — the gap that left a proposed BC-12 with nowhere to go. That
 BC-12 is **withdrawn** and is not coming: it was proposed only to give E16 and E17 a context to own under an

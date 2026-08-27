@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.31
+**Version:** 1.32
 **Date:** 2026-08-27
 **Author:** risk-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.32 - 2026-08-25: R19's mitigation cited `funItemCategoryAdd.mts:24`, which is docblock prose and the
+wrong file for `throwIfParentNotTopLevel` — corrected to the guard itself and both of its call sites. The
+same cell said writes exist only in the Admin resource service "by convention": still true of the three
+mutations, no longer true of the collection, since `holdItemCategory` writes `__v` from the ShopOwner tier.
+The residual gap is unchanged and the score with it — a second *mutation* is still the thing nothing
+structural stops. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.21`, which the 2026-08-14 entry further down already held — two different edits under one number, and a citation of "RISK_REGISTER v1.21" could not be resolved. It takes the next free number instead, which puts it out of date order at the top of this list and in the right place in the version order. No risk, score, category, owner or status changed with the renumber, and no other document cited either number.
 v1.31 - 2026-08-27, later still: R15's v1.30 trigger over-reached. It read *"every `yarn install` in a consumer"* flat,
 which reads as a standing coupling between installing and `deploy-local.sh`. There is none: across all 16 repos the only
 install-time lifecycle script is `prepare` (git-hooks wiring plus `scripts/lockfile-registry-filter.sh`, an unrelated
@@ -20,12 +26,6 @@ owner unchanged; no other row touched.
 v1.29 - 2026-08-27, later still: **R37's mitigation prose is corrected, the closure stands.** The `^6.0.0` pin v1.28 cited as the current one no longer exists anywhere: the eight services still on it, and `marketplace-common`'s devDependency, were bumped to `@axiumine/koa-utils@^7.0.0`, each with a `yarn install` whose lockfile diff moved only the `koa-utils` entry and each repo's suite green afterwards. This is the *opposite* of the risk R37 named - every `@axiumine/*` pin in the workspace now sits on a published version, and the newest one. The trigger is kept unchanged in its general form. Score, category and every other row untouched.
 v1.28 - 2026-08-27, later the same day: **R37 closes** - `@axiumine/koa-utils` is on `registry.npmjs.org` through `7.0.0`, so the actively-blocking `yarn install` failure it described has nothing left to block; the `^5.9.0` pin it cited is stale too, the service being on `^6.0.0`. `PDR.md` §8 item 7 closes with it. ⚠️ Closed on registry state read on 2026-08-27, not on a `yarn install` that was run - the trigger is kept in its general form, any `@axiumine/*` pin ahead of what is published. Score unchanged; no other risk touched.
 v1.27 - 2026-08-27: **R38 closes.** It carried three repos whose Qodana provisioning was "not confirmed fixed on disk this session"; all three are provisioned (`dXO5E`, `B5NEV`, `eobk1`), and so are the other twelve - fifteen repos, fifteen distinct Cloud projects, each named by its own scan artefact. The residual risk the row described - a repo silently standing on `SKIP_QODANA=1` - has no repo left to apply to. ⚠️ Closed on artefact evidence, which shows where the *last* scan uploaded rather than live account state, so the trigger is kept and inverted: a `pre-push` reporting `SKIP_QODANA=1`, or an upload that starts failing, re-opens this. Score and category unchanged; no other risk touched.
-v1.21 - 2026-08-25: R19's mitigation cited `funItemCategoryAdd.mts:24`, which is docblock prose and the
-wrong file for `throwIfParentNotTopLevel` — corrected to the guard itself and both of its call sites. The
-same cell said writes exist only in the Admin resource service "by convention": still true of the three
-mutations, no longer true of the collection, since `holdItemCategory` writes `__v` from the ShopOwner tier.
-The residual gap is unchanged and the score with it — a second *mutation* is still the thing nothing
-structural stops.
 v1.1 - 2026-08-11: R25 mitigation is no longer "None". The platform owner took the first concrete decision
 inside NFR-CO02 — log retention and a privacy-policy statement (`epics/E12.md` §6). Score unchanged: the
 decision covers two files, and the risk is about `user.personalData`.
