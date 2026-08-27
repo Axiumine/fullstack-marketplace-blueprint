@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-26
 **Author:** adr-agent
 **Changelog:**
@@ -27,7 +27,6 @@ missing (`phase5/epics/E19.md`) reads clear fields only, so the temptation it cr
 city queryable so the customers table can sort and search like the shop-owner one — is refused in the same
 words ADR-029 refuses the opposite move on `shopOwner`. Neither is an architectural choice this platform
 stands on, so neither became an ADR
-v1.6 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed. Four accepted ADRs carried the same number and were corrected with it — **ADR-018** §Consequences, **ADR-030** §Consequences (which claimed every pushed revision had had 168 assertions run against it, a false gate claim), **ADR-032** §Context and this index §5. No ADR's decision, status or consequence changed; only a number that had stopped being true.
 
 v1.5 - 2026-08-26: ADR-035 added — `user.addresses` is capped at six, and the cap is written twice on
 purpose: `maxItems` in the validator is the rule, the service's copy exists only to make the refusal a 400
@@ -71,6 +70,7 @@ one name in §3's **Build and quality gates** line, one clarifying clause in §5
 no entry was skipped. §5's git-hosting gap is **not** closed by ADR-037 and gains a clause saying so — where
 the sixteen *repositories* live is a different question from which *registry* one npm package ships to, and
 ADR-037 §Compliance lists conflating them as a violation
+v1.10 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed. Four accepted ADRs carried the same number and were corrected with it — **ADR-018** §Consequences, **ADR-030** §Consequences (which claimed every pushed revision had had 168 assertions run against it, a false gate claim), **ADR-032** §Context and this index §5. No ADR's decision, status or consequence changed; only a number that had stopped being true. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "ADR-INDEX.md v1.6" could not be resolved to one of them. It takes the next free number instead. It is placed at the end, which is where this oldest-first list now carries it — it had been sitting between `v1.4` and `v1.5`, out of sequence as well as out of number. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 
 ## 1. How to use this index
 

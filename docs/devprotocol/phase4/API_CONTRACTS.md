@@ -2,17 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-26
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.2`, which another entry in this changelog already held — two different edits under one number, and a citation of "API_CONTRACTS.md v1.2" could not be resolved to one of them. It takes the next free number instead. It is placed by version rather than by date, so this list stays descending from its header. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v1.5 - 2026-08-26: `userAddressAdd` gains a refusal it did not have — `addresses` is capped at six by the
 collection validator, so a well-formed address can now answer 400. §6.2's row says so and a note below the
 table records why the guard is a filter clause rather than a count taken first, and the two `sanitizeFilter`
 traps that decide its shape.
 v1.4 - 2026-08-25: the seven operations v1.3 named as E16's and E17's gap are documented here instead of left open — three queries (`keygripStatus`, `sessions`, `reuseEvents`) and four mutations (`keygripRotate`, `keygripRetire`, `revokeSession`, `revokeAllSessions`), read off the resolvers. Two corrections came out of it: **`revokeAllSessions` answers `Int!`**, so v1.3's recounted "all twenty-two answer `Boolean!`" was wrong about the verb even though the count was right; and v1.3's `usersActiveTbl` row had been inserted in §5.2, the ShopOwner tier's table, rather than in §6.2 where the query lives. The row is moved.
 v1.3 - 2026-08-25: §6.2 gains the two operations E19 built — `usersActiveTbl` and `userUpdateStatus`, the first `user*` pair on the Admin tier. The "All seventeen answer `Boolean!`" line was counting the table, not the directory, and is recounted from the working tree to twenty-two; the four mutations and three queries it was missing — E17's session console and E16's key custody surface — are named as those epics' gap rather than filled in here. Both `mutations.mts` and `queries.mts` citations were stale by a version and now name the field blocks.
-v1.2 - 2026-08-25: §6.2's "the only tier that writes `itemCategory`" and §6.3's `itemCategories` row are restated — Admin owns every mutation, and the ShopOwner tier writes `__v` alone through `holdItemCategory`. The depth-cap citation pointed at `funItemCategoryAdd.mts:24`, docblock prose in the wrong file, and now names the guard and both call sites.
 v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
 write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
 serves follow from it; the operator's read of `personalData` is now nullable.

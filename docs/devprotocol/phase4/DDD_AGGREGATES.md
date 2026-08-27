@@ -2,12 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-26
 **Author:** ddd-agent
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅ · BOUNDED_CONTEXT.md ✅ · UBIQUITOUS_LANGUAGE.md ✅
 **Mutability:** careful — changing aggregate boundaries affects data and code
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.9 - 2026-08-25: the `ItemCategory` aggregate's "write path exists ONLY in the Admin resource service"
+invariant is restated. The three mutations still do; the collection has a second writer, `holdItemCategory`
+on the ShopOwner tier, which `$inc`s `__v` and nothing else so that an item write and a concurrent
+`itemCategoryDel` collide rather than skew. The depth-cap example was also stale — it predated the
+transaction both guards now run inside. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "DDD_AGGREGATES.md v1.6" could not be resolved to one of them. It takes the next free number instead. It is placed by version rather than by date, so this list stays descending from its header. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v1.8 - 2026-08-26: `UserAggregate` gains a second DB-enforced invariant, AT_MOST_SIX_ADDRESSES (ADR-035). It belongs
 next to the pointer invariant for the same reason: one document holds the whole array, so the array's growth
 is the document's growth, and the append is guarded inside the write that performs it. ADR-029 is why it is
@@ -16,11 +21,6 @@ v1.7 - 2026-08-25: `UserAggregate` listed six commands, all of them the customer
 write at all. E19 built one: `userUpdateStatus`, Admin-tier, `disabled` only, ending every session of the
 account it suspends. Added to Commands with the service it actually lives in, and its two outcomes plus the
 session revocation added to Events emitted.
-v1.6 - 2026-08-25: the `ItemCategory` aggregate's "write path exists ONLY in the Admin resource service"
-invariant is restated. The three mutations still do; the collection has a second writer, `holdItemCategory`
-on the ShopOwner tier, which `$inc`s `__v` and nothing else so that an item write and a concurrent
-`itemCategoryDel` collide rather than skew. The depth-cap example was also stale — it predated the
-transaction both guards now run inside.
 v1.1 - 2026-08-12: §10 question 6 closed — Conformist by design and permanent, no ACL for either
 aggregate. One `$jsonSchema` builder per collection is a Shared Kernel; the gap was field scope, and
 E01-S10 / CON-12 closes it with a named list plus lint rather than a mapper.

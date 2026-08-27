@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-26
 **Author:** event-storming-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.8 - 2026-08-25: §2.3's `itemCategory` note said the ShopOwner and public tiers never write the tree. The public tier still does not; the ShopOwner tier writes `__v` on one category per item write, deliberately (`holdItemCategory`), and the note now says so. Its code example predated the transaction the depth-cap guard runs in and is replaced. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v1.5`, which the 2026-08-14 entry further down already held — two different edits under one number, and a citation of "EVENT_STORMING.md v1.5" could not be resolved to one of them. It takes the next free number instead, and is placed by version rather than by date so this list stays descending from its header. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v1.7 - 2026-08-26: §2.6 gains "Add Refused — Address Book Full", the one refusal on this aggregate that is
 not about ownership, and the policy behind it: the database caps `addresses` at six and the service turns
 that into a 400 naming the number.
@@ -13,7 +14,6 @@ v1.6 - 2026-08-25: §2.1 showed the customer lifecycle with no operator in it at
 `user` aggregate was the customer's own. E19 built `userUpdateStatus`; its command, its two outcomes and
 the session revocation that follows a suspension are added to the flow, with the policy pair in §3. Also
 records what it does not do: nothing sets `deleted` on a `user`, and restoring revokes nothing.
-v1.5 - 2026-08-25: §2.3's `itemCategory` note said the ShopOwner and public tiers never write the tree. The public tier still does not; the ShopOwner tier writes `__v` on one category per item write, deliberately (`holdItemCategory`), and the note now says so. Its code example predated the transaction the depth-cap guard runs in and is replaced.
 v1.1 - 2026-08-12: E03-S08 built the self-service registration §2.2 recorded as absent. That flow, its
 activation route and the events they produce are added; hotspots 1 and 3 and questions 1 and 3 close.
 Hotspot 2 stays open but stops claiming no mutation writes the onboarding fields — `shopOwnerUpdatePreferences`
