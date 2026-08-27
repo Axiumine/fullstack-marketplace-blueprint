@@ -224,18 +224,18 @@ SSR half of `marketplace-user` is the one deliberate loopback-only bind on the p
 
 ### BC-09 - Platform Operations & Quality Gates
 **Responsibility:** Keeps every other context honest at commit/push time - coverage, mutation score, lint, Qodana, and the migration pipeline that changes the shape every context above builds on.
-**Owns:** `BEs/marketplace-db-setup/migrations/` (immutable once applied) and `lib/schemas/*.js` (the actual builders, restated by every migration that touches a collection), `.githooks/pre-commit` + `.githooks/pre-push` in the 15 gated repos, each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`, `services-status` (`services-status/src/server.ts`, `services-status/src/systemd.ts`, `services-status/src/monitor.ts` - the odd one out: tracked by the parent repo, no repo of its own, gated from the parent's own hooks rather than its own).
+**Owns:** `BEs/marketplace-db-setup/migrations/` (immutable once applied) and `lib/schemas/*.js` (the actual builders, restated by every migration that touches a collection), `.githooks/pre-commit` + `.githooks/pre-push` in the 15 gated repos, each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`, `marketplace-services-status` (`marketplace-services-status/src/server.ts`, `marketplace-services-status/src/systemd.ts`, `marketplace-services-status/src/monitor.ts` - the odd one out: tracked by the parent repo, no repo of its own, gated from the parent's own hooks rather than its own).
 **Produces:** pass/fail gate signals (coverage, mutation, lint, Qodana), migration `up`/`down` pairs, service-liveness probes.
 **Consumes:** nothing from the domain contexts above except their source trees to scan and their test suites to run.
 **Does not own:** any domain collection's runtime data - it owns the *shape* (via migrations) and the *proof of correctness* (via gates), never a live document.
 
-`services-status` had a gate that was never wired - the mode bug that made it silent is the platform's canonical cautionary tale for this context:
+`marketplace-services-status` had a gate that was never wired - the mode bug that made it silent is the platform's canonical cautionary tale for this context:
 ```
 qodana.sh committed at mode 100644 (should be 100755) -> died with "Permission denied" before
 reaching Qodana -> exited non-zero with no results directory -> both hooks reported
 "Qodana failed" pointing at a SARIF that was never created. A chmod, rendered as a finding.
 ```
-(`docs/frontends.md` §marketplace-user, ⚠️ "`services-status/qodana.sh` must stay mode `100755`").
+(`docs/frontends.md` §marketplace-user, ⚠️ "`marketplace-services-status/qodana.sh` must stay mode `100755`").
 
 ---
 

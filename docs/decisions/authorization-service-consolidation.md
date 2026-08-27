@@ -114,7 +114,7 @@ since nothing dispatches on a role read out of the session.
 down. Deploying a ShopOwner-only change redeploys Admin and User. Three ports become one, so the
 per-tier blast radius of a bad release disappears. Medium migration cost: `env` and `MONGO_TEST_*`
 reconciliation across three repos, three frontend config commits, nginx location blocks,
-`services-status` entries and systemd units, GitNexus group membership, and two repos retired.
+`marketplace-services-status` entries and systemd units, GitNexus group membership, and two repos retired.
 
 ### (c) Three services, shared code moved into `marketplace-common` — **CHOSEN**
 
@@ -160,7 +160,7 @@ in [`CLAUDE.md`](../../CLAUDE.md) changed first, which is a separate decision.
 
 ## What (c) does not change
 
-- Three ports (4025 / 4029 / 4031), three repos, three systemd units, three `services-status` entries.
+- Three ports (4025 / 4029 / 4031), three repos, three systemd units, three `marketplace-services-status` entries.
 - No frontend change of any kind. Endpoint constants, the vite proxies, `authExchange`, the `Refresh`
   document and the `ssr: false` boundary all stay as they are.
 - No nginx change. The per-path `mkt_auth` zones keep their current meaning.

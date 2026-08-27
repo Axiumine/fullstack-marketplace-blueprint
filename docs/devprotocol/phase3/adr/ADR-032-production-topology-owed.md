@@ -43,7 +43,7 @@ Put together: **the nine services answer on every interface of whatever host the
 these sixteen repos says which interfaces that host has.** nginx proxying them over loopback describes
 how the proxy finds them, not who else can.
 
-The data tier is in the same state, one step worse. `docker-DBs/` is explicitly dev-only — ports bind
+The data tier is in the same state, one step worse. `marketplace-docker-DBs/` is explicitly dev-only — ports bind
 `127.0.0.1`, there is no TLS, and its own `CLAUDE.md` says not to add a staging or production profile
 there. So the MongoDB replica set and Redis that production runs against are not described anywhere at
 all: not which host, not which network, not whether the `redis://` above crosses a switch or a loopback
@@ -118,7 +118,7 @@ must be written here before it may be relied on anywhere.
 ### Risks
 - **Risk:** the first production deployment happens and this ADR is not written, so the topology becomes
   whatever the deploy did. Revisit condition: any host provisioned to run a service, Redis or MongoDB
-  outside `docker-DBs/`, which is dev-only by its own decision.
+  outside `marketplace-docker-DBs/`, which is dev-only by its own decision.
 - **Risk:** a future mitigation is written against an assumed boundary, undoing the rule above. Revisit
   condition: any control whose argument contains "not reachable from outside" without citing a
   superseding ADR that says so.

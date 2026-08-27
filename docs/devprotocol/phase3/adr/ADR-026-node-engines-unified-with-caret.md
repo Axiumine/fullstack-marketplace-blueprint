@@ -12,7 +12,7 @@
 ## Context
 
 Polyrepo, 16 repos (`docs/workflow.md` §Repo layout), 15 `package.json` on disk under this workspace — 14 sub-repos
-plus `services-status/package.json` (parent-tracked, no repo of its own). Node pinned via `engines.node` in
+plus `marketplace-services-status/package.json` (parent-tracked, no repo of its own). Node pinned via `engines.node` in
 14 of them; the parent workspace has none.
 
 Before this decision `engines.node` was spelled four ways: `^24.14.0`, `^24.14`, `24.14`, `24.14.0`, and
@@ -35,7 +35,7 @@ switching via nvm`).
 `yarn@1.22.22+sha512.…` string everywhere, verified via `grep -l '"packageManager"' */package.json
 BEs/*/package.json BEs/dev/*/package.json` returning 15 files. It was in 7 when this ADR was written
 (`marketplace-db-setup`, the two `*-user-authenticated-*` services, the three frontends and
-`services-status`); `marketplace-common` and the seven original backend services resolved to whatever
+`marketplace-services-status`); `marketplace-common` and the seven original backend services resolved to whatever
 yarn Corepack found on `PATH`, which is a different yarn per developer for the repos that publish and
 consume `@axiumine/marketplace-common`. It stays orthogonal to this ADR: `packageManager` fixes the
 yarn binary, `engines.node` fixes the Node runtime the gates and the app run under.
@@ -72,7 +72,7 @@ close.
 
 ### Positive
 - One string, `^24.18.0`, greppable across all 14 `package.json` — verified present in all 14 sub-repos
-  plus `services-status/package.json` (15 total, parent workspace excluded, matching [`docs/workflow.md`](../../../workflow.md) §Commands
+  plus `marketplace-services-status/package.json` (15 total, parent workspace excluded, matching [`docs/workflow.md`](../../../workflow.md) §Commands
   wording).
 - `yarn install` / `yarn <script>` now fails loud and immediately on a genuinely incompatible Node, instead
   of three specific services failing while the rest silently worked.
@@ -112,6 +112,6 @@ grep -A1 '"engines"' */package.json BEs/*/package.json BEs/dev/*/package.json 2>
 Every line must read `"node": "^24.18.0"`, no exceptions, no bare-number or no-caret variant. A violation
 looks like any of: a `package.json` with `"node"` set to `24.18.0` (no caret), `^24.14.0` or any stale
 version, a bare `24.18` with no caret, or a `package.json` with no `engines` block at all in one of the 14
-sub-repos or `services-status`. When bumping Node, the sweep is complete only when this grep returns the
-new string on every one of the 14 sub-repo `package.json` files plus `services-status/package.json` — check
+sub-repos or `marketplace-services-status`. When bumping Node, the sweep is complete only when this grep returns the
+new string on every one of the 14 sub-repo `package.json` files plus `marketplace-services-status/package.json` — check
 the count, not just that the command ran clean.

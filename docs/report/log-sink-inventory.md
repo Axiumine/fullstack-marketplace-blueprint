@@ -90,7 +90,7 @@ disk route to the standing GDPR decision rather than being fixed here. §10.
 
 | Step | What was done |
 |---|---|
-| Stack | Nine services via `yarn dev`, ports 4024-4032, each `stdout`+`stderr` into its own file; Mongo replica set (`mdb1`/`mdb2`/`mdb3`) and Redis from `docker-DBs/docker-compose.yml` |
+| Stack | Nine services via `yarn dev`, ports 4024-4032, each `stdout`+`stderr` into its own file; Mongo replica set (`mdb1`/`mdb2`/`mdb3`) and Redis from `marketplace-docker-DBs/docker-compose.yml` |
 | Traffic | Anonymous queries, a failing login on each of the three tiers, authenticated calls with a forged `authorization`, a refresh with a forged cookie, a malformed JSON body, and an unparsable GraphQL document |
 | Markers | Every credential-shaped header and field carried a unique `MKTS12…` sentinel; the forwarded address was the reserved-for-documentation `203.0.113.77` |
 | Failure paths | The stack was re-run three more times with the Mongo URI, the Redis credentials and the CSFLE master key each poisoned with a sentinel, to see whether a connection error prints the credential it failed with |
@@ -337,7 +337,7 @@ credential-grade content into those files, that is a gap rather than a detail. �
 
 ### 7.1 The Redis password is in the container's argv
 
-`docker-DBs/docker-compose.yml:62`:
+`marketplace-docker-DBs/docker-compose.yml:62`:
 
 ```yaml
 command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:-unset}']
@@ -381,7 +381,7 @@ inventory that only looked at log files would have missed it. → **E12-S17**.
 
 `json-file` with an empty options object grows without limit until the filesystem stops it. → **E12-S18**.
 
-> ✅ **Fixed 2026-08-11 by E12-S18.** All four services in `docker-DBs/docker-compose.yml` share one
+> ✅ **Fixed 2026-08-11 by E12-S18.** All four services in `marketplace-docker-DBs/docker-compose.yml` share one
 > `x-logging` anchor — `max-size: 20m`, `max-file: '5'` — and
 > `docker inspect -f '{{json .HostConfig.LogConfig}}'` returns that pair for each of them.
 > `backend-backend-1` is not in this compose file and is not covered; it belongs to another project on the

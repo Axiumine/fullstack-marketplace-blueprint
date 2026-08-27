@@ -64,7 +64,7 @@ AUTH_SERVICES=(
 KEY_BUILDERS='^BEs/marketplace-common/src/others/(sessionKeys|assertUnderRateLimit|assertHashFieldTTLSupport)\.mts:'
 
 srcDirs() {
-	printf '%s\n' BEs/marketplace-common/src BEs/dev/*/src marketplace-*/src services-status/src
+	printf '%s\n' BEs/marketplace-common/src BEs/dev/*/src marketplace-*/src marketplace-services-status/src
 }
 
 echo

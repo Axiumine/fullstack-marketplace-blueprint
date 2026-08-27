@@ -14,7 +14,7 @@ different answers.
 validators in `marketplace-db-setup/lib/schemas/` — because those two files are the whole of the decision
 and nothing else restates it. The storage answers were **measured on the running Dev stack**: the block
 devices, the Docker root, the two named volumes, the mongod build flags and the two Redis persistence
-files. No `.env`, no file under `docker-DBs/secrets/`, and no stored value of any kind was read: the
+files. No `.env`, no file under `marketplace-docker-DBs/secrets/`, and no stored value of any kind was read: the
 Redis observation is file sizes and modification times, and the MongoDB observation is the presence of
 option names in `mongod --help`.
 **Reads against:** [`ADR-029`](../devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) ·
@@ -23,7 +23,7 @@ option names in `mongod --help`.
 `BEs/marketplace-common/src/encryption/{encryptedFields,setupFieldEncryption,fieldEncryption}.mts` ·
 `BEs/marketplace-common/src/others/sessionKeys.mts` ·
 `BEs/marketplace-db-setup/lib/schemas/{account,admin,shopOwner,user,company,geo,item,itemCategory}.js` ·
-`docker-DBs/{docker-compose.yml,Dockerfile,up.sh}`
+`marketplace-docker-DBs/{docker-compose.yml,Dockerfile,up.sh}`
 
 ---
 
@@ -242,7 +242,7 @@ since a replica set replicates the data to all three.
 Whether a future host encrypts its filesystem is a decision nobody has taken. This document does not
 guess at one.
 
-**Backups: there are none.** `docker-DBs` contains no backup script, no `mongodump` step and no scheduled
+**Backups: there are none.** `marketplace-docker-DBs` contains no backup script, no `mongodump` step and no scheduled
 job; `up.sh`, `down.sh` and `shell.sh` are the whole of the operational surface. So "are the backups
 encrypted" has no answer yet rather than a bad one — and when a backup does exist, the CSFLE ciphertext
 travels into it unchanged, which is the one part of this that is already solved.
@@ -309,7 +309,7 @@ appends a `DEL`; the earlier `HSET`, email included, stays in the file until an 
 triggered by size growth, not by expiry. So the retention of a session email on disk is governed by
 Redis's rewrite thresholds and by nothing anyone on this platform has decided. It is a small volume and a
 short list of fields; it is not zero, and no retention decision covers it (E12-S19 decided **the edge's**
-logs, and `docker-DBs/docker-compose.yml` is explicit that its own rotation caps size and decides nothing
+logs, and `marketplace-docker-DBs/docker-compose.yml` is explicit that its own rotation caps size and decides nothing
 about retention).
 
 ## 7. What this closes, and the one thing it opens

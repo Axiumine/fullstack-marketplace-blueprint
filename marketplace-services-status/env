@@ -1,4 +1,4 @@
-# services-status configuration template — committed, no secrets.
+# marketplace-services-status configuration template — committed, no secrets.
 # Copy to `.env` and edit locally; `.env` is gitignored.
 #
 # The list of monitored processes is NOT here anymore — it moved to services.json
@@ -84,7 +84,7 @@ ALLOWED_HOSTS=
 # ../.githooks/. Qodana 2023.2+ refuses to start without a token, so an empty
 # value here means the scan step blocks rather than being skipped.
 #
-# Per project: create a `services-status` project of its own on qodana.cloud.
+# Per project: create a `marketplace-services-status` project of its own on qodana.cloud.
 # Reusing another repo's token files this app's reports under that project and
 # corrupts its baseline.
 #

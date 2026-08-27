@@ -66,7 +66,7 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
 | `.githooks/pre-commit` + `.githooks/pre-push` in all 16 repos (14 sub-repos + parent carry the code gates; `marketplace-nginx` gates on its own test suite and the secret guard, ADR-030) | Any domain resolver's business logic | This context proves correctness, never implements a feature |
 | `BEs/marketplace-db-setup/migrations/` (immutable) + `lib/schemas/*.js` builders | Editing an applied migration | Immutability rule — a new shape is a new migration, not an edit |
 | Each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`/`vitest.config.mts` thresholds | Lowering any threshold to unblock a story | BCON-02, NFR-MA05 — the fix is always a test |
-| `services-status` (`server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`, `config.ts`) | Any repo of its own for `services-status` | Deliberately tracked by the parent — no repo to give it |
+| `marketplace-services-status` (`server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`, `config.ts`) | Any repo of its own for `marketplace-services-status` | Deliberately tracked by the parent — no repo to give it |
 | `core.hooksPath` wiring + each repo's `"prepare"` script | Forge-side branch protection | Where these repos get published is the platform owner's open call (`docs/workflow.md` §Repo layout) |
 
 ## 3. Build state
@@ -82,8 +82,8 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
   `collection.js`, `company.js`, `encrypted.js`, `geo.js`, `item.js`, `itemCategory.js`, `shopOwner.js`,
   `user.js`, [`README.md`](../../../BEs/marketplace-db-setup/lib/schemas/README.md) (confirmed — this is the
   complete current set of schema builders).
-- `services-status` gate: `services-status/src/server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`,
-  `config.ts`, `types.ts` plus `services-status/test/` holding `config.test.ts`, `monitor.test.ts`,
+- `marketplace-services-status` gate: `marketplace-services-status/src/server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`,
+  `config.ts`, `types.ts` plus `marketplace-services-status/test/` holding `config.test.ts`, `monitor.test.ts`,
   `probe.test.ts`, `security.live.test.ts`, `security.test.ts`, `server.test.ts`, `systemd.test.ts` (7
   files, confirmed — matches the "7 test files, 379 tests" row in [`docs/frontends.md`](../../frontends.md) §Current suite sizes).
 - Unit suites beside the end-to-end replay: `BEs/marketplace-db-setup/test/migrateMongoConfig.test.mjs`,
@@ -103,7 +103,7 @@ Technical story: statements/branches/functions/lines all-or-nothing, no partial-
 - `thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 }` present in
   `BEs/dev/marketplace-dev-user-authenticated-resource/vitest.config.mts:43`, and the same shape repeats
   across the 9 services, `marketplace-common`, `marketplace-db-setup`, the 3 frontends and
-  `services-status` — traces NFR-MA01.
+  `marketplace-services-status` — traces NFR-MA01.
 - `.githooks/pre-push` runs `test:cov` before mutation and Qodana in every repo — grep
   `.githooks/pre-push` in any sub-repo for the ordered step list.
 
@@ -112,20 +112,20 @@ Technical story: coverage proves a line ran, mutation proves a wrong line would 
 **domains:** testing, backend, frontend
 **Acceptance criteria:**
 - `thresholds: { high: 100, low: 95, break: 100 }` present in each repo's `stryker.config.mjs` (confirmed
-  `services-status/stryker.config.mjs` on disk) — traces NFR-MA02.
+  `marketplace-services-status/stryker.config.mjs` on disk) — traces NFR-MA02.
 - No `ignoreStatic` appears in any `stryker.config.mjs` on the platform — a genuine equivalent mutant is
   silenced with `// Stryker disable <Mutator>` plus a reason, never with `ignoreStatic` or a lowered
   `thresholds.break` (BCON-02).
 
-### E09-S03 — `services-status` gate now actually runs, closing a silent-pass hole   `built`
-**As a** platform operator, **when** `services-status` changes, **I want** its coverage/mutation/Qodana
+### E09-S03 — `marketplace-services-status` gate now actually runs, closing a silent-pass hole   `built`
+**As a** platform operator, **when** `marketplace-services-status` changes, **I want** its coverage/mutation/Qodana
 gates to run from the parent's own hooks **so that** a change to code with no repo of its own is not
 merged unverified.
 **domains:** testing, infra
 **Acceptance criteria:**
 - Parent `.githooks/pre-commit` runs `yarn test:cov` and Qodana scoped to staged paths under
-  `services-status/` that are not `*.md` — confirmed hook file present at `.githooks/pre-commit`.
-- `services-status/qodana.sh` is executable (mode `100755`, git-tracked) — `pre-commit` lines 250-251
+  `marketplace-services-status/` that are not `*.md` — confirmed hook file present at `.githooks/pre-commit`.
+- `marketplace-services-status/qodana.sh` is executable (mode `100755`, git-tracked) — `pre-commit` lines 250-251
   block with the fixing command (`chmod +x` + `git update-index --chmod=+x`) rather than silently
   reporting "Qodana failed" against a SARIF that was never created. Traces NFR-MA03, NFR-MA04.
 

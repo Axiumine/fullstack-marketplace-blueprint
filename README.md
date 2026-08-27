@@ -151,7 +151,7 @@ mutation does: it needs Docker and a pinned image, and a hook paid per commit is
 bypassed out of habit. Bypass for a Docker outage, never for a finding: `SKIP_SEMGREP=1 git push`.
 
 **Trivy joined `pre-push` on 2026-08-13, in all fourteen repos that carry a `yarn.lock` — the fifteenth
-gated tree, `services-status`, through the parent hook.** It is the answer to a question nothing on this
+gated tree, `marketplace-services-status`, through the parent hook.** It is the answer to a question nothing on this
 platform was answering: semgrep and Qodana both read the code *written* here, and neither reports on the
 code *installed* here. Qodana looked like it did — `VulnerableLibrariesLocal` is armed in every
 `qodana.yaml` and runs on every commit and push — but that inspection is a ~0.03 s offline heuristic that
@@ -210,22 +210,22 @@ tell two migrations apart when they leave the same database behind. 100% on all 
 **mutation score 100 over 788 mutants**. The replay suite is push-only in spirit — it needs the database
 up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
 
-**The fifteenth gated repo is this workspace itself, and it gates `services-status`.** The parent dir is
+**The fifteenth gated repo is this workspace itself, and it gates `marketplace-services-status`.** The parent dir is
 a git repo like the other fourteen, but it is the only gated one that is not a package: it has no
-`package.json`, and until 2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `services-status` — a
+`package.json`, and until 2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `marketplace-services-status` — a
 subdirectory here rather than a repo of its own — carrying a `qodana.yaml`, a `stryker.config.mjs` and a
 100% coverage threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the
 appearance of a gated project. Both parent hooks now close it:
 
 |Hook|Gates|Scope|
 |---|---|---|
-|`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `services-status/`|
+|`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `marketplace-services-status/`|
 |`.githooks/pre-push`|`yarn semgrep:ci` → trivy → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
 
 The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
 commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
 no filter on the way out. Note the missing gate: **no lint**, for the same reason as `marketplace-db-setup`
-— `services-status` has no `lint` script. Its type check is not missing though, it is just not its own
+— `marketplace-services-status` has no `lint` script. Its type check is not missing though, it is just not its own
 step: `test:cov` is `yarn build && vitest run --coverage`, so `tsc` runs first and a type error fails the
 coverage gate before a single test executes. Read the **first** error in that output, not the last.
 
@@ -236,9 +236,9 @@ meant deleting eight guards no input could reach — a `typeof value === 'string
 verdict `marketplace-db-setup` reached, one repo over.
 
 ⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step
-**blocks today**, because `services-status` has no Cloud project and therefore no `QODANA_TOKEN` — it
+**blocks today**, because `marketplace-services-status` has no Cloud project and therefore no `QODANA_TOKEN` — it
 prints the fixing command and exits 1, exactly as designed, so a commit here needs `SKIP_QODANA=1` until
-the user creates one (the placeholder key is in `services-status/env`). And this repo has **no
+the user creates one (the placeholder key is in `marketplace-services-status/env`). And this repo has **no
 `package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
 fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one restores
 it never. After a fresh clone of this directory, run the line by hand or all three gates and the secret
@@ -334,7 +334,7 @@ histories interleave and neither is trustworthy. That happened here: `marketplac
 empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
 and confirm the id is that repo's own — one project per repo, one distinct id each.
 
-Every sub-repo that ships code carries a `qodana.yaml` — all fourteen — and so does `services-status`,
+Every sub-repo that ships code carries a `qodana.yaml` — all fourteen — and so does `marketplace-services-status`,
 scanned by this workspace's hooks rather than by one of its own. The fifteenth sub-repo,
 `marketplace-nginx`, ships no code and so has no Qodana config; what it has instead is a `pre-push` hook
 running `test/suite.sh`, which is the gate that fits what it does ship. **Every repo is gated by
@@ -342,7 +342,7 @@ something on push, and that is the invariant to keep.** A new repo without a con
 is silently outside every layer described above.
 
 ⚠️ **Four of them have a config and no project to upload it to**, so their scan step blocks on the
-missing `QODANA_TOKEN` rather than passing: `services-status`, `marketplace-user` and the two
+missing `QODANA_TOKEN` rather than passing: `marketplace-services-status`, `marketplace-user` and the two
 `*-user-authenticated-*` services, all built after the Cloud projects were created. Creating a project is
 the user's call; until then those four commit with `SKIP_QODANA=1`, and the coverage and mutation gates
 still run. **Do not point them at an existing repo's token** — that is exactly the interleaving described
@@ -368,7 +368,7 @@ Rolled out first in `marketplace-dev-authenticated-logout`, whose `COVERAGE.md` 
 (scope decisions, equivalent mutants, and why `rejects.toThrow()` is the assertion that hides the
 most bugs). **Rollout is complete as of 2026-08-07**: every package that ships code is at mutation score
 100 with `thresholds.break: 100` and a blocking `pre-push` — the nine services, `marketplace-common`,
-`marketplace-db-setup`, the three frontends and `services-status`.
+`marketplace-db-setup`, the three frontends and `marketplace-services-status`.
 
 ### What the rollout actually found
 

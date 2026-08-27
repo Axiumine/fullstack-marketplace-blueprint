@@ -1,4 +1,4 @@
-# services-status
+# marketplace-services-status
 
 The local control panel for the platform's systemd **user** units: a Koa + `ws` server on port 2901
 that runs one batched `systemctl show` per tick, TCP-probes each configured port, and streams the
@@ -127,7 +127,7 @@ code.
 - **100% statements, branches, functions and lines; mutation `break: 100`.** Never lower either. A
   change that needs a threshold lowered needs a test.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
-  non-markdown paths under `services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
+  non-markdown paths under `marketplace-services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
   unscoped — `semgrep:ci` → `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires
   for a merge commit and never saw a `--no-verify` one.
 - **Semgrep is a push gate, and push-only.** It was in no hook at all until 2026-08-13 — `yarn semgrep`

@@ -93,10 +93,10 @@ platform owner's act and nobody else's. The day it happens, this ADR is supersed
 that is the trigger CON-09 describes.
 
 **Licensing follows from the repositories being public, not from the publish.** The whole platform is
-**GPL-3.0-or-later**: the full text sits in **eighteen** copies — all sixteen repos plus `services-status/`
-and `docker-DBs/` — byte-identical below line 1, which names what it sits in. All fifteen manifests that
+**GPL-3.0-or-later**: the full text sits in **eighteen** copies — all sixteen repos plus `marketplace-services-status/`
+and `marketplace-docker-DBs/` — byte-identical below line 1, which names what it sits in. All fifteen manifests that
 exist declare `"license": "GPL-3.0-or-later"`: the fourteen sub-repos with a `package.json`, plus
-`services-status`. `marketplace-nginx` and the parent have none.
+`marketplace-services-status`. `marketplace-nginx` and the parent have none.
 
 ⚠️ **The `qodana.yaml` half of that is not cosmetic and must move in the same commit as any manifest
 change.** Qodana derives the project key from `package.json`, so a `licenseRules.keys` entry that names
@@ -107,11 +107,11 @@ holds whichever way the metadata is read. `allowed` is unchanged in every file, 
 `marketplace-db-setup`'s deliberately short list: a GPL-3.0-or-later project accepting copyleft
 dependencies is the ordinary case and needs no argument.
 
-**`services-status/` and `docker-DBs/` each carry their own `LICENSE` even though neither is a repo.**
+**`marketplace-services-status/` and `marketplace-docker-DBs/` each carry their own `LICENSE` even though neither is a repo.**
 They are tracked directories of the parent (ADR-025 for the first), so the parent's `LICENSE` already
 covers them and a second copy is redundant *inside this workspace*. It is not redundant outside it: both
 are self-contained enough to be lifted out — a systemd monitor and a Docker compose cluster — and a
-directory copied without the file it points at travels with no licence at all. [`services-status/README.md`](../../../../services-status/README.md)
+directory copied without the file it points at travels with no licence at all. [`marketplace-services-status/README.md`](../../../../marketplace-services-status/README.md)
 links `./LICENSE` rather than `../LICENSE` for the same reason.
 
 ---

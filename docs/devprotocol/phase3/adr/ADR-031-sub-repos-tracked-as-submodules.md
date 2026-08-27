@@ -19,7 +19,7 @@ Two requirements answer it, and neither is atomicity — that was weighed and gi
 
 **Reconstruction.** One `git clone` of the parent must produce the whole workspace, with all fifteen
 sub-repos at their correct paths. If the parent merely ignores those paths, a clone yields `docs/`,
-`services-status/`, `docker-DBs/`, `scripts/` and the workspace files, plus fifteen absent directories —
+`marketplace-services-status/`, `marketplace-docker-DBs/`, `scripts/` and the workspace files, plus fifteen absent directories —
 and no tracked file anywhere even records where the missing repos live or what they are called. "Clone the
 project" is then not a thing that can be done; the list exists only in someone's memory of this directory.
 
@@ -183,7 +183,7 @@ there is nothing *besides* gitlinks under those paths:
 ```bash
 git ls-files -s $(git config -f .gitmodules --get-regexp 'submodule\..*\.path' | awk '{print $2}') \
   | grep -vc '^160000'          # must be 0 — anything else is a sub-repo's files committed into the parent
-git ls-files services-status | wc -l   # must stay nonzero: the one directory the parent really does track
+git ls-files marketplace-services-status | wc -l   # must stay nonzero: the one directory the parent really does track
 ```
 
 A violation looks like: a sub-repo path appearing in the parent's `.gitignore`; a `.gitmodules` URL on a

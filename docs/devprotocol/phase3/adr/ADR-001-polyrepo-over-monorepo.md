@@ -35,7 +35,7 @@ Forces:
 - Quality gates are heavy and per-package: 100% coverage + 100 mutation score + lint + `tsc --noEmit` +
   Qodana, enforced via `.githooks/pre-commit` and `.githooks/pre-push` (CON-08). Each repo needs its
   own Qodana cloud project — tokens are per-project, a shared token would corrupt baselines
-  (`docs/frontends.md` §marketplace-admin and marketplace-shopowner and §services-status).
+  (`docs/frontends.md` §marketplace-admin and marketplace-shopowner and §marketplace-services-status).
 - No forge decided yet — publishing destination/org is explicitly the user's undecided call
   (`docs/workflow.md` §Repo layout, phase3 CONSTRAINTS.md §5).
 
@@ -68,11 +68,11 @@ sub-repo and never in the parent, and every commit, branch, hook and gate stays 
 decisions compose: ADR-001 says the histories are separate, ADR-031 says the parent can name a consistent
 set of them.
 
-`services-status` is the deliberate exception to the count: it has no repo of its own and is tracked
-directly by the parent (`git ls-files services-status` returns real paths — `coverage`, `dist`, `env`,
-`services-status/.gitignore`, `.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto
+`marketplace-services-status` is the deliberate exception to the count: it has no repo of its own and is tracked
+directly by the parent (`git ls-files marketplace-services-status` returns real paths — `coverage`, `dist`, `env`,
+`marketplace-services-status/.gitignore`, `.hgignore`, `.nvmrc`), which is also why its gates had to be bolted onto
 the parent's own `.githooks/pre-commit` rather than living in a repo-local hook (ADR-025,
-[`docs/frontends.md`](../../../frontends.md) §services-status). `docker-DBs/` is tracked by the parent for the same reason — it is
+[`docs/frontends.md`](../../../frontends.md) §marketplace-services-status). `marketplace-docker-DBs/` is tracked by the parent for the same reason — it is
 compose files and scripts, not a package.
 
 ```
@@ -84,8 +84,8 @@ marketplace-admin/         # own .git — submodule
 marketplace-nginx/         # own .git — submodule, no package.json, own gates (ADR-030)
 marketplace-shopowner/     # own .git — submodule
 marketplace-user/          # own .git — submodule
-services-status/           # NO own .git — tracked by parent directly
-docker-DBs/                # NO own .git — tracked by parent directly
+marketplace-services-status/           # NO own .git — tracked by parent directly
+marketplace-docker-DBs/                # NO own .git — tracked by parent directly
 ```
 
 ---
@@ -102,7 +102,7 @@ docker-DBs/                # NO own .git — tracked by parent directly
   reality already baked into `package.json` (CON-09).
 - Qodana Cloud projects stay one-token-per-repo, so a scan never files under the wrong project's
   baseline (`docs/frontends.md` explicitly names this risk for `marketplace-admin`'s `1rylx` project and
-  `services-status`'s `xPKXD`).
+  `marketplace-services-status`'s `xPKXD`).
 - Rollback/blame at the sub-repo level works normally — `git log`, `git bisect`, `git blame` inside any
   one of the 16 answer real questions about that package's history.
 - `marketplace-nginx` needs no place in a JS toolchain it does not belong to: its own repo, its own shell
@@ -152,7 +152,7 @@ From the workspace root, verify repo count and boundary:
 ```bash
 find . -maxdepth 4 -name .git -type d -not -path './node_modules/*' | wc -l   # 16 — parent plus 15 sub-repos
 git ls-files -s | grep -c '^160000'                                          # 15 — one gitlink each (ADR-031)
-git ls-files services-status | wc -l                                         # nonzero — the tracked exception
+git ls-files marketplace-services-status | wc -l                                         # nonzero — the tracked exception
 ```
 
 The boundary check is that the parent records **only** gitlinks under the sub-repo paths — a submodule
@@ -166,4 +166,4 @@ git ls-files -s $(git config -f .gitmodules --get-regexp 'submodule\..*\.path' |
 A violation looks like: a sub-repo's ordinary files appearing in the parent's index rather than a single
 gitlink; two packages sharing one `.git` (a re-monorepo by merging histories); or a new backend/frontend
 package added without its own `.git` + `.githooks/` + `core.hooksPath` config, which is silently ungated —
-the state `services-status` was in before ADR-025 (`docs/frontends.md` §services-status).
+the state `marketplace-services-status` was in before ADR-025 (`docs/frontends.md` §marketplace-services-status).

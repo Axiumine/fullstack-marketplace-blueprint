@@ -1,4 +1,4 @@
-# services-status has no git repo of its own — the parent workspace's git is what reads this.
+# marketplace-services-status has no git repo of its own — the parent workspace's git is what reads this.
 
 node_modules/
 *.iml

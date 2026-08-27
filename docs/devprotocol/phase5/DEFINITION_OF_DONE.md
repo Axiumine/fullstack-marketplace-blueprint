@@ -50,8 +50,8 @@ document is that doctrine in checklist form.
 - [ ] Indentation is tabs, enforced by eslint `indent: ['error','tab']` **and** prettier `useTabs: true`
   together (ADR-024) — a file reindented with spaces fails both identically.
 - [ ] Type-check clean: `tsc --noEmit` (frontends) or the `yarn build` half of `test:cov` (backend services
-  and `services-status`, whose `test:cov` is literally `yarn build && vitest run --coverage` —
-  `services-status/.githooks` reasoning documented at `.githooks/pre-push:112-119` of this parent repo).
+  and `marketplace-services-status`, whose `test:cov` is literally `yarn build && vitest run --coverage` —
+  `marketplace-services-status/.githooks` reasoning documented at `.githooks/pre-push:112-119` of this parent repo).
 - [ ] No `ignoreStatic` added to any `stryker.config.mjs` to silence a survivor, ever (`docs/testing.md` §Mutation testing traps; BCON-02).
 - [ ] `engines.node` reads `^24.18.0` in every touched `package.json` — bumping it means bumping all 14
   repos that have one, in one sweep, caret included (ADR-026).
@@ -121,7 +121,7 @@ document is that doctrine in checklist form.
   push gate blocks rather than warns on any missing prerequisite.
 - [ ] NFR-MA03, MA04, MA06, MA07 (🟠 High) — gate wiring itself verified: `core.hooksPath` set
   (`git config core.hooksPath .githooks`), hook file mode `100755` checked SEPARATELY from existence (the
-  `services-status/qodana.sh` incident — committed at `100644`, silently never ran).
+  `marketplace-services-status/qodana.sh` incident — committed at `100644`, silently never ran).
 
 ### 2.6 Documentation
 - [ ] No banned term reintroduced — checked against `phase2/UBIQUITOUS_LANGUAGE.md` §19 Banned Terms
@@ -149,7 +149,7 @@ document is that doctrine in checklist form.
   false), ADR-027 (one app per tier).
 - [ ] Build/gate change checked against ADR-015 (`marketplace-common` package-name + `deploy-local.sh`),
   ADR-016 (100/100 everywhere), ADR-017 (Qodana in both hooks), ADR-023 (per-repo integration DB naming),
-  ADR-024 (tabs + eslint + prettier together), ADR-025 (`services-status` gated by parent hooks), ADR-026
+  ADR-024 (tabs + eslint + prettier together), ADR-025 (`marketplace-services-status` gated by parent hooks), ADR-026
   (`engines.node` pin).
 - [ ] Infra change checked against ADR-001 (polyrepo), ADR-022 (wildcard bind except SSR loopback), ADR-028
   (GraphQL is the whole API, 3 REST endpoints only).
@@ -204,8 +204,8 @@ document is that doctrine in checklist form.
 - [ ] `detect_changes()` run before any commit to confirm the diff's blast radius matches what the sprint
   intended (GitNexus §Always Do).
 - [ ] A doc-only commit does not skip a gate scoped away from it on purpose. The parent
-  `.githooks/pre-commit:107-114` deliberately scopes the `services-status` build/coverage gate to staged
-  paths under `services-status/` that are not `*.md` — a docs-only commit here legitimately triggers
+  `.githooks/pre-commit:107-114` deliberately scopes the `marketplace-services-status` build/coverage gate to staged
+  paths under `marketplace-services-status/` that are not `*.md` — a docs-only commit here legitimately triggers
   nothing further, and that is correct, not a bypass:
   ```bash
   # .githooks/pre-commit:107-114
@@ -248,7 +248,7 @@ document is that doctrine in checklist form.
   sees; and Qodana Cloud files every report under the branch git HEAD reports (no `--branch` flag), so a
   repo gated only at `pre-commit` can never produce a `main`-tagged report or a stable "new problems"
   baseline (`BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:194-215`; same
-  reasoning restated for `services-status` at this parent's `.githooks/pre-push:207-216`).
+  reasoning restated for `marketplace-services-status` at this parent's `.githooks/pre-push:207-216`).
 
 ---
 

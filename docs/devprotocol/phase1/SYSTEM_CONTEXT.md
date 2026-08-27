@@ -32,7 +32,7 @@ verified this session; a path in backticks was opened, not guessed.
 │   user SPA+SSR)        user × authz/resource       marketplace-db-setup)│
 │                         + shared logout)                                │
 │                                                                           │
-│  services-status (parent-tracked monitor, no repo of its own)           │
+│  marketplace-services-status (parent-tracked monitor, no repo of its own)           │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -461,9 +461,9 @@ other two tiers looked missing rather than unwritten.
 One-directional outbound from every repo's `.githooks/pre-commit` and `.githooks/pre-push`. One Cloud
 project + one `QODANA_TOKEN` per repo, never shared — a shared token interleaves two repos' baselines
 (`docs/architecture.md` §Services, `README.md` §Linter version). Verified project ids:
-`marketplace-admin` = `1rylx` (`docs/frontends.md`), `services-status` = `xPKXD` (`docs/frontends.md` §services-status),
+`marketplace-admin` = `1rylx` (`docs/frontends.md`), `marketplace-services-status` = `xPKXD` (`docs/frontends.md` §marketplace-services-status),
 `marketplace-db-setup` = `ObD0L` (`README.md:233`). 4 repos still block on a missing token —
-`services-status`, `marketplace-user`, both `*-user-authenticated-*` services — bypassed today with
+`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services — bypassed today with
 `SKIP_QODANA=1` (`PDR.md` §8, open question 8).
 
 ### 5.13 `yarn install` → npm registry, and the gap `deploy-local.sh` bridges
@@ -524,6 +524,6 @@ error at the call site.
 |1|~~Does the `/api/register` SSR route that the apex vhost proxies get built, or does the block go?~~|platform owner|**closed — the block went.** Neither thing it claimed to add was missing: the Turnstile secret is already server-side and `guardPublicWrite` already limits per IP *and per email*, which no `$binary_remote_addr` zone can do. Both `location`s and the `mkt_register` zone are deleted, §5.11|
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
-|4|Who creates the 4 missing Qodana Cloud projects (`services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
+|4|Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|open, `PDR.md` §8 item 8|
 |5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

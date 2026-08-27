@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# pre-push — the workspace's own gate, and the only one services-status has that
+# pre-push — the workspace's own gate, and the only one marketplace-services-status has that
 # runs after a merge.
 #
 # This repo tracks two very different things: the workspace docs (CLAUDE.md,
-# README.md, .claude/, .agents/) and `services-status/`, which is real
+# README.md, .claude/, .agents/) and `marketplace-services-status/`, which is real
 # application code with no repo of its own. Every other package on the platform
-# lives in its own git repo and carries its own .githooks/; services-status
+# lives in its own git repo and carries its own .githooks/; marketplace-services-status
 # carried a qodana.yaml, a stryker.config.mjs and a 100% coverage threshold with
 # nothing that ran any of them, which is the appearance of a gate rather than a
-# gate. This hook and the services-status block in pre-commit are what make them
+# gate. This hook and the marketplace-services-status block in pre-commit are what make them
 # real.
 #
 # Five blocking gates, in this order:
@@ -34,7 +34,7 @@
 # four running. All three exist for a Docker outage, never for a finding.
 set -uo pipefail
 
-APP='services-status'
+APP='marketplace-services-status'
 ROOT="$(git rev-parse --show-toplevel)"
 APP_DIR="$ROOT/$APP"
 
@@ -125,8 +125,8 @@ cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 # rather than after a full coverage + mutation + Qodana run.
 #
 # `semgrep:ci` is the --error variant of `yarn semgrep`: exit 1 on any finding,
-# plus a SARIF at services-status/semgrep.sarif (gitignored). Every rule is
-# vendored under services-status/semgrep/ and the container runs --network none,
+# plus a SARIF at marketplace-services-status/semgrep.sarif (gitignored). Every rule is
+# vendored under marketplace-services-status/semgrep/ and the container runs --network none,
 # so the verdict is offline and reproducible — the pinned image tag is the only
 # moving part.
 #
@@ -183,10 +183,10 @@ else
 		cat >&2 << 'MSG'
 
 ────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — Semgrep found something in services-status, or the scan could not
+PUSH BLOCKED — Semgrep found something in marketplace-services-status, or the scan could not
 run.
 
-Every finding is printed above and repeated in services-status/semgrep.sarif.
+Every finding is printed above and repeated in marketplace-services-status/semgrep.sarif.
 Read the rule id first, then the code it matched:
 
   1. A true positive is fixed in the source, never in the ruleset.
@@ -195,7 +195,7 @@ Read the rule id first, then the code it matched:
      silences every rule on that line, and never an edit to semgrep/vendor/ —
      that is a frozen registry snapshot which vendor/refresh.sh will restore.
 
-Re-run `yarn semgrep` in services-status/ for the readable report, then push
+Re-run `yarn semgrep` in marketplace-services-status/ for the readable report, then push
 again.
 ────────────────────────────────────────────────────────────────────────────
 MSG
@@ -334,7 +334,7 @@ fi
 # Gate 3 — build, tests, coverage.
 #
 # No lint gate anywhere in this hook, and that is not an oversight:
-# services-status is the one package here with no eslint.config.js and no
+# marketplace-services-status is the one package here with no eslint.config.js and no
 # .prettierrc. Its type check is not separate either — `test:cov` is
 # `yarn build && vitest run --coverage`, so tsc runs first and a type error fails
 # this gate before a single test does.
@@ -346,7 +346,7 @@ if ! yarn test:cov; then
 	cat >&2 << 'MSG'
 
 ────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — services-status failed to build, failed its tests, or fell below
+PUSH BLOCKED — marketplace-services-status failed to build, failed its tests, or fell below
 100% coverage.
 
 `test:cov` is `yarn build && vitest run --coverage`, so read the FIRST error
@@ -361,7 +361,7 @@ itself; if that one fails, check nothing else is holding the port.
 Add the missing test under test/, or delete the unreachable code. Never lower the
 threshold.
 
-Full report: services-status/coverage/index.html
+Full report: marketplace-services-status/coverage/index.html
 ────────────────────────────────────────────────────────────────────────────
 MSG
 	exit 1
@@ -390,9 +390,9 @@ if ! yarn test:mutation; then
 ────────────────────────────────────────────────────────────────────────────
 PUSH BLOCKED — the mutation score is below 100, or Stryker failed to run.
 
-`thresholds.break: 100` in services-status/stryker.config.mjs is what fails this.
+`thresholds.break: 100` in marketplace-services-status/stryker.config.mjs is what fails this.
 Never lower it, and never reach for `ignoreStatic`. Open
-services-status/reports/mutation/mutation.html — every survivor is shown as the
+marketplace-services-status/reports/mutation/mutation.html — every survivor is shown as the
 exact diff Stryker applied, which is the change no test noticed.
 
 Three things a survivor usually means, in order of likelihood:
@@ -468,7 +468,7 @@ done
 # Checked separately from existence, because the failure it catches is indistinguishable
 # from a real finding once it happens: a non-executable qodana.sh makes the invocation
 # below exit non-zero having produced no results directory at all, and the block below
-# reports that as "Qodana failed on services-status" with a link to a report that was
+# reports that as "Qodana failed on marketplace-services-status" with a link to a report that was
 # never written. This app's copy was committed at mode 100644 while all eleven other
 # repos' are 100755 — the mode is tracked by git, so it is restored on every clone.
 if [ ! -x "$APP_DIR/qodana.sh" ]; then
@@ -515,13 +515,13 @@ if ! SKIP_TESTS=1 "$APP_DIR/qodana.sh" --results-dir "$APP_DIR/.qodana/results";
 	cat >&2 << 'MSG'
 
 ────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — Qodana failed on services-status.
+PUSH BLOCKED — Qodana failed on marketplace-services-status.
 
-The gate lives in services-status/qodana.yaml: severityThresholds critical 0 /
+The gate lives in marketplace-services-status/qodana.yaml: severityThresholds critical 0 /
 high 0, plus testCoverageThresholds 100 total / 100 fresh. Findings are listed
 above, with a report link on qodana.cloud.
 
-Local SARIF: services-status/.qodana/results/qodana.sarif.json
+Local SARIF: marketplace-services-status/.qodana/results/qodana.sarif.json
 
 This exit code also covers infrastructure failures (daemon died mid-scan, out of
 disk). If the report shows no findings, it was not a finding.

@@ -130,13 +130,13 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
   survives every type-check and puts the point in the sea. Stored rounded to **six decimals** (~11 cm),
   which is shorter than the float that reaches the field and precise past any use this platform has.
 
-## services-status
+## marketplace-services-status
 
 A dashboard app that is **not** a repo of its own — it is a subdirectory tracked by the parent
 workspace (ADR-025). Three consequences before editing it:
 
 - **Its gates live in the parent's `.githooks/`.** `pre-commit` runs `yarn test:cov` and Qodana scoped
-  to staged non-`*.md` paths under `services-status/`; `pre-push` runs `test:cov` → `test:mutation` →
+  to staged non-`*.md` paths under `marketplace-services-status/`; `pre-push` runs `test:cov` → `test:mutation` →
   Qodana **unscoped**, because a push carries `--no-verify` commits and merge commits that `pre-commit`
   never saw.
 - **No `lint` script** — it is not one of the thirteen eslint/prettier packages. `tsc` runs as the first
@@ -145,7 +145,7 @@ workspace (ADR-025). Three consequences before editing it:
 - **Its own Qodana Cloud project (`xPKXD`) and its own token.** Do not point it at another repo's token
    — the reports would land in that project and corrupt its baseline.
 
-⚠️ `services-status/qodana.sh` must stay mode `100755`. At `100644` the invocation dies with
+⚠️ `marketplace-services-status/qodana.sh` must stay mode `100755`. At `100644` the invocation dies with
 `Permission denied` before reaching Qodana and reports as a scan failure pointing at a SARIF that was
 never created. Both parent hooks now test executability separately from existence and print the two
 fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the mode is tracked.
@@ -157,7 +157,7 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 | `marketplace-admin` | 71 | 1071 | 2053 / 7 / 0 |
 | `marketplace-shopowner` | 49 | 677 | 1083 / 5 / 0 |
 | `marketplace-user` | 73 | 1312 | 2171 / 7 / 0 |
-| `services-status` | 7 | 379 | 1102 / 1 / 0 |
+| `marketplace-services-status` | 7 | 379 | 1102 / 1 / 0 |
 
 File and test counts are a `yarn test` run of 2026-08-25. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
