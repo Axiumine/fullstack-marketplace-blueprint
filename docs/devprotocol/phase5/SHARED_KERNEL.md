@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
@@ -13,6 +13,7 @@ citation of `epics/E11.md` in this file is repointed to
 [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) and `EPICS_STORIES.md` §6.1,
 the two places that now carry what the deleted file carried; the E11..E19 ranges in §0 are corrected to
 E12..E19, since E11 no longer has a file under `epics/`. Nothing about BC-10's own build state changed.
+v1.5 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.3 - 2026-08-27: The "not in the kernel" row said no BC-11 shape exists to import. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so no shape will ever exist to import either.
 v1.2 - 2026-08-27: the record moved out of `epics/E10.md` to this path in the same pass that
 closed its last open question — §0 says why. Question 2's answer was upgraded from inference to proof at the
@@ -35,7 +36,7 @@ It was `phase5/epics/E10.md` until 2026-08-27. The file was deleted and its reco
 for the reason the nine before it moved: nothing in it is a story still ahead. All seven are `built`, both
 open questions closed the same day, and what is left is the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that now stays true for
-E12..E19 — E01's and E02's records moved beside the index on 2026-08-13
+E13..E19 — E01's and E02's records moved beside the index on 2026-08-13
 ([`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md), [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), E03's,
 E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md)), E06's on
@@ -43,7 +44,7 @@ E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_
 ([`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md),
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md)), and this one on
-2026-08-27. `epics/` now holds E12..E19, which is the unbuilt half. **E11 is not among them**: unlike the
+2026-08-27. `epics/` now holds E13..E19, which is the unbuilt half. **E11 is not among them**: unlike the
 ten records above, `phase5/epics/E11.md` was deleted outright on 2026-08-27 rather than moved, and gets no
 replacement file — it named a gap that closed as a permanent refusal rather than as a shipped surface, so
 there was nothing left to keep beside the index. Its record is distributed into
@@ -61,6 +62,13 @@ Renumbering was not considered — moving a file is not a reason to change a nam
 scans, the `marketplace-services-status` surface — while BC-10 owns the *code every service compiles
 against*. E10's gate criteria (100/100 on this package) are BC-09's rules applied to BC-10's artefact, not
 BC-09 scope leaking in. Merging the two records would lose which of them a future change belongs to.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 

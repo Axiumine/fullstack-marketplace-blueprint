@@ -15,7 +15,7 @@ so the cache holds them as body content, not only as a key. That one is source-l
 v1.4 — the cache sink is closed the same day (E12-S26's first landed criterion) and §10 records what
 reverting it shows: the second request to a reset link answered `HIT`, so the credential URL was genuinely
 stored rather than merely storable. Nothing else measured changed. v1.5 — §10 stops calling the two questions
-it routed "open": both were answered on 2026-08-11, `E12.md` §6 no longer houses them, and this document now
+it routed "open": both were answered on 2026-08-11, `TELEMETRY_EGRESS_HARDENING.md` §6 no longer houses them, and this document now
 points at the story each answer landed on. v1.6 — §7.1 and §7.2 are closed (E12-S17, E12-S18) and both were
 re-measured while closing. §7.1 **corrects one of its own rows**: host `ps aux` never showed the Redis
 password, because Redis overwrites its `argv` at startup, so the before-state was two surfaces and not three.
@@ -49,7 +49,7 @@ rather than a judgement. nginx was run from its own configuration inside a throw
 `nginx:stable-alpine` container, at the shipped level and then one level lower. Static reading was used only
 to explain a result already observed, and every such line is cited.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
-[`docs/devprotocol/phase5/epics/E12.md`](../devprotocol/phase5/epics/E12.md) E12-S06, E12-S07, E12-S09,
+[`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) E12-S06, E12-S07, E12-S09,
 E12-S11, E12-S14 · [`sentry-event-capture.md`](./sentry-event-capture.md) (E12-S13, the sink this finding
 does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence.
 
@@ -424,7 +424,7 @@ this row a "no" rather than an unchecked box.
 | nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it · **E12-S25** — ✅ the same period stated in public, `/privacy`, 2026-08-11 | 🟠 |
 | `publicHelloArgs` echoes its argument, §4.3 | **E12-S20** — ✅ fixed 2026-08-11 | 🟡 |
 
-All five are written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story, as
+All five are written into [`TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 as part of closing this story, as
 its acceptance criteria require. None is fixed here — this story produces a finding and nothing else.
 
 ## 10. What routes to the GDPR decision rather than being fixed here
@@ -443,7 +443,7 @@ sights:**
 
 Both were routed to the platform owner as open questions rather than fixed here, alongside
 `RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability was
-logged as undecided at the time of this finding. Both came back answered the same day — see below — and `E12.md` §6 now holds no
+logged as undecided at the time of this finding. Both came back answered the same day — see below — and `TELEMETRY_EGRESS_HARDENING.md` §6 now holds no
 open question at all: each answer lives on the story that carries it out, item 1 on **E12-S19** (with its
 privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stayed open — it was
 closed on 2026-08-26 by a separate decision, see the note at the end of §10.

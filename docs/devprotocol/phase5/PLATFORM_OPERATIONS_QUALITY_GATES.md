@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
+**Version:** 1.5
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.5 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.1 - 2026-08-25: E09-S06's first acceptance criterion said the ShopOwner and public tiers "never write"
 `itemCategory`. The public tier still does not; the ShopOwner tier does, in one field, since
 `holdItemCategory` landed. The criterion now states the claim that actually holds — no `itemCategory`
@@ -46,8 +47,8 @@ the ninth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
 still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
 became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
-`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E12..E19; E01..E10
-are the ten whose records sit beside the index instead of under it — E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E13..E19; E01..E10 and E12
+are the eleven whose records sit beside the index instead of under it — E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
 moved 2026-08-27. E11's is beside neither list: its file was deleted the same day with no record of its own
 to move, its knowledge distributed instead into
 [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
@@ -61,6 +62,13 @@ when their last question was answered inside phase 5 or handed to the document t
 because a phase-3 architectural decision was taken, so the closure lives in
 [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) and §6 points at it rather than
 restating it — the same discipline §6's first bullet already follows for `NFR-CO02`.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 

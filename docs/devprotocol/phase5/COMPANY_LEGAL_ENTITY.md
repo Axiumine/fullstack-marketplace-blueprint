@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.9 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.8 - 2026-08-27: `phase5/epics/E11.md` is deleted, its two-story record absorbed into ADR-038's closing
 note and `EPICS_STORIES.md` §6.1, rather than replaced by a record file of its own the way E01..E10's were.
 §0's boilerplate range narrows to E12..E19, since E11 now holds neither a file under `epics/` nor one beside
@@ -63,9 +64,9 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E12..E19 — E11 is neither under `epics/` nor beside the index; its
+`epics/ENN.md`, and that stays true for E13..E19 — E11 is neither under `epics/` nor beside the index; its
 epic id survives its file, per the note in §6 below and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)'s
-closing section. E01..E10 are the ten whose records sit
+closing section. E01..E10 and E12 are the eleven whose records sit
 beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day,
 E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
@@ -83,6 +84,13 @@ file is not a reason to change a name.
 owner accepted about it — whole-card last-write-wins, no version field, and the four fields that sit
 outside the race by construction. `RISK_REGISTER.md` §5 carries the decision as a bullet; the reasoning
 about *what exactly* was accepted lives here and is cited from there.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 
