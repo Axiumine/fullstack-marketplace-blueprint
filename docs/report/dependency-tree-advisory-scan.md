@@ -3,7 +3,7 @@
 
 **Status:** finding - closes E18-S04
 **Version:** 1.1
-**Date:** 2026-08-13, §2 annotated 2026-08-27
+**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day
 **Author:** claude
 **Scope:** every one of the sixteen repos in this workspace, production and toolchain dependencies alike
 **Method:** the installed tree read from `node_modules` on disk, resolved the way Node resolves it, then queried
@@ -25,7 +25,10 @@ through a client whose endpoint URL is a hard-coded literal and whose proxy is n
 Three things this scan establishes that the audit could not:
 
 1. **The auth path's own dependencies are clean.** `keygrip@1.1.0`, `cookies@0.9.1`, `koa@3.2.1`, `redis@6.2.0`,
-   `@sentry/node@10.69.0`, `@axiumine/koa-utils@6.0.0` — not one carries an open advisory. Everything found is in
+   `@sentry/node@10.69.0`, `@axiumine/koa-utils@6.0.0` — not one carries an open advisory.
+   ⚠️ **`koa-utils` is `7.0.0` since 2026-08-27**, and the finding survives the bump: `yarn audit --groups dependencies`
+   in `marketplace-dev-public-resource` reports the same 268 packages and 28 advisories after it as before, and the
+   Trivy gate the same 10 HIGH, all of them `axios@0.21.4`. Everything found is in
    the email client, the GraphQL server's body parser, or the test and lint toolchain.
 2. **The vulnerable `axios` ships into seven services that never execute a line of it.** `@socketlabs/email` is a
    *peer* of `@axiumine/koa-utils`, and eight services declare it as a direct dependency. Only
@@ -283,7 +286,7 @@ have to rediscover it.
 
 | Package | Version | Where it is declared | What it does in the auth path | Ours to change |
 |---|---|---|---|---|
-| `@axiumine/koa-utils` | 6.0.0 | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcodes `redis://` in the cluster branch (R45) | **no — external, unpublished from here, no source in this workspace** |
+| `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcodes `redis://` in the cluster branch (R45) | **no — external, unpublished from here, no source in this workspace** |
 | `@axiumine/marketplace-common` | 1.0.0 | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, deployed with `deploy-local.sh` |
 | `keygrip` | 1.1.0 | `dependencies` in 6 services, transitive in 3 | Cookie signing and the rotating key list behind ADR-034 | **no — external** |
 | `cookies` | 0.9.1 | transitive in all 9, via `koa` | Writes and reads the signed cookies; the `Secure` attribute the edge rewrites | **no — external** |

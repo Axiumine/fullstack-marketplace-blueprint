@@ -65,7 +65,7 @@ Everything the publish needs is already there — ADR-015 built the prepared sta
 | `"publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" }` | `BEs/marketplace-common/package.json:16-19` — a scoped package defaults to `restricted`, so this key is what makes a public publish possible at all |
 | `"upload": "npm publish --registry=https://registry.npmjs.org/"` | `BEs/marketplace-common/package.json` §scripts — the command, already written |
 | Twelve consumers pin `"@axiumine/marketplace-common": "^1.0.0"` | nine `BEs/dev/*/package.json`, plus `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` |
-| The scope is already in use on the public registry | `BEs/marketplace-common/package.json:403` depends on `@axiumine/koa-utils@^6.0.0`, and `scripts/lockfile-registry-filter.sh` was *"copied from `@axiumine/koa-utils`, which solved this first"* — the owner already publishes under this scope, so neither the scope nor the workflow is new |
+| The scope is already in use on the public registry | `BEs/marketplace-common/package.json:403` depends on `@axiumine/koa-utils` (`^6.0.0` when this was written, `^7.0.0` since 2026-08-27), and `scripts/lockfile-registry-filter.sh` was *"copied from `@axiumine/koa-utils`, which solved this first"* — the owner already publishes under this scope, so neither the scope nor the workflow is new |
 
 **So the publish is additive, not a migration.** No consumer `package.json` changes on the day it happens:
 the dependency string was always the real one. That was ADR-015's whole point and it is being collected now.
