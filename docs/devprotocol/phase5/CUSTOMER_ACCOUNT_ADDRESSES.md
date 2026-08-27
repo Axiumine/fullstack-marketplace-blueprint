@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.6 - 2026-08-27: "No order/cart relationship exists yet" set an expectation ADR-038 (2026-08-27) removes: cart, order, delivery and payment are permanently out of scope, so an address points at the customer's own document permanently and the out-of-scope row says refused rather than unbuilt.
 v1.7 - 2026-08-27, later the same day: §0's range narrows from "E11..E19" to **E12..E19** — `phase5/epics/E11.md` was deleted with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-07 changes.
 v1.4 - 2026-08-26, later the same day: **§6's second open question closes, and it closes by being built.**
@@ -56,7 +57,7 @@ eleven stories are `built` and §6 has no open question left — the absent appr
 2026-08-25 by a decision, and `position`'s writer on 2026-08-26 by an implementation, which is also where
 the two newest stories came from. So the file had become the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E12..E19; E01..E10 are the ten whose records sit beside the index instead of under it — E08's is
+E13..E19; E01..E10 and E12 are the eleven whose records sit beside the index instead of under it — E08's is
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), both moved later the
 same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's is beside neither list:
@@ -89,6 +90,13 @@ the order they were written, and §6's two questions with the reasoning that clo
 tier that self-serves permanently is not the same question as a shop owner's approval queue, and why an
 address a geocoder cannot find is saved without a point rather than refused. Both describe how a shipped
 surface was reasoned about, which is what a record is for and what an ADR deliberately is not.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 

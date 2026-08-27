@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
+**Version:** 1.14
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-01 — Identity & Access
@@ -12,7 +12,7 @@
 It was `phase5/epics/E01.md` until 2026-08-13. The file was deleted and its record moved here in one pass,
 because nothing in it was a story still ahead: every one of the fifteen is `built`, and the epic file had
 become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md` and that stays true for E12..E19 — E02's record joined this one beside the
+stories live in `epics/ENN.md` and that stays true for E13..E19 — E02's record joined this one beside the
 index later the same day ([`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), E03's, E04's and
 E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md)), E06's on
@@ -38,6 +38,13 @@ name, and moving a file is not a reason to change a name.
 recorded story-by-story in [`epics/E16.md`](./epics/E16.md); the propagation measurement is
 [`keygrip-rotation-propagation.md`](../../report/keygrip-rotation-propagation.md). E01-S12..S15 below say
 what each story had to satisfy and where the code is, not how AES-256-GCM works.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 
@@ -498,3 +505,4 @@ not the fact that a question existed.
 | 1.11 | 2026-08-27 | §2's out-of-scope row for commerce auth said "unbuilt platform-wide", which reads as pending. [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) makes cart, order, delivery and payment permanently out of scope, so there is no tier whose auth is waiting to be designed. The missing **v1.10** row this entry flagged was reconstructed the same day and now sits above it |
 | 1.12 | 2026-08-27, later the same day | The **v1.10** row above was written, closing the one hole in this table: the header had been at 1.10 since 2026-08-25 with no entry to say what it covered, so any citation of "IDENTITY_ACCESS v1.10" resolved to nothing. The entry was reconstructed from the commit that made the bump, not invented. §2's wording, every story and every open question are untouched |
 | 1.13 | 2026-08-27, later still | §0's range narrowed from "E11..E19" to **E12..E19**: `phase5/epics/E11.md` was deleted with no replacement record of its own, unlike the ten epics this file's opening lists — its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-01 changed |
+| 1.14 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |

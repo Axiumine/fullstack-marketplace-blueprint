@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
+**Version:** 1.11
 **Date:** 2026-08-27
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.11 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-27: The out-of-scope row said BC-11 was merely unbuilt. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope.
 v1.1 - 2026-08-14: §6's first open question closes on the platform owner's decision — **the taxonomy needs
 no intermediate draft state**, so no `published` flag and no `itemCategoryDisable` are coming. Nothing was
@@ -66,7 +67,7 @@ it: nothing in it is work still ahead. All seven stories are `built` and §6 has
 the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
 on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E12..E19; E01..E10 are the ten whose records sit
+stories live in `epics/ENN.md`, and that stays true for E13..E19; E01..E10 and E12 are the eleven whose records sit
 beside the index instead of under it — E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
@@ -96,6 +97,13 @@ answers: the inspection that killed the provenance question by finding no era of
 accepted a subcategory with a missing parent, and the two interleavings written as sequences of calls
 rather than as a rule. Both describe how a shipped surface was reasoned about, which is what a record is
 for and what an ADR deliberately is not.
+
+⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
+`phase5/epics/E12.md` was deleted and its record moved beside this one to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
+the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
+epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
+all fifteen sub-repos and resolve to sections of that record.
 
 ## 1. Epic goal
 

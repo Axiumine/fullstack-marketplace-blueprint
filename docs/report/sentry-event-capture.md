@@ -24,7 +24,7 @@ left this host. A throwaway `addEventProcessor` teed each event **before** `befo
 compares what the scrubber was handed with what actually went out. Every credential-shaped value carried a
 unique `MKTS13…` sentinel. Both throwaway files lived under `node_modules/` and were deleted; nothing in any
 repo was modified.
-**Reads against:** [`docs/devprotocol/phase5/epics/E12.md`](../devprotocol/phase5/epics/E12.md) E12-S02,
+**Reads against:** [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) E12-S02,
 E12-S03, E12-S06 · `BEs/marketplace-common/src/others/sentryBeforeSend.mts` ·
 `BEs/dev/*/src/instrument.mts` · `@sentry/node` / `@sentry/core` / `@sentry/node-core` **10.69.0** ·
 [`log-sink-inventory.md`](./log-sink-inventory.md) (E12-S12, every other sink)
@@ -461,7 +461,7 @@ sees.
 | Three frontends sample transactions at `0.1` with no scrubber of any kind, §6.1 | **E12-S24** | 🟠 |
 | The browser ships the whole address bar in five places and no option stops it, §9 | **E12-S24** | 🔴 |
 
-Written into [`E12.md`](../devprotocol/phase5/epics/E12.md) §4 as part of closing this story. The first four
+Written into [`TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 as part of closing this story. The first four
 were not fixed here; the fifth was measured and fixed under E12-S24 in the same piece of work, which is why
 §9 carries its own residual table.
 
