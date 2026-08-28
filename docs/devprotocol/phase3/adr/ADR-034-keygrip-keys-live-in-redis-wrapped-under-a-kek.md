@@ -303,8 +303,8 @@ against an isolated namespace.
 minting that key is the event that demoted this one. The demotion instant was always in the record; it
 never needed storing, and `IKeygripKeyMaterial` keeps its three fields.
 
-`forceRetire` can remove an entry from the middle, which leaves the tail's neighbour newer than the key
-that actually demoted it — so the derived instant can only ever read **late**. Late keeps a key nobody
+`retireKeygripKey` — the `keygripRetire` mutation's half in `marketplace-common` — can remove an entry from
+the middle, which leaves the tail's neighbour newer than the key that actually demoted it — so the derived instant can only ever read **late**. Late keeps a key nobody
 needs; early logs a customer out. The error is on the side that costs a byte.
 
 ### What moves with it
