@@ -2,11 +2,21 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.9 - 2026-08-28, later the same day: **§6 gains its first live question in this record's history**, and
+§0's range narrows from "E16..E19" to **E19** — `phase5/epics/E17.md` and `phase5/epics/E18.md` were both
+deleted and their records distributed, the E11/E13/E14/E15/E16 way. E18's §6 question 3 read as answered
+and was, but its final sentence carried a residual that is genuinely open and lived nowhere else: nobody
+owns a newly-red advisory under a pinned `trivy` image whose database is not pinned, and nobody owns the
+first `.trivyignore` line. It is MC-12's gap, MC-12 is this document's, so the question moves here rather
+than to `EPICS_STORIES.md`. What the audit found held nowhere else otherwise went to `EPICS_STORIES.md`
+§2's E17 and E18 rows and §2.1's E17 row, and to `docs/testing.md`. The count in §0 stays eleven — no new
+record joined it, and every story id survives. Nothing else about this record's content, build state or
+story ids changed.
 v1.8 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
 `phase5/epics/E15.md` deleted and distributed, the E11 / E13 / E14 way, no twelfth record joining the index.
 **This file received content, not just a range edit:** new **§3.1** records `credentialWriteRevokes.test.mts`
@@ -23,7 +33,7 @@ else. The count of eleven records beside the index in §0 is unchanged — no tw
 and all nine story ids. Its knowledge went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row,
 [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, [`architecture.md`](../../architecture.md),
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md),
-[`E17.md`](./epics/E17.md) §5 and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md)
+`epics/E17.md` §5 and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md)
 §3.4. The two defects E14-S09 found stay open in
 [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9. Nothing else
 about BC-09 changes.
@@ -115,7 +125,7 @@ grace design), [`architecture.md`](../../architecture.md) (the abandoned `// if 
 cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive),
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"),
 [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`) and [`E17.md`](./epics/E17.md) §5 (why E17 depends on E14 for `familyId`
+alternative to `limit_req_zone`) and `epics/E17.md` §5 (why E17 depends on E14 for `familyId`
 and can never key a session by a token value instead). One further fact is E14-S06's own accepted
 cross-service-harness residual, recorded in
 [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The two defects
@@ -131,6 +141,24 @@ Unlike E14's, **E15's §6 was not empty** — one Product question survived and 
 than only losing a range: §3.1 above is new, and records the per-repo `credentialWriteRevokes.test.mts`
 gate and why its assertion is a substring match rather than an adjacency regex. E15 kept its id and all ten
 story ids.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
+longer a range — because `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their
+records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
+*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
+fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
+record before the code. An audit of the two files, 1 255 lines together, found almost everything already
+verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
+What survived went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E17 and E18 rows and §2.1's E17 row (the
+story ids written one by one, E17's five-step landing order, its two permanent scope refusals, and the reason
+it keys a session by `familyId` and can never key one by a token value), to
+[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
+line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
+§6 below, which gains the one live open question either file still carried: nobody owns a newly-red advisory
+under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
+line. **No twelfth record joined the eleven beside the index — that count stays eleven** (E01..E10 and E12).
+E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
+two files are gone.
 
 ## 1. Epic goal
 
@@ -311,8 +339,24 @@ pinned node via nvm before the first gate runs.
 
 ## 6. Open questions
 
-**None live.** Both are closed or owned elsewhere, which is why this record sits beside the index rather
-than under `epics/` — see §0.
+**One live, added 2026-08-28**, and two closed or owned elsewhere. The record still sits beside the index
+rather than under `epics/` — see §0.
+
+- **OPEN — Platform owner. Who reviews a newly-red advisory under a pinned scanner image, and who decides
+  a `.trivyignore` line?** MC-12's gate is `trivy fs` in `aquasec/trivy:0.70.0`, HIGH and CRITICAL,
+  production tree only, in the `pre-push` of the fourteen repos with a `yarn.lock` plus the parent's. The
+  image is pinned; its **advisory database is not** — it is fetched at run time, so a tree nobody has
+  touched can go red between two pushes. Nobody owns that event: there is no CI to notice it, the hook
+  fires only for whoever is pushing, and the answer available at that moment is either fix the tree or
+  `--no-verify`. The second half is the same gap one step further on — **there is no `.trivyignore`
+  anywhere in the workspace**, so the first one written will set the precedent for who may suppress an
+  advisory and on what evidence, with nothing to inherit. ⚠️ **This is the residual of E18's own open
+  question 3, not a re-opening of it.** That question asked who owns the scan and whether it runs in CI;
+  both halves are answered — it does not run in CI because there is no CI, and `trivy fs` replaced a
+  Qodana inspection that queried no advisory feed (E18-S04, E18-S11, `RISK_REGISTER.md` R21). What was
+  never answered is what happens *after* the gate is working. Recorded here on 2026-08-28 when
+  `phase5/epics/E18.md` was deleted and its record distributed; this document owns BC-09 and MC-12, so
+  the question belongs to it rather than to the epic index.
 
 - `NFR-CO02` (GDPR applicability) — tracked at [`phase1/NFR.md`](../phase1/NFR.md) §Open questions.
   Not decided here: this context owns only the secret-handling layers under NFR-CO01/NFR-SE12. A pointer,

@@ -125,7 +125,12 @@ another grep:
 - **The audit was static.** MC-01..12 read source; none of them sends a request to a running platform.
   E18-S09 did that once, by hand, and found two things every static check had passed over — the
   registration path storing `bcrypt(bcrypt(password))` among them. A green checklist is not a working
-  system.
+  system. ⚠️ **The general form is worth stating, because it is what made that defect invisible for six
+  epics: a file-and-line citation proves the line exists, not that the path reaches it.**
+  `LoginSubDocSchema`'s `pre('save')` and `registerNewUser`'s `encryptPassword` were each correct alone,
+  and each carried a citation saying so. Running them together is the only thing that showed the double
+  hash. A document that cites both is not therefore describing a working path, and no amount of
+  cross-referencing between citations turns two static facts into one dynamic one.
 - **A check that names a file proves the file exists, not that it is honest.** MC-05 and MC-10 are
   presence checks by construction; what makes them worth running is that the thing they look for is the
   thing a new repo forgets.
@@ -147,6 +152,23 @@ another grep:
   enters a pipeline.** `funUserAddressDel` is the only pipeline update on the platform.
 - ⚠️ **No test on this platform spans two services**, so every cross-repo value agreement is unenforced
   by construction — see [`docs/workflow.md`](./workflow.md), *Environment files*.
+- ⚠️ **100/4 and mutation 100 do not distinguish "this branch is impossible" from "this branch is never
+  driven".** A fully covered happy path sits next to an unexercised guard and the numbers stay green:
+  `assertTier` was itself tested, and two of the three resource services never proved they *reached* it with
+  the right expectation — the part a refactor breaks silently. That is why the boundary contract above
+  enumerates cases by name rather than trusting the percentages, and why E18 existed at all.
+- ⚠️ **A service that fails its own required-env check can still exit 0.** `checkRequiredEnv()` throws
+  outside `start()`'s try, so the throw reached only the entrypoint's `.catch`, which reported to a Sentry
+  client that discards events when no DSN is configured — the state this platform boots in — and then let
+  Node exit cleanly. Every restart policy reading the exit code saw a deliberate shutdown. The handler now
+  logs to stderr and calls `process.exit(1)` (E18-S03). **A refusal that is not an exit code is not a
+  refusal to anything watching the process.**
+- ⚠️ **Removing a name from `REQUIRED_ENV_VARS` changes exactly one runtime behaviour — the service now
+  boots without it — and that is enough to gut a test silently.** Two `startFailure.itest.mts` suites
+  forced a boot refusal by deleting `PLATFORM_NAME`; once E18-S13 dropped that name from the required
+  list, both stopped refusing and connected to a real MongoDB instead, still green. They now delete
+  `INTROSPECTION_CODE`. **A test that proves a refusal must delete a variable the list still requires**,
+  so shortening the list is never a comment-only change.
 
 ## Integration test conventions
 

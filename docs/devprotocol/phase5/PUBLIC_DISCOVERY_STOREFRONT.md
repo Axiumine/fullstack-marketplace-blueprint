@@ -2,11 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-08 — Public Discovery / SSR Storefront
-**Changelog:** v1.9 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
+**Changelog:** v1.10 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
+`phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not
+moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
+questions and E18's three are all closed. What the audit found held nowhere else went to `EPICS_STORIES.md`
+§2's E17 and E18 rows and §2.1's E17 row, `docs/testing.md`, and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
+The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this
+record's own content or build state changed.
+v1.9 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
 `phase5/epics/E15.md` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
 and not E12's: all ten of its stories are `built`, so no twelfth record joined the eleven beside the index.
 ⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
@@ -15,7 +22,7 @@ file. The other nine facts went to `EPICS_STORIES.md` §2 and §2.1, `ADR-INDEX.
 designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
 E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
 keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
-v1.8 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all nine of its stories were `built`, its §6 read "None open.", and an audit of the file found only nine facts held nowhere else, so no twelfth sibling record exists to join the eleven beside the index. Those nine went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row (the seven-step landing order, and the E13-S01+S02 ordering in §2.1), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected alternatives), [`architecture.md`](../../architecture.md) (the abandoned `setLoginCookies` cookie-side comment), [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), [`epics/E17.md`](./epics/E17.md) §5, and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The count in §0 stays eleven, not twelve. E14 keeps its id and all nine story ids. Nothing about this record's own content or build state changed.
+v1.8 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all nine of its stories were `built`, its §6 read "None open.", and an audit of the file found only nine facts held nowhere else, so no twelfth sibling record exists to join the eleven beside the index. Those nine went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row (the seven-step landing order, and the E13-S01+S02 ordering in §2.1), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected alternatives), [`architecture.md`](../../architecture.md) (the abandoned `setLoginCookies` cookie-side comment), [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), `epics/E17.md` §5, and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The count in §0 stays eleven, not twelve. E14 keeps its id and all nine story ids. Nothing about this record's own content or build state changed.
 v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.6 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.7 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all eleven of its stories were `built`, its §6 read "None open.", and only seven facts survived an audit as held nowhere else, so no twelfth sibling record exists to join the eleven beside the index. Those seven went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6, and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. The count in §0 stays eleven, not twelve. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed.
@@ -118,7 +125,7 @@ grace design; to [`architecture.md`](../../architecture.md) — the abandoned `/
 ?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 does not revive; to
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 — two rate-limit windows, not one; to
 [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`; to [`epics/E17.md`](./epics/E17.md) §5 — why E17 depends on E14 for
+alternative to `limit_req_zone`; to `epics/E17.md` §5 — why E17 depends on E14 for
 `familyId` and can never key a session by a token value; and to
 [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 — E14-S06's
 accepted cross-service-harness residual. The count of records sitting beside the index stays **eleven**,
@@ -143,6 +150,24 @@ lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
 [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
 its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
+longer a range — because `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their
+records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
+*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
+fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
+record before the code. An audit of the two files, 1 255 lines together, found almost everything already
+verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
+What survived went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E17 and E18 rows and §2.1's E17 row (the
+story ids written one by one, E17's five-step landing order, its two permanent scope refusals, and the reason
+it keys a session by `familyId` and can never key one by a token value), to
+[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
+line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
+under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
+line. **No twelfth record joined the eleven beside the index — that count stays eleven** (E01..E10 and E12).
+E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
+two files are gone.
 
 ## 1. Epic goal
 

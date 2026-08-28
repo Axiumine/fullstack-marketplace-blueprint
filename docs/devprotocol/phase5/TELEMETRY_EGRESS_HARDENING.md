@@ -2,12 +2,21 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7; record moved out of `epics/` 2026-08-27, see §0
-**Version:** 2.13
+**Version:** 2.14
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v2.13 - 2026-08-28, later the same day: **`phase5/epics/E15.md` is deleted**, so the range
+**Changelog:** v2.14 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
+`phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not
+moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
+questions and E18's three are all closed. What the audit found held nowhere else went to `EPICS_STORIES.md`
+§2's E17 and E18 rows and §2.1's E17 row, `docs/testing.md`, and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
+The count in §0 stays eleven — no new record joined it, and every story id survives. This record's own build
+state did not change; its content gained one paragraph under **E12-S22**, because the E17 question that pass
+answered turned on a limit of `sentryBeforeSend` that only this document owns — `event.message` is not one
+of the bags it walks.
+v2.13 - 2026-08-28, later the same day: **`phase5/epics/E15.md` is deleted**, so the range
 §0 gives for `EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows once more — from
 **E15..E19** to **E16..E19**. E15 followed the E11 / E13 / E14 pattern and not E12's: distributed rather
 than moved, all ten of its stories `built`. ⚠️ **Unlike E14's, E15's §6 was not empty** — one Product
@@ -35,7 +44,7 @@ rejected alternatives — the tier-keyed privilege gradient for the session cap,
 grace design), [`docs/architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate
 ?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive),
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"), **this file's own §4 E12-S09** (the
-Cloudflare rate-limiting-rules alternative to `limit_req_zone`), [`epics/E17.md`](./epics/E17.md) §5 (why
+Cloudflare rate-limiting-rules alternative to `limit_req_zone`), `epics/E17.md` §5 (why
 E17 depends on E14 for `familyId`) and
 [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 (the
 cross-service-harness residual). No twelfth record joined the eleven beside the index, so that count is
@@ -220,7 +229,7 @@ gradient for the session cap and the cached-successor-pair grace design;
 comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive;
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 — "two windows, not one"; **this file's own §4, E12-S09** — the
 Cloudflare rate-limiting-rules alternative to `limit_req_zone`, so this file is itself one of the seven;
-[`epics/E17.md`](./epics/E17.md) §5 — why E17 depends on E14 for `familyId`; and
+`epics/E17.md` §5 — why E17 depends on E14 for `familyId`; and
 [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 — the
 cross-service-harness residual. No twelfth record joined the eleven that sit beside the index — that count
 stays eleven (E01..E10 and E12), not twelve. E14 kept its epic id and all nine of `E14-S01` … `E14-S09`
@@ -243,6 +252,24 @@ other nine facts went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row 
 destinations — so nothing below this line moved. The count beside the index stays eleven. E15 kept its
 epic id and all ten of `E15-S01` … `E15-S10`.
 
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
+longer a range — because `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their
+records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
+*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
+fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
+record before the code. An audit of the two files, 1 255 lines together, found almost everything already
+verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
+What survived went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E17 and E18 rows and §2.1's E17 row (the
+story ids written one by one, E17's five-step landing order, its two permanent scope refusals, and the reason
+it keys a session by `familyId` and can never key one by a token value), to
+[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
+line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
+under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
+line. **No twelfth record joined the eleven beside the index — that count stays eleven** (E01..E10 and E12).
+E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
+two files are gone.
+
 **The story IDs did not change, and here that matters more than it did for E01..E10.** All twenty-six of
 `E12-S01` … `E12-S26` are in use, and they are cited from **87 source files across all fifteen sub-repos**
 as well as from twenty Markdown files — eslint rule messages and `restrictedSyntax` tests in every repo,
@@ -250,8 +277,7 @@ the nine `src/instrument.mts` files and the three frontend `src/instrument.ts`, 
 its four test files in `marketplace-common`, seven `marketplace-nginx` configs plus `test/suite.sh`,
 `marketplace-docker-DBs/docker-compose.yml` and `up.sh`, and `marketplace-user/src/lib/cachePolicy.ts`.
 On the documentation side: [`SETUP.md`](../../../SETUP.md), [`docs/architecture.md`](../../architecture.md),
-`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E18.md`,
-`epics/E19.md`, [`EPICS_STORIES.md`](./EPICS_STORIES.md), [`RISK_REGISTER.md`](./RISK_REGISTER.md), the
+`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E19.md`, [`EPICS_STORIES.md`](./EPICS_STORIES.md), [`RISK_REGISTER.md`](./RISK_REGISTER.md), the
 four findings under `docs/report/`, and three sub-repo `CLAUDE.md`/`README.md` pairs. Every one of those
 resolves to a section of this file. ⚠️ **Renumbering was refused, as it was for E01**: an id cited in
 107 files is a name, and moving a file is not a reason to change a name — the more so when most of those
@@ -1384,6 +1410,18 @@ on a sample rate is not the same as turning off the redaction.
 **Traces:** NFR-SE01, NFR-SE02, NFR-SE08, NFR-MA01, NFR-CO01, NFR-CO02; BCON-01, BCON-02
 **Evidence (defect):** measured — `docs/report/sentry-event-capture.md` §6, §7, §8;
 `@sentry/node-core/.../httpServerSpansIntegration.js:44,69,70`
+
+⚠️ **One bag it does not walk, established 2026-08-28 outside this story and recorded here because this is the
+document that owns the claim: `event.message`.** A `Sentry.captureMessage(text)` call puts its whole string there,
+and `sentryBeforeSend` scrubs `event.request`, the span and trace bags and every breadcrumb — not the top-level
+message. So a value interpolated into a `captureMessage` string leaves the host verbatim no matter what
+`REMOVED_KEYS` holds. It surfaced on E17's key-custody audit line, where `funKeygripRotate` and `funKeygripRetire`
+named the acting Admin's `_id`; both now pass `sha256Hex(_id)`, the same value `assertUnderRateLimit` already
+used, which stays resolvable by whoever holds the `admin` collection and names nobody to the vendor. **The general
+rule is the one worth carrying: a scrubber that walks bags cannot help a string a caller built by hand — the call
+site is the only place that can decide.** The digest's own limit is stated rather than glossed: this is
+pseudonymisation, not anonymisation, and an id space the size of the `admin` collection is enumerable by
+anyone already holding it — the intended reader, not the threat.
 
 ### E12-S23 — Sentry's environment matches the deployment   `built 2026-08-11`
 **As a** platform operator, **when** I look at a Sentry project, **I want** development events separated from

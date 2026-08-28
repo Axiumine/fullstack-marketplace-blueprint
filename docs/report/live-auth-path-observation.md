@@ -29,8 +29,9 @@ still a citable id and the E15 row is what carries the build state this report r
 [`../devprotocol/phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E14 row, E14-S06
 (⚠️ **Repointed 2026-08-28.** `epics/E14.md` is deleted and its record distributed, not moved; E14-S06's
 own cross-service-harness residual is what the `token-handling-security-audit.md` §3.4 citation above now
-carries) · [`EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2, E16’s row (`epics/E16.md` §3 until its deletion 2026-08-28) · [`E18.md`](../devprotocol/phase5/epics/E18.md)
-E18-S09 · [`SETUP.md`](../../SETUP.md) §5, §8
+carries) · [`EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2, E16’s row (`epics/E16.md` §3 until its deletion 2026-08-28) · [`EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E18 row, E18-S09
+(⚠️ **Repointed 2026-08-28**, same reason as the E14 note above: `epics/E18.md` is deleted and its record
+distributed; both of this report's findings, and R54's closure, are restated there) · [`SETUP.md`](../../SETUP.md) §5, §8
 
 ⚠️ **No token, token prefix, key or key prefix appears in this document**, per E17 §2. Token values are
 given as lengths, Redis key names as shapes: `<hex>` stands for a digest, `<uuid>` for a lineage id. The
