@@ -490,8 +490,10 @@ route and the fourth `SideMenu` section · `test/pages/SecurityPage.test.tsx` (s
 ones assert a blocked round-trip or a sent one, never a rendered button).
 ⚠️ **`ageDays` and `current` are the server's answers, not the browser's**, and that is the story rather than
 an implementation note: the browser's clock and the browser's copy of the fingerprint can each be a rotation
-behind the record they would be judging, so a screen that recomputed either could offer a key as retirable
-while the rotation refuses it, or call a service current against a record that no longer exists.
+behind the record they would be judging, so a screen that recomputed either could contradict the record it is
+describing, or call a service current against a record that no longer exists. `ageDays` reports how old a key
+is and never what the rotation retires on — that runs from the demotion instant (ADR-034, amended
+2026-08-28).
 ⚠️ The read goes through `readKeygrip` and never `loadKeygrip`, so opening the screen cannot file a holders
 row for a service that signs nothing — there is a test asserting no write happens.
 

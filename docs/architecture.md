@@ -103,7 +103,9 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   what makes that table a heartbeat rather than a record of last adoption. **Measured propagation on the
   Dev stack: 37 ms for a rotation, 8 ms for a retirement, to all five services** — the 5 minutes is the
   ceiling for a lost nudge, not the mechanism ([`report/keygrip-rotation-propagation.md`](./report/keygrip-rotation-propagation.md)).
-  Rotation adds a key and removes none, so it can log nobody out; retirement removes one, which is its
+  Rotation adds a key and removes only keys that stopped signing more than `SESSION_CAP_DAYS_REMEMBERED`
+  (30) days ago, so it can log nobody out — the clock runs from a key's demotion, not from its minting,
+  which is ADR-034's amendment of 2026-08-28. Retirement removes one regardless of age, which is its
   purpose, and R47 records the window in which a not-yet-adopted service still honours it.
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
 - `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
