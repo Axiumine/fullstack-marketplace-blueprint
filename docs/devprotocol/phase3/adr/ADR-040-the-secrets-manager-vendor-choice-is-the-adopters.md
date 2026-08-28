@@ -1,8 +1,16 @@
 # ADR-040 — The secrets-manager vendor choice is the adopter's, not this blueprint's
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, amended 2026-08-28
 **Date:** 2026-08-28
+**Amended:** 2026-08-28, hours after acceptance, **in place at the platform owner's instruction** rather than
+by the `## Note` foot this file would otherwise carry. What changed is one *Negative* bullet and one
+*Compliance* greps, which described a duplication the same day's work removed: `readKek` is now the
+single decode of `KEYGRIP_KEK` in TypeScript. The decision itself — the vendor choice is the adopter's — is
+untouched, and so is every option, consequence and risk that turns on it. `ADR-INDEX.md` §1 says ADRs are
+immutable once accepted; this is the second exception in the tree, after
+[ADR-011](./ADR-011-soft-delete-and-global-uniques.md), and it is an exception on the same grounds: the owner
+authorised it, and the alternative was an accepted ADR that misdescribes the code it greps for.
 **Deciders:** platform owner, ruling directly when asked how to close [`phase5/epics/E16.md`](../../phase5/epics/E16.md)
 §6 question 4 — *does the wrapping key have a custody story of its own* — for a repository that is
 **published as a blueprint rather than operated as a deployment**, the same standing the
@@ -73,7 +81,7 @@ into **decided, and decided not to** — which is a materially different state, 
 |---|---|---|
 | **A** — leave the gap open, exactly as it stands | zero work; no claim can go stale | it is the state that has held since 2026-08-13 and it has now outlived its only stated blocker. A gap that nothing is waiting on is not a gap, it is an unanswered question with no owner. `E16` §6 q4 and `R50` both stay open forever with no reason on file, and every future reader re-derives this same analysis |
 | **B** — choose a vendor now and wire it in | closes the question with running code; matches the industry answer ADR-034 already named | this workspace has never run against any of the four. The choice would be made by whoever typed it rather than by anyone who had operated it, and it forces one cloud's IAM or one sealing story onto every adopter — most of whom run something else. ⚠️ It also cannot be tested here: there is no production deployment, so the integration would ship at 100% coverage against a mock and 0% against reality |
-| **C** — ship a vendor-neutral provider seam (`IKeygripKekProvider` or similar) with an `env` reference adapter, choose no vendor | keeps the blueprint neutral while giving adopters a typed swap point; `marketplace-common` already carries interfaces of exactly this shape — `IKeygripReadStore` and its neighbours in `readKeygrip.mts` exist so the library never names a concrete driver's types | a seam is a guess about a shape, and this one would be guessed against **zero** real integrations. The three interfaces cited as precedent were extracted from a driver already in use; this one has nothing to extract from. It also enlarges the surface the ruling is about rather than settling it: two call sites already read `process.env.KEYGRIP_KEK` outside `readKeygrip` — `funKeygripRotate.mts:54` and `funKeygripRetire.mts:47` in `marketplace-dev-admin-authenticated-resource` — so a provider that resolves independently in three places reintroduces exactly the split-brain ADR-034 exists to refuse |
+| **C** — ship a vendor-neutral provider seam (`IKeygripKekProvider` or similar) with an `env` reference adapter, choose no vendor | keeps the blueprint neutral while giving adopters a typed swap point; `marketplace-common` already carries interfaces of exactly this shape — `IKeygripReadStore` and its neighbours in `readKeygrip.mts` exist so the library never names a concrete driver's types | a seam is a guess about a shape, and this one would be guessed against **zero** real integrations. The three interfaces cited as precedent were extracted from a driver already in use; this one has nothing to extract from. It also enlarges the surface the ruling is about rather than settling it: a provider that resolves independently at each call site reintroduces exactly the split-brain ADR-034 exists to refuse. *(Amended 2026-08-28: this cell originally cited the two call sites in `marketplace-dev-admin-authenticated-resource` that decoded the KEK themselves. They now call `readKek`, so the objection no longer has that example behind it — but it does not weaken, it sharpens: the seam would put a resolver behind the one decode site the platform has, which is the whole surface, not part of it.)* |
 | **D — chosen** — decline the vendor choice permanently, delegate it to the adopter, and document every swap point precisely | honest about what this repository can and cannot know; costs no code, so it cannot rot, cannot drift from an untested integration, and cannot be wrong about a vendor nobody here runs; gives an adopter the one thing a blueprint can actually give — the exact file, line and invariant to change | the platform ships with a documented hand-provisioning story and no automation, and a page nothing enforces. An adopter who does not read it deploys with a hand-copied KEK on every host, which is precisely `R50`'s residual, unchanged |
 
 ---
@@ -135,10 +143,19 @@ one, and calling it anything else is the misreading this ADR most wants to preve
   still no escrow. `R50` is **accepted**, not closed, and its residual text does not move.
 - **A documentation control is the weakest kind.** No gate reads `docs/PRODUCTION_HARDENING.md`, no test
   asserts it is current, and an adopter who skips it is in exactly the position `R50` describes.
-- **The two raw `process.env.KEYGRIP_KEK` reads outside `readKeygrip` stay raw.** `funKeygripRotate.mts:54`
-  and `funKeygripRetire.mts:47` each decode the KEK themselves. That is not a defect today — they run in one
-  process, against one `env` — but it is a third place an adopter must find, and the hardening page names all
-  three for that reason rather than pretending there is one.
+- **The KEK is decoded in one place in TypeScript, and that place is not free.** `funKeygripRotate.mts` and
+  `funKeygripRetire.mts` each used to decode the KEK themselves; both now call `readKek`
+  (`marketplace-common` 2.0.3), which `readKeygrip` calls too, so `src/` across the fifteen repos holds
+  exactly one `process.env.KEYGRIP_KEK`. That gives an adopter one line to change instead of three — but it
+  buys **one swap point, not one value**. Two reads of `process.env` in one process always agreed; three
+  *processes* resolving a manager independently still need not, and the rule that covers that is the
+  hardening page's (resolve once per process, before start), not this refactor's. Anyone reading
+  "centralised" as "the split-brain is handled" has read it wrong.
+- **`BEs/marketplace-db-setup/lib/keygrip.js:88` stays a fourth, separate decode, permanently.** That repo is
+  plain JavaScript, depends on `dotenv`, `migrate-mongo`, `mongodb`, `mongodb-client-encryption` and `redis`,
+  and has no dependency path to `marketplace-common` — deliberately, because it seeds the record before any
+  service exists. It carries its own `readKek(env)` helper and its own copy of the 32-byte rule. Two
+  definitions of one invariant is the price of that separation, and the hardening page names both.
 
 ### Risks
 
@@ -166,18 +183,29 @@ grep -rE '"(node-vault|@hashicorp/|@aws-sdk/client-kms|@google-cloud/secret-mana
   --include='package.json' BEs FEs marketplace-* | grep -v node_modules
 ```
 
-No provider abstraction over the KEK — the swap point stays the `env` read itself:
+No provider abstraction over the KEK — the swap point stays the `env` read itself, and there is one of it:
 
 ```bash
-# The only src/ hits allowed are readKeygrip.mts:57 and the two admin-resource call sites the page names.
-grep -rn 'process\.env\.KEYGRIP_KEK' --include='*.mts' BEs/*/src BEs/dev/*/src
+# Zero output. Every hit belongs in readKek.mts — the decode itself and the doc comment that says it is the
+# only one — so anything this prints is a call site that grew a private Buffer.from back.
+grep -rn 'process\.env\.KEYGRIP_KEK' --include='*.mts' BEs/*/src BEs/dev/*/src | grep -v '/readKek\.mts:'
+```
+
+And the decode it is excluding must still be there — zero hits here means the single decode moved and both
+this ADR and the hardening page now lie about where it is:
+
+```bash
+# Exactly one hit: BEs/marketplace-common/src/others/readKek.mts:25.
+grep -rn "process\.env\.KEYGRIP_KEK ??" --include='*.mts' BEs/*/src BEs/dev/*/src
 ```
 
 The hardening page exists and still names all four shared values:
 
 ```bash
-# Four hits, one per value. A missing one means the page drifted from what SETUP.md §5 provisions.
-grep -cE 'KEYGRIP_KEK|INTROSPECTION_CODE|REDIS_PASSWORD|REDIS_KEY' docs/PRODUCTION_HARDENING.md
+# Four, one per value. A missing one means the page drifted from what SETUP.md §5 provisions.
+# ⚠️ `grep -c` counts LINES, not values, and returns a number in the teens that looks like a failure and is
+# not — this form was `-c` when the ADR was accepted, and that was a defect in the check, corrected in place.
+grep -oE 'KEYGRIP_KEK|INTROSPECTION_CODE|REDIS_PASSWORD|REDIS_KEY' docs/PRODUCTION_HARDENING.md | sort -u | wc -l
 ```
 
 The framing must stay *declined*, never *pending*:
