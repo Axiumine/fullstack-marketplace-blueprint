@@ -213,6 +213,11 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   service whose KEK cannot open that record **exits 1 at boot** with `KEYGRIP_KEK_MISMATCH` instead of
   signing cookies its siblings cannot verify. What is left to keep in step is the KEK itself, and getting
   it wrong is now loud.
+  ⚠️ **Provisioning them anywhere but a workstation is the adopter's job, and no vendor is named for it.**
+  [`ADR-040`](./devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md) rules
+  that this blueprint never chooses one; [`PRODUCTION_HARDENING.md`](./PRODUCTION_HARDENING.md) lists the
+  swap points — including the ⚠️ **four** places that decode `KEYGRIP_KEK`, not one — and the invariants a
+  swap must not break.
 - **Fingerprint, never print.** `sha256(key + ' ' + value)`, first six hex — proves two repos agree
   without putting the secret in a terminal.
 - ⚠️ **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or
