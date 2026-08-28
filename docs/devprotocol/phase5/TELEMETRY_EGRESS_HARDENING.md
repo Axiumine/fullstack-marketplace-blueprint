@@ -2,12 +2,21 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7; record moved out of `epics/` 2026-08-27, see §0
-**Version:** 2.10
+**Version:** 2.11
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v2.10 - 2026-08-28: one dated note in the front matter, where this file names the topology gap that bounds E12-S15. `ADR-039` supersedes `ADR-032` and decides that Cloudflare sits in front of the origin, so the configuration E12-S15 shipped is now the decided shape rather than an anticipated one. Nothing about the story moved: its repo half stays `built`, its zone half stays an adopter step (v2.8), and **R44** keeps its score and its missing date. No other section touched.
+**Changelog:** v2.11 - 2026-08-28, later: **`phase5/epics/E13.md` is deleted**, so the range §0 gives for
+`EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows again — from **E13..E19** to **E14..E19**. E13
+followed **E11's pattern and not E12's**: distributed rather than moved, all eleven of its stories `built`,
+its own §6 reading "None open.", and seven facts held nowhere else moved to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md)
+§3.6 and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. No
+twelfth record joined the eleven beside the index, so that count is unchanged; §0 gains a new dated
+paragraph saying so, naming all three destinations, and stating plainly that E13 kept its epic id and all
+eleven of `E13-S01` … `E13-S11` kept theirs. The documentation-citation list in §0 also drops `epics/E13.md`,
+which no longer exists. No story id, criterion, evidence line, state or gate in this file changed.
 v1.0 - initial; written against the 2026-08-10 token-handling security audit, after an adversarial review that returned `refuted: true` on the first design — the original `beforeSend` scrubber looked at the wrong half of the event and would not have closed §3.5.
 v1.1 - implemented 2026-08-10. Story markers now read per story, and §7 records what is
 left: E12-S12, E12-S13 and the Cloudflare half of E12-S15.
@@ -120,6 +129,7 @@ themselves and one equivalent mutant; fixed here, and §4 no longer claims a sco
 v2.7 - 2026-08-26: §6's closing note annotated, not rewritten. Open question 1 (NFR-CO02) was closed on 2026-08-26 by a decision taken outside this epic; the 2026-08-11 paragraph saying it stayed open through E12's answers was true when written and its reasoning still holds, so it stands with a dated block quote underneath. No story, criterion or status changed. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v2.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "E12.md v2.6" could not be resolved to one of them. It takes the next free number instead. It stays where it is: this changelog runs oldest-first, and the number that fits the sequence stays with the entry that sits in it. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
 v2.8 - 2026-08-27: E12-S15 **reclassified, not closed**. Its state cell read `built` **in the repo, not yet in the zone** since 2026-08-11, which reads as outstanding work on this backlog and is not what it is: every acceptance criterion the story wrote is met and gated, and what remains — enabling Authenticated Origin Pulls in Cloudflare and placing the zone CA under `/etc/nginx/certs/` — needs a zone and a host that do not exist here. This platform is a blueprint published for the community (`ADR-037`), so that operator role does not exist in this checkout; the row now says so and names the adopter as its owner, the same reading `EPICS_STORIES.md` §6.1 applied to six questions whose owner cell was the tell. ⚠️ **No score moved and no control closed.** R44 stays 3×5=15 🟠 High and R46 stays 🟠 High, because `ADR-032` forbids closing a control by appeal to a network boundary and an absent host is an absence of exposure rather than a mitigation. No story, criterion, evidence line or gate changed.
 v2.9 - 2026-08-27, later: **`phase5/epics/E12.md` is deleted and this file is its record** — the eleventh epic record to move beside the index rather than sit under it, and the first from the E12-E18 remediation block. Moved intact, which is the E01..E10 pattern and not E11's: nothing here was distributed, because all twenty-six stories are `built` and the file is the record of a shipped hardening pass. New §0 states why, names the ten that moved before it, and separates E11 — deleted with no replacement — from the eleven that moved. Every internal relative link is re-based one level shallower (`../../../report/` → `../../report/`, `../../phase3/` → `../phase3/`, `../EPICS_STORIES.md` → `./EPICS_STORIES.md`, `../../../../SETUP.md` → `../../../SETUP.md`) and all resolve. ⚠️ **No story id changed**: `E12-S01` … `E12-S26` are cited from 87 source files across all fifteen sub-repos and twenty Markdown files, and renumbering was refused for the reason E01 refused it. No story, criterion, evidence line, state or gate changed — this is a move, not a revision.
+v2.10 - 2026-08-28: one dated note in the front matter, where this file names the topology gap that bounds E12-S15. `ADR-039` supersedes `ADR-032` and decides that Cloudflare sits in front of the origin, so the configuration E12-S15 shipped is now the decided shape rather than an anticipated one. Nothing about the story moved: its repo half stays `built`, its zone half stays an adopter step (v2.8), and **R44** keeps its score and its missing date. No other section touched.
 
 ## 0. Why this record is not under `epics/`
 
@@ -130,7 +140,7 @@ as outstanding — E12-S15's Cloudflare half — was reclassified the same day a
 step** rather than open work (§7). What is left is the *record* of a shipped hardening pass, not a backlog
 entry.
 
-`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for **E13..E19**.
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for **E14..E19**.
 E01..E10 are the ten whose records moved beside the index **before this one** — E01's and E02's from
 2026-08-13 ([`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), E03's, E04's and E05's on 2026-08-14
@@ -148,6 +158,19 @@ knowledge distributed into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permane
 §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1, so it sits under neither `epics/` nor
 beside the index.
 
+⚠️ **Narrowed again 2026-08-28.** `phase5/epics/E13.md` is deleted, and the range two paragraphs above
+therefore reads **E14..E19**, not E13..E19. E13 followed **E11's pattern and not E12's**: it was
+distributed, not moved. All eleven of its stories were `built`, its own §6 read "None open.", and an audit
+of the file found seven facts held nowhere else — the landing order, the two `BGREWRITEAOF` passes and the
+"step four is the clock, not step one" rule, which moved to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's
+E13 row; the six `INTROSPECTION_CODE` comparison sites, named with file and line, which moved to
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6; and the seventh site, upstream in
+`@axiumine/koa-utils`, which moved to
+[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. No twelfth record
+joined the eleven that sit beside the index — that count stays eleven, not twelve, and no
+`SESSION_STORE_HARDENING.md` or any other new sibling exists. E13 kept its epic id and all eleven of
+`E13-S01` … `E13-S11` kept theirs; only the file that held them is gone.
+
 **The story IDs did not change, and here that matters more than it did for E01..E10.** All twenty-six of
 `E12-S01` … `E12-S26` are in use, and they are cited from **87 source files across all fifteen sub-repos**
 as well as from twenty Markdown files — eslint rule messages and `restrictedSyntax` tests in every repo,
@@ -155,7 +178,7 @@ the nine `src/instrument.mts` files and the three frontend `src/instrument.ts`, 
 its four test files in `marketplace-common`, seven `marketplace-nginx` configs plus `test/suite.sh`,
 `marketplace-docker-DBs/docker-compose.yml` and `up.sh`, and `marketplace-user/src/lib/cachePolicy.ts`.
 On the documentation side: [`SETUP.md`](../../../SETUP.md), [`docs/architecture.md`](../../architecture.md),
-`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E13.md`, `epics/E14.md`, `epics/E18.md`,
+`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E14.md`, `epics/E18.md`,
 `epics/E19.md`, [`EPICS_STORIES.md`](./EPICS_STORIES.md), [`RISK_REGISTER.md`](./RISK_REGISTER.md), the
 four findings under `docs/report/`, and three sub-repo `CLAUDE.md`/`README.md` pairs. Every one of those
 resolves to a section of this file. ⚠️ **Renumbering was refused, as it was for E01**: an id cited in

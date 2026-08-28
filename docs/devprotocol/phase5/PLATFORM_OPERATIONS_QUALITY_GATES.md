@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-27
+**Version:** 1.6
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted with no replacement record of its own, the E11 way and not E12's: all eleven of its stories are `built` and its §6 read "None open." Its knowledge was distributed to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 instead. The count of eleven records beside the index in §0 is unchanged — no twelfth joined. E13 keeps its id and all eleven story ids. Nothing else about BC-09 changes.
 v1.5 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.1 - 2026-08-25: E09-S06's first acceptance criterion said the ShopOwner and public tiers "never write"
 `itemCategory`. The public tier still does not; the ShopOwner tier does, in one field, since
@@ -47,7 +48,7 @@ the ninth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
 still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
 became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
-`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E13..E19; E01..E10 and E12
+`EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for E14..E19; E01..E10 and E12
 are the eleven whose records sit beside the index instead of under it — E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
 moved 2026-08-27. E11's is beside neither list: its file was deleted the same day with no record of its own
 to move, its knowledge distributed instead into
@@ -69,6 +70,16 @@ restating it — the same discipline §6's first bullet already follows for `NFR
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
+deleted and its record **distributed, not moved** — the E11 way, not E12's: all eleven of its stories are
+`built` and its §6 read "None open." No twelfth record joined the index beside this one, so the count above
+stays at eleven. E13 kept its id, and all eleven story ids — `E13-S01` … `E13-S11` — are untouched; only the
+file is gone. Its knowledge went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row (the landing
+order, its two `BGREWRITEAOF` passes, and the "step four is the clock, not step one" rule),
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 (the six `INTROSPECTION_CODE` comparison sites, named
+with file and line) and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md)
+§6.1 (the seventh site, upstream in `@axiumine/koa-utils`).
 
 ## 1. Epic goal
 

@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-27
+**Version:** 1.10
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.10 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record **distributed**, not moved: no twelfth file joins the eleven beside the index, unlike E12's move, the E11 way instead. All eleven of its stories were `built`, its §6 read "None open.", and the seven facts an audit found held nowhere else went to `EPICS_STORIES.md` §2's E13 row, `phase3/SECURITY_AUTH.md` §3.6 and `report/dependency-tree-advisory-scan.md` §6.1. E13 keeps its id, and `E13-S01`..`E13-S11` keep theirs. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.8 - 2026-08-27: `phase5/epics/E11.md` is deleted, its two-story record absorbed into ADR-038's closing
 note and `EPICS_STORIES.md` §6.1, rather than replaced by a record file of its own the way E01..E10's were.
@@ -64,7 +65,7 @@ the fourth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 work still ahead. All eight stories are `built`, §6's one open question closed on 2026-08-14, and the
 publish split that closed the last thing under it landed the same day — so the file had become the *record*
 of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says stories live in
-`epics/ENN.md`, and that stays true for E13..E19 — E11 is neither under `epics/` nor beside the index; its
+`epics/ENN.md`, and that stays true for E14..E19 — E11 is neither under `epics/` nor beside the index; its
 epic id survives its file, per the note in §6 below and [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)'s
 closing section. E01..E10 and E12 are the eleven whose records sit
 beside the index instead of under it — E05's is [`CATALOGUE.md`](./CATALOGUE.md), moved later the same day,
@@ -91,6 +92,20 @@ about *what exactly* was accepted lives here and is cited from there.
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
+deleted and its record **distributed rather than moved** — the **E11** way, not E12's. All eleven of
+E13's stories were `built`, its §6 read "None open.", and an audit of the file found only seven facts held
+nowhere else, so unlike E12 there is no successor file for this record's boilerplate to count: no twelfth
+record joined the index, and the eleven sitting beside it (E01..E10 and E12) is unchanged. The seven facts
+went to three homes already carrying the subject: [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row
+picked up the landing order, its two `BGREWRITEAOF` passes, and the "step four is the clock, not step
+one" rule; [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 picked up the six `INTROSPECTION_CODE`
+comparison sites, each named with file and line; and
+[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 picked up the
+seventh comparison site, upstream in `@axiumine/koa-utils`, outside the twelve consumers this repo can
+edit itself. E13 kept its id, and all eleven of `E13-S01`..`E13-S11` keep theirs — nothing about a story
+id or a build state changed with the file's deletion, only where its record can be read.
 
 ## 1. Epic goal
 

@@ -260,11 +260,13 @@ Two consequences worth knowing before you go looking for either:
 
 - **The append-only file is a command log, and it keeps what the keyspace has forgotten.** Every
   `HSET` that ever created a session key stays in it after that key expires, so `redis:/data`
-  accumulates a history of session keys rather than a snapshot of the live ones. Today a session key
-  *is* the token, so that file is a list of credentials in plain text — the reason
-  `docs/devprotocol/phase5/epics/E13.md` hashes the key namespace, and the reason its cutover carries
-  an explicit `BGREWRITEAOF` step. A rewrite is the only thing that removes what is already written;
-  hashing new writes does not touch a byte of it.
+  accumulates a history of session keys rather than a snapshot of the live ones. ⚠️ **Until E13-S01 a
+  session key *was* the token** — so an append-only file written before that cutover is a list of
+  credentials in plain text, which is why E13 hashed the key namespace and why its cutover carried an
+  explicit `BGREWRITEAOF` step of its own. A rewrite is the only thing that removes what is already
+  written; hashing new writes does not touch a byte of it. The landing order and both rewrite passes
+  are recorded in `docs/devprotocol/phase5/EPICS_STORIES.md` §2's E13 row — `epics/E13.md` was deleted
+  on 2026-08-28 and its record distributed.
 - ⚠️ **The rate-limiter keys already written are a list of email addresses, and E12-S11 does not
   remove them.** Until that story the per-email counter was `rl:<bucket>:email:<the address itself>`,
   so `rl:userRegister:email:mario@example.com` is in the append-only file of every environment that

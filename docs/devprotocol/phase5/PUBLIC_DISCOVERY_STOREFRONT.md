@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-27
+**Version:** 1.7
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-08 — Public Discovery / SSR Storefront
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.6 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
+v1.7 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all eleven of its stories were `built`, its §6 read "None open.", and only seven facts survived an audit as held nowhere else, so no twelfth sibling record exists to join the eleven beside the index. Those seven went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6, and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. The count in §0 stays eleven, not twelve. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed.
 v1.1 - 2026-08-26: search paginated and split by kind. The single `search` field and
 `GraphQLPublicSearchResult` are gone, replaced by `searchCompanies` / `searchItems`, each answering the
 page envelope the listings already use; the visitor picks which, items by default. E08-S05 rewritten and
@@ -46,7 +47,7 @@ the eighth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) and
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) moved before it: nothing in it is work
 still ahead. All ten stories are `built` and §6 has no live question left. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E13..E19; E01..E10 and E12 are the eleven whose records sit
+stories live in `epics/ENN.md`, and that stays true for E14..E19; E01..E10 and E12 are the eleven whose records sit
 beside the index instead of under it — E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), moved later the same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md),
 moved 2026-08-27. E11's joined neither list: its file was deleted the same day with no record of its own to
@@ -80,6 +81,21 @@ a surface whose test suite grew that morning. The mechanism it records is older 
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
+deleted — but unlike E12's move, no record of its own took its place beside this one: E13 was
+**distributed**, the E11 way, not moved, the E12 way. All eleven of its stories were `built`, its own §6
+read "None open.", and an audit of the 592-line file found only seven facts held nowhere else, so there
+was nothing left to move into a twelfth sibling. Those seven went to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row — the landing order, its two `BGREWRITEAOF` passes,
+and the "step four is the clock, not step one" rule; to
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 — the six `INTROSPECTION_CODE` comparison sites
+named with file and line; and to
+[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 — the seventh
+site, upstream in `@axiumine/koa-utils`. The count of records sitting beside the index stays **eleven**,
+not twelve: E13 joins neither this list nor a new one of its own, because no file survived for it to join
+one with. E13 lost its file, not its id, same as E12: `E13-S01` … `E13-S11` keep their names and their
+`built` state.
 
 ## 1. Epic goal
 
