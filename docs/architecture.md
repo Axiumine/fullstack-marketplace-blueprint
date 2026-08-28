@@ -142,6 +142,16 @@ and no rotation moves any of them (`marketplace-common/src/others/newSessionLine
   shorter session. The cookie's `Max-Age` is untouched by any of this: it stays `REFRESH_TOKEN_EXPIRY`,
   and the cap is a comparison in `resolveAuthorizationSession`, not a cookie attribute.
 
+  ⚠️ **Distributed 2026-08-28**, from E14.md (E14-S07), now deleted. `setLoginCookies` is not edited;
+  the cookie's `Max-Age` stays at `REFRESH_TOKEN_EXPIRY`, and the cap above is enforced purely by that
+  comparison — asserted by an integration test that seeds a default-cap session with an `originalLogin`
+  two days old and gets a refusal while the cookie is still physically valid. The unfinished
+  `// if remember me, generate ?` comment in `@axiumine/koa-utils`'s `setLoginCookies` is the abandoned
+  cookie-side approach this reasoning replaced, and is **not** what E14-S07 revives: read on its own,
+  that comment looks like unfinished work waiting to be picked back up, which would re-introduce the cap
+  as a cookie attribute. It stays as dead prose in koa-utils; the cap is, and remains, a server-side
+  comparison, by design.
+
 Three mechanisms read those facts, and each is a whole answer to one audit finding:
 
 - **Rotation is one-shot.** The consumed refresh token is tombstoned at `<REDIS_KEY>used:<sha256(token)>`

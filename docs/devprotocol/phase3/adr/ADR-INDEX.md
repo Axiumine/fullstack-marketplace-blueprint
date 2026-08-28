@@ -2,10 +2,22 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.14
+**Version:** 1.15
 **Date:** 2026-08-28
 **Author:** adr-agent
 **Changelog:**
+v1.15 - 2026-08-28, later the same day: **two rows added to §4, both from `phase5/epics/E14.md`**, deleted
+and distributed today (the E11/E13 pattern, not E12's — no replacement file, epic id and all nine story
+ids `E14-S01`..`E14-S09` survive). The first row carries the two rejected session-cap designs — the
+`Tier`-keyed 7/30/90 gradient and the fallback uniform seven — that lost to the checkbox split
+(`SESSION_CAP_DAYS_DEFAULT`/`SESSION_CAP_DAYS_REMEMBERED`, E14-S05); the standing refusal of a `Tier`-keyed
+map itself stays in `sessionLifetime.mts`'s docblock and is not repeated here. The second row carries the
+dropped cached-successor-pair ("grace cache") design for the refresh race (E14-S04): its first reason
+(a replayable credential as a Redis value) already stands in `throwRefreshRaceRetry.mts`'s docblock, and
+its second — no implementable path, citing `authenticatedAuthorizationHandler.mts:26-51` and
+`refresh.mts:35` — is recorded nowhere else and is written here in full; E14-S04 cited `refresh.mts:19-25`,
+which is the comment block above that call rather than the call, and the row records the corrected line. No ADR, §2 row or §3 count
+changed
 v1.0 - 31 decisions, one per architectural choice this platform stands on
 v1.1 - ADR-032 (production topology, recorded as owed) and ADR-033 (`SameSite=Strict` on the refresh
 cookie) added from the token-handling security audit; two rows added to §4, and §5's topology gap now
@@ -201,6 +213,8 @@ ADR-037
 | Geocode an address server-side in `userAddressAdd` / `userAddressUpdate`, "so the point cannot be wrong or missing" | platform owner, 2026-08-26 — `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` E07-S11 | it puts a Nominatim round trip inside every address write, on a tier where the write is otherwise one `updateOne`, and it has no answer for the address the geocoder cannot find — the resolver would have to save without a point anyway, which is what the client already does with the customer watching. The client is also where the correction lives: a pin the customer drags is worth more than a lookup they never see |
 | Gate `userDel` on `disabled` — refuse a suspended customer the close, "like every other write on the tier" | ADR-036 | the premise is wrong twice over. Only `funUserUpdatePwd` gates on `disabled` here, one lib function out of seven, and it does so because re-keying an account is taking it over — closing one is giving it up. And the gate would hand an operator a way to withhold an Art. 17 right by flipping one boolean, with no review, no recorded refusal and no expiry. Nothing is lost by leaving it out: the delete is soft (ADR-011), so the document, the personal data and `disabled: true` itself all survive the close. If `disabled` ever also means a legal hold, that is a new field with its own semantics, not this gate re-added |
 | Loosen `sameSite: 'Strict'` to `'Lax'` or `'None'` to fix a cross-site redirect | ADR-033 | the cost is known and accepted — a return trip from an external site does not carry the session, and the customer lands logged out. `'Lax'` re-opens top-level-GET CSRF against the authorization services, and the value lives in `@axiumine/koa-utils` anyway, so this is not a change this workspace can make by editing itself |
+| Key the session cap on `Tier` — Admin 7 days, ShopOwner 30, User 90 — or fall back to one uniform seven days for all three | platform owner, 2026-08-10 — `phase5/epics/E14.md` E14-S05 | both were the drafted alternatives to the cap actually shipped, and both lost to splitting on the control the user operates instead: an unchecked login is a shared-device login and dies overnight (one day), a checked one is the thirty days every login form already implied. A `Tier`-keyed map was the harder refusal — three entries holding numbers a mutant could swap with no test able to tell, so mutation score 100 becomes reachable only through a suppression this workspace does not allow — and that standing refusal is carried in full by `BEs/marketplace-common/src/others/sessionLifetime.mts`'s docblock, not repeated here. The drafted numbers themselves — Admin 7 / ShopOwner 30 / User 90, and the fallback uniform seven — are recorded nowhere else, `epics/E14.md` being deleted the day this row was added |
+| Cache the winning refresh pair under a Redis key (`${REDIS_KEY}grace:${sha256(token)}`) and replay it to the race's loser, instead of returning a retry | platform owner, 2026-08-10 — `phase5/epics/E14.md` E14-S04 | dropped for two independent reasons. The first — a cached pair is a directly replayable credential stored as a Redis *value*, which is exactly what E13 removed from this platform — is carried in full by `throwRefreshRaceRetry.mts`'s docblock. The second is recorded nowhere else: the design had no implementable path. `resolveAuthorizationSession` runs inside the koa middleware (`authenticatedAuthorizationHandler.mts:26-51`), takes no `ctx` and returns `TAuthorizationSession \| null`, so it cannot call `setLoginCookies`; and `refresh.mts:35` calls `refreshSessionTokens` unconditionally in all three authorization services (E14-S04 cited `19-25`, which is the comment block above the call and has drifted since), so a "grace hit" would have minted a third pair regardless. The retry needs neither call: the middleware throws before any resolver runs, and by the time the client retries its cookie jar already holds the winner's `Set-Cookie` |
 
 ## 5. Gaps
 

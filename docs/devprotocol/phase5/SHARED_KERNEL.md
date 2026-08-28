@@ -2,11 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
+**Version:** 1.9
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.8 - 2026-08-28, later the same day: §0's range narrows from **E13..E19** to **E14..E19**
+**Changelog:** v1.9 - 2026-08-28, later still: §0's range narrows from **E14..E19** to **E15..E19**
+— `phase5/epics/E14.md` was deleted and its record distributed rather than moved, the E11/E13 way and not
+E12's: no twelfth record joined the index, so the count of eleven records beside it is unchanged. The
+nine facts it held that were not already recorded elsewhere went to `EPICS_STORIES.md` §2's E14 row and
+§2.1's E14 row, `ADR-INDEX.md` §4, `docs/architecture.md`, `RISK_REGISTER.md` R52,
+`TELEMETRY_EGRESS_HARDENING.md`, `epics/E17.md` §5 and `token-handling-security-audit.md` §3.4. E14 keeps
+its epic id and all nine story ids, `E14-S01`..`E14-S09`.
+v1.8 - 2026-08-28, later the same day: §0's range narrows from **E13..E19** to **E14..E19**
 — `phase5/epics/E13.md` was deleted and its record distributed rather than moved, the E11 way and not
 E12's: no twelfth record joined the index, so the count of eleven records beside it is unchanged. The
 seven facts it held that were not already recorded elsewhere went to `EPICS_STORIES.md` §2's E13 row,
@@ -93,6 +100,26 @@ and the "step four is the clock, not step one" rule), to [`SECURITY_AUTH.md`](..
 [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 (the seventh
 comparison site, upstream in `@axiumine/koa-utils`). E13 lost its file, not its id: `E13-S01`..`E13-S11`
 are unchanged and every build state with them.
+
+⚠️ **Narrowed again 2026-08-28, later still.** The range above reads **E15..E19** because
+`phase5/epics/E14.md` was deleted this same day and its record **distributed rather than moved** — the
+**E11/E13** way, not E12's: all nine of E14's stories were `built`, its §6 read "None open.", and an
+audit of the file found only nine facts held nowhere else. No twelfth record joined this one beside the
+index, so the count stays **eleven** — E01..E10 and E12, unchanged by this pass. The nine facts went to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row (the seven-step landing order) and §2.1's E14 row
+("land **E13-S01 and E13-S02** first"), to [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected
+alternatives — the tier-keyed privilege gradient for the session cap, and the cached-successor-pair grace
+design), to [`docs/architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate ?`
+cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 does not revive), to
+[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"), to
+[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
+alternative to `limit_req_zone`), and to [`E17.md`](epics/E17.md) §5 (why E17 depends on E14 for
+`familyId` and can never key a session by a token value). The ninth, the cross-service-harness residual,
+went to [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The two
+defects E14-S09 found stay live in
+[`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9, which is
+not deleted. E14 lost its file, not its id: `E14-S01`..`E14-S09` are cited from source files across the
+workspace and now resolve to the destinations above.
 
 ## 1. Epic goal
 

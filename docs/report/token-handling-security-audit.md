@@ -2,12 +2,14 @@
 # Marketplace
 
 **Status:** review finding — not baselined, not a requirement document
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-10 (v1.0 2026-08-08; v1.1 drops the two findings `marketplace-nginx` closed — the
 v1.0 🔴 Critical on `Secure` and the v1.0 §3.7g on the two private vhosts — and renumbers §3 accordingly;
 v1.2, 2026-08-13, appends an outcome to every finding and adds [§7](#7-closing-record--what-happened-to-every-finding),
 rewriting none of what was already here; v1.3, 2026-08-28, appends the topology outcome to the three
-places that ended on ADR-032 — §3.6c, §3.7b and §7's owed-ADR entry — in the same append-only way)
+places that ended on ADR-032 — §3.6c, §3.7b and §7's owed-ADR entry — in the same append-only way; v1.4,
+2026-08-28, appends the E14-S06 cross-service-harness reason to §3.4's outcome — the accepted-residual
+fact `epics/E14.md` §7 held alone, carried here before that epic was deleted and its record distributed)
 **Scope:** access token + refresh token handling only. Password hashing, upload scanning, catalogue
 authorization and the Order/Cart/Delivery/Payment surface are out of scope — that surface was unbuilt when
 this audit ran and became **permanently** out of scope on 2026-08-27 (ADR-038), so nothing here is pending
@@ -226,6 +228,12 @@ already there.
 > that happen to agree; and a `Bearer access:` token with no key on the cluster is refused **498** by the
 > resource service (`marketplace-dev-authenticated-resource/test/integration/index.itest.mts:189`, customer
 > tier `:88`). What no suite does is put one request through two processes.
+>
+> ⚠️ **Recorded 2026-08-28.** That gap is accepted, not merely unclosed: no cross-service harness exists
+> anywhere in these sixteen repos, and building one for this single assertion would only re-prove what
+> `sessionKeys.mts` being a single implementation already proves. That reasoning lived in `epics/E14.md` §7
+> (E14-S06) until the epic was deleted and its record distributed on 2026-08-28; this is where it now
+> stands.
 
 ---
 
