@@ -2,12 +2,32 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7; record moved out of `epics/` 2026-08-27, see §0
-**Version:** 2.11
+**Version:** 2.12
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v2.11 - 2026-08-28, later: **`phase5/epics/E13.md` is deleted**, so the range §0 gives for
+**Changelog:** v2.12 - 2026-08-28, later still: **`phase5/epics/E14.md` is deleted**, so the range §0 gives
+for `EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows again — from **E14..E19** to
+**E15..E19**. E14 followed **E11's and E13's pattern and not E12's**: distributed rather than moved, all
+nine of its stories `built`, its own §6 reading "None open. Every decision this epic made is carried by the
+story that implements it, with its reasoning — this section holds only what is still undecided.", and an
+exhaustive audit of all 163 facts in the file finding only nine recorded nowhere else. Those nine move to
+seven destinations: [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row (the seven-step landing order,
+and "land E13-S01 **and E13-S02** first" at §2.1), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two
+rejected alternatives — the tier-keyed privilege gradient for the session cap, and the cached-successor-pair
+grace design), [`docs/architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate
+?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive),
+[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"), **this file's own §4 E12-S09** (the
+Cloudflare rate-limiting-rules alternative to `limit_req_zone`), [`epics/E17.md`](./epics/E17.md) §5 (why
+E17 depends on E14 for `familyId`) and
+[`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 (the
+cross-service-harness residual). No twelfth record joined the eleven beside the index, so that count is
+unchanged; §0 gains a new dated paragraph saying so, naming all seven destinations, and stating plainly that
+E14 kept its epic id and all nine of `E14-S01` … `E14-S09` kept theirs. The documentation-citation list in
+§0 also drops `epics/E14.md`, which no longer exists. No story id, criterion, evidence line, state or gate
+in this file changed.
+v2.11 - 2026-08-28, later: **`phase5/epics/E13.md` is deleted**, so the range §0 gives for
 `EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows again — from **E13..E19** to **E14..E19**. E13
 followed **E11's pattern and not E12's**: distributed rather than moved, all eleven of its stories `built`,
 its own §6 reading "None open.", and seven facts held nowhere else moved to
@@ -171,6 +191,25 @@ joined the eleven that sit beside the index — that count stays eleven, not twe
 `SESSION_STORE_HARDENING.md` or any other new sibling exists. E13 kept its epic id and all eleven of
 `E13-S01` … `E13-S11` kept theirs; only the file that held them is gone.
 
+⚠️ **Narrowed again 2026-08-28.** `phase5/epics/E14.md` is deleted, and the range in the paragraph above
+narrows once more, to **E15..E19**, not E14..E19. E14 followed **E11's and E13's pattern and not E12's**:
+distributed, not moved. All nine of its stories were `built`, its own §6 read "None open. Every decision
+this epic made is carried by the story that implements it, with its reasoning — this section holds only
+what is still undecided.", and an exhaustive audit of all 163 facts in the file found only nine held
+nowhere else. Those nine moved to seven destinations: [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row
+— the seven-step landing order, and "land E13-S01 **and E13-S02** first" (§2.1);
+[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 — two rejected alternatives, the tier-keyed privilege
+gradient for the session cap and the cached-successor-pair grace design;
+[`docs/architecture.md`](../../architecture.md) — the abandoned `// if remember me, generate ?` cookie-side
+comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive;
+[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 — "two windows, not one"; **this file's own §4, E12-S09** — the
+Cloudflare rate-limiting-rules alternative to `limit_req_zone`, so this file is itself one of the seven;
+[`epics/E17.md`](./epics/E17.md) §5 — why E17 depends on E14 for `familyId`; and
+[`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 — the
+cross-service-harness residual. No twelfth record joined the eleven that sit beside the index — that count
+stays eleven (E01..E10 and E12), not twelve. E14 kept its epic id and all nine of `E14-S01` … `E14-S09`
+kept theirs; only the file that held them is gone.
+
 **The story IDs did not change, and here that matters more than it did for E01..E10.** All twenty-six of
 `E12-S01` … `E12-S26` are in use, and they are cited from **87 source files across all fifteen sub-repos**
 as well as from twenty Markdown files — eslint rule messages and `restrictedSyntax` tests in every repo,
@@ -178,7 +217,7 @@ the nine `src/instrument.mts` files and the three frontend `src/instrument.ts`, 
 its four test files in `marketplace-common`, seven `marketplace-nginx` configs plus `test/suite.sh`,
 `marketplace-docker-DBs/docker-compose.yml` and `up.sh`, and `marketplace-user/src/lib/cachePolicy.ts`.
 On the documentation side: [`SETUP.md`](../../../SETUP.md), [`docs/architecture.md`](../../architecture.md),
-`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E14.md`, `epics/E18.md`,
+`phase1/NFR.md`, `phase3/SECURITY_AUTH.md`, `epics/E18.md`,
 `epics/E19.md`, [`EPICS_STORIES.md`](./EPICS_STORIES.md), [`RISK_REGISTER.md`](./RISK_REGISTER.md), the
 four findings under `docs/report/`, and three sub-repo `CLAUDE.md`/`README.md` pairs. Every one of those
 resolves to a section of this file. ⚠️ **Renumbering was refused, as it was for E01**: an id cited in
@@ -694,6 +733,15 @@ the edge and reaches nothing behind it.
 > instead of replacing it, so its first entry is whatever the caller chose. `CF-Connecting-IP` is
 > single-valued and overwritten unconditionally. Reading the wrong one hands every attacker a private bucket
 > of their own, which is worse than the shared bucket it replaces.
+>
+> ⚠️ **The GDPR position, once E12-S07, E12-S09 and E12-S10 are all in place, written down rather than
+> inferred, 2026-08-28.** The edge holds a binary client address in `limit_req_zone` shared memory for the
+> zone's lifetime — RAM only: E12-S07 keeps it out of `log_format` (§4, above), E12-S10 removes the
+> per-address Redis bucket, and no Node service ever receives it (§2, §3). That is the accepted shape. The
+> alternative that keeps the address out of vendor-operated infrastructure entirely is Cloudflare's own
+> rate-limiting rules, which costs plan tier rather than code — it is not chosen here, and it stays
+> available without invalidating anything above. This is the one fact `phase5/epics/E14.md` (E14-S08) held
+> that lived nowhere else in the corpus; the file is deleted today and its record distributed — see §0.
 
 **domains:** infra, testing, documentation
 **Acceptance criteria:**

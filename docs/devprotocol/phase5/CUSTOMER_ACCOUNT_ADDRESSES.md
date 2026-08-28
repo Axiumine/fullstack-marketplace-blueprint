@@ -2,11 +2,21 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.10 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md`
+was deleted and its record distributed rather than moved, the E11 / E13 way and not E12's: all nine of its
+stories are `built`, its §6 read "None open.", and only nine facts survived an audit as held nowhere else.
+They went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row and §2.1,
+[`../phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (twice), [`../../architecture.md`](../../architecture.md),
+[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md),
+[`epics/E17.md`](./epics/E17.md) §5 and
+[`../../report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. No
+twelfth record joins the index — the count in §0 stays eleven. E14 keeps every story id. Nothing about
+BC-07 changes.
 v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted
 and its record distributed rather than moved, the E11 way and not E12's: all eleven of its stories are
@@ -117,6 +127,26 @@ clock, not step one, went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 
 record joins the eleven named above — the count in §0 stays **eleven**, not twelve, and there is no
 `SESSION_STORE_HARDENING.md`. E13 lost its file, not its id or any story's: `E13-S01` … `E13-S11` and every
 build state are untouched.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E15..E19** because `phase5/epics/E14.md` was
+deleted and its record **distributed rather than moved** — the E11 / E13 way, not E12's. All nine of
+E14's stories were `built`, its §6 read "None open. Every decision this epic made is carried by the
+story that implements it, with its reasoning — this section holds only what is still undecided.", and
+an audit of the file found only nine facts held nowhere else: the seven-step landing order and the rule
+to land E13-S01 **and** E13-S02 first went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row and
+§2.1; the rejected tier-keyed privilege gradient for the session cap and the rejected cached-successor-pair
+grace design went to [`../phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4; the abandoned
+`// if remember me, generate ?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07
+explicitly does not revive, went to [`../../architecture.md`](../../architecture.md); "two windows, not
+one" went to [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52; the Cloudflare rate-limiting-rules alternative
+to `limit_req_zone` went to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md); why E17
+depends on E14 for `familyId` — and can never key a session by a token value — went to
+[`epics/E17.md`](./epics/E17.md) §5; and E14-S06's accepted cross-service-harness residual went to
+[`../../report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. No
+twelfth record joins the eleven named above — the count in §0 stays **eleven**, not twelve. E14 lost its
+file, not its id or any story's: `E14-S01` … `E14-S09` and every build state are untouched. The two
+defects E14-S09 found, both outside E14's own scope, stay open and stay recorded in
+[`../../report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9.
 
 ## 1. Epic goal
 

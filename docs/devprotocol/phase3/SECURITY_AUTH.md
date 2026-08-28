@@ -2,10 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.14
+**Version:** 1.15
 **Date:** 2026-08-28
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.15 - 2026-08-28: §3.7's exclusivity claim is superseded, not corrected — an appended block records that
+`refresh` has carried two more `assertUnderRateLimit` buckets since `E14-S08` landed on 2026-08-10:
+pre-lookup (`REFRESH_ATTEMPT_BUCKET`, `REFRESH_ATTEMPTS_PER_WINDOW` = 20 per `REFRESH_ATTEMPT_WINDOW_SECONDS`
+= 60, keyed on `hashSessionToken(presentedRefreshToken)`) and post-lookup (`REFRESH_FAMILY_BUCKET`,
+`REFRESH_MINTS_PER_WINDOW` = 20 per `REFRESH_FAMILY_WINDOW_SECONDS` = 3600, keyed on `familyId`), both
+defined in `BEs/marketplace-common/src/others/refreshRateLimit.mts` and called from the three authorization
+services' middleware. `phase5/epics/E14.md` is deleted in the same pass this fact is distributed from; the
+sizing rationale for the two windows now lives in `phase5/RISK_REGISTER.md` R52. No control changed.
 v1.14 - 2026-08-28: §3.6 absorbs the introspection-bypass record from `phase5/epics/E13.md`, which is deleted
 in the same pass. Its snippet was **stale rather than merely thin** — it showed the ungated `===` at
 `:27-37`, the shape the 2026-08-10 audit found, three weeks after `E13-S03` and `E13-S11` replaced it with a
@@ -266,6 +274,27 @@ export interface IRateLimitStore {
 Guards **both** registrations, login, password reset and verification-mail resend — "each one either mints a document, sends an email or tests a password, so an unbounded caller turns them into a spam relay, an enumeration oracle and a bcrypt-powered CPU sink respectively" (comment at the same file). Login limits by **both** email and IP (two calls, two buckets); resend limits by email alone. Callers pass the identity themselves — never a raw password or token, since the key lands in Redis in plaintext. Fixed window, not sliding: accepts up to 2× the limit across a window boundary, traded deliberately for the O(1) cost of a single integer key instead of a sorted set.
 
 This is the platform's only application-level auth-path rate limiting. The nginx `limit_req_zone` directives in §5 are a second, independent layer at the edge — not a copy of this one, and not yet installed anywhere (§5).
+
+> ⚠️ **Superseded 2026-08-28.** The claim above stopped being true on 2026-08-10, when `E14-S08` landed
+> `refresh` — the one authenticated endpoint that had carried no limiter of any kind — with two further
+> `assertUnderRateLimit` call sites, both defined in
+> `BEs/marketplace-common/src/others/refreshRateLimit.mts` and both called from the three authorization
+> services' middleware (`marketplace-dev-authenticated-authorization`,
+> `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`):
+>
+> - **Pre-lookup** — `guardRefreshAttempt`, bucket `REFRESH_ATTEMPT_BUCKET` (`'refresh:token'`), keyed on
+>   `hashSessionToken(presentedRefreshToken)` — **20 attempts / 60 s**
+>   (`REFRESH_ATTEMPTS_PER_WINDOW` / `REFRESH_ATTEMPT_WINDOW_SECONDS`). This is the only Redis structure an
+>   attacker can create at will, one key per distinct garbage token, which is why its window is short.
+> - **Post-lookup** — `guardFamilyMintRate`, bucket `REFRESH_FAMILY_BUCKET` (`'refresh:family'`), keyed on
+>   `familyId` — **20 attempts / 3600 s** (`REFRESH_MINTS_PER_WINDOW` / `REFRESH_FAMILY_WINDOW_SECONDS`). It
+>   meters a different phenomenon on a different timescale — mints, not requests, by a lineage rather than a
+>   presented token — and a single shared window would make one of the two buckets useless.
+>
+> The sizing rationale for both windows — "two windows, not one" — lives in
+> `../phase5/RISK_REGISTER.md` R52. `phase5/epics/E14.md`, where `E14-S08` was tracked, is deleted the same
+> day this note is added; its record is distributed across this document and others rather than moved. No
+> control described in the paragraph above changed — the paragraph is simply no longer the complete list.
 
 ### 3.8 SSR cache boundary as a security control
 

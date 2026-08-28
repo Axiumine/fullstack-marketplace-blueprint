@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.15
+**Version:** 1.16
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-01 — Identity & Access
@@ -58,6 +58,28 @@ clock, not step one" rule to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 
 [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6; and the seventh such site, upstream in
 `@axiumine/koa-utils` rather than in any of the fifteen sub-repos, to
 [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1.
+
+⚠️ **Narrowed again 2026-08-28, later still.** The range above reads **E15..E19** because
+`phase5/epics/E14.md` was deleted and its record **distributed rather than moved** — the E11 / E13 way,
+not E12's: no twelfth record joined the index beside this one, so the count above stays **eleven**
+(E01..E10 and E12), unchanged from the pass that closed E13. E14 lost its file, not its id, and not any
+of its nine story ids either — `E14-S01` … `E14-S09` still name what they always named. All nine of
+those stories were `built` and its own §6 read "None open. Every decision this epic made is carried by
+the story that implements it, with its reasoning — this section holds only what is still undecided.", so
+an audit of the file found only nine facts held nowhere else. The seven-step landing order, and "land
+E13-S01 **and E13-S02** first," fold into [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row and
+§2.1; the two rejected alternatives — the tier-keyed privilege gradient for the session cap, and the
+cached-successor-pair grace design — went to [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4; the
+abandoned `// if remember me, generate ?` cookie-side comment in koa-utils' `setLoginCookies`, which
+E14-S07 does not revive, went to [`architecture.md`](../../architecture.md); "two windows, not one" went
+to [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52; the Cloudflare rate-limiting-rules alternative to
+`limit_req_zone` went to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md); why E17
+depends on E14 for `familyId` went to [`E17.md`](./epics/E17.md) §5; and the cross-service-harness
+residual went to
+[`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The two
+defects E14-S09 found stay live and stay recorded in
+[`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9, which is
+not deleted.
 
 ## 1. Epic goal
 
@@ -520,3 +542,4 @@ not the fact that a question existed.
 | 1.13 | 2026-08-27, later still | §0's range narrowed from "E11..E19" to **E12..E19**: `phase5/epics/E11.md` was deleted with no replacement record of its own, unlike the ten epics this file's opening lists — its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-01 changed |
 | 1.14 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |
 | 1.15 | 2026-08-28 | §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record **distributed**, not moved: the E11 way, not E12's. No twelfth record joined the index, so the count in §0 stays eleven. The seven facts it held that lived nowhere else went to `EPICS_STORIES.md` §2's E13 row, `SECURITY_AUTH.md` §3.6 and `dependency-tree-advisory-scan.md` §6.1. E13 keeps its id and all eleven story ids. Nothing about BC-01, or about this record's own content or build state, changed. |
+| 1.16 | 2026-08-28, later still | §0's range narrows again, from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its record **distributed rather than moved**, the E11/E13 way, not E12's. All nine stories were `built`, its §6 read "None open.", and an audit of the 521-line file found only nine facts held nowhere else. No twelfth record joined the index, so the count in §0 stays eleven (E01..E10 and E12). The seven-step landing order and the "land E13-S01 and E13-S02 first" ordering went to `EPICS_STORIES.md` §2's E14 row and §2.1; the two rejected alternatives (tier-keyed session cap, cached-successor-pair grace) to `ADR-INDEX.md` §4; the abandoned `setLoginCookies` cookie-side comment to `architecture.md`; "two windows, not one" to `RISK_REGISTER.md` R52; the Cloudflare rate-limiting alternative to `TELEMETRY_EGRESS_HARDENING.md`; why E17 needs `familyId` to `epics/E17.md` §5; and the cross-service-harness residual to `token-handling-security-audit.md` §3.4. The two defects E14-S09 found stay open in `multi-tab-refresh-behaviour.md` §4, §5 and §9. E14 keeps its id and all nine story ids. Nothing about BC-01, or about this record's own content or build state, changed. |

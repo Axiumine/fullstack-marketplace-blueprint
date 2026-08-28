@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.1
-**Date:** 2026-08-27
+**Version:** 1.2
+**Date:** 2026-08-28
 **Author:** error-handling-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-27: ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope. §1 and §11 stop saying those tiers are merely unbuilt; §12 question 3 keeps its gap but loses its deadline — it had scheduled itself for "before those tiers are designed", and they are not being designed — and its owner cell moves from "whoever owns the ordering tier next" to the platform owner, because that person will never exist.
+v1.2 - 2026-08-28: §3's lead ("never `extensions.code`") is superseded, not edited away — `throwRefreshRaceRetry` (`BEs/marketplace-common/src/others/throwRefreshRaceRetry.mts`) does set `extensions.code = REFRESH_RACE_RETRY_CODE`, matched on by all three SPAs for E14-S04's silent retry, and the annotation records the sharper point: it is thrown from Koa middleware registered before Apollo (`authenticatedAuthorizationHandler.mts`), so `tdwKoaErrorHandler` serialises `{message, description}` with no `errors[]`/`extensions` and the code never reaches the client on that path — a still-open defect, cross-referenced to `../../report/multi-tab-refresh-behaviour.md` §5 and §9 item 2. Layer 9's repetition of the absolute claim (~line 336) gets a short pointer to the same annotation rather than its own copy.
 
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase3/adr/ADR-INDEX.md` ✅ · `phase4/CONSTRAINTS.md` ✅
 **Mutability:** low risk — additive. New error codes/layers don't break existing behaviour. Changing an existing status code or message pattern is breaking wherever a frontend branches on it — check `marketplace-user/src/api/errors.ts` and the equivalent files in the other two frontends first.
@@ -47,6 +48,33 @@ see `phase4/CONSTRAINTS.md` §6 and [ADR-038](../phase3/adr/ADR-038-commerce-is-
 Backend layer numbers below are structural (detection point), not severity. All GraphQL errors on this
 platform carry `extensions: { http: { status }, description }` — never `extensions.code`. Frontends read
 `error.response.status` first, `extensions.http.status` as fallback (`marketplace-user/src/api/errors.ts:11-14`).
+
+> ⚠️ **Superseded 2026-08-28.** One code exists after all: `REFRESH_RACE_RETRY_CODE = 'REFRESH_RACE_RETRY'`,
+> set by `throwRefreshRaceRetry()` (`BEs/marketplace-common/src/others/throwRefreshRaceRetry.mts:26-33`) on
+> the 409 `GraphQLError` it builds — `extensions: { http: { status: 409 }, code: REFRESH_RACE_RETRY_CODE,
+> description: 'This refresh token was just rotated by another request. Retry with the current cookie.' }`
+> — raised by `resolveAuthorizationSession`
+> (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts:87`) when a refresh token was just
+> consumed by another tab of the same client, the E14-S04 grace-window signal. All three SPAs'
+> `isRefreshRaceRetry` (`src/api/errors.ts:87`, identical in `marketplace-admin`, `marketplace-shopowner`,
+> `marketplace-user`) match on `error.graphQLErrors[0]?.extensions.code === REFRESH_RACE_RETRY_CODE` to
+> drive a silent retry instead of a logout.
+>
+> **The claim above still holds for every path a resolver throws from — this one isn't that.**
+> `resolveAuthorizationSession` is called from `authenticatedAuthorizationHandler.mts` (e.g.
+> `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/authenticatedAuthorizationHandler.mts`,
+> and its Admin/User siblings), which every `*-authenticated-authorization` service installs as **Koa
+> middleware, before `apolloServerKoa`** in `src/index.mts`. The thrown `GraphQLError` therefore never
+> reaches Apollo's formatter — it is caught by `@axiumine/koa-utils`' `tdwKoaErrorHandler`
+> (`koa/tdwKoaErrorHandler.mjs`), which serialises only `{message, description}`: no `errors[]` array, no
+> `extensions` at all. The code is real and correctly built, but on this exact path it never reaches the
+> wire — `isRefreshRaceRetry` reads an empty `graphQLErrors[0]`, and the client falls through to
+> `clearAccessToken()`/`onSessionLost()`, a logout where E14-S04 specifies a silent retry.
+>
+> **This is a live, still-open defect, not a fixed one** — measured and recorded in
+> [`../../report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §5 (the
+> exact 409 body observed on the wire) and §9 item 2 (putting `extensions.code` on the wire for the race
+> reply, in all three tiers, ranked #2 of what the finding asks for).
 
 ### Layer 1 — Startup / configuration errors
 
@@ -335,6 +363,10 @@ this class (see platform [`docs/testing.md`](../../testing.md) §Traps that make
 All three frontends run **urql**, not Apollo Client. `CombinedError` is the only shape a failed operation
 produces; there is no client-side error-code registry because the backend never emits `extensions.code`
 (see the platform-wide comment reproduced below).
+
+> ⚠️ **See §3's 2026-08-28 annotation** — `REFRESH_RACE_RETRY_CODE` is the one exception, and `errors.ts:87`
+> is a registry of exactly that one code. On the one path that emits it, the pre-Apollo throw currently
+> strips it before it ever reaches this client — still open, see the cross-referenced report.
 
 ```ts
 export const HTTP = {
