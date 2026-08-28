@@ -345,7 +345,12 @@ each is a silent failure on its own:
 
 `mintedAt` is the lineage's `originalLogin`, carried forward unchanged by rotation, so a session that
 refreshes every fifteen minutes does not read as fifteen minutes old. It carries no token material, and
-nothing else may be added to it without a decision — see E15's §6.
+nothing else may be added to it without a decision — the refused additions and the reason are the
+`familyId`/cap row in [`ADR-INDEX.md`](./devprotocol/phase3/adr/ADR-INDEX.md) §4 (platform owner,
+2026-08-13, from E15-S02; that row also records that one of `tier`'s two original reasons turned out wrong
+once built — the key a revocation rebuilds needs no tier, since the tier is in the index key's own name).
+⚠️ **Repointed 2026-08-28**: this line cited `phase5/epics/E15.md` §6, and that file has been deleted and
+its record distributed.
 
 ### How a field leaves the index
 

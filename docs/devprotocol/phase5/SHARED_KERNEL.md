@@ -2,11 +2,20 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.9 - 2026-08-28, later still: §0's range narrows from **E14..E19** to **E15..E19**
+**Changelog:** v1.10 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
+`phase5/epics/E15.md` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
+and not E12's: all ten of its stories are `built`, so no twelfth record joined the eleven beside the index.
+⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
+flow should exist — moved to `IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the
+file. The other nine facts went to `EPICS_STORIES.md` §2 and §2.1, `ADR-INDEX.md` §4 (three refused
+designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
+E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
+keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
+v1.9 - 2026-08-28, later still: §0's range narrows from **E14..E19** to **E15..E19**
 — `phase5/epics/E14.md` was deleted and its record distributed rather than moved, the E11/E13 way and not
 E12's: no twelfth record joined the index, so the count of eleven records beside it is unchanged. The
 nine facts it held that were not already recorded elsewhere went to `EPICS_STORIES.md` §2's E14 row and
@@ -120,6 +129,22 @@ defects E14-S09 found stay live in
 [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9, which is
 not deleted. E14 lost its file, not its id: `E14-S01`..`E14-S09` are cited from source files across the
 workspace and now resolve to the destinations above.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
+`phase5/epics/E15.md` was deleted and its record **distributed, not moved** — the E11 / E13 / E14 way and
+not E12's: all ten of its stories are `built`, and no twelfth record joined the index, so the count above
+stays **eleven** (E01..E10 and E12). ⚠️ **One thing differs from the last three deletions: E15's §6 was not
+empty.** One row survived — a **Product** question, whether a confirm-first email-change flow should exist
+at all — and it was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open,
+rather than deleted with the file. E15's other nine facts went to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row and §2.1 (the seven-step landing order, and why the
+E13-S01 dependency is hard), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
+lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
+§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
+its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
 
 ## 1. Epic goal
 

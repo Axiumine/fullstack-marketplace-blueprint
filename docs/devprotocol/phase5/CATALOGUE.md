@@ -2,11 +2,20 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
+**Version:** 1.11
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.11 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
+`phase5/epics/E15.md` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
+and not E12's: all ten of its stories are `built`, so no twelfth record joined the eleven beside the index.
+⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
+flow should exist — moved to `IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the
+file. The other nine facts went to `EPICS_STORIES.md` §2 and §2.1, `ADR-INDEX.md` §4 (three refused
+designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
+E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
+keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
 v1.10 - 2026-08-28, later the same day: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its record **distributed rather than moved**, the E11 / E13 way and not E12's: all nine of its stories are `built`, its §6 read "None open.", and an audit of the file found only nine facts held nowhere else, which went to `EPICS_STORIES.md` §2's E14 row, `phase3/adr/ADR-INDEX.md` §4, `docs/architecture.md`, `RISK_REGISTER.md` R52, `TELEMETRY_EGRESS_HARDENING.md`, `epics/E17.md` §5 and `report/token-handling-security-audit.md` §3.4 rather than to a twelfth record beside this index. The count in §0 stays eleven — no new record joined it. E14 keeps its id and all nine story ids. The two defects E14-S09 found stay open, recorded in `report/multi-tab-refresh-behaviour.md` §4, §5 and §9. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record **distributed rather than moved**, the E11 way and not E12's: all eleven of its stories are `built`, its §6 read "None open.", and an audit of the file found only seven facts held nowhere else, which went to `EPICS_STORIES.md` §2's E13 row, `phase3/SECURITY_AUTH.md` §3.6 and `report/dependency-tree-advisory-scan.md` §6.1 rather than to a twelfth record beside this index. The count in §0 stays eleven — no new record joined it. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed.
 v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
@@ -124,6 +133,22 @@ unchanged and every build state with them. The two defects E14-S09 found were bo
 E14's scope and stay open, recorded in
 [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 — that
 report is not deleted.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
+`phase5/epics/E15.md` was deleted and its record **distributed, not moved** — the E11 / E13 / E14 way and
+not E12's: all ten of its stories are `built`, and no twelfth record joined the index, so the count above
+stays **eleven** (E01..E10 and E12). ⚠️ **One thing differs from the last three deletions: E15's §6 was not
+empty.** One row survived — a **Product** question, whether a confirm-first email-change flow should exist
+at all — and it was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open,
+rather than deleted with the file. E15's other nine facts went to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row and §2.1 (the seven-step landing order, and why the
+E13-S01 dependency is hard), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
+lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
+§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
+its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
 
 ## 1. Epic goal
 

@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
+**Version:** 1.7
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-02 — Session Termination
@@ -78,6 +78,14 @@ that report is not deleted. E14-S06's accepted cross-service-harness residual is
 [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. Nothing about
 this record's own content or build state changed.
 
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
+`phase5/epics/E15.md` was deleted and its record distributed, the E11/E13/E14 way and not E12's: no twelfth
+file joined the index, so the count beside it stays **eleven**. Unlike E14's, **E15's §6 was not empty** —
+one row survived, a Product question about a confirm-first email-change flow that does not exist, and it is
+relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) rather than deleted with the file. E15 keeps its
+id and all ten story ids. This record gained §3.1 in the same pass, because one of E15's facts is about a
+teardown nothing else here describes.
+
 ## 1. Epic goal
 
 Delete a session's Redis keys given only the token content — one shared `logout` mutation for `Admin`,
@@ -110,6 +118,26 @@ Fully built, one repo, one mutation:
 
 All three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) already point their
 logout call at port 4030. Nothing designed-but-unbuilt in this context.
+
+### 3.1 The other way a session ends, and the screen nobody owns
+
+⚠️ **This epic is not the only thing that deletes a session, and reading it as if it were is the mistake
+worth naming here.** `logout` is the *voluntary* teardown — one caller, one token, the holder asking. E15
+built the involuntary one: `revokeAllSessionsForAccount` in `marketplace-common` ends **every** session an
+account holds, and four call sites reach for it — a password change, a login-email write, parking a
+ShopOwner, and an operator's revoke from E17's console. Neither path knows about the other, and neither
+should: this service reads no account id at all (E02-S03), so it could not enumerate an account's sessions
+even if it wanted to.
+
+⚠️ **A credential write ends the calling session too, deliberately — and no story owns the screen that
+follows.** "Revoke all but me" was offered and refused ([`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4,
+platform owner, 2026-08-10): the exemption would be granted to whichever session sent the mutation, and an
+attacker holding the password can send it. The accepted cost lands on the frontends rather than on any
+backend: **after a password change or a login-email change, the very next request from the tab that made it
+is refused**, and `marketplace-admin`, `marketplace-shopowner` and `marketplace-user` must present that
+refusal as *log in again* rather than as an error. No story in any epic covers those three screens. That is
+a genuine gap, recorded here because this is the record about sessions ending; it is not a defect in the
+revoke, which is behaving exactly as designed.
 
 ## 4. Stories
 
@@ -213,3 +241,4 @@ the fact that a question existed.
 | 1.4 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |
 | 1.5 | 2026-08-28 | §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record distributed, not moved, the E11 way and not E12's: no twelfth file joined the index, so the count in §0 stays eleven. Its seven facts held nowhere else went to `EPICS_STORIES.md` §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed. |
 | 1.6 | 2026-08-28, later the same day | §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its record distributed, not moved, the E11 way and not E12's: no twelfth file joined the index, so the count in §0 stays eleven (E01..E10 and E12). All nine of its stories were `built` and its own §6 read "None open.", so an audit found only nine facts held nowhere else. They went to `EPICS_STORIES.md` §2's E14 row and §2.1's ordering, [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected alternatives), [`architecture.md`](../../architecture.md) (the abandoned `setLoginCookies` comment), `RISK_REGISTER.md` R52, `TELEMETRY_EGRESS_HARDENING.md` (the Cloudflare alternative), [`E17.md`](./epics/E17.md) §5 and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. E14 keeps its id and all nine story ids; its two open defects stay recorded in `multi-tab-refresh-behaviour.md` §4, §5, §9. Nothing about this record's own content or build state changed. |
+| 1.7 | 2026-08-28, later the same day | §0's range narrows from "E15..E19" to **E16..E19** — `phase5/epics/E15.md` was deleted and its record distributed, the E11/E13/E14 way and not E12's, so the count beside the index stays eleven. **This record gained content in the pass, unlike the last four narrowings:** new **§3.1** records the involuntary teardown `revokeAllSessionsForAccount` performs for four callers, which nothing else in the corpus describes next to `logout`, and names the accepted cost of the refused "revoke all but me" — a credential write signs the caller out too, and the three frontends must render that as *log in again*, a screen **no story owns**. E15's §6 was not empty like E14's: its surviving Product question moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md). E15 keeps its id and all ten story ids. Nothing about BC-02's own build state changed |

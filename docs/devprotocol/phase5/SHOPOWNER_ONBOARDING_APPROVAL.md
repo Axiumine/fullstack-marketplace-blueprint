@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
+**Version:** 1.10
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-03 — Shop Owner Onboarding & Approval
@@ -29,7 +29,7 @@ and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
 `phase2/BOUNDED_CONTEXT.md`, `phase2/EVENT_STORMING.md`, `phase2/UBIQUITOUS_LANGUAGE.md`,
 `phase3/C4_CONTEXT.md`, `phase3/CONSTRAINTS.md`, `phase3/SECURITY_AUTH.md`, `phase4/API_CONTRACTS.md`,
 `phase4/DDD_AGGREGATES.md`, `phase4/ERD.md`, `EPICS_STORIES.md`, `IDENTITY_ACCESS.md` §6 q3,
-`RISK_REGISTER.md`, `SEQUENCE_DIAGRAMS.md`, `epics/E15.md`, `docs/architecture.md` and
+`RISK_REGISTER.md`, `SEQUENCE_DIAGRAMS.md`, `docs/architecture.md` and
 `BEs/marketplace-common/CLAUDE.md`. Every one of those resolves to a section of this file. Renumbering
 them was refused for the reason E01 gives: an ID cited across sixteen files is a name, and moving a file
 is not a reason to change a name. A further set — `phase1/NFR.md`, `COMPANY_LEGAL_ENTITY.md`,
@@ -84,6 +84,17 @@ cross-service-harness residual. The two defects E14-S09 found stay open, recorde
 [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 — that
 report is not deleted. E14 lost its file, not its id: it kept `E14` and all nine story ids, `E14-S01` …
 `E14-S09`, unchanged.
+
+⚠️ **Narrowed once more 2026-08-28, later the same day.** The range above reads **E16..E19** because
+`phase5/epics/E15.md` was deleted, distributed the same way and for the same reason — ten of ten stories
+`built` — so the eleven records beside this one are still eleven. **E15's §6 was not empty, unlike E14's**:
+one row survived, a Product question about a confirm-first email-change flow that does not exist, and it
+moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) rather than dying with the file. ⚠️ **This record was
+a receiver in that pass, not just a witness to it**: E15-S07's parking rule — a revoke when either flag goes
+on, none when it comes off, and a gate that reads the target state rather than a transition — is now
+recorded under E03-S02 above, because `shopOwnerUpdateStatus` is this epic's mutation and that is where
+someone about to change it will look. §0's list of files citing an `E03-Snn` id drops `epics/E15.md`, which
+no longer exists. E15 kept `E15` and all ten story ids.
 
 ## 1. Epic goal
 
@@ -170,6 +181,16 @@ together in one call **so that** there is never a window where the two fields di
 **Traces:** NFR-SE05 (downstream: BC-01's `login` reads this field before minting a session)
 **Evidence:** `mutations/shopOwnerUpdateStatus.mts:6-10,25,28-30`
 
+⚠️ **Since E15-S07 (2026-08-13) this mutation also ends sessions, and the rule is asymmetric on purpose.**
+Parking an account — either flag going **on** — calls `revokeAllSessionsForAccount` for that ShopOwner, so
+`disabled` and `waitApprov` stop being labels that only bite at the next rotation and a parked owner is out
+of every device immediately. **Releasing an account revokes nothing**, deliberately: an operator restoring
+access has no reason to sign anyone out, and there is nothing to end anyway — the sessions were already
+destroyed on the way in. ⚠️ **The gate reads the target state, never a transition.** Because both flags
+arrive on every call (that is this story's whole point), the mutation cannot tell an approve-then-approve
+from a first approval, so it asks *is the account parked after this write* rather than *did this write park
+it*. A re-park of an already-parked account therefore revokes again and finds nothing, which is correct and
+free. Anyone rewriting this to compare old and new values reintroduces the window E03-S02 exists to close.
 ### E03-S03 — Admin records an operator-private note   `built`
 **As an** Admin, **when** I add a note to a shop owner's record, **I want** it stored where no ShopOwner
 tier query can ever read it **so that** internal commentary never leaks to the account it is about.
@@ -340,3 +361,4 @@ not the fact that a question existed.
 | 1.7 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |
 | 1.8 | 2026-08-28 | §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its knowledge distributed rather than moved, the E11 way and not E12's: all eleven of `E13-S01`…`E13-S11` were already `built`, §6 read "None open.", and only seven facts in the file were held nowhere else. Those went to the E13 row of `EPICS_STORIES.md` §2, `SECURITY_AUTH.md` §3.6, and `dependency-tree-advisory-scan.md` §6.1. No twelfth record joined the index, so the count beside it stays the eleven v1.7 established. §0's list of files naming E03 without a story suffix drops `epics/E13.md`, which no longer exists. E13 keeps its id and all eleven story ids; nothing about this record's own content or build state changed. |
 | 1.9 | 2026-08-28, later still | §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its knowledge distributed rather than moved, the E11 and E13 way and not E12's: all nine of `E14-S01`…`E14-S09` were already `built`, §6 read "None open.", and an exhaustive audit of all 163 facts in the file found only nine held nowhere else. Those went to the E14 row of `EPICS_STORIES.md` §2 (the seven-step landing order and the E13-S01+S02 ordering at §2.1), `ADR-INDEX.md` §4 (the rejected tier-keyed session cap and the rejected cached-successor-pair grace design), `docs/architecture.md` (the abandoned `setLoginCookies` cookie-side comment), `RISK_REGISTER.md` R52 (two rate-limit windows, not one), `TELEMETRY_EGRESS_HARDENING.md` (the Cloudflare rate-limiting-rules alternative), `epics/E17.md` §5 (why E17 depends on E14 for `familyId`), and `token-handling-security-audit.md` §3.4 (E14-S06's accepted cross-service residual). No twelfth record joined the index, so the count beside it stays the eleven v1.7 established. §0's list of files naming E03 without a story suffix drops `epics/E14.md`, which no longer exists. E14 keeps its id and all nine story ids; the two defects E14-S09 found stay open in `multi-tab-refresh-behaviour.md` §4, §5 and §9. Nothing about this record's own content or build state changed. |
+| 1.10 | 2026-08-28, later the same day | §0's range narrows from "E15..E19" to **E16..E19** — `phase5/epics/E15.md` deleted and distributed, the E11/E13/E14 way, no twelfth record joining the index. **This file received content rather than only a range edit:** E03-S02 gained the E15-S07 note — parking a ShopOwner ends every session that account holds, releasing one revokes nothing, and the gate reads the *target state* because both flags arrive on every call, so an old-vs-new comparison would reopen the window E03-S02 exists to close. §0's citation list drops `epics/E15.md`. E15's surviving §6 question (a confirm-first email-change flow) moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md). E15 keeps its id and all ten story ids. Nothing about BC-03's own build state changed |

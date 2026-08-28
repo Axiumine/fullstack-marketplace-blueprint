@@ -3,9 +3,11 @@
 # Marketplace
 
 **Status:** investigation finding — closes E18-S09. Not baselined, not a requirement document
-**Version:** 1.3
+**Version:** 1.4
 **Date:** 2026-08-13 (v1.2 — F1 and F2 both fixed the same day; §5 and §6 say how, and what each fix
-leaves alone; v1.3, 2026-08-28, repoints the "Reads against" E14 citation below — `epics/E14.md` is
+leaves alone; v1.4, 2026-08-28, repoints the "Reads against" E15 citation the same way, `epics/E15.md`
+having been deleted and distributed later that day, with all ten of its story ids still citable;
+v1.3, 2026-08-28, repoints the "Reads against" E14 citation below — `epics/E14.md` is
 deleted today and its record distributed, not moved — to `../devprotocol/phase5/EPICS_STORIES.md` §2's
 E14 row for the epic generally and to `token-handling-security-audit.md` §3.4 for E14-S06's own
 cross-service-harness residual, which in turn cites this document's own §6 as the running-platform
@@ -21,7 +23,9 @@ Static reading was used only to explain a result already observed, and every suc
 file-and-line citation so the two halves stay distinguishable.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5, §3.4 ·
 [`multi-tab-refresh-behaviour.md`](./multi-tab-refresh-behaviour.md) ·
-[`E15.md`](../devprotocol/phase5/epics/E15.md) §3, E15-S01 ·
+[`../devprotocol/phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E15 row, E15-S01
+(⚠️ **Repointed 2026-08-28.** `epics/E15.md` is deleted and its record distributed, not moved; E15-S01 is
+still a citable id and the E15 row is what carries the build state this report read) ·
 [`../devprotocol/phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E14 row, E14-S06
 (⚠️ **Repointed 2026-08-28.** `epics/E14.md` is deleted and its record distributed, not moved; E14-S06's
 own cross-service-harness residual is what the `token-handling-security-audit.md` §3.4 citation above now
