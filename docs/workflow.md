@@ -216,8 +216,9 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   ⚠️ **Provisioning them anywhere but a workstation is the adopter's job, and no vendor is named for it.**
   [`ADR-040`](./devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md) rules
   that this blueprint never chooses one; [`PRODUCTION_HARDENING.md`](./PRODUCTION_HARDENING.md) lists the
-  swap points — including the ⚠️ **four** places that decode `KEYGRIP_KEK`, not one — and the invariants a
-  swap must not break.
+  swap points — ⚠️ **one** decode site in TypeScript (`readKek`) plus a second in `marketplace-db-setup`,
+  which shares no code with it — and the invariants a swap must not break. One decode site is one place to
+  edit, not one value: seven processes resolving a manager independently can still disagree.
 - **Fingerprint, never print.** `sha256(key + ' ' + value)`, first six hex — proves two repos agree
   without putting the secret in a terminal.
 - ⚠️ **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or

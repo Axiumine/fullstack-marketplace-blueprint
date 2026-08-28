@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.16
+**Version:** 1.17
 **Date:** 2026-08-28
 **Author:** adr-agent
 **Changelog:**
@@ -168,7 +168,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted | 2026-08-26 | ADR-015, in part | — | Build and quality gates |
 | ADR-038 | Cart, order, delivery and payment are permanently out of scope | accepted | 2026-08-27 | — | — | Catalogue |
 | ADR-039 | The production topology, decided: Cloudflare, one app host, datastores on a trusted segment | accepted | 2026-08-28 | ADR-032, in part | — | Infrastructure and delivery |
-| ADR-040 | The secrets-manager vendor choice is the adopter's, not this blueprint's | accepted | 2026-08-28 | — | — | Identity and access |
+| ADR-040 | The secrets-manager vendor choice is the adopter's, not this blueprint's | accepted, **amended 2026-08-28** — the KEK decode is one site, not three | 2026-08-28 | — | — | Identity and access |
 
 ## 3. By area
 
@@ -255,3 +255,19 @@ Decisions this platform still owes an ADR, once taken:
 - ~~**Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.~~ **Closed 2026-08-27 — it is no longer a gap, and it got the ADR from the other side.** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are permanently out of scope, so the design this bullet was waiting on does not start. Struck rather than deleted because the wait is the reason the bullet was here for thirty-seven ADRs, and because the sentence it ends on — *needs its own ADR when the design starts* — is what ADR-038 answers. Everything the bullet asserts about the working tree is still true and stays true: no collection, no resolver, no design, and `item` still has no price.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
 - ~~**Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.~~ **Closed 2026-08-28 — the topology is written, and this bullet is what it was written against.** [ADR-039](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) answers all four questions the struck text lists: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 from Cloudflare's ranges, which is what ADR-022's wildcard bind now sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. Struck rather than deleted because the three findings named above are the reason this bullet existed, and only two of them move: **R46** closes, E13-S11 and E14-S08 keep their controls unchanged, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is *not* closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups.
+
+v1.17 - 2026-08-28, later the same day: **ADR-040 amended in place, hours after acceptance, at the platform
+owner's instruction — the second exception to §1's immutability rule after ADR-011, and the first taken by
+editing the body rather than appending a section.** The decision is untouched: the vendor choice is still the
+adopter's, still permanently, and no option, risk or reopening trigger moves. What changed is that the ADR
+described three raw `process.env.KEYGRIP_KEK` decodes as a standing consequence, and the same day's work
+collapsed them into one — `readKek`, `marketplace-common` 2.0.3, called by `readKeygrip` and by both reseal
+mutations in `marketplace-dev-admin-authenticated-resource`. Its *Compliance* greps named those three call
+sites as the allowed set, so leaving them would have left an accepted ADR greping for a state the tree no
+longer has. ⚠️ **Two defects in those greps are corrected in the same pass, and both predate this refactor:**
+the count of shared values used `grep -c`, which counts lines and returned seventeen against a stated four,
+and the call-site grep had no way to express "zero outside `readKek.mts`". Both now produce the number they
+claim. ⚠️ **The amendment does not say the split-brain is solved.** One decode site is one place to edit; the
+six services and the seed script are seven processes, and seven independent resolutions of a manager can
+still hold seven values. `docs/PRODUCTION_HARDENING.md` §1 says so in the same pass, and its
+resolve-once-per-process rule is unchanged and still the control that matters.

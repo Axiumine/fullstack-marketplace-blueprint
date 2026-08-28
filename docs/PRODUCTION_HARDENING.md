@@ -63,26 +63,28 @@ holders in `<REDIS_KEY>keygrip:holders` is five while the count of services carr
 
 | File | Line | What it does |
 |---|---|---|
-| `BEs/marketplace-common/src/others/readKeygrip.mts` | 57 | `Buffer.from(process.env.KEYGRIP_KEK ?? '', 'base64')` — the boot-path read, shared by all six services |
-| `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/keygrip/funKeygripRotate.mts` | 54 | decodes the KEK again, independently, to reseal the record on rotation |
-| `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/keygrip/funKeygripRetire.mts` | 47 | decodes it again, independently, to reseal on retirement |
-| `BEs/marketplace-db-setup/lib/keygrip.js` | 88 | `env.KEYGRIP_KEK` — the seed path, which writes the record in the first place |
+| `BEs/marketplace-common/src/others/readKek.mts` | 25 | `Buffer.from(process.env.KEYGRIP_KEK ?? '', 'base64')` — **the only decode in TypeScript.** `readKeygrip` reaches it on the boot path for all six services, and both reseal mutations in `admin-authenticated-resource` reach it too |
+| `BEs/marketplace-db-setup/lib/keygrip.js` | 88 | `env.KEYGRIP_KEK` — the seed path, which writes the record in the first place. Separate repo, plain JavaScript, no dependency on `marketplace-common`: it seeds before any service exists, so it cannot share the decode and carries its own copy of the 32-byte rule at line 91 |
 
-⚠️ **Four reads, not one — and this is the single most important line on this page.** If you resolve the KEK
-from a manager, resolve it in **one** place per process and pass the result down. Three independent lookups
-in one process can return three different values the moment your manager has more than one version live, and
-a rotation mutation that reseals the record under a KEK the boot path cannot open is the exact split-brain
-`ADR-034` exists to prevent. The cheapest correct swap is to keep `process.env.KEYGRIP_KEK` as the single
-interface and populate it from your manager **before the process starts** — a systemd `LoadCredential`, an
-entrypoint that execs after fetching, `sops exec-env`, or your platform's equivalent.
+⚠️ **Two decode sites, one per repo — and what follows is still the single most important line on this page.**
+If you resolve the KEK from a manager, resolve it in **one** place *per process* and pass the result down.
+Centralising the decode did not do that for you: `readKek` is one function, but the six services and the seed
+script are seven processes, and seven processes resolving a manager independently can hold seven different
+values the moment that manager has more than one version live. A rotation mutation that reseals the record
+under a KEK the boot path cannot open is the exact split-brain `ADR-034` exists to prevent, and it is a
+*deployment* failure, not a code one — no amount of shared code prevents it. The cheapest correct swap is to
+keep `process.env.KEYGRIP_KEK` as the single interface and populate it from your manager **before the process
+starts** — a systemd `LoadCredential`, an entrypoint that execs after fetching, `sops exec-env`, or your
+platform's equivalent. One resolution, one value, every process.
 
 ### Invariants a swap must not break
 
 ```
-readKeygrip.mts:24   const KEK_BYTES = 32
-readKeygrip.mts:59   if (kek.length !== KEK_BYTES) throw
-readKeygrip.mts:60   KEYGRIP_KEK_MISMATCH: KEYGRIP_KEK must be base64 of 32 bytes, this one decodes to N.
-readKeygrip.mts:70   KEYGRIP_KEK_MISMATCH: this service cannot unwrap keygrip record version V (fp).
+readKek.mts:2        const KEK_BYTES = 32
+readKek.mts:27       if (kek.length !== KEK_BYTES) throw
+readKek.mts:28       KEYGRIP_KEK_MISMATCH: KEYGRIP_KEK must be base64 of 32 bytes, this one decodes to N.
+readKeygrip.mts:68   KEYGRIP_KEK_MISMATCH: this service cannot unwrap keygrip record version V (fp).
+keygrip.js:91        KEYGRIP_KEK must be base64 of 32 bytes ...  (db-setup's own copy of the same rule)
 ```
 
 - **32 bytes, base64-encoded.** AES-256 takes a 256-bit key and nothing else. `openssl rand -base64 32`
@@ -217,8 +219,8 @@ Everything below is genuinely open. This page documents swap points; it builds n
 Not a substitute for reading the sections above; a way to confirm you did.
 
 - [ ] All four values come from your provisioning mechanism, not from a file a human edited on each host.
-- [ ] `KEYGRIP_KEK` decodes to exactly 32 bytes, and is resolved **once per process** — the four reads in §1
-      see the same value.
+- [ ] `KEYGRIP_KEK` decodes to exactly 32 bytes, and is resolved **once per process** — all seven processes
+      in §1 see the same value. One decode site in TypeScript does not give you this; your provisioning does.
 - [ ] Both `KEYGRIP_KEK_MISMATCH` paths still `exit 1`. No fallback, no retry, no second source.
 - [ ] `isIntrospectionBypassAllowed()` still runs before every `INTROSPECTION_CODE` comparison, and every
       comparison is still `constantTimeEquals`.
