@@ -206,20 +206,30 @@ themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Red
   `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` on 2026-08-14, so the digest is now the only name
   a session has and a key that *is* a token resolves to nothing. The window the fallback existed for never
   opened — the cutover was never deployed, and the counter read zero on the only cluster there is.
-- ⚠️ **The connection is plaintext `redis://`, and this workspace cannot change it.** Every service
-  `env` sets `REDIS_IS_CLUSTER=1`, and koa-utils' `dist/dataSources/Redis.mjs` builds its
-  `createCluster` rootNodes with a hardcoded `redis://` scheme — so the session hash, `_id`, `email`
-  and `tier` included, crosses the wire in the clear on every request. The single-node branch reads
-  `REDIS_URL` and would take `rediss://` today, but production does not use it. This is recorded as
-  **R45**, and `test/redisScheme.test.mts` in `marketplace-common` fails the day a koa-utils release
-  makes the cluster scheme configurable, so the position is revisited rather than left true by
-  inertia. Whether the traffic is nonetheless confined to a trusted network **stopped being an open
-  question on 2026-08-28**: [`ADR-039`](./devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)
+- ⚠️ **The connection is plaintext `redis://`, and since 2026-08-28 that is a deployment choice rather
+  than a constraint.** Every service `env` sets `REDIS_IS_CLUSTER=1`, and koa-utils built that branch's
+  `createCluster` rootNodes with a hardcoded `redis://` scheme up to and including `7.0.0` — so the
+  session hash, `_id`, `email` and `tier` included, crossed the wire in the clear on every request.
+  `7.1.0` took the scheme out of its source: `redisNodeUrl()` builds each rootNode as `rediss://` when
+  `REDIS_TLS` is exactly the string `true`, `defaults.socket.tls` follows it so the nodes discovered
+  *behind* the rootNodes are not left plaintext, and `resolveRedisUrl()` refuses a non-`rediss://`
+  `REDIS_URL` at module load rather than upgrading it silently. All ten repos that depend on the
+  package are on `^7.1.0` since that day.
+  ⚠️ **Nothing here sets the flag, so nothing on the wire moved.** No `env` template carries
+  `REDIS_TLS`, no `REQUIRED_ENV_VARS` list mentions it, and the dev Redis in `marketplace-docker-DBs`
+  serves no TLS listener — the leg is exactly as cleartext as it was the day before. This is still
+  **R45**, open for a new reason: the blocker moved from an external package to a deployment that has
+  to serve TLS and be told to use it. `test/redisScheme.test.mts` in `marketplace-common` is what
+  caught the release — all three of its cases failed on the bump — and it now asserts the shape of the
+  capability, so a version that quietly reverts it fails there too. Whether the traffic is nonetheless
+  confined to a trusted network **stopped being an open question on 2026-08-28**:
+  [`ADR-039`](./devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)
   — superseding **ADR-032**, which had recorded it as owed — puts the Redis cluster and MongoDB on a host
   of their own, on a private LAN segment reachable only from the application host, and the platform owner
   has declared that segment **trusted**. It is confined, then, and still in the clear: the trust bounds who
-  can be on the wire and encrypts nothing, so **R45 stays open** at a lower score rather than closing, and
-  a `rediss://` release remains the only thing that shuts it.
+  can be on the wire and encrypts nothing, so **R45 stays open** at a lower score rather than closing. What
+  shuts it is now a provisioning step — a TLS listener on the cluster, certificates for it, and
+  `REDIS_TLS=true` in nine `env` files — rather than a release nobody here controls.
 
 ### Shared authorization body (ADR-006)
 

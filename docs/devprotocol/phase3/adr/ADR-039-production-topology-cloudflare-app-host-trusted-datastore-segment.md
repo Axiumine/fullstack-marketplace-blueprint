@@ -41,7 +41,13 @@ What was already recorded, and is unchanged:
 
 Two facts about the wire matter to what follows, and both are measured rather than assumed:
 
-- **Redis is cleartext and this workspace cannot change it.** `@axiumine/koa-utils@7.0.0`
+- **Redis is cleartext and this workspace cannot change it.** ⚠️ **The second half of that sentence
+  stopped being true hours after this ADR was accepted**, and it is annotated rather than rewritten
+  because it records what was measured on the day: `@axiumine/koa-utils@7.1.0` (2026-08-28) reads the
+  cluster scheme from a `REDIS_TLS` flag, and the ten dependent repos are on `^7.1.0`. **Nothing in the
+  decision below moves**: the flag is set nowhere, the dev Redis serves no TLS listener, and the leg
+  described here is still cleartext (**R45**, still open). Original text, as measured:
+  `@axiumine/koa-utils@7.0.0`
   `dist/dataSources/Redis.mjs:9-11` builds the cluster rootNodes as
   `redis://${REDIS_DB{1,2,3}_HOST}:${…_PORT}`, and every service `env` selects that branch with
   `REDIS_IS_CLUSTER=1`. The session hash — `_id`, `email`, `tier` — the session keys, and the `AUTH` that
@@ -60,7 +66,7 @@ Two facts about the wire matter to what follows, and both are measured rather th
 |---|---|---|
 | A — keep ADR-032's *owed* state | Costs nothing today; keeps every control sized for a hostile network | The topology now exists as an intention the owner can state. Leaving it unwritten means the first deploy defines it by accident — the exact revisit condition ADR-032 names |
 | **B — record the topology as stated, and the segment's trust as a decision** | Answers all four questions ADR-032 listed; closes **R46**; gives **R45** a real boundary and an honest residual; unblocks ADR-034's option E, which could not be chosen before *where any of this runs* had an answer | The trust is declared, not proven: no probe verifies segment membership, so the claim is exactly as good as the security-group rules behind it. That is written into the decision rather than left implied |
-| C — decide the topology, but block deployment on encrypting the Redis leg first | Removes the platform's largest cleartext exposure before it can ever exist in production | The fix is not in this workspace: it needs a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster itself. Gating a topology decision on an upstream release leaves the topology undescribed in the meantime, which is the state ADR-032 already judged worse |
+| C — decide the topology, but block deployment on encrypting the Redis leg first | Removes the platform's largest cleartext exposure before it can ever exist in production | The fix is not in this workspace: it needs a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster itself. Gating a topology decision on an upstream release leaves the topology undescribed in the meantime, which is the state ADR-032 already judged worse. ⚠️ **The upstream half arrived hours after this ADR was accepted** — `@axiumine/koa-utils@7.1.0` (2026-08-28) reads the cluster scheme from a `REDIS_TLS` flag and the ten dependent repos are on `^7.1.0` — **and the option stays rejected**: the listener and its certificates did not arrive with it, so gating on the leg would leave the topology undescribed today for the same reason it would have then (**R45**) |
 | D — zero trust: mTLS on every leg, no trusted segment at all | The strongest posture, and it never has to be revisited when a host moves | Same upstream blocker for Redis, plus certificate lifecycle for legs nobody has deployed yet. It would be a specification written ahead of an operator — the failure mode ADR-032's option B was rejected for |
 
 ---
@@ -138,7 +144,7 @@ lifted**:
 | Finding | State after this ADR |
 |---|---|
 | **R46** — production topology undescribed (3 × 4 = 12, 🟠 High) | **Closed.** This is the document it was waiting for |
-| **R45** — Redis traffic unencrypted (2 × 4 = 8, 🟡 Medium) | **Open, re-scored to 1 × 4 = 4 (🟢 Low).** Impact is unchanged — session material in the clear is session material in the clear. Likelihood drops because reaching that leg now requires a foothold inside a trusted segment or a mis-scoped security group, rather than any position on a network nobody had described. It closes only when the leg is encrypted: a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster |
+| **R45** — Redis traffic unencrypted (2 × 4 = 8, 🟡 Medium) | **Open, re-scored to 1 × 4 = 4 (🟢 Low).** Impact is unchanged — session material in the clear is session material in the clear. Likelihood drops because reaching that leg now requires a foothold inside a trusted segment or a mis-scoped security group, rather than any position on a network nobody had described. It closes only when the leg is encrypted: a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster. ⚠️ **The first arrived on 2026-08-28** — `7.1.0`, hours after this table was written — **and the row still does not close**, because the second did not: no listener, no certificates, and `REDIS_TLS` set nowhere |
 | **E13-S11** — introspection bypass refused outside development | `built`, unchanged. The gate is the control; the boundary bounds its blast radius and does not replace it |
 | **E14-S08** — `refresh` floodable with distinct garbage tokens | `built`, unchanged. The limiter is the control; Cloudflare in front bounds arrival volume and does not replace it |
 
@@ -176,7 +182,9 @@ Still open, and still owned by the platform owner — `INFRA.md` §14 keeps the 
   the only thing keeping the next mitigation honest, and it is prose, not a gate.
 - **R45 stays open at a lower score rather than closing**, which will read as an unclosed item in every
   review until an upstream release makes `rediss://` reachable. That is accurate: the traffic really is in
-  the clear.
+  the clear. ⚠️ **The upstream release landed the same day (`7.1.0`) and the item is still unclosed** —
+  the reason moved from a package that forbade TLS to a deployment that has to serve it, which is a
+  cheaper problem and not a solved one.
 - The topology is now a specification, with the failure mode ADR-032 named for option B — a control sized
   against a network nobody has deployed yet. The difference is that the owner stated this one rather than
   an author inventing it, and the revisit conditions below say when it must be re-checked against reality.
@@ -189,7 +197,10 @@ Still open, and still owned by the platform owner — `INFRA.md` §14 keeps the 
   ADR or story that cites the trust without also citing the security group that implements it.
 - **Risk:** a koa-utils release adds `rediss://` and nobody notices, leaving R45 open when it could close.
   Revisit condition: any `@axiumine/koa-utils` major or minor bump — the E13-S05 assertion on the connection
-  scheme is the tripwire that already exists for this.
+  scheme is the tripwire that already exists for this. ⚠️ **Fired 2026-08-28 on the `7.0.0` → `7.1.0`
+  minor bump**, which is the condition written here, and the revisit happened: R45 rewritten (register
+  v1.37), `docs/architecture.md` corrected, the assertion retargeted. R45 could not close on it — the
+  release supplies the client half only.
 - **Risk:** the security group is widened for an operational reason and the trust declaration silently stops
   describing the network. Revisit condition: any change to the datastore host's inbound rules.
 
