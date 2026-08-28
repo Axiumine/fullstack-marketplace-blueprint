@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.16
+**Version:** 1.17
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-01 — Identity & Access
@@ -27,7 +27,7 @@ into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) 
 
 **The story IDs did not change.** `E01-S01` … `E01-S15` are cited by `phase2/BOUNDED_CONTEXT.md`,
 `phase3/CONSTRAINTS.md` CON-12, `phase4/DDD_AGGREGATES.md`, `phase4/ERROR_HANDLING.md`,
-`RISK_REGISTER.md` R02/R04/R47/R50, `epics/E15.md`, `epics/E16.md`, `epics/E18.md`,
+`RISK_REGISTER.md` R02/R04/R47/R50, `epics/E16.md`, `epics/E18.md`,
 `docs/report/token-handling-security-audit.md`, `docs/report/keygrip-rotation-propagation.md`,
 `docs/workflow.md`, `docs/data-model.md` and `.claude/SECRETS.md`. Every one of those resolves to a
 section of this file. Renumbering them was considered and refused: an ID cited in twenty-two files is a
@@ -81,6 +81,15 @@ defects E14-S09 found stay live and stay recorded in
 [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9, which is
 not deleted.
 
+⚠️ **Narrowed once more 2026-08-28, later the same day.** The range above reads **E16..E19** because
+`phase5/epics/E15.md` was deleted and distributed the same way, all ten of its stories `built`; no twelfth
+record joined the index, so the count beside this one is still **eleven**. ⚠️ **E15's §6 was not empty like
+E14's, and this file is where the difference landed.** One row survived — a **Product** question about a
+confirm-first email-change flow — and it is now **§6 question 5 below, open**, so this record's §6 no longer
+reads "all four closed". §3.1 is new in the same pass and carries E15-S06's findings about the login-email
+write. §0's citation list above drops `epics/E15.md`; `E15` and all ten of `E15-S01` … `E15-S10` remain
+citable names.
+
 ## 1. Epic goal
 
 Authenticate a caller against exactly one of three collections (`admin`, `shopOwner`, `user`) and
@@ -120,6 +129,32 @@ email-verification REST endpoints all exist on disk:
 Nothing here is designed-but-unbuilt. The gaps this epic once listed as process gaps — cross-repo secret
 agreement with no automated check — are closed by E01-S12..S15; what survives of them is provisioning, and
 that is **R50**, not a story.
+
+### 3.1 Changing a login email — what exists, and what does not
+
+E15-S06 (2026-08-13) made writing a login email revoke every session that account holds, and building it
+required reading the whole flow. Four facts came out of that read, and they belong here because the login
+email is BC-01's identity, whoever writes it.
+
+- **There is exactly one writer**, `shopOwnerUpdateEmail` on the Admin tier — an operator changing a shop
+  owner's login address. No self-service email change exists on any of the three tiers.
+- ⚠️ **There is no confirm-a-change flow, and the field that looks like one is dead.** `shopOwner` carries
+  `newEmailTmp`, which reads as the pending half of a confirm-first design; **nothing writes it and nothing
+  reads it**. Do not build against it assuming the other half exists somewhere.
+- ⚠️ **The new address is live immediately, and `emailVerify.valid` is not touched.** The account
+  authenticates against the new address on the next login while the platform still records the address as
+  verified — so an operator typo moves the account to an address nobody has proved anyone controls *and*,
+  since E15-S06, ends every session the real owner was holding. The owner is locked out of an account that
+  now answers to a stranger's inbox. This is the finding, not a hypothetical: it is what the code does
+  today.
+- **The answer is recorded for whoever builds the flow, so it is not re-derived**: revoke at the
+  **confirmation**, not at the request. Revoking when the change is merely requested would let anyone who
+  can reach the mutation sign the owner out without ever proving control of the new address, which is a
+  denial-of-service with an email field for a trigger. E15-S06's revoke stays where it is either way — it
+  fires on the write that actually changes `login.email`, and in a confirm-first design that write *is* the
+  confirmation.
+
+Whether that flow is wanted at all is an open product question — §6 question 5.
 
 ## 4. Stories
 
@@ -510,10 +545,13 @@ from the required list, and a repo-wide ban would refuse the test that proves th
   content alone — a change to how E01 stores a session (key shape, `tier` field name) is a change BC-02
   must be re-verified against, per BCON-05 (one logical change, N repo commits).
 
-## 6. Open questions — all four closed
+## 6. Open questions — four closed, one open
 
-None open. Kept because each closure is cited elsewhere and the *shape* of the answer is the knowledge,
-not the fact that a question existed.
+The four below are closed, and kept because each closure is cited elsewhere and the *shape* of the answer
+is the knowledge, not the fact that a question existed. **Question 5 is open**, and it arrived here on
+2026-08-28 rather than being asked here: it is the one row of `phase5/epics/E15.md` §6 that survived that
+file's deletion, relocated because it is a question about this epic's subject and about a flow no epic
+owns.
 
 | # | Question | Closed by | Answer |
 |---|---|---|---|
@@ -521,6 +559,7 @@ not the fact that a question existed.
 | 2 | `shopOwner.waitApprov` gates nothing — is it meant to bite at login, or is it operator-facing and several documents call it a gate wrongly? | E01-S11, 2026-08-12 | **It is a gate, and it bites at login and at every refresh.** E01-S10 carved exactly the narrow exception the question predicted — one field, the write shape only, `src/**` of two repos, with the scoping itself under test. What did *not* follow from the answer, and was checked rather than assumed: `resetPwdFlow` still ignores the flag, because refusing there leaks account state to an unauthenticated caller and buys nothing the login gate has not already taken away (`phase2/BOUNDED_CONTEXT.md` §7 q8) |
 | 3 | Does a freshly created `ShopOwner` start parked? | E03-S08, 2026-08-12 | **It depends on who created it, and that is the answer rather than a compromise.** `shopOwnerRegister` — the public self-service registration — writes `waitApprov: true`; `shopOwnerAdd` still writes nothing, because an operator who typed the account in has approved it by doing so, and a stranger who typed it in themselves has not been approved by anybody. No migration was needed: every row on disk predates the public form, so every one was Admin-created and correctly ungated |
 | 4 | No automated gate verifies `KEYGRIP_KEY_1`/`_2` agreement across the signing services (BCON-03); a mismatch was live in production data on 2026-08-07, caught by a manual fingerprint sweep and by no suite | ADR-034 → E01-S12..S15 | **Two corrections to the question first:** the pair lived in **five** `.env` files, not four — `marketplace-dev-authenticated-logout` clears the same cookie and carries the same keys (`INFRA.md` §7) — and a startup fingerprint check was the smaller half. The larger half was that the key **could not be rotated at all** without editing five git-ignored files by hand and restarting five services, which is why it never had been. The answer: one record in Redis wrapped under a `KEYGRIP_KEK`, a boot that refuses on a tag mismatch rather than a comparison that reports one, and rotation as an operator mutation that running services apply in place. Raw keys in Redis were rejected — a Redis read must not become a cookie forge. `yarn seed:keygrip --force` survives as the disaster path only, for a keyspace that was flushed |
+| 5 | **OPEN — Product.** Should a confirm-first email-change flow be built at all: the account holder asks for a new address, the platform mails a confirmation link there, and only the click writes `login.email`? | — | **Undecided, and it is the platform owner's call rather than an implementation detail.** It was raised by E15-S06, which found that `newEmailTmp` is written by nothing and that the single writer, Admin-tier `shopOwnerUpdateEmail`, moves the account to the new address immediately while `emailVerify.valid` still reads `true` — §3.1 above. So the flow's absence has a cost today: an operator typo hands the account to an unverified address and, since E15-S06, signs the real owner out of it in the same call. What is *not* undecided is the engineering half, which E15-S06 settled and §3.1 records: if it is built, the revoke fires at the confirmation and never at the request. ⚠️ **The question is only about whether to build the flow, and no story in any epic proposes it** — it does not appear in `epics/E16.md` … `epics/E19.md`, and it is not a gap in E15, which built everything it designed |
 
 ## 7. Changelog
 
@@ -543,3 +582,4 @@ not the fact that a question existed.
 | 1.14 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |
 | 1.15 | 2026-08-28 | §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record **distributed**, not moved: the E11 way, not E12's. No twelfth record joined the index, so the count in §0 stays eleven. The seven facts it held that lived nowhere else went to `EPICS_STORIES.md` §2's E13 row, `SECURITY_AUTH.md` §3.6 and `dependency-tree-advisory-scan.md` §6.1. E13 keeps its id and all eleven story ids. Nothing about BC-01, or about this record's own content or build state, changed. |
 | 1.16 | 2026-08-28, later still | §0's range narrows again, from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its record **distributed rather than moved**, the E11/E13 way, not E12's. All nine stories were `built`, its §6 read "None open.", and an audit of the 521-line file found only nine facts held nowhere else. No twelfth record joined the index, so the count in §0 stays eleven (E01..E10 and E12). The seven-step landing order and the "land E13-S01 and E13-S02 first" ordering went to `EPICS_STORIES.md` §2's E14 row and §2.1; the two rejected alternatives (tier-keyed session cap, cached-successor-pair grace) to `ADR-INDEX.md` §4; the abandoned `setLoginCookies` cookie-side comment to `architecture.md`; "two windows, not one" to `RISK_REGISTER.md` R52; the Cloudflare rate-limiting alternative to `TELEMETRY_EGRESS_HARDENING.md`; why E17 needs `familyId` to `epics/E17.md` §5; and the cross-service-harness residual to `token-handling-security-audit.md` §3.4. The two defects E14-S09 found stay open in `multi-tab-refresh-behaviour.md` §4, §5 and §9. E14 keeps its id and all nine story ids. Nothing about BC-01, or about this record's own content or build state, changed. |
+| 1.17 | 2026-08-28, later the same day | §0's range narrows from "E15..E19" to **E16..E19** — `phase5/epics/E15.md` deleted and its record distributed, the E11/E13/E14 way and not E12's, so no twelfth record joined the eleven beside this one. **This file is the pass's main receiver.** New **§3.1** records what E15-S06 found while making a login-email write revoke sessions: one writer only (Admin-tier `shopOwnerUpdateEmail`), **no confirm-a-change flow at all**, `newEmailTmp` written and read by nothing, the new address live immediately with `emailVerify.valid` untouched — so an operator typo moves an account to an unverified address *and* ends every session its owner held — and the recorded engineering answer for whoever builds the flow: revoke at the confirmation, never at the request. §6 stops reading "all four closed" and gains **question 5, open**: whether that flow is wanted at all. That row is the one line of E15's §6 that survived the file, relocated rather than deleted — E15's §6 was **not** empty like E14's. §0's citation list drops `epics/E15.md`. E15 keeps its id and all ten story ids. Nothing about BC-01's build state changed: §3.1 describes a flow that does not exist and a mutation that belongs to BC-03 |

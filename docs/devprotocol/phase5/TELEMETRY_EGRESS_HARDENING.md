@@ -2,12 +2,28 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7; record moved out of `epics/` 2026-08-27, see §0
-**Version:** 2.12
+**Version:** 2.13
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v2.12 - 2026-08-28, later still: **`phase5/epics/E14.md` is deleted**, so the range §0 gives
+**Changelog:** v2.13 - 2026-08-28, later the same day: **`phase5/epics/E15.md` is deleted**, so the range
+§0 gives for `EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows once more — from
+**E15..E19** to **E16..E19**. E15 followed the E11 / E13 / E14 pattern and not E12's: distributed rather
+than moved, all ten of its stories `built`. ⚠️ **Unlike E14's, E15's §6 was not empty** — one Product
+question, whether a confirm-first email-change flow should exist at all, moved to
+[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as an **open** question 5 rather than being deleted with the
+file. The other nine facts went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row and §2.1,
+[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the lazy prune, "revoke all but
+me", and `familyId`/the cap in the index value), [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1,
+[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §3.1,
+[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`docs/data-model.md`](../../data-model.md).
+**This file was not a receiver this time** — E15 wrote nothing into §4 — and no twelfth record joined the
+eleven beside the index. E15 kept its epic id and all ten of `E15-S01` … `E15-S10`. No story id,
+criterion, evidence line, state or gate in this file changed.
+v2.12 - 2026-08-28, later still: **`phase5/epics/E14.md` is deleted**, so the range §0 gives
 for `EPICS_STORIES.md` §1's "stories live in `epics/ENN.md`" narrows again — from **E14..E19** to
 **E15..E19**. E14 followed **E11's and E13's pattern and not E12's**: distributed rather than moved, all
 nine of its stories `built`, its own §6 reading "None open. Every decision this epic made is carried by the
@@ -209,6 +225,23 @@ Cloudflare rate-limiting-rules alternative to `limit_req_zone`, so this file is 
 cross-service-harness residual. No twelfth record joined the eleven that sit beside the index — that count
 stays eleven (E01..E10 and E12), not twelve. E14 kept its epic id and all nine of `E14-S01` … `E14-S09`
 kept theirs; only the file that held them is gone.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** `phase5/epics/E15.md` is deleted, and the range
+narrows once more, to **E16..E19**, not E15..E19. E15 followed the same pattern — distributed, not moved,
+all ten of its stories `built` — but with one difference worth recording, because the last three deletions
+established the opposite expectation: **E15's §6 was not empty.** A single **Product** question survived it,
+whether a confirm-first email-change flow should exist at all given that the one existing writer moves an
+account to a new address immediately while `emailVerify.valid` still reads `true`; it was relocated to
+[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6, where it is now that record's **open** question 5. The
+other nine facts went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row and §2.1,
+[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs),
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
+§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`docs/data-model.md`](../../data-model.md).
+⚠️ **This file received nothing from E15**, unlike the E14 pass, where §4's E12-S09 was one of the seven
+destinations — so nothing below this line moved. The count beside the index stays eleven. E15 kept its
+epic id and all ten of `E15-S01` … `E15-S10`.
 
 **The story IDs did not change, and here that matters more than it did for E01..E10.** All twenty-six of
 `E12-S01` … `E12-S26` are in use, and they are cited from **87 source files across all fifteen sub-repos**

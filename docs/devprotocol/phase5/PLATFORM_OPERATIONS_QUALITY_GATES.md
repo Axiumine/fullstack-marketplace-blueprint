@@ -2,11 +2,20 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
+`phase5/epics/E15.md` deleted and distributed, the E11 / E13 / E14 way, no twelfth record joining the index.
+**This file received content, not just a range edit:** new **§3.1** records `credentialWriteRevokes.test.mts`
+— the per-repo enumeration gate E15-S06 added, which reads a service's own mutation sources and fails when a
+password or login-email write ships without `revokeAllSessionsForAccount` — and the reason its assertion is a
+substring match: Stryker rewrites string literals into ternaries, so an adjacency regex over source text
+fails in the dry run before any mutant is scored. E15's §6 was **not** empty like E14's; its surviving
+Product question moved to `IDENTITY_ACCESS.md` §6. E15 keeps its id and all ten story ids. Nothing about
+BC-09's own build state changed.
 v1.7 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md`
 was deleted and its record distributed rather than moved, the E11 / E13 way and not E12's: all nine of its
 stories are `built` and its §6 read "None open." An audit of the file found only nine facts held nowhere
@@ -114,6 +123,15 @@ E14-S09 found stay open, both explicitly outside E14's scope, both still live in
 recorded in [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 —
 that report is not deleted.
 
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above reads **E16..E19** because
+`phase5/epics/E15.md` was deleted and its record **distributed, not moved** — the E11 / E13 / E14 way: all
+ten of its stories are `built`, and no twelfth record joined the index, so the count above stays at eleven.
+Unlike E14's, **E15's §6 was not empty** — one Product question survived and moved to
+[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6. ⚠️ **This record received one of E15's nine facts** rather
+than only losing a range: §3.1 above is new, and records the per-repo `credentialWriteRevokes.test.mts`
+gate and why its assertion is a substring match rather than an adjacency regex. E15 kept its id and all ten
+story ids.
+
 ## 1. Epic goal
 
 Keep every other context honest at commit/push time: coverage, mutation score, lint, Qodana, and the
@@ -154,6 +172,25 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
   ADR-006-equivalent this epic's AV01/AV02 stories trace to.
 - `.githooks/pre-commit` executability check for `qodana.sh`, confirmed at lines 237-251 (`for required
   in qodana.yaml qodana.sh; do` … `if [ ! -x "$APP_DIR/qodana.sh" ]`).
+
+### 3.1 `credentialWriteRevokes.test.mts` — an enumeration test, and the Stryker trap in writing one
+
+E15-S06 (2026-08-13) added a gate that is not a coverage or mutation threshold and is easy to mistake for a
+convention: **each service that writes a credential carries its own `test/credentialWriteRevokes.test.mts`,
+which reads its sibling mutation sources and fails when one of them writes a password or a login email
+without calling `revokeAllSessionsForAccount`.** It is a *per-repo* file by necessity — there is no
+cross-repo harness in these sixteen repos (the same residual E14-S06 accepted) — so adding the file to a
+service is part of giving that service a credential write, and E15-S10 did exactly that for
+`marketplace-dev-public-resource`.
+
+⚠️ **The assertion matches by substring, not by adjacency, and that is a fix rather than laziness.** The
+obvious form — a regex demanding the revoke call within N lines of the write — dies in Stryker's dry run:
+the mutation gate rewrites string literals into ternaries, so the *source text the test reads* is no longer
+the text a positional pattern was written against, and the suite fails before a single mutant is scored.
+Asserting that the source contains both the write and the call keeps the gate honest about what it can
+actually prove — that nobody added a credential write and forgot the teardown — without pretending to
+verify an ordering the file cannot see. Anyone tightening this to a positional regex should expect the dry
+run to break first, not the assertion to get stronger.
 
 ## 4. Stories
 

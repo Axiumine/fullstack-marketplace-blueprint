@@ -187,7 +187,8 @@ and a pin is one edit away from being lowered.
 **What needs 7.4 specifically: hash-field TTLs.** `HEXPIRE` / `HPEXPIRE` / `HTTL` / `HPERSIST` — a
 TTL on an individual field of a hash rather than on the whole key — were added in Redis 7.4.0 and
 exist in no earlier release. The account→sessions index
-(`docs/devprotocol/phase5/epics/E15.md`, story E15-S03) is one hash per account whose fields are that
+(story E15-S03, recorded in `docs/devprotocol/phase5/EPICS_STORIES.md` §2's E15 row and
+`docs/data-model.md` §The account index — `epics/E15.md` was deleted and distributed 2026-08-28) is one hash per account whose fields are that
 account's live sessions, and fields whose sessions expire without passing through logout or rotation
 have to age out on their own. Without per-field TTLs the index keeps naming sessions that no longer
 exist, which is both a slow memory leak and a lie told to the operator screen that reads it.
