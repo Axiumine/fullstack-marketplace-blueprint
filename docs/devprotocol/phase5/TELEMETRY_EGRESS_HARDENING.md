@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7; record moved out of `epics/` 2026-08-27, see §0
-**Version:** 2.9
-**Date:** 2026-08-27
+**Version:** 2.10
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v1.0 - initial; written against the 2026-08-10 token-handling security audit, after an adversarial review that returned `refuted: true` on the first design — the original `beforeSend` scrubber looked at the wrong half of the event and would not have closed §3.5.
+**Changelog:** v2.10 - 2026-08-28: one dated note in the front matter, where this file names the topology gap that bounds E12-S15. `ADR-039` supersedes `ADR-032` and decides that Cloudflare sits in front of the origin, so the configuration E12-S15 shipped is now the decided shape rather than an anticipated one. Nothing about the story moved: its repo half stays `built`, its zone half stays an adopter step (v2.8), and **R44** keeps its score and its missing date. No other section touched.
+v1.0 - initial; written against the 2026-08-10 token-handling security audit, after an adversarial review that returned `refuted: true` on the first design — the original `beforeSend` scrubber looked at the wrong half of the event and would not have closed §3.5.
 v1.1 - implemented 2026-08-10. Story markers now read per story, and §7 records what is
 left: E12-S12, E12-S13 and the Cloudflare half of E12-S15.
 v1.2 - 2026-08-11: the non-1:1 bounded-context caveat removed. `phase5/CONSTRAINTS.md` §5 no longer
@@ -166,7 +167,12 @@ citations are in shipped code behind mutation gates, where a rename is a code ch
 [`sentry-event-capture.md`](../../report/sentry-event-capture.md) for E12-S13 and E12-S24 — and this file
 records what each story had to satisfy and where the code is, not the measurements themselves. The
 production-topology gap that bounds E12-S15 is
-[`ADR-032`](../phase3/adr/ADR-032-production-topology-owed.md), stated once there.
+[`ADR-032`](../phase3/adr/ADR-032-production-topology-owed.md), stated once there. ⚠️ **It stopped being a
+gap on 2026-08-28**: [`ADR-039`](../phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) supersedes ADR-032 and puts **Cloudflare in front of the origin** by
+decision, which is what `snippets/origin-pull.conf` had been configured against all along. E12-S15's
+remaining half is unchanged — issuing the certificate is still an adopter deployment step, and **R44** still
+holds its 🟠 High with no expiry date anyone here can write — but it is now a step toward a decided edge
+rather than a presumed one.
 
 ## 1. Epic goal
 

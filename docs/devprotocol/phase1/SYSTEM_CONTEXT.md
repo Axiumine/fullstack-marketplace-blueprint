@@ -2,11 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
+**Version:** 1.6
 **Date:** 2026-08-27
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.6 - 2026-08-27, later the same day: §5.13's two live version strings read `2.0.0` / `^2.0.0` after that
+release; closed question 5 keeps the `1.0.1` it was closed on and gains the follow-on version. Nothing about the
+system context changed.
 v1.5 - 2026-08-27: §6's commerce rows described things absent rather than things refused, and the payment-gateway row said it "cannot be designed before" an order model that is now never coming. ADR-038 (2026-08-27) settles both, and the End-customer row in §2 says the `User` tier cannot buy anything ever rather than not yet. The two `item.js:12-14` line anchors drop to a plain file reference — the file has been rewritten since and the line numbers no longer point at the comment.
 v1.4 - 2026-08-27, later the same day: §5.13's closing sentence read as if `yarn install` and `deploy-local.sh` were
 coupled - *"a plain `yarn install` in any consumer now undoes the script"* - stated flatly, with no condition. They are
@@ -501,7 +504,7 @@ UI would still read as present on disk.
 ### 5.13 `yarn install` → npm registry, and the gap `deploy-local.sh` bridges
 
 `@axiumine/marketplace-common` is consumed as a package name by 9 services, and since 2026-08-26 it is
-also published — `registry.npmjs.org`, version `1.0.1`, consumers on `^1.0.1`
+also published — `registry.npmjs.org`, version `2.0.0`, consumers on `^2.0.0`
 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes the
 publication half of `ADR-015`):
 
@@ -519,7 +522,7 @@ an edit reaches all 9 services before any release carries it. ⚠️ **The scrip
 No `yarn install` in any of the 16 repos invokes it — the only lifecycle script any of them defines is
 `prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an unrelated
 clean/smudge filter for the `yarn.lock` registry host — and none may be wired to it. An install resolving
-`^1.0.1` from the registry is the *correct* result whenever common carries no unreleased edit. What
+`^2.0.0` from the registry is the *correct* result whenever common carries no unreleased edit. What
 remains is one narrow collision, and it exists only while such an edit does: skipping the script after an
 edit leaves consumers compiling the previous build with no error at the call site, and an install in a
 consumer then restores the last released build over the deployed one, equally silently.
@@ -566,5 +569,5 @@ consumer then restores the last released build over the deployed one, equally si
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|~~Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?~~|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
-|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published; `deploy-local.sh` stays.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)). The second half of the question answered no: the script is what carries an edit that has not been released yet, so publication changed what it bridges rather than retiring it (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
+|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published; `deploy-local.sh` stays.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `2.0.0` and `^2.0.0` since 2026-08-27 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)). The second half of the question answered no: the script is what carries an edit that has not been released yet, so publication changed what it bridges rather than retiring it (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

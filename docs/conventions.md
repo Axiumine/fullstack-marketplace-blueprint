@@ -66,13 +66,13 @@ keeps a root-JS block off the minified Qodana report.
   omissions.
 - ⚠️ **Consumed by package name, and published** — ADR-015 for the consumption pattern, `ADR-037` for
   the publication. `package.json` names it `@axiumine/marketplace-common`; the nine services depend on
-  that name at `^1.0.1`, and `registry.npmjs.org` serves `1.0.1`. Until 2026-08-26 this bullet said the
+  that name at `^2.0.0`, and `registry.npmjs.org` serves `2.0.0`. Until 2026-08-26 this bullet said the
   name 404s there and that a fresh `yarn install` keeps 404ing until a real publish; neither is true now.
   `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every
   consumer's `node_modules/`, discovered by globbing this workspace, which is how an edit reaches the
   nine services before a release carries it. **Re-run it after every edit to common**, or the consumers
   keep resolving the previous build and the edit fails at the call site rather than at import. ⚠️ `yarn
-  install` does **not** need this script and must not be wired to it — it resolves `^1.0.1` from the
+  install` does **not** need this script and must not be wired to it — it resolves `^2.0.0` from the
   registry, which is the correct answer whenever common has no unreleased edit. The one case where the
   two collide: while common *does* carry an unreleased edit, an install in a consumer drops the released
   build back over the deployed one, so redeploy after that install — and only in that case.

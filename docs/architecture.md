@@ -213,8 +213,13 @@ themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Red
   `REDIS_URL` and would take `rediss://` today, but production does not use it. This is recorded as
   **R45**, and `test/redisScheme.test.mts` in `marketplace-common` fails the day a koa-utils release
   makes the cluster scheme configurable, so the position is revisited rather than left true by
-  inertia. Whether the traffic is nonetheless confined to a trusted network is the topology question
-  **ADR-032** records as owed.
+  inertia. Whether the traffic is nonetheless confined to a trusted network **stopped being an open
+  question on 2026-08-28**: [`ADR-039`](./devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)
+  — superseding **ADR-032**, which had recorded it as owed — puts the Redis cluster and MongoDB on a host
+  of their own, on a private LAN segment reachable only from the application host, and the platform owner
+  has declared that segment **trusted**. It is confined, then, and still in the clear: the trust bounds who
+  can be on the wire and encrypts nothing, so **R45 stays open** at a lower score rather than closing, and
+  a `rediss://` release remains the only thing that shuts it.
 
 ### Shared authorization body (ADR-006)
 

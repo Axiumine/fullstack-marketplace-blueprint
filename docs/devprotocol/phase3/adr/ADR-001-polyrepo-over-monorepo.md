@@ -24,8 +24,9 @@ Forces:
   `.githooks/`, own Qodana project/token. Verified: `BEs/dev/marketplace-dev-public-authorization/.git`
   through the other 8 each a separate `.git` dir.
 - `marketplace-common` is consumed as an npm package name (`@axiumine/marketplace-common`), published
-  on npmjs at `1.0.1` since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md))
-  — this bullet said the name 404s there, which was true when it was written and is not now. Edits the
+  on npmjs since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)) — `1.0.1` that
+  day, `2.0.0` since 2026-08-27 — this bullet said the name 404s there, which was true when it was written
+  and is not now. Edits the
   registry has not released are bridged locally by `BEs/marketplace-common/deploy-local.sh` syncing
   `dist/` into every consumer's `node_modules/` (`docs/workflow.md` §Repo layout, CON-09). Package-name
   coupling, not path coupling — already decoupled from source-tree shape before this ADR, and publication

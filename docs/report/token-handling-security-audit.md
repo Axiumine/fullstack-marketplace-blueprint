@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** review finding — not baselined, not a requirement document
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-08-10 (v1.0 2026-08-08; v1.1 drops the two findings `marketplace-nginx` closed — the
 v1.0 🔴 Critical on `Secure` and the v1.0 §3.7g on the two private vhosts — and renumbers §3 accordingly;
 v1.2, 2026-08-13, appends an outcome to every finding and adds [§7](#7-closing-record--what-happened-to-every-finding),
-rewriting none of what was already here)
+rewriting none of what was already here; v1.3, 2026-08-28, appends the topology outcome to the three
+places that ended on ADR-032 — §3.6c, §3.7b and §7's owed-ADR entry — in the same append-only way)
 **Scope:** access token + refresh token handling only. Password hashing, upload scanning, catalogue
 authorization and the Order/Cart/Delivery/Payment surface are out of scope — that surface was unbuilt when
 this audit ran and became **permanently** out of scope on 2026-08-27 (ADR-038), so nothing here is pending
@@ -313,7 +314,10 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
   (`src/others/isIntrospectionBypassAllowed.mts:33`). The seventh site lives in `@axiumine/koa-utils`,
   outside all sixteen repos, and is stated as out of reach rather than quietly counted. **The finding's
   actual subject — that the port is reachable at all — is not closed by code and cannot be**: it is the
-  production-topology decision ADR-032 still owes.
+  production-topology decision ADR-032 still owes. ⚠️ **Answered 2026-08-28** — [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) supersedes
+  ADR-032 and closes the port: one application host, a default-deny cloud security group, 443 from
+  Cloudflare's ranges alone. The `NODE_ENV` allowlist is **not** relaxed by that and is not allowed to be
+  (ADR-039 §5) — what changed is the blast radius, not the control.
 - **d — fixed, and generalised (E18-S01, E18-S02).** The reject-path tests existed by the time this was
   checked; what did not exist was anything stopping the next service from shipping without them. Eleven
   cases AB-01..AB-11 are single-sourced in `marketplace-common/src/others/authBoundaryContract.mts` and a
@@ -353,7 +357,10 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
   `REDIS_IS_CLUSTER=1` and koa-utils hardcodes `redis://` on that branch, so the session hash crosses the
   wire in the clear. That is **R45**, and `marketplace-common/test/redisScheme.test.mts` fails the day a
   koa-utils release makes the scheme configurable, so the position is revisited rather than left true by
-  inertia. Whether the wire is confined to a trusted network is again ADR-032's question.
+  inertia. Whether the wire is confined to a trusted network is again ADR-032's question. ⚠️ **Answered
+  2026-08-28** — [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) puts Redis and MongoDB on their own host on a private LAN segment the
+  platform owner declares **trusted**. Confined, and still cleartext: **R45 stays open**, re-scored 🟢 Low,
+  because a declared boundary is not encryption.
 - **c — fixed (E13-S08, ADR-033).** `SameSite=Strict` is a named control with its own ADR and its own
   revisit triggers, so a `koa-utils` bump that relaxed it now trips something. E18-S13 found the adjacent
   defect while removing dead variables: a `SAMESITE_COOKIE=lax` sat in seven `env` templates configuring
@@ -513,8 +520,11 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
   read, `DUAL_READ_REMOVE_AFTER`, the dated test and the counter left in one change, the dual delete
   became one key, and E13-S02's integration test was **inverted** rather than deleted: it still seeds a
   session in the pre-cutover shape and now asserts it does not authenticate. §3.6a is owed nothing.
-- **ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
-  §3.6c's real subject, and §3.7b's second half depends on the same answer.
+- ~~**ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
+  §3.6c's real subject, and §3.7b's second half depends on the same answer.~~ **Written 2026-08-28**:
+  [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) — Cloudflare at the edge, one application host, a cloud security group closing every
+  port but 443, datastores on a separate host on a trusted private segment. **R46 closes with it; R45 does
+  not**, and §3.6c's control stands unchanged by owner's decision rather than by omission.
 - ~~**Revocation still ends refresh sessions only**~~ — **closed 2026-08-13, hours after it was written
   here.** `revokeAllSessionsForAccount` and the E17 console's `funRevokeSession` retire the access half
   through the refresh hash's `accessKey` before deleting the hash that names it, so a password change, a

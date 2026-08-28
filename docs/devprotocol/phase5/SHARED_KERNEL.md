@@ -2,11 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-27
+**Version:** 1.7
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
+**Changelog:** v1.7 - 2026-08-28: E10-S03's Evidence line carries `marketplace-common` `2.0.1`, the JSDoc-only
+patch released that day. The criterion and the consumers' `^2.0.0` are untouched — the point of the range is
+that a patch needs neither.
+v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
+v1.6 - 2026-08-27, later still: E10-S03's acceptance criterion and Evidence line carry `marketplace-common`
+`2.0.0` / `^2.0.0` after that release. The story's obligation is unaffected — `deploy-local.sh` bridges the gap
+between releases whatever the released version is.
 replaced. §5 absorbs what its own §5 held — the 7th model and the `TIER`-scoped service pair BC-11 would
 have needed, and the tier-vs-concern question that went with them, closed as moot by ADR-038. Every
 citation of `epics/E11.md` in this file is repointed to
@@ -146,7 +152,7 @@ after every edit, or consumers silently compile against a stale build.
 proved the script mandatory by proving the package 404s.
 [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) superseded the publication half
 of [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md): the owner publishes to
-`registry.npmjs.org` personally, and consumers install `^1.0.1` from it. ⚠️ **The script is not retired by
+`registry.npmjs.org` personally, and consumers install `^2.0.0` from it. ⚠️ **The script is not retired by
 that, and inferring so is the documented wrong turn** (ADR-037 §Decision 2): it closes the gap *between*
 releases, so a workspace without it runs every consumer against the last **published** build rather than the
 last **written** one — stale and plausible, where today's failure is loud and at the call site. The criterion
@@ -156,12 +162,12 @@ below is restated to prove the same obligation against the state that now exists
 - `BEs/marketplace-common/deploy-local.sh` globs this workspace and writes into every consumer's
   `node_modules/@axiumine/marketplace-common/`.
 - An edit under `BEs/marketplace-common/src/` that has not been published is invisible to all 9 services
-  until the script runs — a fresh `yarn install` resolves `^1.0.1` from the registry and restores the last
+  until the script runs — a fresh `yarn install` resolves `^2.0.0` from the registry and restores the last
   *released* build over it, which is why "run `./deploy-local.sh` after every edit" is a rule and not a
   convenience (NFR-PO04, ADR-037 §Decision 2).
 **Traces:** NFR-PO04, BCON-07 (`phase5/CONSTRAINTS.md` §3), ADR-037 (supersedes ADR-015 in part).
 **Evidence:** `BEs/marketplace-common/deploy-local.sh`; `BEs/marketplace-common/package.json` `version`
-`1.0.1` + `publishConfig.registry`; `^1.0.1` in the consumers' `package.json`.
+`2.0.1` + `publishConfig.registry`; `^2.0.0` in the consumers' `package.json`.
 
 ### E10-S04 — Every file reachable only via the `exports` map   `built`
 Technical story. No barrel export exists; an unlisted file is unreachable by any consumer. Adding a
