@@ -280,6 +280,14 @@ REDIS_KEY=marketplaceDev:
 `REDIS_DB1_HOST` … `REDIS_USERNAME` block below it in place and empty. ⚠️ The templates ship
 `REDIS_IS_CLUSTER=1` — the maintainer's cluster — so this is an edit, not a default.
 
+⚠️ **Do not set `REDIS_TLS` for a local setup.** `@axiumine/koa-utils@7.1.0` added it: set to exactly
+the string `true` it builds cluster nodes as `rediss://`, carries TLS to the nodes discovered behind
+them, and **refuses to boot** if `REDIS_URL` is not `rediss://`. The Redis this guide brings up serves
+no TLS listener, so the flag would turn a working platform into nine services that fail at module load.
+Unset — which is what every template ships, the variable appearing in none of them — is the off state,
+and it is not in any `REQUIRED_ENV_VARS` because `checkRequiredEnv` rejects an empty value. It exists
+for a deployment that terminates TLS on its Redis; the leg being cleartext here is **R45**.
+
 **`BEs/marketplace-db-setup`** assembles its URL from pieces and injects the credentials itself, so its
 connection string carries no user:
 

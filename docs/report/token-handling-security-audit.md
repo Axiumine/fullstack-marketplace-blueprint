@@ -357,7 +357,10 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
   `REDIS_IS_CLUSTER=1` and koa-utils hardcodes `redis://` on that branch, so the session hash crosses the
   wire in the clear. That is **R45**, and `marketplace-common/test/redisScheme.test.mts` fails the day a
   koa-utils release makes the scheme configurable, so the position is revisited rather than left true by
-  inertia. Whether the wire is confined to a trusted network is again ADR-032's question. ⚠️ **Answered
+  inertia. ⚠️ **That day was 2026-08-28**: `@axiumine/koa-utils@7.1.0` reads the scheme from a
+  `REDIS_TLS` flag, the three assertions failed on the bump, and the position was revisited — R45
+  rewritten, the test retargeted. It did not close: the flag is set nowhere and no Redis here serves
+  TLS, so the sentence above still describes the wire. Whether the wire is confined to a trusted network is again ADR-032's question. ⚠️ **Answered
   2026-08-28** — [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) puts Redis and MongoDB on their own host on a private LAN segment the
   platform owner declares **trusted**. Confined, and still cleartext: **R45 stays open**, re-scored 🟢 Low,
   because a declared boundary is not encryption.

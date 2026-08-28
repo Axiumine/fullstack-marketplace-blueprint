@@ -290,7 +290,9 @@ the file is the only thing that drops them. `BGREWRITEAOF` was run on every node
 by `setRedisLoginSession` on every login and re-written on every rotation, and it is read back on every
 authenticated request. R45 already names it — "*every session hash — `_id`, `email`, `tier`*" — but scores
 it as a **transport** risk, because `@axiumine/koa-utils` hardcodes `redis://`. The at-rest half was
-missing until this document.
+missing until this document. ⚠️ **The hardcoding ended on 2026-08-28** (`7.1.0`, a `REDIS_TLS` flag);
+R45 stays open because nothing here sets the flag, and this paragraph's point is untouched either way —
+a transport risk was never the at-rest question.
 
 ### 6.3 Persistence — where those emails land
 

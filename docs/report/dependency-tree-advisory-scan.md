@@ -26,7 +26,7 @@ Three things this scan establishes that the audit could not:
 
 1. **The auth path's own dependencies are clean.** `keygrip@1.1.0`, `cookies@0.9.1`, `koa@3.2.1`, `redis@6.2.0`,
    `@sentry/node@10.69.0`, `@axiumine/koa-utils@6.0.0` — not one carries an open advisory.
-   ⚠️ **`koa-utils` is `7.0.0` since 2026-08-27**, and the finding survives the bump: `yarn audit --groups dependencies`
+   ⚠️ **`koa-utils` is `7.0.0` since 2026-08-27 and `7.1.0` since 2026-08-28**, and the finding survives both bumps: `yarn audit --groups dependencies`
    in `marketplace-dev-public-resource` reports the same 268 packages and 28 advisories after it as before, and the
    Trivy gate the same 10 HIGH, all of them `axios@0.21.4`. Everything found is in
    the email client, the GraphQL server's body parser, or the test and lint toolchain.
@@ -286,7 +286,7 @@ have to rediscover it.
 
 | Package | Version | Where it is declared | What it does in the auth path | Ours to change |
 |---|---|---|---|---|
-| `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcodes `redis://` in the cluster branch (R45) | **no — external, unpublished from here, no source in this workspace** |
+| `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27, 7.1.0 since 2026-08-28** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcoded `redis://` in the cluster branch through `7.0.0`; `7.1.0` reads the scheme from `REDIS_TLS` instead, which no `env` here sets (R45, still open) | **no — external, unpublished from here, no source in this workspace** |
 | `@axiumine/marketplace-common` | 1.0.0 | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, deployed with `deploy-local.sh` |
 | `keygrip` | 1.1.0 | `dependencies` in 6 services, transitive in 3 | Cookie signing and the rotating key list behind ADR-034 | **no — external** |
 | `cookies` | 0.9.1 | transitive in all 9, via `koa` | Writes and reads the signed cookies; the `Secure` attribute the edge rewrites | **no — external** |
