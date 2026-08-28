@@ -2,11 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-27
+**Version:** 1.7
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
+**Changelog:** v1.7 - 2026-08-28: E10-S03's Evidence line carries `marketplace-common` `2.0.1`, the JSDoc-only
+patch released that day. The criterion and the consumers' `^2.0.0` are untouched — the point of the range is
+that a patch needs neither.
+v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
 v1.6 - 2026-08-27, later still: E10-S03's acceptance criterion and Evidence line carry `marketplace-common`
 `2.0.0` / `^2.0.0` after that release. The story's obligation is unaffected — `deploy-local.sh` bridges the gap
 between releases whatever the released version is.
@@ -164,7 +167,7 @@ below is restated to prove the same obligation against the state that now exists
   convenience (NFR-PO04, ADR-037 §Decision 2).
 **Traces:** NFR-PO04, BCON-07 (`phase5/CONSTRAINTS.md` §3), ADR-037 (supersedes ADR-015 in part).
 **Evidence:** `BEs/marketplace-common/deploy-local.sh`; `BEs/marketplace-common/package.json` `version`
-`2.0.0` + `publishConfig.registry`; `^2.0.0` in the consumers' `package.json`.
+`2.0.1` + `publishConfig.registry`; `^2.0.0` in the consumers' `package.json`.
 
 ### E10-S04 — Every file reachable only via the `exports` map   `built`
 Technical story. No barrel export exists; an unlisted file is unreachable by any consumer. Adding a
