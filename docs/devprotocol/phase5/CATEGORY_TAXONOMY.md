@@ -2,11 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
-**Date:** 2026-08-27
+**Version:** 1.12
+**Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-06 — Category Taxonomy
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.12 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted, its record distributed rather than moved, the E11 way and not E12's: all eleven of its stories are `built`. No twelfth record joins §0's index — the count stays eleven, not twelve. E13 keeps every story id. Nothing about this record's own content or build state changed.
 v1.11 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-27: The out-of-scope row said BC-11 was merely unbuilt. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope.
 v1.1 - 2026-08-14: §6's first open question closes on the platform owner's decision — **the taxonomy needs
@@ -67,7 +68,7 @@ it: nothing in it is work still ahead. All seven stories are `built` and §6 has
 the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
 on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
 had become the *record* of a shipped surface rather than a backlog entry. `EPICS_STORIES.md` §1 still says
-stories live in `epics/ENN.md`, and that stays true for E13..E19; E01..E10 and E12 are the eleven whose records sit
+stories live in `epics/ENN.md`, and that stays true for E14..E19; E01..E10 and E12 are the eleven whose records sit
 beside the index instead of under it — E07's, E08's and E09's are
 [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
@@ -104,6 +105,19 @@ for and what an ADR deliberately is not.
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
+deleted and its record **distributed rather than moved** — the E11 way, not E12's. No twelfth record
+joined this index: the count stays the same eleven it became with E12's move, not twelve, since a
+distributed record leaves no sibling file beside `EPICS_STORIES.md` for anything to count. All eleven of
+E13's stories were `built` and its §6 read "None open.", so what the file held was not a backlog entry but
+seven facts held nowhere else, and each went to the document that already owned its subject: the landing
+order, the two `BGREWRITEAOF` passes and the "step four is the clock, not step one" rule are now in
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row; the six `INTROSPECTION_CODE` comparison sites,
+named by file and line, are in [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6; and the seventh
+site, upstream in `@axiumine/koa-utils`, is in
+[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. E13 lost its
+file, not its id, the same way E12 did: `E13-S01` … `E13-S11` keep every story id and every build state.
 
 ## 1. Epic goal
 

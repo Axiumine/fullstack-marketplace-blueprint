@@ -2,10 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
-**Date:** 2026-08-27
+**Version:** 1.14
+**Date:** 2026-08-28
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.14 - 2026-08-28: §3.6 absorbs the introspection-bypass record from `phase5/epics/E13.md`, which is deleted
+in the same pass. Its snippet was **stale rather than merely thin** — it showed the ungated `===` at
+`:27-37`, the shape the 2026-08-10 audit found, three weeks after `E13-S03` and `E13-S11` replaced it with a
+gated `constantTimeEquals`; corrected against the working tree, with the line range that is actually there.
+Two bullets are new: the six comparison sites enumerated with file and line, which no file anywhere held
+together, and the `NoSchemaIntrospectionCustomRule` gate named as the *different* thing it is. No control
+changed and no claim about the current code was weakened — the document now describes the code that ships.
 v1.13 - 2026-08-27, later the same day: the two `marketplace-common` version strings follow the release of
 `2.0.0` — the supply-chain row and the published-at note read `2.0.0` / `^2.0.0`, with `1.0.1` kept where it
 records what 2026-08-26 shipped. `2.0.0` makes `isIntrospectionBypassAllowed` a re-export of
@@ -199,14 +206,45 @@ Same call shape in `BEs/marketplace-common/src/models/MongoDB/Admin.mts:46` and 
 Same handler that enforces §3.2 also honours a header bypass for internal calls carrying no user session:
 
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:39-43
 if (typeof authorization === 'undefined') {
-	if (ctx.request.header['x-introspectioncode'] === `${process.env.INTROSPECTION_CODE}`) {
+	if (
+		isIntrospectionBypassAllowed() &&
+		typeof ctx.request.header !== 'undefined' &&
+		constantTimeEquals(ctx.request.header['x-introspectioncode'], `${process.env.INTROSPECTION_CODE}`)
+	) {
 		introspection = true
 	} else { throw throwPreconditionFailedNoAuthHeader() }
 }
 ```
 
+⚠️ **This snippet read `===` with no gate in front of it until v1.14.** That was the shape the 2026-08-10
+token-handling audit found, and both halves of it were closed by E13 — the allowlist by `E13-S11`, the
+comparison by `E13-S03`. The gate is evaluated **first**, so outside `development` and `test` the bypass does
+not exist at all and a caller sending the correct header gets exactly the error a caller sending nothing
+gets: a wrong code and a disabled feature are not distinguishable from the outside. `INTROSPECTION_CODE`
+stays in `REQUIRED_ENV_VARS` regardless — unset, it stringifies to the literal `'undefined'`, and that word
+would be the bypass.
+
+- **The six sites, named.** The comparison is written out at six places in five files across five repos, and
+  no other file lists them together — an earlier draft of E13 recorded two, and the miscount is the reason
+  they are enumerated here rather than counted again:
+  `marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:39-43`,
+  `marketplace-dev-authenticated-resource/…/authorizationAuthenticatedResourceHandler.mts:40-44`,
+  `marketplace-dev-user-authenticated-resource/…/authorizationAuthenticatedResourceHandler.mts:37-41`,
+  `marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:43-47` **and** `:66-71` — that
+  handler checks twice, once on the branch with no refresh cookie and once on the branch with no
+  `Authorization` header, and the second is not redundant: a caller that sent a cookie is let through the
+  first block, so the second is the only place its code is read — and
+  `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts:189`, which the three
+  `*-authenticated-authorization` handlers all reach. A seventh sits outside all sixteen repos, in
+  `@axiumine/koa-utils`; what it did and what closed it is in
+  [`report/dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1.
+- ⚠️ **What is production-gated in `index.mts` is a different thing, and was the whole confusion.** Each of the
+  nine services adds `NoSchemaIntrospectionCustomRule` and `depthLimit(10)` when `NODE_ENV === 'production'`
+  (`src/index.mts:80`-`:95`, the exact line differing per service). That refuses the introspection **query**
+  while leaving the **auth bypass** untouched — before `E13-S11` the header was therefore a production
+  credential, whatever it was meant to be. The two gates are unrelated and neither substitutes for the other.
 - Bypasses the bearer-token/tier check entirely for the one call that presents it — used for service-to-service calls, not for any browser-originated request.
 - Leaves `ctx.state.user` **unset** rather than a stub session — `resolveAuthorizationSession` returns `null` on this path (`docs/decisions/authorization-service-consolidation.md` §As implemented). A caller on the introspection path never gets an impersonated identity.
 - **Must never be logged, never sent to a browser client.** Treat as a secret with the same weight as `KEYGRIP_KEK`.

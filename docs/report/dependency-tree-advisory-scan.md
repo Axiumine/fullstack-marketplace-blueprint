@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** finding - closes E18-S04
-**Version:** 1.1
-**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day
+**Version:** 1.2
+**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28
 **Author:** claude
 **Scope:** every one of the sixteen repos in this workspace, production and toolchain dependencies alike
 **Method:** the installed tree read from `node_modules` on disk, resolved the way Node resolves it, then queried
@@ -310,6 +310,46 @@ and no patch step. The three levers available are (a) a version bump when upstre
 `resolutions` entry forcing a transitive — **no repo in this workspace currently has a `resolutions` or `overrides`
 block**, so that lever is entirely unused, and (c) deleting the dependency, which §4.1 shows is the right answer
 seven times over.
+
+### 6.1 `@axiumine/koa-utils` and the introspection bypass — what each version did
+
+Absorbed from `phase5/epics/E13.md` on 2026-08-28, when that record was deleted. It is here rather than in
+[`../devprotocol/phase3/SECURITY_AUTH.md`](../devprotocol/phase3/SECURITY_AUTH.md) §3.6 because every fact in it
+is about a package **outside this workspace** — nothing below can be fixed, tested or gated from here, which is
+the same boundary §6's table draws.
+
+- **The seventh comparison site.** §3.6 of `SECURITY_AUTH.md` enumerates six `INTROSPECTION_CODE` comparisons in
+  this workspace. A seventh is `verifyIntrospectionCode` in `@axiumine/koa-utils`
+  (`dist/private/lib/verifyIntrospectionCode.mjs`), reached from that package's own
+  `authenticatedResourceHandler`, `authenticatedLogoutHandler` and `authenticatedAuthorizationHandler`. It was
+  recorded rather than ignored because it is not dead code: those middlewares are the published ones this
+  platform's handlers are modelled on, and any service that mounts them — here or in another product built on
+  the same package — gets that comparison.
+- **At 5.9.0 it was stricter than our six in two respects and weaker in one.** It already used `timingSafeEqual`
+  over byte buffers with a length pre-check, which is what `E13-S03` went on to ask for; and it read
+  `process.env.INTROSPECTION_CODE` directly, returning `false` for an unset or empty value rather than
+  interpolating it to the literal `'undefined'`. But it had **no environment gate of any kind**, so the bypass
+  was live under every `NODE_ENV`. Neither `E13-S03`'s nor `E13-S11`'s acceptance criteria were widened to reach
+  it: both are verified by `yarn test:cov` and `yarn test:mutation`, in repos that cannot reach another
+  package's internals.
+- **6.0.0, 2026-08-11, closed it upstream.** It adds `isIntrospectionBypassAllowed()` — the same allowlist,
+  `development` or `test` and nothing else — exported from `lib/isIntrospectionBypassAllowed`, and evaluates it
+  as the **first statement** of `verifyIntrospectionCode`, before `INTROSPECTION_CODE` is read at all. The gate
+  sits in the primitive rather than in the three middlewares that call it, so a direct caller cannot reach an
+  ungated comparison. Otherwise the release is additive against 5.9.0 — no dependency, peer-dependency, engine
+  or export removal, one new `exports` key. It is a major because the behaviour break is real: a consumer
+  running the bypass under `staging` or an unset `NODE_ENV` loses it, which is the point. **All ten consuming
+  repos here moved to `^6.0.0` that same day** — `marketplace-common` and the nine services, `package.json` and
+  `yarn.lock` in each — with every build passing and `yarn test:cov` staying 100/4 in all ten.
+- ⚠️ **`verifyIntrospectionCode` is not importable by a consumer** in 7.0.0: it sits under `dist/private/` and is
+  absent from the 150-key `exports` map. The 5.9.0 regression path was therefore always *through the three
+  middlewares*, never a direct call — which narrows the risk `marketplace-common` 2.0.0's `>=6` peer range
+  closed without removing it. That range is the lever named in §6's table, and it bites the stranger installing
+  the published library rather than this workspace, where yarn 1 treats a peer mismatch as a warning.
+- ⚠️ **The two `isIntrospectionBypassAllowed` implementations were never byte-equivalent**, and one revision of
+  the E13 record said they were. Upstream reads `NODE_ENV` into a local `const` and carries a different doc
+  comment. They were *behaviourally* identical — the property that mattered, and the reason two copies could
+  only ever agree by luck, which is why `marketplace-common` 2.0.0 made the local one a re-export instead.
 
 ---
 

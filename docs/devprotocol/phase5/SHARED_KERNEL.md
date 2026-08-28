@@ -2,11 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
+**Version:** 1.8
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-10 — Shared Kernel (marketplace-common)
-**Changelog:** v1.7 - 2026-08-28: E10-S03's Evidence line carries `marketplace-common` `2.0.1`, the JSDoc-only
+**Changelog:** v1.8 - 2026-08-28, later the same day: §0's range narrows from **E13..E19** to **E14..E19**
+— `phase5/epics/E13.md` was deleted and its record distributed rather than moved, the E11 way and not
+E12's: no twelfth record joined the index, so the count of eleven records beside it is unchanged. The
+seven facts it held that were not already recorded elsewhere went to `EPICS_STORIES.md` §2's E13 row,
+`SECURITY_AUTH.md` §3.6 and `dependency-tree-advisory-scan.md` §6.1. E13 keeps its epic id and all eleven
+story ids, `E13-S01`..`E13-S11`.
+v1.7 - 2026-08-28: E10-S03's Evidence line carries `marketplace-common` `2.0.1`, the JSDoc-only
 patch released that day. The criterion and the consumers' `^2.0.0` are untouched — the point of the range is
 that a patch needs neither.
 v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
@@ -42,7 +48,7 @@ It was `phase5/epics/E10.md` until 2026-08-27. The file was deleted and its reco
 for the reason the nine before it moved: nothing in it is a story still ahead. All seven are `built`, both
 open questions closed the same day, and what is left is the *record* of a shipped surface rather than a
 backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that now stays true for
-E13..E19 — E01's and E02's records moved beside the index on 2026-08-13
+E14..E19 — E01's and E02's records moved beside the index on 2026-08-13
 ([`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md), [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md)), E03's,
 E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
 [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md)), E06's on
@@ -50,7 +56,7 @@ E04's and E05's on 2026-08-14 ([`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_
 ([`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md),
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md)), and this one on
-2026-08-27. `epics/` now holds E13..E19, which is the unbuilt half. **E11 is not among them**: unlike the
+2026-08-27. `epics/` now holds E14..E19, which is the unbuilt half. **E11 is not among them**: unlike the
 ten records above, `phase5/epics/E11.md` was deleted outright on 2026-08-27 rather than moved, and gets no
 replacement file — it named a gap that closed as a permanent refusal rather than as a shipped surface, so
 there was nothing left to keep beside the index. Its record is distributed into
@@ -75,6 +81,18 @@ BC-09 scope leaking in. Merging the two records would lose which of them a futur
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
+
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
+deleted this same day and its record **distributed rather than moved** — the **E11** way, not E12's: all
+eleven of E13's stories were `built`, its §6 read "None open.", and an audit of the file found only seven
+facts held nowhere else. No twelfth record joined this one beside the index, so the count stays
+**eleven** — E01..E10 and E12, unchanged by this pass. The seven facts went to
+[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row (the landing order, its two `BGREWRITEAOF` passes,
+and the "step four is the clock, not step one" rule), to [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md)
+§3.6 (the six `INTROSPECTION_CODE` comparison sites named with file and line), and to
+[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 (the seventh
+comparison site, upstream in `@axiumine/koa-utils`). E13 lost its file, not its id: `E13-S01`..`E13-S11`
+are unchanged and every build state with them.
 
 ## 1. Epic goal
 
