@@ -3,8 +3,9 @@
 # Marketplace
 
 **Status:** investigation finding — closes E18-S05. Not baselined, not a requirement document
-**Version:** 1.0
-**Date:** 2026-08-13
+**Version:** 1.1
+**Date:** 2026-08-28 (v1.0 2026-08-13; v1.1 appends the topology outcome to §6 and §9,
+measuring nothing new and rewriting nothing)
 **Scope:** two questions that are routinely answered as one. **Which fields does ADR-029's explicit CSFLE
 encrypt, and which personal data does it leave in the clear** — and, separately, **is the storage under
 MongoDB and Redis encrypted at all**. It answers both for Dev on this machine, says "unknown" where the
@@ -240,7 +241,11 @@ since a replica set replicates the data to all three.
 **Other environments: unknown, and unknowable from this workspace.** No production host exists
 (`phase3/SECURITY_AUTH.md` §5), the production topology is owed (ADR-032, R46), and there is no staging.
 Whether a future host encrypts its filesystem is a decision nobody has taken. This document does not
-guess at one.
+guess at one. ⚠️ **Half of that changed on 2026-08-28 and the conclusion did not.** [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)
+supersedes ADR-032 and **R46 closes**: the datastores get a host of their own on a private LAN segment the
+platform owner declares trusted. It says nothing about the filesystem under them, which is the question
+this section asks, so the answer here is still **unknown** — and a trusted segment is no answer to it at
+all, since a stolen volume is not traffic. Still no production host, still no staging.
 
 **Backups: there are none.** `marketplace-docker-DBs` contains no backup script, no `mongodump` step and no scheduled
 job; `up.sh`, `down.sh` and `shell.sh` are the whole of the operational surface. So "are the backups
@@ -325,7 +330,11 @@ encrypt its storage, Redis has no such feature, and the host filesystem is an op
 belongs to whoever provisions the production host that does not exist yet. That is a risk to carry, not a
 backlog item to build — **R48**, owned by the platform owner, and explicitly coupled to ADR-032 for the
 same reason R45 and R46 are: no control here may be argued closed by appeal to a boundary nobody has
-written down.
+written down. ⚠️ **A boundary is written down since 2026-08-28** ([`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md), superseding ADR-032),
+and R48 is coupled to it exactly as before: the ADR decides where the datastore host sits and leaves its
+filesystem undecided. ADR-039 §5 also keeps the rule this paragraph invokes, narrowed rather than lifted —
+a boundary may be a second layer and never the whole argument, which is the only reading under which
+**R48** stays open while **R46** closes.
 
 **Not opened, deliberately:**
 

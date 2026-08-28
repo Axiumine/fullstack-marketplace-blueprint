@@ -1,11 +1,18 @@
 # ADR-032 — The production topology is owed, and no control may assume it
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded 2026-08-28** — the *owed* half only; the rule survives, narrowed
 **Date:** 2026-08-10
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-039`](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md).
+The platform owner answered the four questions §Decision lists as owed and declared the segment between the
+application host and the datastore host trusted, so *"nobody has written the topology down"* stops being true
+and ADR-039 owns that half. ⚠️ **The rule below is narrowed, not lifted.** Every mitigation written to hold
+with the port open still holds with it open — E13-S11's `NODE_ENV` allowlist and E14-S08's pre-lookup limiter
+are unchanged — and a boundary may be cited only as a second layer, only for the legs ADR-039 describes, and
+never as the whole argument. Anything outside those legs is still governed by this ADR as written. R46 closes
+there; **R45 does not** — it drops to 🟢 Low and stays open, because the traffic is still in the clear.
 
 ---
 

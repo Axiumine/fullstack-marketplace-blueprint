@@ -3,8 +3,8 @@
 # Marketplace
 
 **Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
-**Version:** 1.10
-**Date:** 2026-08-26
+**Version:** 1.11
+**Date:** 2026-08-28
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
 (E12-S16); §10 gains the two corrections that fixing it produced — §5's two link shapes are four, and the
@@ -51,7 +51,7 @@ to explain a result already observed, and every such line is cited.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
 [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) E12-S06, E12-S07, E12-S09,
 E12-S11, E12-S14 · [`sentry-event-capture.md`](./sentry-event-capture.md) (E12-S13, the sink this finding
-does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence.
+does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence. v1.11 — 2026-08-28: §8's *Production topology* bullet gains a dated note. The topology it named as owed is written (`ADR-039`, superseding `ADR-032`), and the bullet's own claim is untouched: where processes run is not what they log. What the note adds is the two facts a future re-measurement will meet — a datastore host with its own filesystem, and Cloudflare in front of nginx, which stops the edge's access log being a request's first record. Nothing measured, nothing re-measured.
 
 ---
 
@@ -408,9 +408,14 @@ this row a "no" rather than an unchecked box.
 
 - **Sentry.** E12-S13, [`sentry-event-capture.md`](./sentry-event-capture.md). It is a sink, it is measured,
   and it is worse than anything here.
-- **Production topology.** Everything above was measured on a single-host Dev stack. ADR-032 records that the
-  production topology is owed; a hosted log aggregator, a different nginx level or a different Docker driver
-  would each change §6 and §7 and none of them exists yet to be measured.
+- **Production topology.** Everything above was measured on a single-host Dev stack. ADR-032 recorded that the
+  production topology was owed; a hosted log aggregator, a different nginx level or a different Docker driver
+  would each change §6 and §7 and none of them exists yet to be measured. ⚠️ **The topology is written since
+  2026-08-28** — [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) — and this bullet stands unchanged: it decides *where* the processes run,
+  not what they write. Two of its facts do bear on a future re-measurement, though, and neither was known
+  when §6 and §7 were taken: the datastores move to a host of their own, so anything logged there is on a
+  different filesystem than the one measured here, and Cloudflare sits in front of nginx, so the edge's own
+  request logs stop being the first record of a request.
 - **The three frontends.** They log to a browser console, which is not a sink this platform writes to disk.
 
 ## 9. Every "yes" becomes a story
