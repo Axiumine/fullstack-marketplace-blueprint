@@ -209,6 +209,12 @@ written.
   the same window.
 - Env shrinks from two shared secrets to one, and the one that remains fails **loudly**: a wrong
   `KEYGRIP_KEK` is a GCM tag mismatch at boot, not a 401 storm in the customer's browser.
+- **No fifth DEK, and no prose correction owed.** Signing keys in Redis are not a CSFLE field on a Mongo
+  document, so the four data encryption keys `fieldEncryption.mts:78` and `:105-109` describe stayed four
+  and that prose stayed right. The superseded design (`phase5/epics/E16.md` E16-S01, deleted 2026-08-28)
+  required a fifth DEK *and* a sweep correcting every "four data encryption keys" in the tree; neither ever
+  became owed, and that absence is the clearest single marker of the mechanism swap. ⚠️ Do not "correct"
+  that prose to five.
 - The holders heartbeat gives the first fleet-wide view of a shared secret this platform has ever had.
 
 ### Negative
@@ -306,6 +312,30 @@ never needed storing, and `IKeygripKeyMaterial` keeps its three fields.
 `retireKeygripKey` — the `keygripRetire` mutation's half in `marketplace-common` — can remove an entry from
 the middle, which leaves the tail's neighbour newer than the key that actually demoted it — so the derived instant can only ever read **late**. Late keeps a key nobody
 needs; early logs a customer out. The error is on the side that costs a byte.
+
+### Why thirty, and not the ninety `REFRESH_TOKEN_EXPIRY` allows
+
+*Absorbed from `phase5/epics/E16.md` §6 question 2, deleted 2026-08-28.*
+
+The figure is `SESSION_CAP_DAYS_REMEMBERED`, decided 2026-08-10 alongside the one-day default (E14-S05),
+because this window must cover the longest session anyone can hold rather than the common one. The question
+that produced it asked how long a demoted key stays `verifiable`; **`verifiable` is not a state** — the
+shipped lifecycle is a position in an ordered array — so it reads as *how long does a key stay in the array
+after it stops being index 0*.
+
+⚠️ **The justification first written for the figure was inverted, and the correction matters more than the
+number.** It said the 90-day `REFRESH_TOKEN_EXPIRY` is not the bound *"since a session past its cap is
+refused before the key is read"*. The order is the other way round:
+`authenticatedAuthorizationHandler.mts:28` verifies the cookie's signature against the whole key array
+**before** `resolveAuthorizationSession` ever compares `sessionCapDeadline`. A key dropped too early
+therefore fails the request at the signature — the generic 401 — and not at the cap, which is the branch
+that knows why. Thirty still beats ninety, for the neighbouring reason rather than the stated one: a
+past-cap session is refused anyway one line later, so a key kept past the cap protects nobody.
+
+**The honest window is at least thirty days after demotion, and in practice until the next rotation after
+that.** Removal is rotation-driven — `rotateKeygripKeys` pops the tail, and nothing runs on a timer — so a
+fleet that stops rotating keeps every key it ever had, indefinitely, and at no cost: a key nobody signs with
+can only verify cookies that are already alive, and those expire on their own.
 
 ### What moves with it
 
