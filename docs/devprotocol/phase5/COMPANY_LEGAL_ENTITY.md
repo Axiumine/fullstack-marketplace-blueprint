@@ -2,11 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.12
+**Version:** 1.13
 **Date:** 2026-08-28
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.13 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
+`phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not
+moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
+questions and E18's three are all closed. What the audit found held nowhere else went to `EPICS_STORIES.md`
+§2's E17 and E18 rows and §2.1's E17 row, `docs/testing.md`, and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
+The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this
+record's own content or build state changed.
 v1.12 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
 `phase5/epics/E15.md` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
 and not E12's: all ten of its stories are `built`, so no twelfth record joined the eleven beside the index.
@@ -138,7 +145,7 @@ session cap, and the rejected cached-successor-pair grace design); [`architectur
 (the abandoned `// if remember me, generate ?` cookie-side comment in koa-utils' `setLoginCookies`, which
 E14-S07 does not revive); [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 (two rate-limit windows, not one);
 [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`); [`epics/E17.md`](./epics/E17.md) §5 (why E17 depends on E14 for
+alternative to `limit_req_zone`); `epics/E17.md` §5 (why E17 depends on E14 for
 `familyId`); and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md)
 §3.4 (E14-S06's accepted cross-service-harness residual). The two defects E14-S09 found stay open and
 stay recorded in
@@ -161,6 +168,24 @@ lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
 [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
 its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
+
+⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
+longer a range — because `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their
+records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
+*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
+fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
+record before the code. An audit of the two files, 1 255 lines together, found almost everything already
+verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
+What survived went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E17 and E18 rows and §2.1's E17 row (the
+story ids written one by one, E17's five-step landing order, its two permanent scope refusals, and the reason
+it keys a session by `familyId` and can never key one by a token value), to
+[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
+line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
+[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
+under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
+line. **No twelfth record joined the eleven beside the index — that count stays eleven** (E01..E10 and E12).
+E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
+two files are gone.
 
 ## 1. Epic goal
 
