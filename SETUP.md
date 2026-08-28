@@ -183,6 +183,12 @@ first time found the sixth by refusing to boot — see
 by a service that *signs*; `admin-authenticated-resource` opens the record without signing with it. The
 two counts answer different questions and both are correct.
 
+⚠️ **Running this somewhere that is not your workstation?** Everything in this section is a *development*
+recipe by design — generate locally, paste by hand, nine services on one machine — and it stays one. The
+swap points for all four shared values, and the invariants a swap must not break, are in
+[`docs/PRODUCTION_HARDENING.md`](./docs/PRODUCTION_HARDENING.md). No vendor is named there, deliberately:
+[`ADR-040`](./docs/devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md).
+
 ⚠️ **`KEYGRIP_KEK` is not a signing key**, and the difference matters when something goes wrong. The
 signing keys themselves are never in an `.env` file: they are minted into Redis by `yarn seed:keygrip` in
 §8 and read from there at boot. This value only opens that record. Losing it is recoverable — re-seed
