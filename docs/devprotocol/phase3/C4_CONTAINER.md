@@ -8,8 +8,8 @@
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.8 - 2026-08-28: the `marketplace-common` node label carries `2.0.1`, and §*Non-deployed but real*'s cell —
 missed by v1.7 and still reading `1.0.1` / `^1.0.1` — carries the released version and the consumers' actual
-range. The range stays `^2.0.0`; the consumers' lockfiles still resolve `2.0.0`, so the diagram records what
-the registry serves, not what the nine services run. Structure unchanged — same
+range. The range stays `^2.0.0` and all twelve consumers pinned `2.0.1` in their lockfiles the same day, so
+the diagram records what the registry serves *and* what the containers run. Structure unchanged — same
 containers, same edges.
 v1.7 - 2026-08-27, later the same day: the `marketplace-common` container row, the Mermaid edge label and the
 published-at note carry `2.0.0` / `^2.0.0`. Structure unchanged — same containers, same edges.
