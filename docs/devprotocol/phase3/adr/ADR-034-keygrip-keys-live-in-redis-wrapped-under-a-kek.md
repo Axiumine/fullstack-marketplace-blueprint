@@ -150,9 +150,10 @@ writes back, so `KEYGRIP_KEK` belongs in its `REQUIRED_ENV_VARS` like the other 
 boot without it. It does **not** call the loader the signing services use, and so never appears in the
 holders table: a row for a service that adopts nothing would read as permanently stale.
 
-It unwraps, mints 64 random bytes, unshifts, drops entries older than `SESSION_CAP_DAYS_REMEMBERED` days
-while never leaving fewer than two, rewraps under the bumped version, writes it back under a
-compare-and-set, and publishes.
+It unwraps, mints 64 random bytes, unshifts, drops entries **demoted** more than
+`SESSION_CAP_DAYS_REMEMBERED` days ago while never leaving fewer than two, rewraps under the bumped
+version, writes it back under a compare-and-set, and publishes. ⚠️ *Demoted*, not *minted* — see the
+2026-08-28 amendment, which corrects this paragraph and the one below it.
 
 **The write is a Lua script, not `WATCH` + `MULTI`.** Two operators rotating at the same moment must not
 both win: the loser's blob would land under a version that already describes different bytes, and every
@@ -165,8 +166,9 @@ rather than retried, because the operator's next click reads the record the winn
 
 **Rotation prepends; only retirement is age-gated.** A new signer is harmless at any cadence — what
 would log a remembered customer out is dropping a key that is still verifying cookies, and that is
-governed by `createdAt` alone. The array is capped at five, and a rotate that would exceed the cap while
-every entry is younger than thirty days is refused rather than served by an early retirement.
+governed by ~~`createdAt` alone~~ **how long ago the key stopped signing** (amendment 2026-08-28). The
+array is capped at five, and a rotate that would exceed the cap while every entry is still inside its
+thirty-day window is refused rather than served by an early retirement.
 
 Each of the five subscribes on a duplicated connection (node-redis v6 forbids commands on a subscriber),
 re-reads on the message and reassigns `app.keys` — a plain assignment Koa reads per request, so no
@@ -202,8 +204,9 @@ written.
   handful that remain.
 - Rotation becomes a button. The platform gains the ability to respond to a suspected key compromise in
   the time it takes to click it, which today it does not have at any price.
-- The thirty-day retirement window stops fighting the two env slots — five entries, aged out by
-  `createdAt`, is room for a monthly rotation and an emergency one in the same window.
+- The thirty-day retirement window stops fighting the two env slots — five entries, aged out by how long
+  ago each stopped signing (amendment 2026-08-28), is room for a monthly rotation and an emergency one in
+  the same window.
 - Env shrinks from two shared secrets to one, and the one that remains fails **loudly**: a wrong
   `KEYGRIP_KEK` is a GCM tag mismatch at boot, not a 401 storm in the customer's browser.
 - The holders heartbeat gives the first fleet-wide view of a shared secret this platform has ever had.
@@ -230,8 +233,8 @@ written.
   prevent), and a flushed Redis has already destroyed every session, so nothing is lost that survived
   anyway. Revisit if the seed is ever run automatically at boot — it must not be.
 - **A missed pub/sub message** leaves one service signing with an older key. Every other service still
-  verifies it, because retirement is thirty days behind, so the effect is invisible until the key ages
-  out. The five-minute version poll bounds it; the holders table makes it visible.
+  verifies it, because retirement is thirty days behind the key's *demotion*, so the effect is invisible
+  until the key ages out. The five-minute version poll bounds it; the holders table makes it visible.
 - **KEK leak** = today's key leak, no worse and no better. The KEK is the one value that still has to be
   identical in five files, and it is the one thing here that a secrets manager would fix (option E).
 - **Two rotations inside thirty days plus three emergency ones** hits the cap and refuses. Deliberate:
@@ -258,6 +261,58 @@ written.
 - `HGETALL <REDIS_KEY>keygrip:holders` returns five rows carrying one fingerprint.
 
 **Signals a violation:** a service constructing Keygrip from env; a `keygripRotate` path that can leave
-fewer than two keys or retire one younger than `SESSION_CAP_DAYS_REMEMBERED`; a resolver, log line or
+fewer than two keys or retire one **demoted** less than `SESSION_CAP_DAYS_REMEMBERED` ago — measuring
+that window from `createdAt` is the defect the 2026-08-28 amendment fixes; a resolver, log line or
 GraphQL field that returns `material`; a seed script wired into a service's boot; `KEYGRIP_KEY_1/_2`
 reappearing in any `env` template.
+
+---
+
+## Amendment — 2026-08-28: the retirement clock runs from demotion, not from minting
+
+**Status:** accepted
+**Deciders:** platform owner
+**Scope:** the age rule inside `rotateKeygripKeys` only. The store, the wrap, the compare-and-set, the
+propagation mechanism and the thirty-day figure itself are all unchanged.
+
+### What this ADR said, and what the code did
+
+Two sentences above read *"drops entries older than `SESSION_CAP_DAYS_REMEMBERED` days"* (§Rotation) and
+*"that is governed by `createdAt` alone"* (§Rotation), and `rotateKeygripKeys` implemented exactly that:
+`now - key.createdAt > 30 days`. Both are wrong by one signing lifetime.
+
+A key signs for as long as it sits at index 0 — from its own `createdAt` until the rotation that pushes
+it down. The last cookie it ever signed was therefore signed at its **demotion**, not at its minting, and
+that cookie carries a remembered session for thirty days from there. The window a key must survive is
+`demotedAt + SESSION_CAP_DAYS_REMEMBERED`, and `createdAt + 30` is shorter than it by the whole time the
+key spent as the signer.
+
+### What it cost
+
+Nothing observed, and it was reachable on the cadence this ADR itself recommends. A key minted on day 0
+and demoted on day 7 signed cookies that live until day 37; its own age passed the cap on day 30, so the
+next rotation after that dropped it. The customer logged out is one holding a **remembered** session that
+was idle across the whole window — an active session re-signs itself on any request, because `cookies`
+re-signs on a later-index match, so only the idle ones were exposed. Rotating less often than once every
+thirty days hid the defect entirely, and this platform had performed exactly one rotation, under E16-S09,
+against an isolated namespace.
+
+### The rule now
+
+`isTailRetirable` compares `now` against the `createdAt` of the key **in front of** the tail, because
+minting that key is the event that demoted this one. The demotion instant was always in the record; it
+never needed storing, and `IKeygripKeyMaterial` keeps its three fields.
+
+`forceRetire` can remove an entry from the middle, which leaves the tail's neighbour newer than the key
+that actually demoted it — so the derived instant can only ever read **late**. Late keeps a key nobody
+needs; early logs a customer out. The error is on the side that costs a byte.
+
+### What moves with it
+
+- `KEYGRIP_ROTATE_CAP`'s message: *"none is older than 30 days"* → *"none of them stopped signing more
+  than 30 days ago"*. `marketplace-dev-admin-authenticated-resource` asserts it verbatim.
+- §Compliance's **Signals a violation** now reads: a `keygripRotate` path that can leave fewer than two
+  keys, or retire one **demoted** less than `SESSION_CAP_DAYS_REMEMBERED` ago.
+- `keygripStatus` still reports `ageDays` from `createdAt`, which is what an operator asked for and is
+  still true — it is simply no longer the retirement predicate. Rendering the demotion age is
+  **E17-S08**'s call, not this amendment's.
