@@ -232,7 +232,13 @@ take everything it had published off the public site; the document itself is per
 tells the two closures apart, and only one of them writes it** (ADR-044): a self-close — `funUserDel` on the
 customer tier, reached from `/account/close` in `marketplace-user`, and `funShopOwnerDel` on the owner's —
 stamps `deleted` alone, while the Admin tier's `shopOwnerDel` names the operator who closed it. An empty
-`deletedBy` therefore says *the holder did this*, and reading it as "not recorded" gets the actor backwards. Thirty days later
+`deletedBy` therefore says *the holder did this*, and reading it as "not recorded" gets the actor backwards.
+⚠️ **`admin` has no closure at all, and that is a ruling rather than a gap** (2026-08-29,
+`phase5/epics/E20.md` §6 question 2). The collection carries `deleted` and `disabled` — both come from
+`lib/schemas/account.js`, and `findAccountForSession` reads them on every refresh — and **nothing anywhere
+writes either one**: there is no `adminDel` on any tier and none may be built. So an operator account is
+never closed, never scrubbed and never restored, and the four ADR-044 fields stay off the collection because
+an actor is only worth recording where an act is possible. Thirty days later
 a sweep in `marketplace-dev-admin-authenticated-resource` — `src/lib/retention/retentionSweep.mts`, started
 by `startRetentionSweeper.mts`, once a day and on both collections — **overwrites** the personal fields in
 place and stamps `scrubbedAt`: `login.email` becomes `deleted-${_id}@invalid.local`, unique by construction
