@@ -216,9 +216,13 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
   `_name` sort variants of both, and `search_text`.
 - `itemCategory`: `slug_unique`, `idParent_position`.
 - `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus the operator table's
-  `tbl_active_registeredAt` — neither of which the public surface reads. ⚠️ `INDEXES_USER` still declares
-  a third, `deleted_ttl`, and no live database has it: `20260829000100-user-retire-deleted-ttl.js` drops
-  it, and the create migration that builds it is immutable. Read the retirement, not the array.
+  `tbl_active_registeredAt` and the operator chart's `registeredAt_series` (`{registeredAt:1}`, added by
+  `20260829000200-user-add-registered-at-series-index.js`) — none of which the public surface reads. The
+  chart index cannot ride on the table one: `tbl_active_registeredAt` leads with `deleted` and `disabled`,
+  and the chart bounds neither, so `registeredAt` is ordered only within each group there. ⚠️ `INDEXES_USER`
+  declares neither of the two, and still declares a `deleted_ttl` no live database has:
+  `20260829000100-user-retire-deleted-ttl.js` drops it, and the create migration that builds it is
+  immutable. Read the migrations, not the array.
 
 Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, never a `COLLSCAN`.
 

@@ -41,9 +41,13 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 
 `marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
 *customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
-one with `userUpdateStatus`, both on 4024 (E19). ⚠️ **That screen has no search box and one sortable
+one with `userUpdateStatus`, both on 4024 (E19). Since 2026-08-29 it opens with a counter and a
+registrations chart above that table — `usersStats` and `usersPerPeriod`, the counterparts of the pair
+`/shopOwners` has always had (E19 §6 question 2). ⚠️ **That screen still has no search box and one sortable
 column, deliberately** — ADR-029 encrypts every other field on `user`, `registeredAt` and the status flags
-being the only ones left to sort or filter on. `marketplace-shopowner`
+being the only ones left to sort or filter on. The counter and the chart are not an exception to that: a
+count reads no field at all and the chart buckets `registeredAt`, so what the encryption blocks is matching
+and ordering, never counting. `marketplace-shopowner`
 mirrors it — same stack, same conventions, same hooks — and is deliberately thinner because the tier
 behind it is. `marketplace-dev-authenticated-resource` exposes `shopOwnerCompanies`, `companyItems`,
 `itemCategories` and eight mutations (`company*` plus `itemAdd` / `itemUpdate` / `itemUpdatePublished` /
