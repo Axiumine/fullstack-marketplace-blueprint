@@ -1,13 +1,16 @@
 # ADR-041 — Nothing is destroyed: closure is a stamp, and retention expiry overwrites the personal data in place
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-08-29**
 **Date:** 2026-08-29
 **Deciders:** platform owner
 **Supersedes:** [ADR-011](./ADR-011-soft-delete-and-global-uniques.md), **in part** — the 2026-08-26
 Amendment only. The main body of ADR-011, its Decision and its refusal of Option C, are untouched and
 still govern `company`, `shopOwner`, `item` and `itemCategory`.
-**Superseded by:** —
+**Superseded by:** [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md), **in part** — the thirty
+days are now an **undo** window. Closure is still a stamp, nothing is still ever destroyed, and the day-30
+overwrite is unchanged; what this page got wrong is that `deleted` is never cleared. Re-registering at the
+same address inside the window clears it and hands the account back.
 
 ---
 

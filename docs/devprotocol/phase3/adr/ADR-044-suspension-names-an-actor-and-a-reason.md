@@ -96,6 +96,34 @@ the owner would rather not have it, dropping it changes nothing else.
 the previous suspension survives. Option C is the answer if that is ever wanted, and this decision does not
 foreclose it.
 
+⚠️ **Only the Admin tier writes any `disabled*` field, and lifting a suspension is an operator act.**
+Confirmed by the platform owner on 2026-08-29 — *"if admin suspend an account, admin must remove the
+suspension for allow the shopowner to log in again"* — and already true of the code this ADR extends, in
+three independent places worth naming so a later self-service feature cannot quietly undo it:
+
+- `checkUserAuthorizationDisDel` refuses `disabled: true` on the login path of all three tiers, so a
+  suspended account never obtains a session and cannot reach a resolver that might clear its own flag.
+- `findAccountForSession` re-runs that same guard on **every refresh**, so suspending somebody already
+  logged in ends their session within one access-token lifetime.
+- `funShopOwnerUpdateStatus` — Admin tier — is the only writer of `shopOwner.disabled` on the platform, and
+  self-closure writes `deleted` alone (`funUserDel`, customer tier, is the built precedent).
+
+**A self-service closure therefore never touches `disabled`, `disabledBy`, `disabledReason` or `disabledAt`**
+— it stamps `deleted` and stops. The two fields carry different meanings: `deleted` is the subject giving the
+account up, `disabled` is the platform taking it away, and a path that could write the second could lift a
+sanction against itself. That is the same argument `APPROVAL_GATE_FIELD_SHOP_OWNER` makes for `waitApprov`,
+and it earns the same mechanical lock: the `disabled*` names belong in a **write-position** `no-restricted-syntax`
+ban in the ShopOwner-tier and User-tier services, beside the `waitApprov` one, with the reads left alone
+because the authorization gates above are reads.
+
+⚠️ **The consequence nobody should discover later: a suspended account cannot be closed by its owner.** They
+cannot log in, so they cannot reach the closure mutation, so the retention clock — which starts at `deleted`
+— never starts. A suspension is therefore indefinite storage of a live account's personal data, and the only
+hand that ends it is an operator's. This does not contradict
+[ADR-036](./ADR-036-erasure-is-not-something-the-platform-suspends.md): that decision keeps `disabled` out of
+the closure resolver's *own* guard, so a suspended caller still holding a valid access token may close their
+account. It does not, and cannot, give them a session once the token expires.
+
 **Scrub interaction.** ADR-041's retention scrub **overwrites** `disabledReason` with a fixed string and never
 removes it: removing it while `disabled` is true would violate the dependency this ADR adds, and the write
 that violates it is the scrub's own. `disabledBy` and `deletedBy` are operator identifiers rather than the

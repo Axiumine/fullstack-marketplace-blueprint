@@ -303,9 +303,75 @@ a new clock and not a deadline on republishing.** A suspended owner has no clock
 happens whenever it happens, and the shops wait, unpublished, for as long as it takes. Nothing expires an
 owner's right to bring their own catalogue back.
 
-⚠️ **"Restoring a shop owner" therefore means lifting a suspension, and nothing else.** Closure stays
-one-way, exactly as ADR-041 left it: a `deleted` stamp is never lifted, and re-registering inside the window
-mints a new `_id` — which owns no company, so there is nothing for it to re-enable. That is the shape of the
-existing decisions rather than a gap in this one. Making closure reversible would be a new capability
-touching ADR-041 and ADR-042 as well as this page, and it would need its own ADR and the platform owner's
-word; it is not implied by anything above.
+⚠️ **Superseded the same day by [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md).** This
+paragraph read: *"Restoring a shop owner therefore means lifting a suspension, and nothing else. Closure
+stays one-way, exactly as ADR-041 left it: a `deleted` stamp is never lifted, and re-registering inside the
+window mints a new `_id` — which owns no company, so there is nothing for it to re-enable."* It also said
+that making closure reversible would need its own ADR and the platform owner's word. It got both, hours
+later: the thirty days are an **undo** window, and re-registering at the same address restores the closed
+account rather than minting a new one.
+
+**What that changes here is only which document comes back, never what comes back with it.** A restored
+owner keeps their `_id`, so they still own every company and item they owned before — all of them
+`published: false`, and all of them theirs to republish by hand. The rule this page exists for is
+unchanged and now covers both ways back: **restoring an owner writes to the `shopOwner` document alone.**
+A restore additionally re-raises `waitApprov`, so an operator who closed a seller for cause can decline to
+approve them a second time.
+
+### The whole lifecycle on one page
+
+Asked for by the platform owner on 2026-08-29 — *"make a table of what happen if admin or shop owner delete
+his account and what happen to the companies and to the item and what will happen when the shop owner try to
+register again within the deletion window and after that window"*. Nothing here is new: it is
+[ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md),
+[ADR-042](./ADR-042-registration-is-a-pending-redis-record.md),
+[ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md) and this page read together, in the order the
+events happen.
+
+**What each act writes.** The cascade hangs off the state, not off who changed it, so the operator column and
+the owner column are identical wherever both exist:
+
+| Act | `shopOwner` | `company` | `item` | Sessions | Reversible |
+|---|---|---|---|---|---|
+| Operator suspends | `disabled: true`, `disabledReason`, `disabledBy` = the `admin` `_id`, `disabledAt` | every one → `published: false` | every one under those companies → `published: false` | all of that owner's are ended | yes — by an operator clearing `disabled` |
+| Owner closes their own account | `deleted` stamped | every one → `published: false` | every one → `published: false` | all ended | **yes, for 30 days** — ADR-046 |
+| Operator closes an account | `deleted` stamped, `deletedBy` = the `admin` `_id` | every one → `published: false` | every one → `published: false` | all ended | **yes, for 30 days** — ADR-046 |
+| Operator lifts a suspension | `disabled` cleared | **untouched — still `published: false`** | **untouched — still `published: false`** | none restored | — |
+| Retention sweep, day 30 after `deleted` | identity overwritten in place, `scrubbedAt` stamped | untouched — already dark | untouched — already dark | — | **no** |
+
+There is no row for *"operator lifts a closure"* because there is no such act. A `deleted` stamp is never
+cleared, by anybody, on any tier.
+
+⚠️ **A suspension is lifted by the tier that imposed it, and by nothing else.** A suspended owner cannot log
+in at all, so there is no session from which they could clear their own flag, and no login can "resume" an
+account by happening: `tryLoginShopOwner` hands the account to `checkUserAuthorization`, which calls
+`checkUserAuthorizationDisDel`, which refuses `disabled: true` before a session exists; `findAccountForSession`
+re-runs the same guard on **every refresh**, so raising the flag on somebody already logged in ends their
+session within one access-token lifetime rather than one refresh-token lifetime. `disabled` is written in
+exactly one place on the platform — `funShopOwnerUpdateStatus`, Admin tier — and self-closure writes
+`deleted` and never `disabled`, exactly as `funUserDel` does on the customer tier. **A suspended owner
+therefore has no way out of a suspension except an operator, and no way to close their account either.**
+
+**What the owner has to do to come back from a suspension:** wait for an operator to clear `disabled` —
+nothing they do brings the account back — then log in, then republish each shop with
+`companyUpdatePublished`, then republish the items in each with `itemsUpdatePublished` — select-all, one
+click, per shop. The platform never does either on their behalf, and there is no deadline on doing it.
+
+**Registering again with the same address.** The address is only free once the document holding it is closed;
+`submitRegistration` reads the account without any liveness filter and branches on `deleted` alone:
+
+| When | What `shopOwnerRegister` does | What the confirmation click does | What the new account owns |
+|---|---|---|---|
+| While the account is live — including suspended | writes no pending record, sends the *already registered* mail, answers `true` | — | — |
+| Day 1–30 after closure, before the sweep | writes the pending Redis record and sends the link, exactly as for a free address | **restores the closed account** (ADR-046): clears `deleted`/`deletedBy`, sets the new password, re-raises `waitApprov`. No new document, no scrub | **everything it owned before** — same `_id`, same companies, same items, all still `published: false` |
+| Day 31 onward, after the sweep | the address is free: the sweep already moved it. An ordinary registration | inserts a new document; there is nothing left to restore | **nothing.** A fresh `_id`, `waitApprov: true`, no company, no item |
+
+⚠️ **A suspended owner cannot register again at that address, and that is deliberate.** Their document is
+live, so the address is taken; registering around a suspension would be the whole point of one defeated by a
+second sign-up form.
+
+⚠️ **The two windows differ in the outcome, and that is the whole of ADR-046.** Inside thirty days the click
+hands the *same* document back, so the shops — which point at that `_id` — come back with it, dark. Outside
+it, the address has already moved to `deleted-<id>@invalid.local` and there is nothing to restore: the click
+mints a new `_id`, which owns nothing and never will. **Re-registering is the way back in, and it is the only
+one**; there is no restore login, because a closed account cannot obtain a session to ask from.

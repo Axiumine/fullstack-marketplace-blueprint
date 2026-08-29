@@ -1,11 +1,13 @@
 # ADR-042 — A registration lives in Redis until the link is clicked; no account document exists before then
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-08-29**
 **Date:** 2026-08-29
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md), **in part** — everything
+about the pending record stands; what changes is what the confirmation does when a *closed* account still
+holds the address. It no longer scrubs that account to make room for a new one: it restores it.
 
 ---
 
