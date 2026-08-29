@@ -88,7 +88,10 @@ The lifecycle is three states and one clock.
    mutation does not do it at all — and that asymmetry is fixed here, because a closure is now a durable,
    audited decision rather than a stamp that a re-registration would shortly erase.
 2. **Days 1 to 30, the document is untouched and still holds the address.** Nothing is cleared early, and
-   the account is not recoverable — there is no un-delete, exactly as before.
+   the account is not recoverable — there is no un-delete, exactly as before. ⚠️ **That last clause was
+   superseded later the same day** by [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md):
+   registering again at the address and confirming the message clears `deleted` and hands the same
+   document back. Nothing else in this step moves — still nothing cleared early, still nothing destroyed.
 3. **At day 30 the personal data is overwritten in place** and `scrubbedAt` is stamped. The document
    survives, permanently, carrying `_id`, `deleted`, `deletedBy`, `disabled`, `disabledBy`, the registration
    date and `scrubbedAt` — enough to answer *there was an account, it closed on this date, at whose

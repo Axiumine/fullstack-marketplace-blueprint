@@ -258,7 +258,11 @@ amends any of them. What only E11.md held, and what would otherwise have left wi
   the conflict between erasure and an accounting rule that wants the record kept. None of it arises, because
   no order stores anything. ⚠️ **GDPR's obligations are not closed by this** — `phase1/NFR.md` open question
   6 stays open on its own terms for the data the platform does hold, and nothing about ADR-036,
-  `user.deleted_ttl` or the privacy notice changes.
+  `user.deleted_ttl` or the privacy notice changes. ⚠️ **Two of those three moved two days later, for
+  reasons that have nothing to do with commerce**: `user.deleted_ttl` is dropped and retention becomes a
+  day-30 overwrite in place ([ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)),
+  and the privacy notice gained the undo window ([ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md)).
+  The claim this bullet actually makes — that closing commerce moves none of them — still holds.
 
 **The display-only price.** [ADR-009](./ADR-009-no-price-on-item.md) §Risks had named a marketing price
 ("starting from €X"), argued in its own ADR, as a legitimate revisit trigger — the one route to a `price`

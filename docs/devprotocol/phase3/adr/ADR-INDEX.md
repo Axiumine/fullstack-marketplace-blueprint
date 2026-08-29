@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.20
+**Version:** 1.21
 **Date:** 2026-08-29
 **Author:** adr-agent
 **Changelog:**
@@ -70,7 +70,10 @@ owner's call rather than the convention's. The 30-day retention purge decided in
 question 6 shipped as `user.deleted_ttl`, and `userRegister` now destroys a closed account so its address
 can be registered again. Both remove documents, which ADR-011 was being read as forbidding platform-wide.
 A new ADR would have left a reader of ADR-011 with a rule that is no longer true and no sign of it, so the
-exception was written where the rule lives. §1 records why the immutability rule was set aside here, the
+exception was written where the rule lives. ⚠️ **Both mechanisms this entry records were gone three days
+later — see v1.18 and v1.21 below.** The amendment is superseded, `deleted_ttl` is dropped and a
+re-registration restores the account it used to destroy; the entry stays as written because it was true on
+its date. §1 records why the immutability rule was set aside here, the
 §2 row carries the amended status, and §4 gains the `partialFilterExpression` refusal the amendment turns
 on. ADR-036's §Risks bullet saying the purge does not exist was corrected with it. **No decision was
 reversed:** row B still stands for `company`, `shopOwner`, `item` and `itemCategory`, and option C —
@@ -107,7 +110,12 @@ ADRs are immutable once accepted. Never edit one. To change a decision, write a 
 supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part (the
 topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
 narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main
-body and its refusal of Option C standing word for word. §2 says so in all six rows. Every other
+body and its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the
+widest of them**: ADR-046 supersedes **ADR-041, ADR-042 and ADR-045, each in part**, on one ruling of the
+owner's — the thirty days are an undo window — so three decisions taken that morning were narrowed that
+afternoon by the person who took them rather than by a later reading. Nothing in the three is withdrawn:
+closure still stamps, a registration still lives in Redis until the link is clicked, an inactive owner
+still goes off-air. What changed is that `deleted` can be cleared. §2 says so in all nine rows. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
@@ -239,8 +247,8 @@ ADR-037
 | Give `itemCategory` a `published` flag or an `itemCategoryDisable`, "for symmetry with `item` and `company`" | platform owner, 2026-08-14 — `phase5/CATEGORY_TAXONOMY.md` §6 | the symmetry is the misreading: those two flags exist because a shop drafts its own public surface, and the taxonomy has no owner but the operator. Present or soft-deleted is the whole state space, and `itemCategories` filters `deleted` alone. Accepted with it: a category created before its items is public and empty until they arrive — the lever is when it is created, not a flag on it |
 | Move the item picture into an `itemImage` collection, or drop the `image` field and derive the name from `_id` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | both were offered and both were refused: a collection is a second document to keep in step with an item that has exactly one picture, and deriving the name means an item with no picture is indistinguishable from one whose file is missing — the optional field *is* how a card knows to draw a placeholder. The value is a file name only — the item's own `_id` plus an extension — because `STATIC_FOLDER/item/<idCompany>/` is reconstructible from the document and a stored path is one more way to escape the directory |
 | Add a second write path for `image` — a replace mutation, or the key back inside `itemUpdate` | platform owner, 2026-08-14 — `phase5/CATALOGUE.md` E05-S09 | `itemAdd` being the only writer is what keeps the file name derivable from the document and the temp-store/insert/publish ordering in one resolver. Replacing a picture is unbuilt, not forgotten; it needs the orphaned-file question answered first, which the failed-publish-after-insert case already raises and nothing repairs today |
-| Give `user.login.email_unique` a `partialFilterExpression` so a closed account stops occupying its address | ADR-011 §Amendment, 2026-08-26 | it is the wrong half of the problem and it breaks login. Three call sites look an account up by address with no liveness filter — `tryLoginUser`, `userForRegistration` and koa-utils' verify-email flow — so two documents holding one address makes `findOne` return an arbitrary one of them. The address is freed because the *document* goes, never because the index learns to ignore it: `user.deleted_ttl` removes it after 30 days and `purgeClosedUser` removes it sooner if somebody registers the address again. Option C was refused in 2026-08-04 for `company` and is refused again here for `user`, on a different reason each time |
-| Hard-delete `company`, `shopOwner`, `item` or `itemCategory` "for consistency with `user`" | ADR-011 §Amendment, 2026-08-26 | the amendment turns on one fact that only `user` has: **nothing references it**. `company.idShopOwner`, `item.idCompany`, `item.idCategory` and `itemCategory.idParent` all point at the other four, a removed document strands every one of those, and no retention period has been decided for any of them. `user`'s unique key is also a credential rather than a legal identity — the VAT argument in ADR-011's §Decision is about a key `user` does not have. Per collection, in that ADR, never by pattern |
+| Give `user.login.email_unique` a `partialFilterExpression` so a closed account stops occupying its address | ADR-011 §Amendment, 2026-08-26 — ⚠️ **the amendment is superseded, the refusal is not**: [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) refuses it again on the same three call sites, and frees the address by overwriting the value at day 30 rather than by removing the document | it is the wrong half of the problem and it breaks login. Three call sites look an account up by address with no liveness filter — `tryLoginUser`, `userForRegistration` and koa-utils' verify-email flow — so two documents holding one address makes `findOne` return an arbitrary one of them. The address is freed because the *document* goes, never because the index learns to ignore it: `user.deleted_ttl` removes it after 30 days and `purgeClosedUser` removes it sooner if somebody registers the address again. Option C was refused in 2026-08-04 for `company` and is refused again here for `user`, on a different reason each time |
+| Hard-delete `company`, `shopOwner`, `item` or `itemCategory` "for consistency with `user`" | ADR-011 §Amendment, 2026-08-26 — ⚠️ **moot since 2026-08-29 and stronger for it**: there is no consistency to argue from, because [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) removed the `user` exception itself. Nothing on this platform hard-deletes | the amendment turns on one fact that only `user` has: **nothing references it**. `company.idShopOwner`, `item.idCompany`, `item.idCategory` and `itemCategory.idParent` all point at the other four, a removed document strands every one of those, and no retention period has been decided for any of them. `user`'s unique key is also a credential rather than a legal identity — the VAT argument in ADR-011's §Decision is about a key `user` does not have. Per collection, in that ADR, never by pattern |
 | Give `user` a `waitApprov`-equivalent — an operator approval, a fraud check or a spam-signup hold between `userRegister` and the first login | platform owner, 2026-08-25 — `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6 | self-service is what a customer account *is*, and the asymmetry with `shopOwner` is what each account gets rather than how far either is trusted: clearing `waitApprov` publishes a shop on this platform's own domain, while a customer's account reads that customer's own document. The flag is also only half a feature — the other half is the operator queue behind it, and `user` is the one collection encrypted whole precisely because nothing sorts, searches or paginates it (ADR-029), so a moderation table over customers reverses that decision instead of extending this one. `emailVerify.valid` stays the only gate. Separate and not refused: at the time this was taken nothing wrote `user.disabled`, so an operator had no lever after registration either — `userUpdateStatus` (E19-S03) became that lever the same day, and what it may reach is ADR-036 |
 | Make `user.personalData.firstName` / `lastName` / `addresses[].city` deterministic or clear, "so the customers table can sort and search them like the shop-owner one" | platform owner, 2026-08-25 — `phase5/epics/E19.md` E19-S05 | the mirror image of the `shopOwner` row above, and refused for the same reason from the other side: `shopOwner` pays for its operator table in plaintext, and `user` was designed not to have that bill — every personal field on it is encrypted *because* nothing sorts, searches or paginates customers. The customers table added by E19 does not change that; it orders and filters on `registeredAt` and the status flags, which were never encrypted, and returns `login.email` without ever ordering or prefix-matching it. Making one more field queryable to add a column is how the collection loses the property, one column at a time |
 | Drop `maxItems` from the `user` validator and keep the cap in `funUserAddressAdd` alone, "so the number lives in one place" | ADR-035 | the two copies do different jobs, and the validator's is the one that is *true*: it holds against a fixture, a script, a migration and a second service, none of which call the lib function. The service's copy buys the shape of the refusal — a 400 naming the limit instead of a 500 — and buys nothing else. Deleting the validator rule to remove a duplicated constant is how `itemCategory`'s depth cap ended up enforceable only by the one path that remembers to check (ADR-012), which that ADR records as a cost it had no choice about; here there is a choice |
@@ -397,3 +405,21 @@ deadline on republishing; for a closed owner it has no mechanism behind it yet, 
 today and re-registering inside the window mints a new `_id` owning no company. Whether an operator may
 lift a `deleted` stamp inside the thirty days is left open for the platform owner rather than answered by
 analogy.
+
+v1.21 - 2026-08-29, fourth revision that day: **[ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md)
+is registered here.** Its §2 row, its four §4 rows and its §3 area line landed with the ADR itself; what was
+missing was this changelog, the version, and §1's count — which now says **four supersessions**, ADR-046
+superseding ADR-041, ADR-042 and ADR-045 each in part, and **nine** §2 rows carrying one. The decision is the
+platform owner's, in one sentence — *"the 30 days windows is for undo too !"* — and it reverses a decision he
+had taken the same morning after asking the question that broke it: *"in the 1-30 days window, what the
+purpose to keep the user data if he register in that window and new document will be created ?!?!?"* None.
+The window protected nobody while the flow inside it destroyed the data twenty-seven days early. ⚠️ **What
+this entry corrects beyond the count is v1.20's closing paragraph, which is now wrong and is annotated in
+place**: it read the owner's *"in 30 days windows"* as having no mechanism for a closed owner, *"since
+closure is one-way today and re-registering inside the window mints a new `_id` owning no company"*, and
+left the question of lifting a `deleted` stamp open. ADR-046 answers all of it — the same `_id` comes back,
+owning the same companies, unpublished, behind `waitApprov`, and the stamp is lifted by the confirmation
+click rather than by an operator. ⚠️ **`disabled` is not cleared by any of it**, which is the one line every
+ADR in this block shares. Four stale citations of the superseded mechanism were annotated at the same time,
+in `data-model.md`, `phase4/ERD.md`, `phase1/NFR.md` and `phase5/RISK_REGISTER.md`, plus the §Note bullet of
+[ADR-036](./ADR-036-erasure-is-not-something-the-platform-suspends.md) — all struck in place, none rewritten.
