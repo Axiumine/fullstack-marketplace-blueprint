@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
-**Date:** 2026-08-27
+**Version:** 1.9
+**Date:** 2026-08-29
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.9 - 2026-08-29: the Admin resource service's query table gains `usersStats` and `usersPerPeriod`, built the day the platform owner answered `phase5/epics/E19.md` §6 question 2 — the customer counterparts of `shopOwnersStats` and `shopOwnersPerPeriod`, fourteen queries where there were twelve. The `queries.mts` line range above the table moves with them. ⚠️ **`usersActiveTbl`'s row is untouched and stays true**: no `search`, one sort member. The two new rows are not a softening of ADR-029 — a count reads no field and the series buckets `registeredAt`, which was never encrypted — and the row for `usersPerPeriod` says so, because this table is where somebody will look before proposing a search argument again.
 v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
 corpus rather than left in a dedicated epic file, per [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)
 §Note and [`EPICS_STORIES.md`](../phase5/EPICS_STORIES.md) §6.1. §9's ordering-related bullet was rewritten
@@ -413,7 +414,7 @@ validator, because a schema validator cannot read a second document to check the
 gated on `data.idParent !== undefined` — an absent `idParent` is accepted unconditionally as a top-level
 category and never reaches the check.
 
-Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries.mts:18-31`):
+Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/queries.mts:18-36`):
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
@@ -424,6 +425,8 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | `shopOwnerById` | `idShopOwner: ID!` | `GraphQLShopOwnerById!` | One shopOwner, any of them — no ownership filter on this tier. ⚠️ Its `personalData` is **nullable** since 2026-08-12: a self-registered seller has none until onboarding, and a `NonNull` field would have made every such account a hard GraphQL error rather than a row with blanks | `schema/queries/shopOwnerById.mts:11,13-14` |
 | `shopOwnerCompanies` | `idShopOwner: ID!` | `[GraphQLCompany!]!` | Companies owned by one shopOwner | `schema/queries/shopOwnerCompanies.mts:17,19-20` |
 | `usersActiveTbl` | `offset: Int! = 0`, `limit: Int! = USERS_TBL_DEFAULT_LIMIT`, `disabled: Boolean! = false`, `deleted: Boolean! = false`, `emailVerified: Boolean`, `sortBy: UsersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLUsersActiveTblPage!` | Paginated, sortable customers table — the first `user*` operation on this tier (E19-S02). ⚠️ **No `search` argument, and none is coming:** every field a search could match on `user` is encrypted, randomly for all but the login address, and a prefix match against ciphertext returns zero rows without erroring (ADR-029, `phase5/epics/E19.md` E19-S05). `sortBy` has exactly one member for the same reason. `disabled` and `deleted` are `Boolean!` rather than nullable filters so the query stays on `tbl_active_registeredAt`; `emailVerified` is nullable because it sits outside that index | `schema/queries/usersActiveTbl.mts:31,33-41` |
+| `usersStats` | none | `Int!` | Aggregate customer count — the counterpart of `shopOwnersStats`, built 2026-08-29 (E19 §6 question 2). Unfiltered: the disabled and the soft-deleted are counted, so it is deliberately **not** `usersActiveTbl`'s `total` | `schema/queries/usersStats.mts:6` |
+| `usersPerPeriod` | `period: UsersPeriod! = ALL` | `GraphQLUsersPerPeriod!` | Time-bucketed customer signups, served by the `registeredAt_series` index added the same day. ⚠️ **Not a hole in ADR-029:** it groups `registeredAt`, which was never encrypted, and returns no field of any account — the encryption blocks matching and ordering, not counting. `granularity` is a response field, not an argument: `ALL` buckets by month, the two bounded ranges by day. The bucket arithmetic is shared with `shopOwnersPerPeriod` in `lib/stats/registeredAtSeriesDb.mts`; the GraphQL types are deliberately two | `schema/queries/usersPerPeriod.mts:8,17-18` |
 | `companyItems` | `idCompany: ID!` | `[GraphQLItem!]!` | Catalogue entries of one company | `schema/queries/companyItems.mts:19,21-22` |
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Full two-level category tree | `schema/queries/itemCategories.mts:18` |
 | `keygripStatus` | none | `GraphQLKeygripStatus!` | The live cookie-signing key set and which services hold it (E16). ⚠️ **No `version` argument, and no older record to name with one** — a rotation replaces all three fields at once, so there is nothing earlier to unwrap. Renders ids and a fingerprint, never key material | `schema/queries/keygripStatus.mts:8,15` |
