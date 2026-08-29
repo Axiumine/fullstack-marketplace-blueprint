@@ -1,14 +1,20 @@
 # ADR-011 — Soft delete by a deleted date stamp, with global uniques that a retired company keeps occupying
 # Marketplace
 
-**Status:** accepted, amended 2026-08-26
+**Status:** accepted, amended 2026-08-26, **the amendment superseded 2026-08-29**
 **Date:** 2026-08-04
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md), **in part** — the 2026-08-26 Amendment
+only. The main body below is untouched and still states the platform's soft-delete convention for all
+five collections.
 **Amended:** 2026-08-26 — see [§Amendment](#amendment--2026-08-26-the-user-collection-is-destroyed-rather-than-kept). Everything below stands for
 `company`, `shopOwner`, `item` and `itemCategory`. It no longer describes `user`, which is the only
 collection on the platform whose documents are removed — by a TTL index, and by one application write.
+⚠️ **That last sentence stopped being true on 2026-08-29**, when [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) reversed the
+amendment: no collection on this platform has its documents removed, `user` included. The amendment is
+left standing below, struck where it no longer describes the tree, because it is cited elsewhere and a
+reader arriving at it needs to be told rather than to find nothing.
 
 ---
 
@@ -131,6 +137,14 @@ No `price` field, no `Order`/`Cart` reference is implied or required by this dec
 **Scope:** the `user` collection only. `company`, `shopOwner`, `item` and `itemCategory` are untouched,
 and none of the reasoning above is withdrawn for them.
 
+⚠️ **Superseded 2026-08-29 by [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md), in part.** What is withdrawn is
+this amendment's *mechanism* — the TTL index and the one application delete — and nothing else. Its
+reading of the problem stands word for word: a closed account did burn its address, the retention period
+was real, and a retention period nothing carries out is not a retention period. ADR-041 answers all three
+by overwriting the personal data in place instead of destroying the document, which is also what let the
+same rule reach `shopOwner` — see *§Why `user` and no other collection* below, which asked for exactly
+that and got it.
+
 ### What this ADR was being read as saying
 
 Row B was decided about `company`, but it is the platform's statement of the soft-delete convention and
@@ -159,7 +173,11 @@ mechanism that would carry it out. That is the conflict this amendment resolves.
 
 ### Decision
 
-**Two removals are permitted, and only on `user`.**
+~~**Two removals are permitted, and only on `user`.**~~ **— superseded 2026-08-29: none are, on any
+collection.** Both mechanisms below are retired by [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md); `deleted_ttl` is dropped by a
+new migration and `purgeClosedUser.mts` is deleted. What replaces them is an in-place overwrite at the
+same thirty days, brought forward by the same re-registration, carried out by a sweeper rather than by
+the storage engine. The two items below are kept as the record of what was retired:
 
 1. **`user.deleted_ttl`** — a TTL index over `deleted`, `expireAfterSeconds: 2592000`, declared in
    `BEs/marketplace-db-setup/lib/schemas/user.js` and applied by
@@ -172,8 +190,13 @@ mechanism that would carry it out. That is the conflict this amendment resolves.
    is not a second policy: it is the *same* removal, brought forward to the request that needs the
    address, so the erasure happens earlier than the retention rule requires rather than later.
 
-Retention therefore reads **"30 days after closure, or until the same address registers again, whichever
-comes first."**
+~~Retention therefore reads **"30 days after closure, or until the same address registers again, whichever
+comes first."**~~ **— the sentence survives the supersession almost intact.** Under ADR-041 it reads
+*"30 days after closure, or the moment the same address is confirmed by a new registration, whichever
+comes first"* — the clock, the bring-forward and the trigger are unchanged, and only what happens at the
+end of it is: the document is emptied rather than removed. ⚠️ **`registers again` becomes `is confirmed`**,
+which is not a wording change: the closed document is now untouched until the link is clicked
+([ADR-042](./ADR-042-registration-is-a-pending-redis-record.md)).
 
 ⚠️ **Option C is still rejected, and this amendment is not a way back to it.** The address is freed
 because the *document* goes, never because the index learns to ignore it. Three call sites look an
@@ -204,6 +227,12 @@ is the only one holding a *data subject* rather than a trader's registration.
 owner's address is a credential too. What separates them is that `company.idShopOwner` points at it, and
 that no Art. 17 self-service path exists on that tier — a shop owner cannot close their own account today.
 Whoever builds one inherits this question and should answer it here rather than assume symmetry.
+⚠️ **Answered 2026-08-29, and the answer is symmetry — reached from the other end.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)
+gives `shopOwner` the same thirty-day retention and the same reclaimable address, and it is safe there
+precisely because it stops removing documents: the objection in this paragraph — `company.idShopOwner`
+points at it — is an objection to *deletion*, and an overwrite strands no reference. The self-service
+Art. 17 path this paragraph also notes as missing is still missing; a shop owner is closed by an
+operator, and the retention clock starts from that stamp either way.
 
 ### Consequences
 
@@ -238,6 +267,11 @@ Whoever builds one inherits this question and should answer it here rather than 
   no error, no expiry, and the collection's own validator would still accept every write.
 
 ### Compliance
+
+⚠️ **Superseded 2026-08-29.** Every check below verifies a state [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) removes: the
+TTL index must now be **absent**, and `deleteOne` must return no call sites at all rather than one. Run
+ADR-041 §Compliance instead. The greps are kept because their inverses are exactly the violations to
+watch for now — a `deleted_ttl` reappearing, or a second `deleteOne` arriving.
 
 Verify the index exists and expires at 30 days, on `user` and nowhere else:
 

@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.17
-**Date:** 2026-08-28
+**Version:** 1.18
+**Date:** 2026-08-29
 **Author:** adr-agent
 **Changelog:**
 v1.16 - 2026-08-28, later still: **three rows added to §4, all from `phase5/epics/E15.md`**, deleted and
@@ -103,10 +103,11 @@ v1.15 - 2026-08-28, later the same day: **ADR-040 added — the secrets-manager 
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
-`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and two
-supersessions exist — ADR-037 supersedes ADR-015 *in part*, and ADR-039 supersedes ADR-032, also in part:
-the topology it recorded as *owed* is now written, while the rule it made about network boundaries survives
-in narrowed form. §2 says so in all four rows. Every other
+`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and three
+supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part (the
+topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
+narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main
+body and its refusal of Option C standing word for word. §2 says so in all six rows. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
@@ -119,6 +120,13 @@ would have left every one of those readers with a rule that had stopped being tr
 page to say so. The amendment is appended, scoped to the `user` collection alone, and the original
 decision is left standing word for word above it. **This is not licence to edit an ADR**: the next
 change of a decision writes a new one, and an amendment needs the owner to say so, as this one did.
+
+⚠️ **That amendment was itself superseded on 2026-08-29 — by a new ADR, the ordinary way.**
+[ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) reverses it: nothing on this
+platform is destroyed, `user` included, and the address a closed account holds is freed by overwriting the
+value rather than by removing the document. ADR-011 keeps the amendment in place, struck where it stopped
+describing the tree and pointing forward — which is the convention working as intended, and is why the
+exception above did not have to be granted a second time.
 
 New ADR: copy [`ADR-000-template.md`](./ADR-000-template.md), next free number, fill in `Status`, `Date`, `Deciders`.
 
@@ -139,7 +147,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-008 | Domain-neutral catalogue (item + itemCategory) | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-009 | No price on item | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-010 | Default-address pointer, not a per-address boolean | accepted | 2026-08-05 | — | — | Data model |
-| ADR-011 | Soft delete via `deleted` date, global uniques stay occupied | accepted, **amended 2026-08-26** — `user` is destroyed, by TTL and by one write | 2026-08-04 | — | — | Data model |
+| ADR-011 | Soft delete via `deleted` date, global uniques stay occupied | accepted, **amended 2026-08-26**, **that amendment superseded 2026-08-29** — nothing is destroyed, on any collection | 2026-08-04 | — | ADR-041, in part | Data model |
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, with no carve-out | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
@@ -169,12 +177,17 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-038 | Cart, order, delivery and payment are permanently out of scope | accepted | 2026-08-27 | — | — | Catalogue |
 | ADR-039 | The production topology, decided: Cloudflare, one app host, datastores on a trusted segment | accepted | 2026-08-28 | ADR-032, in part | — | Infrastructure and delivery |
 | ADR-040 | The secrets-manager vendor choice is the adopter's, not this blueprint's | accepted, **amended 2026-08-28** — the KEK decode is one site, not three | 2026-08-28 | — | — | Identity and access |
+| ADR-041 | Nothing is destroyed: closure is a stamp, retention expiry overwrites the personal data in place | accepted | 2026-08-29 | ADR-011, in part — the 2026-08-26 Amendment | — | Data model |
+| ADR-042 | A registration lives in Redis until the link is clicked; no account document exists before then | accepted | 2026-08-29 | — | — | Identity and access |
+| ADR-043 | The pending registration carries the destination collection's own field encryption | accepted | 2026-08-29 | — | — | Data model |
+| ADR-044 | Suspension names an actor and a reason; the database enforces presence, the service enforces length | accepted | 2026-08-29 | — | — | Identity and access |
 
 ## 3. By area
 
-**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034, ADR-036, ADR-040
+**Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034, ADR-036, ADR-040,
+ADR-042, ADR-044
 
-**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035
+**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035, ADR-041, ADR-043
 
 **Catalogue** — ADR-008, ADR-009, ADR-012, ADR-038
 
@@ -196,6 +209,11 @@ ADR-037
 | Add a shop collection | ADR-007 | a shop is a company; a separate shop collection splits one record in two and puts the storefront fields on the wrong side of the split |
 | Add a `price` field to `item` | ADR-009, ADR-038 | there is nothing to buy and there never will be — ADR-038 makes ADR-009's "until ordering is designed" permanent, so the four decisions a price drags behind it (currency, precision, VAT, discount) are not pending, they are moot. `price` on `item` is a banned term in `phase2/UBIQUITOUS_LANGUAGE.md` §19 |
 | Design or build cart, order, delivery or payment — a schema, a mutation, a state machine, a checkout sequence diagram, or "a first small step" toward any of them | ADR-038 | permanently out of scope by the platform owner's decision, 2026-08-27. The blueprint demonstrates multi-tenant identity, tenancy and catalogue; a checkout demonstrates none of that a second time. The four stay named in `BOUNDED_CONTEXT.md` BC-11, `UBIQUITOUS_LANGUAGE.md` §18, `EVENT_STORMING.md` §2.9 and `phase5/EPICS_STORIES.md` §6.1 so they are recognisable enough to refuse — presence is not a plan. Re-opening needs an ADR superseding ADR-038, not a story |
+| Add `sparse` or a `partialFilterExpression` to `login.email_unique` so a closed account stops occupying its address | ADR-011, ADR-041 | refused twice, on the same three call sites both times — `tryLoginUser.mts`, `userForRegistration.mts` and the verify-email flow read an account by email with **no liveness filter**, so two documents holding one address make `findOne` return an arbitrary one of them: login becomes a coin toss and re-registration a race. `sparse` is the same mistake wearing a different hat — the index has none today, which is why an `$unset` of `login.email` would index as `null` and the *second* scrubbed account would collide. ADR-041 frees the address by changing the **value**, never by teaching the index to ignore a document. Violation looks like either option appearing on `INDEXES_LOGIN_EMAIL` in `lib/schemas/account.js` |
+| Hard-delete a closed account — a `deleteOne`, or a TTL index that does it for you | ADR-041 | the platform kept exactly one hard delete for three days and retired it. The document is two things, a container for personal data and the record that the person existed, and only the first is erasable; on `shopOwner` removal was never available at all, since `company.idShopOwner` points at it. Retention is an **overwrite in place** at the same thirty days. ⚠️ A TTL index is a hard delete: it can only remove a whole document, never modify a field, which is also why no index can carry this out. Violation looks like `expireAfterSeconds` reappearing in `lib/schemas/`, or any `deleteOne`/`deleteMany`/`findOneAndDelete` under `BEs/dev/*/src/` |
+| Create the account document at registration submit, and let the confirmation flip a flag on it | ADR-042 | it is what the platform did until 2026-08-29, and it is the root of three defects at once: an admin-closed shop owner revivable by an anonymous form post (`restartShopOwnerRegistration.mts` `$unset`ting `deleted`, `waitApprov` never restored), an address held **forever** by a registration nobody ever clicked, and one `deleted` field meaning both *closed* and *abandoned*. It also cannot honour the days-1-to-30 re-registration window without either a hard delete or two documents on one address. The account document has exactly one writer, the confirmation handler; abandonment is a Redis key expiring |
+| Put one cleartext field in the pending registration record — "just for support", or to key it by `sha256(email)` | ADR-043 | the record is nothing but personal data, it crosses the `redis://` leg R45 still covers, and Redis persistence writes it to disk where a three-day TTL means nothing. Every field is encrypted exactly when its destination path is, with the destination's own algorithm and data key — so confirm is a byte copy, no re-encryption, and the plaintext never exists in memory for the trip. The deterministic ciphertext of `login.email` is already a stable lookup value; a digest would work and would silently cost that |
+| Put `maxLength: 1000` on `disabledReason` in the validator, the way ADR-035 caps `user.addresses` | ADR-044 | it would mean the field had stopped being encrypted. An encrypted path declares `bsonType: 'binData'` and nothing else — no `pattern`, no `maxLength` — and a suspension reason is operator prose about a person, so ADR-029 applies to it. The database enforces **presence** (`dependencies: { disabled: ['disabledReason'] }`, which needs no access to the value) and the service enforces length. ADR-035 is not reversed: it governs wherever the validator can see the value, and here it cannot |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
@@ -253,6 +271,19 @@ Decisions this platform still owes an ADR, once taken:
   cross-file agreement check: that check needs no vendor, is not declined, and stays open under **R39**
   and `INFRA.md` §14 q8.
 - ~~**Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.~~ **Closed 2026-08-27 — it is no longer a gap, and it got the ADR from the other side.** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are permanently out of scope, so the design this bullet was waiting on does not start. Struck rather than deleted because the wait is the reason the bullet was here for thirty-seven ADRs, and because the sentence it ends on — *needs its own ADR when the design starts* — is what ADR-038 answers. Everything the bullet asserts about the working tree is still true and stays true: no collection, no resolver, no design, and `item` still has no price.
+- **Does suspending or closing a shop owner take their storefront off-air?** Opened 2026-08-29 with
+  [`ADR-044`](./ADR-044-suspension-names-an-actor-and-a-reason.md), which makes suspension the operator's
+  only lever now that [`ADR-041`](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) has
+  removed deletion as an alternative — and the lever currently stops at the login.
+  `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts:32-34` filters public reads on
+  `company`'s **own** fields, `{ published: true, deleted: { $exists: false } }`, and reads nothing on
+  `shopOwner`; `companies.mts:59` and `companyBySlug.mts:35` both go through it. So a suspended or closed
+  shop owner keeps a fully live, browsable storefront and every `item` beneath it. This may be the right
+  separation — suspending a person's login and taking a business off-air are different acts, and cascading
+  one into the other is not reversible by un-suspending if `published` was already false — but it has never
+  been decided either way, and it was not surfaced when `disabled` was built. It needs the platform owner,
+  and it needs an ADR only if the answer is *yes, cascade*: leaving it as it is changes nothing and is
+  already the shipped behaviour.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
 - ~~**Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.~~ **Closed 2026-08-28 — the topology is written, and this bullet is what it was written against.** [ADR-039](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) answers all four questions the struck text lists: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 from Cloudflare's ranges, which is what ADR-022's wildcard bind now sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. Struck rather than deleted because the three findings named above are the reason this bullet existed, and only two of them move: **R46** closes, E13-S11 and E14-S08 keep their controls unchanged, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is *not* closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups.
 
@@ -271,3 +302,37 @@ claim. ⚠️ **The amendment does not say the split-brain is solved.** One deco
 six services and the seed script are seven processes, and seven independent resolutions of a manager can
 still hold seven values. `docs/PRODUCTION_HARDENING.md` §1 says so in the same pass, and its
 resolve-once-per-process rule is unchanged and still the control that matters.
+
+v1.18 - 2026-08-29: **four ADRs added — the account lifecycle is rewritten end to end, and ADR-011's
+2026-08-26 Amendment is superseded in part.** The platform owner reversed the erasure mechanism —
+*"stamp-only forever but allow re register again with that email. after that period of 30 days, clear user
+personal data but do not delete the user document that record him. same for shopOwner"* — and
+**[ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)** records it: closure stamps,
+day 30 **overwrites** the personal data in place, and nothing on this platform is destroyed. `deleted_ttl`
+is dropped and `purgeClosedUser` is deleted, so the one hard delete ADR-011's amendment permitted lasted
+three days. ⚠️ **The reversal is what let the rule reach `shopOwner`**, which the amendment had explicitly
+left open — *"whoever builds one inherits this question"* — because the objection there was to *deletion*
+(`company.idShopOwner` points at it) and an overwrite strands no reference. The owner's harder requirement,
+*"days 1-30 the user must be able to register again !!"* with the closed account untouched *"when he will
+click the link to confirm the email, not before that"*, is answered by
+**[ADR-042](./ADR-042-registration-is-a-pending-redis-record.md)**: a registration is one Redis key until
+the link is clicked, so no account document exists to collide, on either tier — *"yes I like to uniform, all
+registration live in redis a spending"*. That deletes both `restart*Registration.mts` files and, with them,
+a live defect the corpus had never recorded: an admin-closed unverified shop owner was revivable through an
+unauthenticated public mutation with a caller-supplied password and no `waitApprov`, asserted as correct by
+`test/shopOwnerRegisterMutation.test.mts:236-248`. **[ADR-043](./ADR-043-pending-registration-carries-csfle-ciphertext.md)**
+carries ADR-029's field encryption into that record — *"yes keep in Redis same encription on filds that we
+planned for mongodb"* — which is what keeps **R45** where ADR-039 left it: the cleartext `redis://` leg
+carries ciphertext, so registration PII is not added to a risk the topology decision deliberately left
+standing. ADR-029 is **extended, not amended**: no field, algorithm or key changes, only the reach of the
+rule. **[ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md)** gives `disabled` an actor and a
+mandatory reason on both collections. ⚠️ **Its split of enforcement is the entry worth reading twice** —
+the reason is operator prose about a person, so it is encrypted, and an encrypted path admits no
+`maxLength`: the database enforces *presence* via `dependencies` and the service enforces the 1000
+characters. That is not ADR-035 being reversed, and §4 now carries the temptation to "fix" it. Four rows in
+§2, four in §4 plus one more against `sparse`/`partialFilterExpression`, two numbers in §3's **Data model**
+and **Identity and access** lines, and §1's supersession count moves from two to three. ⚠️ **§1's ADR-011
+exception is not extended**: the amendment was superseded by a new ADR the ordinary way, and is struck in
+place with forward pointers rather than rewritten. One bullet **opens** in §5 — whether suspending or
+closing a shop owner takes their storefront off-air; `publicRead.mts:32-34` reads nothing on `shopOwner`
+today, so it does not, and nobody has decided whether it should.
