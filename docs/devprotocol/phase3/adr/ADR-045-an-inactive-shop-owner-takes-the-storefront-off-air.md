@@ -295,9 +295,17 @@ item-level publish state is gone as well as their shop-level state, and no recor
 one is the rejected option, at item scale. What the owner gets instead is a control that makes restoring the
 whole catalogue one click, which is the trade the ruling makes explicitly.
 
-One thing the rulings name is **not** decided here: *"in 30 days windows"* is read as ADR-041's existing
-retention window rather than a new clock, and no deadline is imposed on republishing. A suspended owner has
-no clock at all — un-suspension can happen at any time and the shops wait. For a *closed* owner the phrase
-has no mechanism behind it yet: closure is one-way today, and re-registering inside the window mints a new
-`_id` that owns no company. Whether an operator may lift a `deleted` stamp within the thirty days is a
-question for the platform owner and is deliberately left open rather than answered by analogy.
+### The thirty days are ADR-041's, and impose nothing here
+
+*"in 30 days windows"* was put to the platform owner as a reading and confirmed as one: it is
+[ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)'s existing retention window, **not
+a new clock and not a deadline on republishing.** A suspended owner has no clock at all — un-suspension
+happens whenever it happens, and the shops wait, unpublished, for as long as it takes. Nothing expires an
+owner's right to bring their own catalogue back.
+
+⚠️ **"Restoring a shop owner" therefore means lifting a suspension, and nothing else.** Closure stays
+one-way, exactly as ADR-041 left it: a `deleted` stamp is never lifted, and re-registering inside the window
+mints a new `_id` — which owns no company, so there is nothing for it to re-enable. That is the shape of the
+existing decisions rather than a gap in this one. Making closure reversible would be a new capability
+touching ADR-041 and ADR-042 as well as this page, and it would need its own ADR and the platform owner's
+word; it is not implied by anything above.
