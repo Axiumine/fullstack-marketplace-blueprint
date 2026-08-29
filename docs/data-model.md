@@ -215,24 +215,42 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
 - `item`: `idCompany_list`, `idCompany_slug_unique`, `idCompany_published`, `idCategory_published`, the
   `_name` sort variants of both, and `search_text`.
 - `itemCategory`: `slug_unique`, `idParent_position`.
-- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus `deleted_ttl` and the
-  operator table's `tbl_active_registeredAt` — neither of which the public surface reads.
+- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus the operator table's
+  `tbl_active_registeredAt` — neither of which the public surface reads. ⚠️ `INDEXES_USER` still declares
+  a third, `deleted_ttl`, and no live database has it: `20260829000100-user-retire-deleted-ttl.js` drops
+  it, and the create migration that builds it is immutable. Read the retirement, not the array.
 
 Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, never a `COLLSCAN`.
 
-⚠️ **`user.deleted_ttl` is the only index on this platform that deletes documents.** `{ deleted: 1 }`,
-`expireAfterSeconds` 2592000 — thirty days — so MongoDB's TTL monitor removes a closed customer account
-about a minute after the period elapses. It is what makes `userDel` an erasure rather than a flag:
-`funUserDel` stamps `user.deleted`, revokes every session and writes nothing else, so without the index
-the `personalData` and the `addresses` would stay on disk for ever and `login.email_unique` would hold the
-address against the person who closed the account. It reads `deleted` only because that field is
-deliberately **not** encrypted — a CSFLE `binData` never compares as a date, and the index would expire
-nothing without saying so. Two consequences worth knowing: on `user`, `deleted` is a destruction clock
-rather than a status, so a future flag that must *not* destroy the customer in a month needs its own
-field; and a database built before 2026-08-26 and not rebuilt has no such index while its migration
-changelog claims otherwise — `db.user.getIndexes()` is the check. Re-registering a closed address
-destroys the document immediately instead of waiting, the platform's one application hard delete
-(ADR-011 §Amendment 2026-08-26, ADR-036).
+⚠️ **Nothing on this platform removes a document, and since 2026-08-29 no index does either.**
+`userDel` and `shopOwnerDel` stamp `deleted` and `deletedBy`, revoke every session the account holds and
+take everything it had published off the public site; the document itself is permanent. Thirty days later
+a sweep in `marketplace-dev-admin-authenticated-resource` — `src/lib/retention/retentionSweep.mts`, started
+by `startRetentionSweeper.mts`, once a day and on both collections — **overwrites** the personal fields in
+place and stamps `scrubbedAt`: `login.email` becomes `deleted-${_id}@invalid.local`, unique by construction
+because `_id` is, `login.password` a real bcrypt hash of random bytes, `name` `'Deleted User'`
+([`ADR-041`](./devprotocol/phase3/adr/ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)). The
+scrub list is derived **by exclusion** from a keep-list, so a personal field added to either collection is
+overwritten by default rather than forgotten.
+
+⚠️ **Inside those thirty days the closure is undoable, and the door is a registration rather than a login.**
+Registering again at the same address and confirming the message clears `deleted` and hands the same `_id`
+back — unpublished, and for a shop owner behind `waitApprov` again so the operator keeps a veto
+([`ADR-046`](./devprotocol/phase3/adr/ADR-046-the-retention-window-is-an-undo-window.md)). `disabled` is
+**not** cleared by it: a suspension is the operator's to lift. The login gates refuse a closed account
+throughout the window, so there is nothing to sign in to until the re-registration lands — which is why
+mailbox control alone recovers the account, and why the privacy notice says so.
+
+⚠️ **`user.deleted_ttl` is gone and must not come back.** It was the one index on this platform that deleted
+documents — `{ deleted: 1 }`, `expireAfterSeconds` 2592000 — and `20260829000100-user-retire-deleted-ttl.js`
+drops it, with `test/migrations.test.mjs` asserting that no index on any collection carries
+`expireAfterSeconds`. A TTL index cannot express the decision above: it removes whole documents and has no
+other mode, and `collMod` retunes the period but cannot strip TTL-ness from a live index. Reintroducing one
+destroys the rows the scrub exists to keep and takes each closed account's `login.email` with them — the
+address a re-registration inside the window has to find — and nothing would log an error. The retention
+period lives in `CLOSED_ACCOUNT_RETENTION_SECONDS`, and the sweep needs no index of its own: its candidate
+query is `{deleted: {$lte: cutoff}, scrubbedAt: {$exists: false}}` and `tbl_active_registeredAt` leads with
+`deleted`.
 
 ## PII at rest — explicit CSFLE (ADR-029)
 

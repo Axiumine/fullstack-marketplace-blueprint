@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-27
+**Version:** 1.6
+**Date:** 2026-08-29
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-29: §7 `user` loses `deleted_ttl` — dropped by `20260829000100-user-retire-deleted-ttl.js`, three days after v1.4 recorded it as the only index on this platform that deletes documents. The platform owner reversed the mechanism (ADR-041): the document is permanent and the personal fields are overwritten in place at day 30 by a sweep in the Admin resource service, on `shopOwner` as well as `user`. ⚠️ **The index row and its paragraph are struck rather than deleted**, because v1.4's warning about a database not rebuilt after 2026-08-26 inverts — an unrebuilt database still has the TTL and will destroy accounts the design now keeps, so `db.user.getIndexes()` is still the check and the answer it should give is *no such index*. The destructive-re-registration sentence goes with it (ADR-046: re-registering inside the window restores the account). No field, no validator and no other index changed.
 v1.5 - 2026-08-27: §8's first four bullets stop being "not this phase" and become "not ever" — ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope. The `price` bullet loses its "it arrives with the ordering tier, in one migration" ending, which described a tier that is not coming, and §9 question 3 closes as moot rather than answered.
 v1.4 - 2026-08-26: §7 `user` gains `deleted_ttl`, the only index on this platform that deletes documents — thirty days after `userDel` stamps `deleted`, MongoDB removes the account. ⚠️ It also **retracts a claim v1.3 made in this document**: `20260301000300-create-user.js` was described as immutable and untouched, and it is neither as of 2026-08-26 — the owner chose to edit the create migration and rebuild the database rather than add a follow-up one, so the note beside `tbl_active_registeredAt` is corrected rather than left standing.
 v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the operator's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
@@ -411,11 +412,18 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 |---|---|---|---|
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
 | `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the operator's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
-| `deleted_ttl` | `{deleted:1}`, `expireAfterSeconds: 2592000` | the retention purge — thirty days after `userDel` stamps `deleted`, MongoDB's TTL monitor removes the document, its `personalData` and its `addresses` (`phase1/NFR.md` open question 6, GDPR Art. 5(1)(e)) | `lib/schemas/user.js` (`INDEXES_USER`), applied by `20260301000300-create-user.js` — ⚠️ **that migration was edited after it had been applied**, on the owner's call, and the database rebuilt in the same work |
+| ~~`deleted_ttl`~~ **— dropped 2026-08-29** by `20260829000100-user-retire-deleted-ttl.js` (ADR-041), so no live database carries it; `INDEXES_USER` still declares it because the create migration reading that constant is immutable, and `test/migrations.test.mjs` asserts the end state instead. What it used to be: `{deleted:1}`, `expireAfterSeconds: 2592000` | the retention purge — thirty days after `userDel` stamps `deleted`, MongoDB's TTL monitor removes the document, its `personalData` and its `addresses` (`phase1/NFR.md` open question 6, GDPR Art. 5(1)(e)) | `lib/schemas/user.js` (`INDEXES_USER`), applied by `20260301000300-create-user.js` — ⚠️ **that migration was edited after it had been applied**, on the owner's call, and the database rebuilt in the same work |
 
 ⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). There is no `registeredAt_series` counterpart either: no `usersPerPeriod` chart exists to need one.
 
-⚠️ **`deleted_ttl` is what makes `userDel` an erasure rather than a flag, and it is `user`'s alone.**
+⚠️ **Superseded 2026-08-29 — the paragraph below describes an index this collection no longer has, and is
+kept only so the reversal is legible.** Retention is now a day-30 **overwrite in place** run by
+`retentionSweep.mts` in `marketplace-dev-admin-authenticated-resource`, on `user` and `shopOwner` alike, and
+the document survives it permanently (ADR-041). The final sentence is wrong twice over: re-registering inside
+the thirty days now **restores** the account rather than destroying it (ADR-046), and the platform has no
+application hard delete at all.
+
+~~⚠️ **`deleted_ttl` is what makes `userDel` an erasure rather than a flag, and it is `user`'s alone.**~~
 `funUserDel` stamps `deleted`, revokes every session and writes nothing else, so without the index the
 record and its `login.email_unique` entry would stand for ever and the person who closed the account could
 never register that address again. Three things about its shape are not free choices: it is **single-field**

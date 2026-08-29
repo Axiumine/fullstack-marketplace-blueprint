@@ -134,6 +134,15 @@ suite rather than passing quietly.
   delete is soft and *nothing is removed*, and that is now true for 30 days rather than indefinitely. It
   does not weaken the decision — an operator's hold survives a close for the whole retention window, and
   a hold that needs to outlive it was never this flag's job (see the `disabled` risk above).
+  ⚠️ **Reversed 2026-08-29, three days later, and the bullet above is kept a second time for the same
+  reason.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) drops `deleted_ttl`
+  and makes retention a day-30 **overwrite in place**, so property 1 of §Decision — the delete is soft and
+  *nothing is removed* — is true indefinitely again rather than for thirty days, and it is now true on
+  `shopOwner` too. [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md) reverses the other half:
+  re-registering the address inside the window **restores** the closed account instead of destroying it.
+  ⚠️ **This ADR's own decision is untouched by both.** `userDel` still does not gate on `disabled`, and a
+  suspension still survives everything here — including the undo, which clears `deleted` and leaves
+  `disabled` exactly where the operator put it (ADR-044).
 - **The Admin counterpart is still missing.** An operator can suspend a customer and cannot close one —
   there is no Admin-tier equivalent of `shopOwnerDel` for `user` (`phase5/epics/E19.md` §Open questions 3).
   Whoever builds it inherits this question from the other side and should not assume the answer is
