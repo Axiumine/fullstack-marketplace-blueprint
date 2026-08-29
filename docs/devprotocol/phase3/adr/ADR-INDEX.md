@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.18
+**Version:** 1.19
 **Date:** 2026-08-29
 **Author:** adr-agent
 **Changelog:**
@@ -181,6 +181,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-042 | A registration lives in Redis until the link is clicked; no account document exists before then | accepted | 2026-08-29 | — | — | Identity and access |
 | ADR-043 | The pending registration carries the destination collection's own field encryption | accepted | 2026-08-29 | — | — | Data model |
 | ADR-044 | Suspension names an actor and a reason; the database enforces presence, the service enforces length | accepted | 2026-08-29 | — | — | Identity and access |
+| ADR-045 | An inactive shop owner takes the storefront off-air; only the owner puts it back | accepted | 2026-08-29 | — | — | Catalogue |
 
 ## 3. By area
 
@@ -189,7 +190,7 @@ ADR-042, ADR-044
 
 **Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035, ADR-041, ADR-043
 
-**Catalogue** — ADR-008, ADR-009, ADR-012, ADR-038
+**Catalogue** — ADR-008, ADR-009, ADR-012, ADR-038, ADR-045
 
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027
 
@@ -214,6 +215,7 @@ ADR-037
 | Create the account document at registration submit, and let the confirmation flip a flag on it | ADR-042 | it is what the platform did until 2026-08-29, and it is the root of three defects at once: an admin-closed shop owner revivable by an anonymous form post (`restartShopOwnerRegistration.mts` `$unset`ting `deleted`, `waitApprov` never restored), an address held **forever** by a registration nobody ever clicked, and one `deleted` field meaning both *closed* and *abandoned*. It also cannot honour the days-1-to-30 re-registration window without either a hard delete or two documents on one address. The account document has exactly one writer, the confirmation handler; abandonment is a Redis key expiring |
 | Put one cleartext field in the pending registration record — "just for support", or to key it by `sha256(email)` | ADR-043 | the record is nothing but personal data, it crosses the `redis://` leg R45 still covers, and Redis persistence writes it to disk where a three-day TTL means nothing. Every field is encrypted exactly when its destination path is, with the destination's own algorithm and data key — so confirm is a byte copy, no re-encryption, and the plaintext never exists in memory for the trip. The deterministic ciphertext of `login.email` is already a stable lookup value; a digest would work and would silently cost that |
 | Put `maxLength: 1000` on `disabledReason` in the validator, the way ADR-035 caps `user.addresses` | ADR-044 | it would mean the field had stopped being encrypted. An encrypted path declares `bsonType: 'binData'` and nothing else — no `pattern`, no `maxLength` — and a suspension reason is operator prose about a person, so ADR-029 applies to it. The database enforces **presence** (`dependencies: { disabled: ['disabledReason'] }`, which needs no access to the value) and the service enforces length. ADR-035 is not reversed: it governs wherever the validator can see the value, and here it cannot |
+| Republish a shop owner's companies when their suspension is cleared — "restore what we took down" | [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) | suspending or closing an owner writes `published: false` on every company they own; clearing `disabled` writes **nothing**. The platform owner ruled it directly: *"un-suspending must not re-enable in the same place the companies, shopOwner must re-enable them by hands"*. The symmetry is the trap — restoring the flag means remembering its old value, which is the extra field this decision was chosen to avoid, and it would republish a shop the owner had deliberately taken down. ⚠️ **This does not reopen the 2026-08-14 ruling two rows above**: the cascade writes `published: false` only, never `true`, from a named status path — `companyUpdatePublished` is still the only writer of `true`, on either tier. Violation looks like `published: true` in a status or closure path, an `ownerInactive`-style second flag on `company`, or a cascade reaching `item` |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
@@ -271,7 +273,7 @@ Decisions this platform still owes an ADR, once taken:
   cross-file agreement check: that check needs no vendor, is not declined, and stays open under **R39**
   and `INFRA.md` §14 q8.
 - ~~**Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.~~ **Closed 2026-08-27 — it is no longer a gap, and it got the ADR from the other side.** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are permanently out of scope, so the design this bullet was waiting on does not start. Struck rather than deleted because the wait is the reason the bullet was here for thirty-seven ADRs, and because the sentence it ends on — *needs its own ADR when the design starts* — is what ADR-038 answers. Everything the bullet asserts about the working tree is still true and stays true: no collection, no resolver, no design, and `item` still has no price.
-- **Does suspending or closing a shop owner take their storefront off-air?** Opened 2026-08-29 with
+- ~~**Does suspending or closing a shop owner take their storefront off-air?** Opened 2026-08-29 with
   [`ADR-044`](./ADR-044-suspension-names-an-actor-and-a-reason.md), which makes suspension the operator's
   only lever now that [`ADR-041`](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) has
   removed deletion as an alternative — and the lever currently stops at the login.
@@ -283,7 +285,17 @@ Decisions this platform still owes an ADR, once taken:
   one into the other is not reversible by un-suspending if `published` was already false — but it has never
   been decided either way, and it was not surfaced when `disabled` was built. It needs the platform owner,
   and it needs an ADR only if the answer is *yes, cascade*: leaving it as it is changes nothing and is
-  already the shipped behaviour.
+  already the shipped behaviour.~~ **Closed 2026-08-29, hours after it was opened — the answer is yes,
+  cascade.** [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) records it. ⚠️ **The struck text's own objection was answered rather than
+  overruled, and the answer is the interesting part.** It says a cascade into `published` is not
+  reversible by un-suspending — true, and the platform owner ruled that un-suspending restores nothing:
+  *"shopOwner must re-enable them by hands"*. With nothing to restore there is nothing to remember, so
+  the *"cheap read"* the owner also asked for turns out to need no new field, no clause and no read
+  change at all. The bullet is struck rather than deleted because the shipped behaviour it describes —
+  `publicRead.mts:32-34` reading nothing on `shopOwner` — is exactly what stays true: the read is
+  untouched and only the two writers of the owner's state change. One question it raises is **not**
+  answered and is left framed in ADR-045 instead of here: whether `waitApprov` should hide a storefront
+  the same way.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
 - ~~**Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.~~ **Closed 2026-08-28 — the topology is written, and this bullet is what it was written against.** [ADR-039](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) answers all four questions the struck text lists: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 from Cloudflare's ranges, which is what ADR-022's wildcard bind now sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. Struck rather than deleted because the three findings named above are the reason this bullet existed, and only two of them move: **R46** closes, E13-S11 and E14-S08 keep their controls unchanged, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is *not* closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups.
 
@@ -336,3 +348,25 @@ exception is not extended**: the amendment was superseded by a new ADR the ordin
 place with forward pointers rather than rewritten. One bullet **opens** in §5 — whether suspending or
 closing a shop owner takes their storefront off-air; `publicRead.mts:32-34` reads nothing on `shopOwner`
 today, so it does not, and nobody has decided whether it should.
+
+v1.19 - 2026-08-29, later the same day: **[ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) added — the §5 bullet v1.18
+opened is struck the same day it was written, and the decision is the opposite of the one the bullet
+expected.** Asked whether suspending or closing a shop owner takes the storefront off-air, the platform
+owner answered *"yes"*, asked for a *"cheap read so denormalised flag on company"*, and then added the
+ruling that settles the mechanism: *"un-suspending must not re-enable in the same place the companies,
+shopOwner must re-enable them by hands"*. ⚠️ **That third ruling dissolves the objection this ADR was
+expected to work around.** Writing `published: false` was the obvious cascade and the obvious mistake —
+irreversible, and unable to tell a shop the owner had taken down from one the platform hid. It is only a
+mistake if un-suspending is meant to restore something. It is not: coming back is an act the owner
+performs, through `companyUpdatePublished`, which already exists, is gated by `idShopOwner`, and is already
+how an owner republishes after an operator unpublishes them (the 2026-08-14 pair of §4 rows). So the whole
+decision is two `updateMany` calls in the same transaction as the `shopOwner` write, and **nothing else** —
+no new field, no `collMod`, no migration, no Mongoose model edit, no backfill, no reconciliation sweep, and
+`livePublic()` is not modified, because `{ published: true }` already excludes what has to be excluded. The
+cheapest possible reading of *cheap read*. ⚠️ **What is paid for it is stated rather than hidden**: the
+owner's prior publish state is lost, so after un-suspension neither the platform nor the owner can say
+which shops were live, and a shop whose owner never logs back in stays dark for good. Both are the ruling
+working as instructed, not defects to be repaired later by remembering the old value — remembering it is
+the rejected option. `item` is deliberately not cascaded, so item-level publish state survives and one call
+per shop restores the catalogue. One row in §2, one number in §3's **Catalogue** line, one row in §4
+forbidding the helpful-looking restore. No ADR status moved and §1's supersession count is unchanged.
