@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.19
+**Version:** 1.20
 **Date:** 2026-08-29
 **Author:** adr-agent
 **Changelog:**
@@ -181,7 +181,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-042 | A registration lives in Redis until the link is clicked; no account document exists before then | accepted | 2026-08-29 | — | — | Identity and access |
 | ADR-043 | The pending registration carries the destination collection's own field encryption | accepted | 2026-08-29 | — | — | Data model |
 | ADR-044 | Suspension names an actor and a reason; the database enforces presence, the service enforces length | accepted | 2026-08-29 | — | — | Identity and access |
-| ADR-045 | An inactive shop owner takes the storefront off-air; only the owner puts it back | accepted | 2026-08-29 | — | — | Catalogue |
+| ADR-045 | An inactive shop owner takes the storefront off-air; only the owner puts it back | accepted, **amended 2026-08-29** — the cascade reaches `item`, fires from either tier, and gains a bulk control | 2026-08-29 | — | — | Catalogue |
 
 ## 3. By area
 
@@ -215,7 +215,7 @@ ADR-037
 | Create the account document at registration submit, and let the confirmation flip a flag on it | ADR-042 | it is what the platform did until 2026-08-29, and it is the root of three defects at once: an admin-closed shop owner revivable by an anonymous form post (`restartShopOwnerRegistration.mts` `$unset`ting `deleted`, `waitApprov` never restored), an address held **forever** by a registration nobody ever clicked, and one `deleted` field meaning both *closed* and *abandoned*. It also cannot honour the days-1-to-30 re-registration window without either a hard delete or two documents on one address. The account document has exactly one writer, the confirmation handler; abandonment is a Redis key expiring |
 | Put one cleartext field in the pending registration record — "just for support", or to key it by `sha256(email)` | ADR-043 | the record is nothing but personal data, it crosses the `redis://` leg R45 still covers, and Redis persistence writes it to disk where a three-day TTL means nothing. Every field is encrypted exactly when its destination path is, with the destination's own algorithm and data key — so confirm is a byte copy, no re-encryption, and the plaintext never exists in memory for the trip. The deterministic ciphertext of `login.email` is already a stable lookup value; a digest would work and would silently cost that |
 | Put `maxLength: 1000` on `disabledReason` in the validator, the way ADR-035 caps `user.addresses` | ADR-044 | it would mean the field had stopped being encrypted. An encrypted path declares `bsonType: 'binData'` and nothing else — no `pattern`, no `maxLength` — and a suspension reason is operator prose about a person, so ADR-029 applies to it. The database enforces **presence** (`dependencies: { disabled: ['disabledReason'] }`, which needs no access to the value) and the service enforces length. ADR-035 is not reversed: it governs wherever the validator can see the value, and here it cannot |
-| Republish a shop owner's companies when their suspension is cleared — "restore what we took down" | [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) | suspending or closing an owner writes `published: false` on every company they own; clearing `disabled` writes **nothing**. The platform owner ruled it directly: *"un-suspending must not re-enable in the same place the companies, shopOwner must re-enable them by hands"*. The symmetry is the trap — restoring the flag means remembering its old value, which is the extra field this decision was chosen to avoid, and it would republish a shop the owner had deliberately taken down. ⚠️ **This does not reopen the 2026-08-14 ruling two rows above**: the cascade writes `published: false` only, never `true`, from a named status path — `companyUpdatePublished` is still the only writer of `true`, on either tier. Violation looks like `published: true` in a status or closure path, an `ownerInactive`-style second flag on `company`, or a cascade reaching `item` |
+| Republish a shop owner's companies when their suspension is cleared — "restore what we took down" | [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) | suspending or closing an owner writes `published: false` on every company they own; clearing `disabled` writes **nothing**. The platform owner ruled it directly: *"un-suspending must not re-enable in the same place the companies, shopOwner must re-enable them by hands"*. The symmetry is the trap — restoring the flag means remembering its old value, which is the extra field this decision was chosen to avoid, and it would republish a shop the owner had deliberately taken down. ⚠️ **This does not reopen the 2026-08-14 ruling two rows above**: the cascade writes `published: false` only, never `true`, from a named status path — `companyUpdatePublished` is still the only writer of `true`, on either tier. ⚠️ **Amended the same day**: the cascade reaches `item` as well, it fires from *any* path that makes an owner inactive — the owner's own self-closure as much as an operator's — and restoring an owner writes to the `shopOwner` document **alone**, never to `company` and never to `item`. Violation looks like `published: true` in a status or closure path, an `ownerInactive`-style second flag on `company`, a missing item cascade, or a restore path that reads or writes either collection |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
 | Reintroduce vocabulary that presumes what is sold | ADR-008 | catalogue is domain-neutral on purpose; nothing in item/itemCategory presumes a product type and nothing should |
@@ -370,3 +370,25 @@ working as instructed, not defects to be repaired later by remembering the old v
 the rejected option. `item` is deliberately not cascaded, so item-level publish state survives and one call
 per shop restores the catalogue. One row in §2, one number in §3's **Catalogue** line, one row in §4
 forbidding the helpful-looking restore. No ADR status moved and §1's supersession count is unchanged.
+
+v1.20 - 2026-08-29, third revision that day: **[ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) amended within hours of
+being accepted — the cascade reaches `item` too, and the objection that killed that idea is answered
+rather than overruled.** The accepted page argued `item` should be left alone so that republishing one
+company restores a whole catalogue, and that cascading would hand the owner hundreds of buttons to press.
+The platform owner ruled the cascade in anyway — *"item must cascade to unpublish"* — and supplied the
+answer to the objection in the same sentence: *"allow shopowner to select items, one-by-one or all by a
+checkbox next to it in the page that displays them for enable them in one click"*. ⚠️ **So the bulk control
+is part of the decision, not a follow-up story** — a checkbox per item card, a select-all in the `Items`
+heading, and a mutation the ShopOwner tier does not have: `itemsUpdatePublished(_ids, published)`, guarded
+by `shopOwnerCompanyIds` and all-or-nothing, because a filter that silently skips ids the caller does not
+own leaks which ids exist. Its list needs a bound, for the reason `publicRead.mts` has a `MAX_LIMIT`. A
+second ruling the same day settles both ends of the lifecycle: the cascade hangs off the **state**, not the
+tier that changed it, so a shop owner closing their own account fires it exactly as an operator's closure
+does — *"by shop owner or by admin"* — and ⚠️ **restoring an owner touches the `shopOwner` document alone**:
+*"restoring a shopowner, restore only his account"*. The account comes back, the storefront does not, and
+the owner republishes it. §2's status column and §4's row carry both. One phrase is deliberately **not**
+turned into a rule — *"in 30 days windows"* is read as ADR-041's existing retention window, not a new
+deadline on republishing; for a closed owner it has no mechanism behind it yet, since closure is one-way
+today and re-registering inside the window mints a new `_id` owning no company. Whether an operator may
+lift a `deleted` stamp inside the thirty days is left open for the platform owner rather than answered by
+analogy.

@@ -1,7 +1,7 @@
 # ADR-045 — An inactive shop owner takes the storefront off-air, and only the owner puts it back
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **amended 2026-08-29** — see the Amendment at the foot of this page
 **Date:** 2026-08-29
 **Deciders:** platform owner
 **Supersedes:** —
@@ -96,11 +96,15 @@ exists to prevent.
 filter in this codebase. `$set: { published: false }` is never refused by the collection's `$expr`, which
 only demands a `slug` and a `publicName` when `published` is **true**.
 
-**`item` is not touched.** An item disappears because its company does — `livePublic()` gates both, and
+~~**`item` is not touched.** An item disappears because its company does — `livePublic()` gates both, and
 `funCompanyUpdatePublished`'s own comment already records that unpublishing a company hides its whole
 catalogue. Each item keeps its own `published` value through the whole episode, so republishing the company
 brings the catalogue back exactly as the owner left it. Cascading into `item` as well would destroy that and
-give the owner a second, much longer list to rebuild by hand.
+give the owner a second, much longer list to rebuild by hand.~~
+
+⚠️ **Struck the same day by the Amendment below.** The platform owner ruled that `item` cascades too. The
+objection above — that it hands the owner a much longer list to rebuild by hand — was not disputed; it was
+answered, by making the list something the owner clears in one click rather than one item at a time.
 
 **The frontend has to say this out loud.** An owner who is un-suspended and finds their shops dark, with no
 explanation, will read it as data loss. `marketplace-shopowner` must state on the company list that shops are
@@ -126,8 +130,9 @@ was created in the first place. It is noted here so that whoever asks it finds i
   self-healing sweep — none of it has to exist.
 - **Coming back is an explicit, audited act by the owner**, through a mutation with an ownership filter and a
   validator, rather than a bulk write performed on their behalf by an operator clearing an unrelated flag.
-- **The catalogue survives intact.** Item-level publish state is untouched, so one call per shop restores
-  what could otherwise be hundreds of items of hand work.
+- ~~**The catalogue survives intact.** Item-level publish state is untouched, so one call per shop restores
+  what could otherwise be hundreds of items of hand work.~~ Withdrawn by the Amendment: the catalogue does
+  not survive, and the hand work is answered with a bulk control instead.
 
 ### Negative
 - **The owner's prior publish state is lost.** After un-suspension the platform cannot say which shops were
@@ -138,9 +143,11 @@ was created in the first place. It is noted here so that whoever asks it finds i
 - **A silently dark shop.** An owner who never logs back in leaves a storefront down permanently with no
   operator action having explicitly taken it down. That is the intended reading of *"by hands"*, but it means
   un-suspension alone does not restore the platform to its prior state and never will.
-- **Items are hidden transitively, not directly.** An `item` has no relationship to `shopOwner`; it
+- ~~**Items are hidden transitively, not directly.** An `item` has no relationship to `shopOwner`; it
   disappears because its `company` does. Any future public read that reaches `item` without the company
-  filter bypasses this entirely.
+  filter bypasses this entirely.~~ ⚠️ **Reversed in effect by the Amendment, and the risk it names is what
+  the Amendment removes**: after it, an item is hidden *directly* by its own `published: false` as well as
+  transitively, so a public read that reaches `item` without the company filter no longer leaks it.
 
 ### Risks
 - **A future refactor "helpfully" restoring `published`.** Clearing `disabled` and republishing what was
@@ -181,6 +188,9 @@ grep -rn "published: true" BEs/dev/marketplace-dev-admin-authenticated-resource/
 # 3. No new flag crept back in. Expect zero hits across all sixteen repos.
 grep -rn "ownerInactive" .
 
+# 5. The item cascade exists too, and nothing republishes items on the owner's behalf (Amendment).
+grep -rn "published: false" BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/shopOwner/
+
 # 4. The public read is unchanged — two clauses, not three.
 sed -n '31,34p' BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts
 ```
@@ -191,4 +201,103 @@ unpublished and that the owner can bring one back with `companyUpdatePublished` 
 
 A violation on disk looks like: `published: true` written by any status or closure path; a new
 `ownerInactive`-style field on `company`; the company update sitting outside the `shopOwner` write's session;
-a cascade reaching `item`; or a public catalogue read that does not go through `livePublic()`.
+~~a cascade reaching `item`~~ **an item cascade that is missing** (see the Amendment); or a public catalogue
+read that does not go through `livePublic()`.
+
+---
+
+## Amendment 2026-08-29 — the cascade reaches `item`, fires from either tier, and coming back is a bulk action
+
+**Scope: the treatment of `item`, and which writers the cascade hangs off.** Everything above about
+`company` stands unchanged — the cascade, the absence of any automatic restore, the untouched
+`livePublic()`, the absence of any schema change.
+
+The platform owner ruled, hours after this page was accepted:
+
+> *"item must cascade to unpublish. and manually enabled by hand when user re-enable them in 30 days
+> windows. allow shopowner to select items, one-by-one or all by a checkbox next to it in the page that
+> displays them for enable them in one click"*
+
+### What changes
+
+Both cascade writers gain a second `updateMany`, in the **same** `session.withTransaction` as the first:
+
+```js
+Item.updateMany(
+  { idCompany: { $in: <every company of that owner> } },
+  { $set: { published: false } },
+)
+```
+
+The company ids come from the same read the company cascade already performs, so this is one extra write
+against a set already in hand, not a second traversal. `item` carries no `idShopOwner` — ownership is
+transitive through `idCompany`, exactly as `throwIfShopOwnerDontOwnItem` documents — so the item filter is
+necessarily the second hop and cannot be shortened.
+
+Nothing restores `item.published` automatically, for the same reason nothing restores `company.published`.
+
+### Who fires it, and what coming back touches
+
+A second ruling the same day settles both ends:
+
+> *"so disable a shop owner, by shop owner or by admin, unpublish companies and items. restoring a
+> shopowner, restore only his account"*
+
+**The cascade hangs off the state, not off the tier that changed it.** The Decision's writer table names the
+operator-side functions because they are the ones that exist; the obligation is on *any* path that makes an
+owner inactive. A shop owner disabling or closing their own account — the ShopOwner-tier self-service
+counterpart of `funUserDel`, which this platform does not have yet — carries exactly the same two
+`updateMany` calls in exactly the same transaction. Whoever builds it inherits this paragraph, and a
+self-closure that skips the cascade is the same defect as an operator closure that skips it.
+
+⚠️ **Restoring a shop owner restores the account and nothing else.** Whatever lifts `disabled` — and
+whatever, if anything, is ever built to lift a `deleted` stamp — writes to the `shopOwner` document alone.
+It does not touch `company`, it does not touch `item`, and it does not read what either of them held before.
+This is the ruling stated as an invariant, because it is the one a well-meaning refactor breaks: the account
+comes back, the storefront does not, and the owner puts the storefront back themselves.
+
+### The bulk control this obliges
+
+Withdrawing every item makes the hand work real: an owner with two hundred items cannot be asked to click
+two hundred buttons, and `Items.tsx` renders one full editable card per item rather than a compact row. So
+the ruling pairs the cascade with its remedy, and the remedy is part of this decision rather than a
+follow-up:
+
+- **A checkbox per item**, in the card header beside the `Published:` state and the existing single-item
+  Publish button, which stays exactly as it is.
+- **A select-all checkbox** in the `Items` heading row, beside the add-item control.
+- **One button that publishes the selection** in a single call.
+
+That button needs a mutation the ShopOwner tier does not have: **`itemsUpdatePublished(_ids: [ID!]!,
+published: Boolean!)`**, on `marketplace-dev-authenticated-resource`. `itemUpdatePublished` takes one `_id`,
+and issuing N of them from a browser is N round trips and N partial failures.
+
+⚠️ **Its guard is the two-hop one, and the batch is all-or-nothing.** `shopOwnerCompanyIds(shopOwnerId)`
+first, then a `countDocuments` over the named ids scoped to that set; if the count is not the length of the
+list, the whole call is refused with 403 and nothing is written. A filter that silently skips ids the owner
+does not hold would let a client learn which ids exist by watching how many rows changed. The pattern is
+`throwIfShopOwnerDontOwnItem`'s, widened from one id to a list, and the `trusted()` wrappers are not
+optional — `sanitizeFilter` is global.
+
+⚠️ **The list needs a bound.** An unbounded `[ID!]!` is a work-amplification vector on an authenticated but
+cheap-to-obtain session, which is the same reasoning that gives `publicRead.mts` its `MAX_LIMIT`. The bound
+belongs with whatever `companyItems` can return for one shop, since "select all, publish" must remain
+possible for a real catalogue; if that query is unbounded today, this is where it stops being unbounded.
+
+`published: Boolean!` rather than a publish-only mutation, so bulk withdrawal is the same call. It matches
+`itemUpdatePublished`'s own signature, and a bulk control that can only go one way is the shape owners work
+around by hand.
+
+### What this costs, restated
+
+The Positive bullet claiming the catalogue survives is withdrawn above. After a suspension the owner's
+item-level publish state is gone as well as their shop-level state, and no record of it is kept — keeping
+one is the rejected option, at item scale. What the owner gets instead is a control that makes restoring the
+whole catalogue one click, which is the trade the ruling makes explicitly.
+
+One thing the rulings name is **not** decided here: *"in 30 days windows"* is read as ADR-041's existing
+retention window rather than a new clock, and no deadline is imposed on republishing. A suspended owner has
+no clock at all — un-suspension can happen at any time and the shops wait. For a *closed* owner the phrase
+has no mechanism behind it yet: closure is one-way today, and re-registering inside the window mints a new
+`_id` that owns no company. Whether an operator may lift a `deleted` stamp within the thirty days is a
+question for the platform owner and is deliberately left open rather than answered by analogy.
