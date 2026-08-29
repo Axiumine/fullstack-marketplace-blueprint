@@ -96,6 +96,18 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
   authenticates against `user` and would refuse a shop owner with a wrong-password error, so their way
   in is the link in the activation mail, to an app on another origin.
 
+- **The private area is four screens, and the fourth ends the account** — `/account` (profile),
+  `/account/addresses`, `/account/password` and `/account/close`, plus sign-out. The last one sends
+  `userDel` with an **empty variable set** (the session names the account; an id from a browser would make
+  it "close any customer's account") and then signs out, and it states in words what a refused login
+  deliberately will not: every session ends, the undo is *registering again* at the same address within
+  thirty days and never *logging in*, a suspension survives the round trip, and day 30 overwrites the
+  personal fields rather than removing the document. ⚠️ **That copy has to agree with `/privacy`**, which
+  makes the same three statements publicly — they are one pair of pages over ADR-041 and ADR-046, and
+  drifting apart is how one of them becomes false. It is the one write on this tier sent **without**
+  invalidating `GraphQLUserMe`: there is no account left to re-read, and the invalidation would only race
+  the sign-out for a 401. The shop owner's counterpart is the `/account` card in `marketplace-shopowner`.
+
 - ⚠️ **Public routes are SSR, `/account/*` is `ssr: false`, and that pairing is a security boundary**
   (ADR-018). Rendering authenticated HTML on a server behind a shared `proxy_cache` is how one
   customer's data reaches another. The cache bypasses on the session cookie and the account routes never
@@ -160,10 +172,11 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 |---|---|---|---|
 | `marketplace-admin` | 71 | 1071 | 2053 / 7 / 0 |
 | `marketplace-shopowner` | 49 | 677 | 1083 / 5 / 0 |
-| `marketplace-user` | 73 | 1312 | 2171 / 7 / 0 |
+| `marketplace-user` | 76 | 1433 | 2171 / 7 / 0 |
 | `marketplace-services-status` | 7 | 379 | 1102 / 1 / 0 |
 
-File and test counts are a `yarn test` run of 2026-08-25. ⚠️ **The mutant columns are older than that** —
+File and test counts are a `yarn test` run of 2026-08-25, except `marketplace-user`'s, recounted
+2026-08-29 with the close-account screen. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
 E19 added. The gate is hook-only in all four repos, so the next push is what re-measures them; do not
 start a run to refresh this table.

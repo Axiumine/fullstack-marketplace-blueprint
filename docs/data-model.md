@@ -227,8 +227,12 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
 Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, never a `COLLSCAN`.
 
 ⚠️ **Nothing on this platform removes a document, and since 2026-08-29 no index does either.**
-`userDel` and `shopOwnerDel` stamp `deleted` and `deletedBy`, revoke every session the account holds and
-take everything it had published off the public site; the document itself is permanent. Thirty days later
+`userDel` and `shopOwnerDel` stamp `deleted`, revoke every session the account holds and
+take everything it had published off the public site; the document itself is permanent. ⚠️ **`deletedBy`
+tells the two closures apart, and only one of them writes it** (ADR-044): a self-close — `funUserDel` on the
+customer tier, reached from `/account/close` in `marketplace-user`, and `funShopOwnerDel` on the owner's —
+stamps `deleted` alone, while the Admin tier's `shopOwnerDel` names the operator who closed it. An empty
+`deletedBy` therefore says *the holder did this*, and reading it as "not recorded" gets the actor backwards. Thirty days later
 a sweep in `marketplace-dev-admin-authenticated-resource` — `src/lib/retention/retentionSweep.mts`, started
 by `startRetentionSweeper.mts`, once a day and on both collections — **overwrites** the personal fields in
 place and stamps `scrubbedAt`: `login.email` becomes `deleted-${_id}@invalid.local`, unique by construction
