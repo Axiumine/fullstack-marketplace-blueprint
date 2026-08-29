@@ -9,7 +9,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
                                                                     idParent ┘  (one level only)
 ```
 
-`admin` and `user` both stand outside it: an operator owns nothing and is owned by nothing, and a
+`admin` and `user` both stand outside it: an admin owns nothing and is owned by nothing, and a
 customer owns only the addresses embedded in their own document.
 
 **There is no shop collection, and there will not be — a shop *is* a `company`** (ADR-007). A shop
@@ -66,7 +66,7 @@ The three divergences are intentional and none of them is an accident to "fix":
    that is not in OpenStreetMap. An address saved without a point is a customer nothing can sort by
    distance, which is the accepted cost of not refusing an address a map cannot find.
 2. **No `waitApprov`.** Customers self-serve with nothing to approve; a shop owner who self-serves is
-   parked until an operator clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
+   parked until an admin clears the flag, and one an Admin created is not parked at all. ⚠️ **Permanent,
    decided 2026-08-25** — no approval, fraud check or spam-signup hold is coming for this collection, and
    `emailVerify.valid` stays the whole distance between `userRegister` and a session (ADR-INDEX §4,
    `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
@@ -74,7 +74,7 @@ The three divergences are intentional and none of them is an accident to "fix":
    — and until 2026-08-25 **nothing wrote it**, because the Admin tier had no `user*` mutation at all.
    `userUpdateStatus` on `marketplace-dev-admin-authenticated-resource` is the writer (E19-S03), and
    disabling ends every session that customer holds in the same call; re-enabling ends none, because
-   nobody's credentials changed. The operator reaches it from `usersActiveTbl` and the `/customers` screen
+   nobody's credentials changed. The admin reaches it from `usersActiveTbl` and the `/customers` screen
    in `marketplace-admin`, and **no field became queryable that was not already**: the table sorts and
    filters on `registeredAt` and the status flags, which were never encrypted (ADR-INDEX §4, ADR-029).
 3. **`defaultAddress`** has no counterpart at all — see below.
@@ -174,7 +174,7 @@ exists to prevent.
 
 ⚠️ **`itemCategory` has no `published` and will not get one** (platform owner, 2026-08-14). Present or
 soft-deleted is its whole state space, with nothing between: `item.published` and `company.published`
-exist because a shop drafts its own public surface, and the taxonomy is operator-written on one tier. So a
+exist because a shop drafts its own public surface, and the taxonomy is admin-written on one tier. So a
 category is public the moment it is created — created before its items, it shows an empty listing until
 they arrive, and that is the accepted cost. `itemCategories` filters `deleted` and nothing else.
 
@@ -215,8 +215,8 @@ The catalogue is read by anonymous traffic at scale, so its indexes are design, 
 - `item`: `idCompany_list`, `idCompany_slug_unique`, `idCompany_published`, `idCategory_published`, the
   `_name` sort variants of both, and `search_text`.
 - `itemCategory`: `slug_unique`, `idParent_position`.
-- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus the operator table's
-  `tbl_active_registeredAt` and the operator chart's `registeredAt_series` (`{registeredAt:1}`, added by
+- `user`: `login.email_unique`, from the shared `INDEXES_LOGIN_EMAIL`, plus the admin table's
+  `tbl_active_registeredAt` and the admin chart's `registeredAt_series` (`{registeredAt:1}`, added by
   `20260829000200-user-add-registered-at-series-index.js`) — none of which the public surface reads. The
   chart index cannot ride on the table one: `tbl_active_registeredAt` leads with `deleted` and `disabled`,
   and the chart bounds neither, so `registeredAt` is ordered only within each group there. ⚠️ `INDEXES_USER`
@@ -231,12 +231,12 @@ Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, nev
 take everything it had published off the public site; the document itself is permanent. ⚠️ **`deletedBy`
 tells the two closures apart, and only one of them writes it** (ADR-044): a self-close — `funUserDel` on the
 customer tier, reached from `/account/close` in `marketplace-user`, and `funShopOwnerDel` on the owner's —
-stamps `deleted` alone, while the Admin tier's `shopOwnerDel` names the operator who closed it. An empty
+stamps `deleted` alone, while the Admin tier's `shopOwnerDel` names the admin who closed it. An empty
 `deletedBy` therefore says *the holder did this*, and reading it as "not recorded" gets the actor backwards.
 ⚠️ **`admin` has no closure at all, and that is a ruling rather than a gap** (2026-08-29,
 `phase5/epics/E20.md` §6 question 2). The collection carries `deleted` and `disabled` — both come from
 `lib/schemas/account.js`, and `findAccountForSession` reads them on every refresh — and **nothing anywhere
-writes either one**: there is no `adminDel` on any tier and none may be built. So an operator account is
+writes either one**: there is no `adminDel` on any tier and none may be built. So an admin account is
 never closed, never scrubbed and never restored, and the four ADR-044 fields stay off the collection because
 an actor is only worth recording where an act is possible. Thirty days later
 a sweep in `marketplace-dev-admin-authenticated-resource` — `src/lib/retention/retentionSweep.mts`, started
@@ -249,9 +249,9 @@ overwritten by default rather than forgotten.
 
 ⚠️ **Inside those thirty days the closure is undoable, and the door is a registration rather than a login.**
 Registering again at the same address and confirming the message clears `deleted` and hands the same `_id`
-back — unpublished, and for a shop owner behind `waitApprov` again so the operator keeps a veto
+back — unpublished, and for a shop owner behind `waitApprov` again so the admin keeps a veto
 ([`ADR-046`](./devprotocol/phase3/adr/ADR-046-the-retention-window-is-an-undo-window.md)). `disabled` is
-**not** cleared by it: a suspension is the operator's to lift. The login gates refuse a closed account
+**not** cleared by it: a suspension is the admin's to lift. The login gates refuse a closed account
 throughout the window, so there is nothing to sign in to until the re-registration lands — which is why
 mailbox control alone recovers the account, and why the privacy notice says so.
 
@@ -289,7 +289,7 @@ change, not a performance one.
 ⚠️ **Neither algorithm survives a sort, a range or a `$regex`.** `shopOwner.personalData.firstName`,
 `lastName` and `address.city` are therefore **left in the clear**, deliberately: they are the sort keys
 of `tbl_active_lastName_firstName`, `tbl_active_firstName` and `tbl_active_city`, and the `/^term/i`
-targets of the operator's shop-owner table. Encrypting them would not slow that table down, it would
+targets of the admin's shop-owner table. Encrypting them would not slow that table down, it would
 make it silently wrong. The same three fields on `admin` and `user` *are* encrypted, because nothing
 sorts or prefix-searches those. `login.password` is not encrypted either — it is already a hash.
 
@@ -446,7 +446,7 @@ Seven migrations, six of which create a collection in its final shape and one of
 ⚠️ **The seed writes no categories.** `20260301000600-seed-demo.js` inserts one `admin`, one `shopOwner`
 and one `company` and stops there, so an empty taxonomy is the state a fresh database starts in, every
 `itemCategory` document that has ever existed on any machine came out of `itemCategoryAdd` on the Admin
-tier, and every `itemAdd` fails `throwIfItemCategoryMissing` until an operator creates a category.
+tier, and every `itemAdd` fails `throwIfItemCategoryMissing` until an admin creates a category.
 There is no `collMod` and no `<ts>-alter-<coll>.js`: a collection is declared once, so `migrations/` reads
 as the schema rather than as its diff history. A new collection gets a builder under `lib/schemas/` and one
 `<ts>-create-<coll>.js` that calls it — never an inline validator.

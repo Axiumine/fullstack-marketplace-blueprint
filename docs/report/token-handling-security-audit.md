@@ -162,12 +162,12 @@ Every password-write path on the platform was checked for a Redis reference. All
 | Path | File |
 |---|---|
 | Customer changes own password | `marketplace-dev-user-authenticated-resource/src/lib/user/funUserUpdatePwd.mts` |
-| Operator changes own password | `marketplace-dev-admin-authenticated-resource/src/lib/admin/funAdminUpdatePwd.mts` |
+| Admin changes own password | `marketplace-dev-admin-authenticated-resource/src/lib/admin/funAdminUpdatePwd.mts` |
 | ShopOwner reset-confirm | `marketplace-dev-public-resource/src/lib/access/resetPwdFlow.mts` |
 | Customer reset-confirm | `marketplace-dev-public-resource/src/lib/access/resetPwdFlowUser.mts` |
 | Customer reset-confirm mutation | `.../graphQLPublic/schema/mutations/userUpdatePwd.mts` |
 
-Changing a password is the only remediation a compromised user can perform without contacting an operator,
+Changing a password is the only remediation a compromised user can perform without contacting an admin,
 and on this platform it remediates nothing. An attacker's established session — including one obtained
 through §3.1 — survives the password change untouched, bounded only by the uncapped sliding window of
 §3.2. `funShopOwnerUpdateEmail.mts:15-19` acknowledges the same shape in its own comment, correctly noting
@@ -185,7 +185,7 @@ be fully closed without §3.6 (no account→sessions index), but the authenticat
 > alongside the authenticated ones rather than being left behind: every password write, every email change
 > and every ShopOwner status transition calls `revokeAllSessionsForAccount`
 > (`marketplace-common/src/others/revokeAllSessionsForAccount.mts:79`). The `SECURITY_AUTH.md:331` line this
-> finding quoted is no longer true of an operator, and remains true of the account holder — there is still
+> finding quoted is no longer true of an admin, and remains true of the account holder — there is still
 > no self-serve *log out everywhere* screen, and none was in scope here. E15-S01 also fixed a live defect
 > found while auditing this: `logout` matched on a field name that never existed, so it had never once
 > ended a session.
@@ -211,7 +211,7 @@ already there.
 > *session* records: `refreshSessionTokens.mts:250-255` builds a `Set` of both names and issues one `del`
 > per distinct key. The set is what closes the residual this paragraph used to end on — a refresh sent with
 > **no** `Authorization` header, which is exactly what a page reload does, presented nothing to delete, and
-> that access token then lived out its own TTL unreachable by logout, family revocation and the operator
+> that access token then lived out its own TTL unreachable by logout, family revocation and the admin
 > console alike. It was observed on the running platform rather than inferred
 > (`report/live-auth-path-observation.md` §6), and it is reachable now because the refresh hash carries
 > `accessKey`: the session names its own access half, so the rotation is right whatever the request looked
@@ -312,9 +312,9 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
   together: the digest is now the only name a session has. Neither precondition ever had to be waited out —
   the platform has never been deployed, so no pre-cutover session existed anywhere, and the counter read
   zero on the one dev cluster.
-- **b — fixed (E15-S02, E15-S03; operator half E17).** `<REDIS_KEY>idx:<tier>:<accountId>`, one field per
+- **b — fixed (E15-S02, E15-S03; admin half E17).** `<REDIS_KEY>idx:<tier>:<accountId>`, one field per
   live session, each `HEXPIRE`d to its own session's cap (`sessionKeys.mts:104`). It is what E15's
-  credential-write revocation and E17's operator console are both built on. No `SCAN` was introduced —
+  credential-write revocation and E17's admin console are both built on. No `SCAN` was introduced —
   BCON-08 still forbids it.
 - **c — comparison fixed, exposure routed (E13-S03, E13-S11; ADR-032).** Six comparison sites became
   `constantTimeEquals` (`marketplace-common/src/others/constantTimeEquals.mts:53`) and the bypass is
@@ -435,7 +435,7 @@ Stated so the report is not read as more complete than it is.
   all of them is not: MongoDB Community 8.0.28 carries no encryption option in the binary, and both
   volumes sit on an unencrypted filesystem in Dev — unknown for any other environment, because no other
   environment exists. Two things that finding surfaced and this audit did not: `shopOwner`'s first name,
-  last name and city are permanently plaintext for the operator table's sake, and the Redis
+  last name and city are permanently plaintext for the admin table's sake, and the Redis
   access-token session hash carries the account's email in the clear, into the AOF.
 - **No full dependency-tree audit** of `@axiumine/koa-utils` or `@sentry/node` beyond the specific
   mechanisms each finding needed. **Answered 2026-08-13 by E18-S04**, in
@@ -510,7 +510,7 @@ reopen it; "routed" means it was never a code question and now belongs to a deci
 | 3.4 | The old access token survives a refresh | fixed | E14-S06 — `refreshSessionTokens.mts:250-255`; header-less path closed 2026-08-13 by the `accessKey` field, `live-auth-path-observation.md` §6; the revocation residual **R54** closed the same day, `sessionKeys.mts` `retireAccessSession`. Both halves of the last acceptance criterion are proved by three real-cluster assertions across two suites rather than by one two-service test — §3.4's outcome block names them |
 | 3.5 | Admin-only `sendDefaultPii`, unverified TLS in all nine | fixed | E12-S01…S05, S13, S21, S22, S24 — `sentryBeforeSend.mts` |
 | 3.6a | Redis keys are the raw token | fixed | E13-S01 — `sessionKeys.mts:52`; E13-S10 still owes the fallback's removal |
-| 3.6b | No account→sessions index | fixed | E15-S02, S03 — `sessionKeys.mts:104`; operator half in E17 |
+| 3.6b | No account→sessions index | fixed | E15-S02, S03 — `sessionKeys.mts:104`; admin half in E17 |
 | 3.6c | `INTROSPECTION_CODE` reachable wherever the port is | comparison fixed, exposure **routed** | E13-S03, E13-S11 — `constantTimeEquals.mts:53`, `isIntrospectionBypassAllowed.mts:33`; the port itself is **ADR-032** |
 | 3.6d | `assertTier` reject path untested in 2 of 3 | fixed, and generalised | E18-S01, E18-S02 — `authBoundaryContract.mts`, AB-01..AB-11 |
 | 3.6e | `waitApprov` enforced nowhere, doc says otherwise | fixed in code | E01-S11, E15-S07, E15-S08 — `checkShopOwnerApproval.mts:35` |
@@ -539,7 +539,7 @@ this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the 
 - ~~**Revocation still ends refresh sessions only**~~ — **closed 2026-08-13, hours after it was written
   here.** `revokeAllSessionsForAccount` and the E17 console's `funRevokeSession` retire the access half
   through the refresh hash's `accessKey` before deleting the hash that names it, so a password change, a
-  disable and an operator's revoke all end the access token now (§3.4's residual, **R54**, closed).
+  disable and an admin's revoke all end the access token now (§3.4's residual, **R54**, closed).
   `revokeSessionFamily` was named in that residual and never belonged in it: its set holds the pair every
   rotation files, so it has deleted both halves since E14-S02. The *orphaned* access token found live on
   2026-08-13 was fixed earlier the same day, by the field this closure reads. §3.4 has no residual left.

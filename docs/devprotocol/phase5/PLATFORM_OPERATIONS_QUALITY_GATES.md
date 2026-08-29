@@ -244,7 +244,7 @@ Technical story: coverage proves a line ran, mutation proves a wrong line would 
   `thresholds.break` (BCON-02).
 
 ### E09-S03 — `marketplace-services-status` gate now actually runs, closing a silent-pass hole   `built`
-**As a** platform operator, **when** `marketplace-services-status` changes, **I want** its coverage/mutation/Qodana
+**As a** platform admin, **when** `marketplace-services-status` changes, **I want** its coverage/mutation/Qodana
 gates to run from the parent's own hooks **so that** a change to code with no repo of its own is not
 merged unverified.
 **domains:** testing, infra

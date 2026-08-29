@@ -172,7 +172,7 @@ frontends — the first run since that story — returned 99.86 for `marketplace
 themselves and one equivalent mutant; fixed here, and §4 no longer claims a score nobody measured. E12 reads
 26 of 26.
 v2.7 - 2026-08-26: §6's closing note annotated, not rewritten. Open question 1 (NFR-CO02) was closed on 2026-08-26 by a decision taken outside this epic; the 2026-08-11 paragraph saying it stayed open through E12's answers was true when written and its reasoning still holds, so it stands with a dated block quote underneath. No story, criterion or status changed. ⚠️ **Renumbered 2026-08-27.** This entry was written as `v2.6`, which another entry in this changelog already held — two different edits under one number, and a citation of "E12.md v2.6" could not be resolved to one of them. It takes the next free number instead. It stays where it is: this changelog runs oldest-first, and the number that fits the sequence stays with the entry that sits in it. Nothing in the entry, and nothing in the document, changed with the renumber; no other document cited either number.
-v2.8 - 2026-08-27: E12-S15 **reclassified, not closed**. Its state cell read `built` **in the repo, not yet in the zone** since 2026-08-11, which reads as outstanding work on this backlog and is not what it is: every acceptance criterion the story wrote is met and gated, and what remains — enabling Authenticated Origin Pulls in Cloudflare and placing the zone CA under `/etc/nginx/certs/` — needs a zone and a host that do not exist here. This platform is a blueprint published for the community (`ADR-037`), so that operator role does not exist in this checkout; the row now says so and names the adopter as its owner, the same reading `EPICS_STORIES.md` §6.1 applied to six questions whose owner cell was the tell. ⚠️ **No score moved and no control closed.** R44 stays 3×5=15 🟠 High and R46 stays 🟠 High, because `ADR-032` forbids closing a control by appeal to a network boundary and an absent host is an absence of exposure rather than a mitigation. No story, criterion, evidence line or gate changed.
+v2.8 - 2026-08-27: E12-S15 **reclassified, not closed**. Its state cell read `built` **in the repo, not yet in the zone** since 2026-08-11, which reads as outstanding work on this backlog and is not what it is: every acceptance criterion the story wrote is met and gated, and what remains — enabling Authenticated Origin Pulls in Cloudflare and placing the zone CA under `/etc/nginx/certs/` — needs a zone and a host that do not exist here. This platform is a blueprint published for the community (`ADR-037`), so that admin role does not exist in this checkout; the row now says so and names the adopter as its owner, the same reading `EPICS_STORIES.md` §6.1 applied to six questions whose owner cell was the tell. ⚠️ **No score moved and no control closed.** R44 stays 3×5=15 🟠 High and R46 stays 🟠 High, because `ADR-032` forbids closing a control by appeal to a network boundary and an absent host is an absence of exposure rather than a mitigation. No story, criterion, evidence line or gate changed.
 v2.9 - 2026-08-27, later: **`phase5/epics/E12.md` is deleted and this file is its record** — the eleventh epic record to move beside the index rather than sit under it, and the first from the E12-E18 remediation block. Moved intact, which is the E01..E10 pattern and not E11's: nothing here was distributed, because all twenty-six stories are `built` and the file is the record of a shipped hardening pass. New §0 states why, names the ten that moved before it, and separates E11 — deleted with no replacement — from the eleven that moved. Every internal relative link is re-based one level shallower (`../../../report/` → `../../report/`, `../../phase3/` → `../phase3/`, `../EPICS_STORIES.md` → `./EPICS_STORIES.md`, `../../../../SETUP.md` → `../../../SETUP.md`) and all resolve. ⚠️ **No story id changed**: `E12-S01` … `E12-S26` are cited from 87 source files across all fifteen sub-repos and twenty Markdown files, and renumbering was refused for the reason E01 refused it. No story, criterion, evidence line, state or gate changed — this is a move, not a revision.
 v2.10 - 2026-08-28: one dated note in the front matter, where this file names the topology gap that bounds E12-S15. `ADR-039` supersedes `ADR-032` and decides that Cloudflare sits in front of the origin, so the configuration E12-S15 shipped is now the decided shape rather than an anticipated one. Nothing about the story moved: its repo half stays `built`, its zone half stays an adopter step (v2.8), and **R44** keeps its score and its missing date. No other section touched.
 
@@ -444,7 +444,7 @@ that is corrected — so E12-S07 is a prerequisite rather than a repair.
 ## 4. Stories
 
 ### E12-S01 — Certificate verification is on, in all nine services   `built`
-**As a** platform operator, **when** any service makes an outbound HTTPS call, **I want** the certificate
+**As a** platform admin, **when** any service makes an outbound HTTPS call, **I want** the certificate
 verified **so that** anything on the path cannot silently read or rewrite it.
 **domains:** backend, testing
 
@@ -655,7 +655,7 @@ accident.
 **Evidence (gap):** `@sentry/core/build/cjs/utils/request.js:150-197` collects request data including the address
 
 ### E12-S07 — The edge access logs record no client address   `built`
-**As a** platform operator, **when** nginx serves any request on any of the three vhosts, **I want** the
+**As a** platform admin, **when** nginx serves any request on any of the three vhosts, **I want** the
 access log line to carry no client address in any form **so that** the standing GDPR decision holds at the
 edge and not only inside the Node processes.
 
@@ -763,7 +763,7 @@ verifier already holds.
 `BEs/marketplace-common/test/others.test.mts:318` for the test that has to be replaced
 
 ### E12-S09 — nginx learns the real client address, and nothing downstream does   `built`
-**As a** platform operator, **when** a request arrives through Cloudflare, **I want** nginx to rate-limit on
+**As a** platform admin, **when** a request arrives through Cloudflare, **I want** nginx to rate-limit on
 the address that actually made it **so that** per-address limiting exists at all — while the address stops at
 the edge and reaches nothing behind it.
 
@@ -907,7 +907,7 @@ addresses that tried to register.
 >
 > ⚠️ **This is pseudonymisation, not anonymisation, and the epic must not claim otherwise.** An email is
 > drawn from a guessable space, so a bare SHA-256 digest is recoverable by dictionary attack against a
-> dump. What it removes is casual disclosure — the operator running `KEYS`, the AOF read by whoever can read
+> dump. What it removes is casual disclosure — the admin running `KEYS`, the AOF read by whoever can read
 > the volume, the support engineer looking at a slow log. The form that survives an attacker holding the
 > dump is an HMAC under a managed key, and key custody is E16; this story does not pretend to reach that.
 >
@@ -923,7 +923,7 @@ addresses that tried to register.
   the test as a literal. An assertion that merely checks the key differs from the input is satisfied by a
   mutant that reverses the string
 - **Only the identity is hashed.** `bucket` stays readable, so `rl:loginUser:email:` remains a greppable
-  prefix and an operator can still count buckets without being able to name anybody in one
+  prefix and an admin can still count buckets without being able to name anybody in one
 - **`sha256Hex` does not normalise its input**, and a test pins that: `A@x.it` and `a@x.it` hash differently.
   Normalisation stays where it already is — the callers pass `email.toLowerCase().trim()`
   (`loginUser.mts:86`, `login.mts:69`, `loginAdmin.mts:70`, `userRegister.mts:61`,
@@ -1007,7 +1007,7 @@ corrected in §8 there. Yeses become **E12-S21 … E12-S23**.
 **Evidence (gap):** no observability section exists in `docs/architecture.md`
 
 ### E12-S15 — Only Cloudflare can open a connection to the origin   `built`
-**As a** platform operator, **when** anything other than Cloudflare connects to the edge on 443, **I want**
+**As a** platform admin, **when** anything other than Cloudflare connects to the edge on 443, **I want**
 the TLS handshake refused **so that** the WAF, the bot rules and every Cloudflare-side limit cannot be
 skipped by learning one IP address.
 
@@ -1032,7 +1032,7 @@ skipped by learning one IP address.
 >
 > ⚠️ **Two ways this takes the platform down, and both are avoidable.** Cloudflare presents a client
 > certificate only where the feature is switched on, so enabling `ssl_verify_client on` first fails every
-> handshake on the vhost from the moment nginx reloads. And a zone certificate has an operator-set validity
+> handshake on the vhost from the moment nginx reloads. And a zone certificate has an admin-set validity
 > that nothing renews automatically — the day it expires, all three vhosts stop answering Cloudflare, and the
 > symptom reads as a TLS fault rather than an expiry.
 
@@ -1148,7 +1148,7 @@ line keeps the flow name, drops both values and stays address-free. Mutation-che
 reverted to `"$request"` / `"$http_referer"`, all seven fail.
 
 ### E12-S17 — The Redis password stops riding in the container's argv   `built 2026-08-11`
-**As a** platform operator, **when** Redis runs, **I want** its password out of the process command line
+**As a** platform admin, **when** Redis runs, **I want** its password out of the process command line
 **so that** an unprivileged local process cannot read it with `ps`.
 
 **domains:** infra, documentation
@@ -1195,7 +1195,7 @@ reverted to `"$request"` / `"$http_referer"`, all seven fail.
 > membership, not privilege — but the story's own evidence line was wrong and is now right.
 
 ### E12-S18 — Every container log is bounded   `built 2026-08-11`
-**As a** platform operator, **when** the stack runs for a long time, **I want** container logs to stop growing
+**As a** platform admin, **when** the stack runs for a long time, **I want** container logs to stop growing
 without limit **so that** the filesystem is not the only thing that stops them.
 
 **domains:** infra
@@ -1230,7 +1230,7 @@ without limit **so that** the filesystem is not the only thing that stops them.
 > compose project on the same machine, and this story owns `marketplace-docker-DBs/docker-compose.yml`.
 
 ### E12-S19 — The edge's log retention is pinned by the repo   `built 2026-08-11`
-**As a** platform operator, **when** nginx writes a log line carrying a client address, **I want** the
+**As a** platform admin, **when** nginx writes a log line carrying a client address, **I want** the
 lifetime of that file to be a property of this repository **so that** it is not whatever the host distribution
 happens to default to.
 
@@ -1301,7 +1301,7 @@ happens to default to.
 > control**, which is also why E12-S25 states them in public.
 
 ### E12-S20 — No resolver echoes its argument to a log   `built 2026-08-11`
-**As a** platform operator, **when** an anonymous caller sends a GraphQL argument, **I want** it not to be
+**As a** platform admin, **when** an anonymous caller sends a GraphQL argument, **I want** it not to be
 written to disk verbatim **so that** what lands in the log is the platform's choice rather than the caller's.
 
 **domains:** backend, testing
@@ -1328,7 +1328,7 @@ written to disk verbatim **so that** what lands in the log is the platform's cho
 capture files
 
 ### E12-S21 — The request body never reaches Sentry   `built 2026-08-11`
-**As a** customer, shop owner or operator, **when** a service reports an error, **I want** my request body to
+**As a** customer, shop owner or admin, **when** a service reports an error, **I want** my request body to
 stay out of the report **so that** a password or an encrypted-at-rest personal field is not shipped to a third
 party in plaintext.
 
@@ -1367,7 +1367,7 @@ party in plaintext.
 `BEs/dev/*/src/instrument.mts:63-64`
 
 ### E12-S22 — The scrubber runs on every event type and covers every bag that carries data   `built 2026-08-11`
-**As a** platform operator, **when** tracing is switched on, **I want** the scrubber to run **so that** turning
+**As a** platform admin, **when** tracing is switched on, **I want** the scrubber to run **so that** turning
 on a sample rate is not the same as turning off the redaction.
 
 > Measured: with `tracesSampleRate` set, `event.contexts.trace.data` carried `http.client_ip`,
@@ -1424,7 +1424,7 @@ pseudonymisation, not anonymisation, and an id space the size of the `admin` col
 anyone already holding it — the intended reader, not the threat.
 
 ### E12-S23 — Sentry's environment matches the deployment   `built 2026-08-11`
-**As a** platform operator, **when** I look at a Sentry project, **I want** development events separated from
+**As a** platform admin, **when** I look at a Sentry project, **I want** development events separated from
 production ones **so that** a Dev stack does not pollute the record the production alerts are built on.
 
 **domains:** backend, documentation
@@ -1442,7 +1442,7 @@ production ones **so that** a Dev stack does not pollute the record the producti
 `"environment": "production"` from a service that logged *"for development"*
 
 ### E12-S24 — What a frontend actually sends is measured, and scrubbed   `built 2026-08-11`
-**As a** platform operator, **when** a customer's browser reports to Sentry, **I want** the same evidence and
+**As a** platform admin, **when** a customer's browser reports to Sentry, **I want** the same evidence and
 the same redaction the backend has **so that** the tier handling passwords is not the one tier nobody looked
 at.
 
@@ -1873,7 +1873,7 @@ residual and asking whether it can be closed rather than accepting it.
 | E12-S01 … E12-S11, E12-S14 | `built` | Landed across the nine services, `marketplace-common` and `marketplace-nginx`, each behind that repo's own lint, 100/4 coverage, mutation and Qodana gates |
 | E12-S12 | `built` | Measured against the running Dev stack; finding at [`docs/report/log-sink-inventory.md`](../../report/log-sink-inventory.md) v1.0. The nine application logs are clean on every planted marker, including the poisoned-credential failure paths. Four sinks are not: the access log carries the mailed one-time hash and the address, the Redis password is in the container argv, no Docker log driver is bounded, and the error log carries a full client address at `warn`. Yeses → E12-S16 … E12-S20; the two disclosure questions → the platform owner, both answered the same day (E12-S19, E12-S16) |
 | E12-S13 | `built` | One real event, built and transmitted by the real transport into a local collector; finding at [`docs/report/sentry-event-capture.md`](../../report/sentry-event-capture.md) v1.0. No header sentinel reached the wire — but the scrubber is not why, and E12-S02's three bags were empty on the event that shipped. 🔴 `event.request.data` carried the raw GraphQL body with a plaintext password; transactions bypass `beforeSend` and ship `http.client_ip` unredacted. E12-S02's key list and fixture are corrected in §8 there → E12-S21 … E12-S23 |
-| E12-S15 | `built` — **the remaining half is an adopter deployment step, not open work** | `snippets/origin-pull.conf` declares `ssl_client_certificate` and `ssl_verify_client on` once and is included by all four 443 server blocks, with the container suite asserting the count and that the default block is untouched. **Every acceptance criterion this story wrote is met and gated**, R44 included. What is left is not a task on this backlog: Authenticated Origin Pulls must be switched on in Cloudflare and the zone CA placed at the path the snippet names under `/etc/nginx/certs/`, **by whoever deploys this blueprint** — there is no zone here to switch it on in and no host to place a file on. This platform is a blueprint published for the community ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)), so the operator role this half needs **does not exist in this checkout** — the same reading that closed six questions in [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1, where the tell was the owner cell. ⚠️ **Order matters and is not editorial:** nginx verifying first means every handshake fails from the reload, so the Cloudflare side goes on before this config is deployed — step 1 of `marketplace-nginx/README.md` §Authenticated Origin Pulls, and the trigger `RISK_REGISTER` R44 fires on. ⚠️ **Reclassifying it closes nothing and lowers no score.** R44 keeps 3×5=15 🟠 High and R46 keeps 🟠 High: [`ADR-032`](../phase3/adr/ADR-032-production-topology-owed.md) rules that no control may be argued closed by appeal to a network boundary, and "no host exists" is an absence of exposure, not a mitigation — the same trap, reached from the other side |
+| E12-S15 | `built` — **the remaining half is an adopter deployment step, not open work** | `snippets/origin-pull.conf` declares `ssl_client_certificate` and `ssl_verify_client on` once and is included by all four 443 server blocks, with the container suite asserting the count and that the default block is untouched. **Every acceptance criterion this story wrote is met and gated**, R44 included. What is left is not a task on this backlog: Authenticated Origin Pulls must be switched on in Cloudflare and the zone CA placed at the path the snippet names under `/etc/nginx/certs/`, **by whoever deploys this blueprint** — there is no zone here to switch it on in and no host to place a file on. This platform is a blueprint published for the community ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)), so the admin role this half needs **does not exist in this checkout** — the same reading that closed six questions in [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1, where the tell was the owner cell. ⚠️ **Order matters and is not editorial:** nginx verifying first means every handshake fails from the reload, so the Cloudflare side goes on before this config is deployed — step 1 of `marketplace-nginx/README.md` §Authenticated Origin Pulls, and the trigger `RISK_REGISTER` R44 fires on. ⚠️ **Reclassifying it closes nothing and lowers no score.** R44 keeps 3×5=15 🟠 High and R46 keeps 🟠 High: [`ADR-032`](../phase3/adr/ADR-032-production-topology-owed.md) rules that no control may be argued closed by appeal to a network boundary, and "no host exists" is an absence of exposure, not a mitigation — the same trap, reached from the other side |
 | E12-S16 | `built` | Landed in `marketplace-nginx` the day it was opened, once the owner picked the mechanism. Two `map` blocks in `conf.d/05-logging.conf` at http level, the request line rebuilt from parsed values, seven new assertions in the container suite, `./test/run.sh` green and mutation-checked. **Residual, stated rather than closed here and now owned by E12-S26:** the credential still travels in the URL, so Cloudflare's logs, the browser history and the mail client keep it. **Adjacent, same owner:** the apex caches the SSR reset page under `proxy_cache_key "$scheme$request_method$host$request_uri"`, writing the whole link to `/var/cache/nginx/marketplace-user/` for up to `inactive=24h` |
 | E12-S26 | `built` | Opened 2026-08-11, by the owner asking whether E12-S16's residual can be closed rather than by a finding, and closed the same day across three repos. **The edge half first**: `$mkt_credential_uri` joins the session-cookie variable on `proxy_cache_bypass` / `proxy_no_cache`, so a mailed `:email/:hash` URL never becomes a cache key. Reverting it makes the second request to a reset link answer `HIT` — it was being stored, not theoretically storable. **Then the link itself**: `RESET_PATH_USER` gains a trailing `#`, so the mail points at `/reset-password/confirm#/<address>/<hash>` and the credential exists only in the browser (RFC 3986 §3.5) — no koa-utils change needed, since it normalises only `linkPath`'s leading slash and `encodeURI` never escapes `#`. `marketplace-user` reads it from `window.location.hash` through a small parser, on a static route that is `ssr: false` — the first outside `/account/*` — and the origin now answers the whole `/reset-password` prefix `private, no-store` from `src/lib/cachePolicy.ts`, moved out of the coverage-excluded `server.ts` on purpose. **Measured before and after on a production build:** the address and live hash were in the dehydration script under `public, s-maxage=60`, and are now absent from a body served `private, no-store`. **No for the two `/check/verify-email*` flows** — Koa REST `GET`s a fragment never reaches, whose hash is spent by the request that logs it. ⚠️ **Residuals, stated not closed:** links already sent keep the old shape for up to 60 minutes and now 404; the fragment stays in the browser history and the mail client forever; and `/x/reset/`, the ShopOwner reset link, **routes nowhere at all** — the panel has no reset screen, so there is no page to move a credential into |
 | E12-S17, E12-S18 | `built` | Landed together on 2026-08-11 in `marketplace-docker-DBs`, the one place both defects lived. The Redis password moved out of `command:` into a generated `secrets/redis.conf` mounted read-only, and one `x-logging` anchor caps all four containers at 20 MiB × 5. Both were **re-measured after the change and again before it**, which corrected each story's own evidence: host `ps aux` never showed the password (Redis rewrites its `argv` at startup), so the before-state was two surfaces and not three; and `mdb1` had grown from 380,144 lines to 458,129 — 229 MiB in 52.6 hours — which is the rate that sized the pair. The workspace secret guard gained a `secrets/` path rule and a `requirepass` value rule, because neither existing rule would have caught a file with no `KEY=` shape and no extension |

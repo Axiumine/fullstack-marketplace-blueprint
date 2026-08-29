@@ -10,7 +10,7 @@ v1.7 - 2026-08-29, later the same day: §7 `user` gains `registeredAt_series` �
 v1.6 - 2026-08-29: §7 `user` loses `deleted_ttl` — dropped by `20260829000100-user-retire-deleted-ttl.js`, three days after v1.4 recorded it as the only index on this platform that deletes documents. The platform owner reversed the mechanism (ADR-041): the document is permanent and the personal fields are overwritten in place at day 30 by a sweep in the Admin resource service, on `shopOwner` as well as `user`. ⚠️ **The index row and its paragraph are struck rather than deleted**, because v1.4's warning about a database not rebuilt after 2026-08-26 inverts — an unrebuilt database still has the TTL and will destroy accounts the design now keeps, so `db.user.getIndexes()` is still the check and the answer it should give is *no such index*. The destructive-re-registration sentence goes with it (ADR-046: re-registering inside the window restores the account). No field, no validator and no other index changed.
 v1.5 - 2026-08-27: §8's first four bullets stop being "not this phase" and become "not ever" — ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope. The `price` bullet loses its "it arrives with the ordering tier, in one migration" ending, which described a tier that is not coming, and §9 question 3 closes as moot rather than answered.
 v1.4 - 2026-08-26: §7 `user` gains `deleted_ttl`, the only index on this platform that deletes documents — thirty days after `userDel` stamps `deleted`, MongoDB removes the account. ⚠️ It also **retracts a claim v1.3 made in this document**: `20260301000300-create-user.js` was described as immutable and untouched, and it is neither as of 2026-08-26 — the owner chose to edit the create migration and rebuild the database rather than add a follow-up one, so the note beside `tbl_active_registeredAt` is corrected rather than left standing.
-v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the operator's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
+v1.3 - 2026-08-25: §7 `user` gains `tbl_active_registeredAt`, added by E19-S01 in a new migration so the admin's customers table pages on an index instead of a collection scan. Why it is one index where `shopOwner` has four is written down beside it: the other three sort fields are randomly encrypted on this collection.
 v1.2 - 2026-08-25: the `itemCategory` note said the other three tiers never write the collection. They write no domain field of it; the ShopOwner tier writes `__v`, via `holdItemCategory`, to make an item write collide with a concurrent `itemCategoryDel`. Restated, DCON-05 having been restated the same way.
 v1.1 - 2026-08-12: E03-S08. `personalData` left `shopOwner`'s doc-level `required` list, so §3.2's rows,
 its `required` excerpt and the `waitApprov` description all move, and §4 counts three divergences from
@@ -61,7 +61,7 @@ erDiagram
     ITEMCATEGORY ||--o{ ITEMCATEGORY : "idParent, max 1 level, admin-write-only"
 ```
 
-`ADMIN` and `USER` carry no relationship line on purpose. `admin` owns nothing, is owned by nothing — an operator sits outside the chain entirely. `user` owns only the `addresses[]` embedded inside its own document — not a chain link, a value-object list on the `User` aggregate. Drawing either as parent/child of `shopOwner` / `company` / `item` is wrong per [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §4.
+`ADMIN` and `USER` carry no relationship line on purpose. `admin` owns nothing, is owned by nothing — an admin sits outside the chain entirely. `user` owns only the `addresses[]` embedded inside its own document — not a chain link, a value-object list on the `User` aggregate. Drawing either as parent/child of `shopOwner` / `company` / `item` is wrong per [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §4.
 
 `itemCategory ──idParent──> itemCategory` is capped at **one level** — a document whose `idParent` names a subcategory is the one shape the collection must never hold. The cap lives in a resolver guard (`throwIfParentNotTopLevel`, section 6), not in this diagram's relationship and not in the `$jsonSchema` — `$jsonSchema` reads one document at a time and cannot see whether a sibling document's own `idParent` is set.
 
@@ -84,9 +84,9 @@ Source: `BEs/marketplace-db-setup/lib/schemas/admin.js`, called by `migrations/2
 | `login.lastLogin` | date | no | — | set on every successful login |
 | `login.onboardingStep` | string | no | maxLength 4 | shared `LOGIN` shape field; read by ShopOwner tier only, inert here |
 | `login.onboardingDone` | bool | no | — | shared `LOGIN` shape field; inert here |
-| `login.rememberMe` | bool | no | — | the operator's last "remember me" choice, stored for the form. The lifetime it decides is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07) — this field is not read at login and does not lengthen or shorten a session already running |
-| `personalData.firstName` | string | yes | maxLength 100 | operator's first name |
-| `personalData.lastName` | string | yes | maxLength 100 | operator's last name |
+| `login.rememberMe` | bool | no | — | the admin's last "remember me" choice, stored for the form. The lifetime it decides is `sessionCapDays`, resolved from the login mutation's own argument and stamped into the refresh session at sign-in (E14-S07) — this field is not read at login and does not lengthen or shorten a session already running |
+| `personalData.firstName` | string | yes | maxLength 100 | admin's first name |
+| `personalData.lastName` | string | yes | maxLength 100 | admin's last name |
 | `deleted` | date | no | — | soft-delete stamp; `deleted: {$exists:false}` = live |
 | `disabled` | bool | no | — | present + true blocks login |
 | `resetPwd.resetDateReq` | date | yes if `resetPwd` present | — | password-reset request timestamp |
@@ -105,7 +105,7 @@ required: [
 
 ### 3.2 `shopOwner`
 
-Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, called once by `migrations/20260301000100-create-shopOwner.js`. The collection is created in its final shape — `emailVerify`, the address `position` and the operator `notes` included — so there is one validator here, not a chain of `collMod`s to read in order.
+Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, called once by `migrations/20260301000100-create-shopOwner.js`. The collection is created in its final shape — `emailVerify`, the address `position` and the admin `notes` included — so there is one validator here, not a chain of `collMod`s to read in order.
 
 | Field | Type | Required | Constraints | Meaning |
 |---|---|---|---|---|
@@ -123,15 +123,15 @@ Source: `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, called once by `mig
 | `personalData.address.postalCode` | string | yes if `personalData` present | exactly 5 chars | — |
 | `personalData.address.city` | string | yes if `personalData` present | maxLength 100 | — |
 | `personalData.address.province` | string | yes if `personalData` present | exactly 2 chars | — |
-| `personalData.address.position` | object | no | GeoJSON Point, tuple `[lng,lat]`, each axis `['double','int','long']` bounded ±180/±90 | optional — no `2dsphere` index, fills in from the operator app's autocomplete |
+| `personalData.address.position` | object | no | GeoJSON Point, tuple `[lng,lat]`, each axis `['double','int','long']` bounded ±180/±90 | optional — no `2dsphere` index, fills in from the admin app's autocomplete |
 | `personalData.contacts.mobile` | string | yes if `personalData` present | maxLength 12 | — |
 | `personalData.contacts.landline` | string | no | maxLength 12 | — |
 | `personalData.contacts.email` | string | yes if `personalData` present | maxLength 250 | second contact address, distinct from `login.email` |
 | `registeredAt` | date | yes | — | sign-up date |
 | `deleted` | date | no | — | soft-delete stamp |
 | `disabled` | bool | no | — | present + true blocks login |
-| `waitApprov` | bool | no | — | present + true = this account may not log in until an operator approves it. Written `true` by `shopOwnerRegister` (a stranger signed themselves up) and by `shopOwnerUpdateStatus` (an operator parked an existing account); `$unset` on approval, so the field is truthy-or-absent and never `false`. Absent on every Admin-provisioned account — `shopOwnerAdd` does not write it |
-| `notes` | string | no | maxLength 2000 | operator-written note; `marketplace-dev-authenticated-*` never loads this model field, so it cannot leak to the shop owner |
+| `waitApprov` | bool | no | — | present + true = this account may not log in until an admin approves it. Written `true` by `shopOwnerRegister` (a stranger signed themselves up) and by `shopOwnerUpdateStatus` (an admin parked an existing account); `$unset` on approval, so the field is truthy-or-absent and never `false`. Absent on every Admin-provisioned account — `shopOwnerAdd` does not write it |
+| `notes` | string | no | maxLength 2000 | admin-written note; `marketplace-dev-authenticated-*` never loads this model field, so it cannot leak to the shop owner |
 | `resetPwd.resetDateReq` / `.resetHash` | date / string | yes if sub-doc present | exactly 50 chars for hash | password reset slot |
 | `emailVerify.*` | object | no (no required members) | see `account.js:96-125` | verify-email slot, koa-utils flow |
 | `__v` | int | no | — | versionKey |
@@ -288,7 +288,7 @@ Both collections share `login`, `resetPwd`, `emailVerify`, `deleted`/`disabled` 
 | # | Divergence | `shopOwner` | `user` | Why |
 |---|---|---|---|---|
 | 1 | address storage | one `personalData.address` object | `addresses[]` array, each element with required `_id` | a customer has a home, an office, a friend's flat; a shop owner has one residence |
-| 2 | `waitApprov` | present, operator approval gate | **absent entirely** | a customer self-serves with nothing to approve; the only gate is email confirmation (`loginUser` checks `emailVerify.valid`). A shop owner who self-serves carries both gates, one an Admin created carries neither |
+| 2 | `waitApprov` | present, admin approval gate | **absent entirely** | a customer self-serves with nothing to approve; the only gate is email confirmation (`loginUser` checks `emailVerify.valid`). A shop owner who self-serves carries both gates, one an Admin created carries neither |
 | 3 | `defaultAddress` | no counterpart | top-level `ObjectId` pointer into `addresses[]._id` | see section 5 |
 
 ⚠️ **`personalData` was the fourth until 2026-08-12** and is not a divergence any more: it left `shopOwner`'s doc-level `required` list with E03-S08, so both collections now register an email and a password and collect the rest later. What still differs is what "later" means — a customer may never fill it in and can still order, a shop owner is walked through onboarding before they can sell.
@@ -301,7 +301,7 @@ A fourth, smaller divergence: `shopOwner.personalData.contacts` requires `mobile
 
 "At most one default address" is a **shape**, not a rule the app has to remember to check. Original design considered a boolean `default` per array element; adopted design is a single top-level `defaultAddress` ObjectId pointing into `addresses[]._id`. A boolean can represent two defaults (or zero) at once and every write path would have to clear-then-set with a window between the two steps; a pointer cannot represent a second default at all — setting one is one atomic `$set`.
 
-The one failure a pointer *can* have is dangling, and that is checkable. `user`'s validator is therefore `$and: [{$jsonSchema}, {$expr}]`, not a bare `$jsonSchema` — a collection validator accepts any query expression, and `$jsonSchema` is only one operator inside it:
+The one failure a pointer *can* have is dangling, and that is checkable. `user`'s validator is therefore `$and: [{$jsonSchema}, {$expr}]`, not a bare `$jsonSchema` — a collection validator accepts any query expression, and `$jsonSchema` is only one admin inside it:
 
 ```js
 // BEs/marketplace-db-setup/lib/schemas/user.js
@@ -412,7 +412,7 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 | Index | Keys | Serves | Source |
 |---|---|---|---|
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
-| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the operator's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
+| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the admin's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
 | `registeredAt_series` | `{registeredAt:1}`, plain, no compound | `usersPerPeriod` chart aggregation (`$match` range + `$group` by day/month) — deliberately does **not** filter `deleted`/`disabled`, so it cannot ride on `tbl_active_registeredAt`'s leading keys, exactly as on `shopOwner`. Not unique (two customers may register in the same millisecond) and not partial (the chart counts closed accounts too, and since ADR-041 a closed account's document is permanent, so a bucket's height never changes later) | `20260829000200-user-add-registered-at-series-index.js` — a **new** migration again, the create one being immutable |
 | ~~`deleted_ttl`~~ **— dropped 2026-08-29** by `20260829000100-user-retire-deleted-ttl.js` (ADR-041), so no live database carries it; `INDEXES_USER` still declares it because the create migration reading that constant is immutable, and `test/migrations.test.mjs` asserts the end state instead. What it used to be: `{deleted:1}`, `expireAfterSeconds: 2592000` | the retention purge — thirty days after `userDel` stamps `deleted`, MongoDB's TTL monitor removes the document, its `personalData` and its `addresses` (`phase1/NFR.md` open question 6, GDPR Art. 5(1)(e)) | `lib/schemas/user.js` (`INDEXES_USER`), applied by `20260301000300-create-user.js` — ⚠️ **that migration was edited after it had been applied**, on the owner's call, and the database rebuilt in the same work |
 
@@ -434,7 +434,7 @@ rather than riding on it even though that index already leads with `deleted` —
 merged, the purge disappears; it reads `deleted` only because that field is **not** in
 `ENCRYPTED_FIELDS_USER` (ADR-029), a `binData` never comparing as a date; and it is declared in
 `INDEXES_USER` rather than on the shared `INDEXES_LOGIN_EMAIL`, which would destroy `admin` and
-`shopOwner` accounts thirty days after an operator disabled them. On this collection `deleted` is
+`shopOwner` accounts thirty days after an admin disabled them. On this collection `deleted` is
 therefore a destruction clock rather than a status. ⚠️ Because the create migration was edited in place and
 `migrate-mongo-config.js` sets `useFileHash: false`, **a database not rebuilt on or after 2026-08-26 has no
 `deleted_ttl` and its changelog will not say so** — `db.user.getIndexes()` is the check. Re-registering a

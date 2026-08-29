@@ -39,7 +39,7 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 `@urql/exchange-auth` · graphql-codegen `client-preset`, one project per access level · TanStack Table
 · react-hook-form + zod · Tailwind 4 · Sentry.
 
-`marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
+`marketplace-admin` is the admin app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
 *customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
 one with `userUpdateStatus`, both on 4024 (E19). Since 2026-08-29 it opens with a counter and a
 registrations chart above that table — `usersStats` and `usersPerPeriod`, the counterparts of the pair
@@ -54,11 +54,11 @@ behind it is. `marketplace-dev-authenticated-resource` exposes `shopOwnerCompani
 `itemDel`). ⚠️ **Two of the eight are publish-only** — `companyUpdatePublished` and `itemUpdatePublished`,
 split out on 2026-08-14 because the flag used to sit inside the update inputs and every save wrote it. The
 items screen calls its one; nothing on either frontend calls the company one, which is a missing control
-rather than a missing resolver. The operator
+rather than a missing resolver. The admin
 app's profile, password-change, personal-data, statistics and paginated-table screens have no
 counterpart there and were pruned rather than stubbed.
 
-⚠️ **The operator app's `/categories` screen is the taxonomy's only UI, and it adds two behaviours no
+⚠️ **The admin app's `/categories` screen is the taxonomy's only UI, and it adds two behaviours no
 other layer has.** `position` is capped at 999999999 in the form
 (`marketplace-admin/src/features/categories/Categories.tsx:55`, `MAX_POSITION`) while the resolver checks
 whole and non-negative only — so without that bound a wider value reaches the collection and fails the
@@ -70,7 +70,7 @@ refused a missing parent since the three resolvers first shipped — so what the
 write made straight against MongoDB, and
 `marketplace-admin/test/features/categories/Categories.test.tsx:174` holds it in place.
 
-⚠️ **Three shopowner-side differences are deliberate and must not be "corrected" back to the operator
+⚠️ **Three shopowner-side differences are deliberate and must not be "corrected" back to the admin
 app's shape:**
 
 - `companyAdd` answers `OnlyIdType`, not `Boolean`.

@@ -364,7 +364,7 @@ verified.
   empty"`, `exit 1`) rather than degrading to an unauthenticated scan, and a token distinct from all 14
   others — every repo shipping a `qodana.sh` holds a different value, compared by hash without any value
   being read out. Neither hook carries a repo-level skip: `SKIP_QODANA` appears in `.githooks/pre-commit` and
-  `.githooks/pre-push` only as the documented one-shot bypass an operator types, never as a default this repo
+  `.githooks/pre-push` only as the documented one-shot bypass an admin types, never as a default this repo
   sets. E10 was absent from the NFR-MA03/MA04 gap list because it does not belong in it. ⚠️ **The same
   artefact closed a gap this epic did not own.** All 15 repos that ship a `qodana.sh` name a distinct project
   — including the four `phase1/NFR.md` open question 4 called project-less: `MP Service Status` (`xPKXD`),

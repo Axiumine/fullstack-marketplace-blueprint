@@ -191,7 +191,7 @@ exist in no earlier release. The account→sessions index
 `docs/data-model.md` §The account index — `epics/E15.md` was deleted and distributed 2026-08-28) is one hash per account whose fields are that
 account's live sessions, and fields whose sessions expire without passing through logout or rotation
 have to age out on their own. Without per-field TTLs the index keeps naming sessions that no longer
-exist, which is both a slow memory leak and a lie told to the operator screen that reads it.
+exist, which is both a slow memory leak and a lie told to the admin screen that reads it.
 
 **Those commands are called on every login and every token rotation** (E15-S03, built 2026-08-13).
 Each field's TTL is what remains of the session it names — `originalLogin + sessionCapDays`, not the
@@ -347,7 +347,7 @@ cd marketplace-admin && yarn install && yarn dev
 
 **Minimum useful subset.** You do not need all nine to work on one surface: the public site is
 4027 + 4028, the customer account area adds 4031 + 4032, the shop-owner app is 4026 + 4028 + 4029,
-the operator app is 4024 + 4025 + 4028. `4030` (logout) is shared by all three and is the one every
+the admin app is 4024 + 4025 + 4028. `4030` (logout) is shared by all three and is the one every
 authenticated surface needs.
 
 **Running the suites.** With the `MONGO_TEST_*` block filled in, `yarn test` and `yarn test:cov`

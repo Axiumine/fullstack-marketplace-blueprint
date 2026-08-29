@@ -326,7 +326,7 @@ root_script | run_local mdb1 27017
 
 # The set advertises its members as mdb1/mdb2/mdb3, so every driver outside Docker re-dials those three
 # names whatever seed list it was handed. This only reports what they currently resolve to — editing
-# /etc/hosts is the operator's call, not a script's.
+# /etc/hosts is the call of whoever runs this box, not a script's.
 host_name_notice() {
 	local name addresses unresolved=() elsewhere=()
 

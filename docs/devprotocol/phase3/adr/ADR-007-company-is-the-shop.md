@@ -70,7 +70,7 @@ the map is not a shop.
 - The catalogue hangs off `idCompany`, a real reference to a real document, rather than off an embedded
   object with no identity of its own.
 - One collection answers both "who is this legally" and "what does the customer see", so a shop page and
-  an operator's registry view read the same document and cannot disagree.
+  an admin's registry view read the same document and cannot disagree.
 
 ### Negative
 - Extra hop to render a shop: a shop card resolves `idCompany` rather than reading an embedded field.

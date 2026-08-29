@@ -33,7 +33,7 @@ listed five options and rejected the fifth, in these words:
 
 > | **E** — a secrets manager (Vault, SOPS, cloud KMS) distributes the pair | the industry answer; solves
 > this and `INTROSPECTION_CODE` and `REDIS_PASSWORD` in one move | needs the production topology ADR-032
-> says is owed, an operator story nobody has, and a vendor decision that has not been made. Not available
+> says is owed, an admin story nobody has, and a vendor decision that has not been made. Not available
 > to take today |
 
 and, in its Decision:

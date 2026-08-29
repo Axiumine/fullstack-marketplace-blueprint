@@ -15,7 +15,7 @@ v1.7 - 2026-08-27, later the same day: the `marketplace-common` container row, t
 published-at note carry `2.0.0` / `^2.0.0`. Structure unchanged — same containers, same edges.
 v1.6 - 2026-08-27: The `price` row in §8 said the four commerce concepts were "unbuilt, undesigned", which invited a reader to supply the missing design. ADR-038 (2026-08-27) refuses it outright, so the row says permanently and cites it alongside ADR-009.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. E19 gave it
-`usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the operator still cannot do
+`usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the admin still cannot do
 to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
@@ -164,7 +164,7 @@ monitoring (`marketplace-services-status`).
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-resource'` | Domain data for ShopOwner — `shopOwnerCompanies`, `companyItems`, `itemCategories` reads; `company*`, `itemAdd`/`itemUpdate`/`itemDel` mutations; file uploads (`sharp`, `clamscan`, `file-type`, `graphql-upload` — only resource services carry these). |
 | `marketplace-dev-authenticated-logout` | 4030 | **all three tiers** | Koa 3 + Apollo Server 5, `ENDPOINT = '/logout'` | One `logout` mutation, shared by every frontend. Deletes the Redis session key by **token content**, never inspects which collection minted it — the reason `REDIS_KEY` must stay one shared prefix (`docs/architecture.md` §Auth model). |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-authorization'` | Admin token lifecycle, same shared-body pattern as the other two `*-authenticated-authorization` services. |
-| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-resource'` | Domain data for Admin — `shopOwnerAdd`/`shopOwnerUpdateStatus` (approval), **sole writer** of `itemCategory` (`funItemCategoryAdd.mts` enforces the depth-2 cap), moderation (`companyDel` any company, `itemUpdatePublished`/`itemDel`). Since 2026-08-25 also the operator's only reach into `user`: `usersActiveTbl` pages customer accounts and `userUpdateStatus` suspends or restores one, ending every session of the suspended account through `endEveryUserSession` (E19). ⚠️ **This is the only service that reads `user` for anyone other than its owner**, and it can do nothing else to one — no create, no delete, no edit of a customer's data. |
+| `marketplace-dev-admin-authenticated-resource` | 4024 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-resource'` | Domain data for Admin — `shopOwnerAdd`/`shopOwnerUpdateStatus` (approval), **sole writer** of `itemCategory` (`funItemCategoryAdd.mts` enforces the depth-2 cap), moderation (`companyDel` any company, `itemUpdatePublished`/`itemDel`). Since 2026-08-25 also the admin's only reach into `user`: `usersActiveTbl` pages customer accounts and `userUpdateStatus` suspends or restores one, ending every session of the suspended account through `endEveryUserSession` (E19). ⚠️ **This is the only service that reads `user` for anyone other than its owner**, and it can do nothing else to one — no create, no delete, no edit of a customer's data. |
 | `marketplace-dev-user-authenticated-authorization` | 4031 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-authorization'` | User (customer) token lifecycle. Signs/verifies the customer refresh cookie together with `public-authorization`'s `loginUser` — both read the same wrapped Redis record and neither boots without `KEYGRIP_KEK` (ADR-034). |
 | `marketplace-dev-user-authenticated-resource` | 4032 | User | Koa 3 + Apollo Server 5, `ENDPOINT = '/user-authenticated-resource'` | Customer account data — `personalData`, `addresses[]` CRUD, `defaultAddress` pointer maintenance. `funUserAddressDel.mts` is the platform's one pipeline update and must coerce ids to `ObjectId` before they enter it. |
 
@@ -172,7 +172,7 @@ monitoring (`marketplace-services-status`).
 
 | Container | Port | Tier | Technology | Responsibility |
 |---|---|---|---|---|
-| `marketplace-admin` | 3043 | Admin | SPA — TanStack Router, urql, react-hook-form + zod, Tailwind 4 (`marketplace-admin/vite.config.ts:39`, `env.PORT ?? 3043`) | Operator UI. `loginAdmin`, then manage ShopOwners, approve onboarding, curate `itemCategory`, moderate `company`/`item`. Points at 4024/4025/4028/4030. |
+| `marketplace-admin` | 3043 | Admin | SPA — TanStack Router, urql, react-hook-form + zod, Tailwind 4 (`marketplace-admin/vite.config.ts:39`, `env.PORT ?? 3043`) | Admin UI. `loginAdmin`, then manage ShopOwners, approve onboarding, curate `itemCategory`, moderate `company`/`item`. Points at 4024/4025/4028/4030. |
 | `marketplace-shopowner` | 3044 | ShopOwner | SPA, same stack, mirror of `marketplace-admin` (`marketplace-shopowner/vite.config.ts:39`, `env.PORT ?? 3044`) | Shop-owner UI, deliberately thinner. Manages own `company` document(s) + `item` catalogue. Points at the four non-admin services: 4028/4029/4026/4030. |
 | `marketplace-user` | 3045 | User + anonymous | TanStack Start — SSR for public routes, `ssr: false` for `/account/*` (`marketplace-user/vite.config.ts:86`, `env.PORT ?? 3045`) | The only server-rendered surface. Public catalogue pages render server-side; `/account/*` never does — a security boundary, not a style choice. Production is served by `marketplace-user/serve.mjs`, which binds `127.0.0.1` only (`serve.mjs:34`, `const HOSTNAME = '127.0.0.1'`) — the one deliberate loopback bind on the platform, because nginx sits in front of it in production and this process has no auth of its own. |
 
@@ -327,7 +327,7 @@ two load-bearing reasons so a reader does not reopen it as an obvious refactor:
   rejects for `role`.** [`CLAUDE.md`](../../../CLAUDE.md) §Terminology: "role = which collection you authenticate against" —
   collapsing three tier-scoped processes into one that branches on a session field reintroduces the same
   shape one layer up.
-- **One `process.exit(1)` for three tiers is an availability cost paid by customers**, not by the operator
+- **One `process.exit(1)` for three tiers is an availability cost paid by customers**, not by the admin
   who caused it. A crash in the Admin-tier auth path would take down ShopOwner and User token refresh
   too, where three separate deployables fail independently.
 

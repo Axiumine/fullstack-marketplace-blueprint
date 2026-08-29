@@ -83,7 +83,7 @@
     {
       "id": "admin",
       "title": "Admin tier",
-      "description": "Platform operator sessions",
+      "description": "Platform admin sessions",
       "services": [
         {
           "id": "marketplace-dev-admin-authenticated-authorization",
@@ -165,7 +165,7 @@
           "port": 3043,
           "path": "/",
           "host": "127.0.0.1",
-          "description": "React + Vite operator SPA"
+          "description": "React + Vite admin SPA"
         },
         {
           "id": "marketplace-shopowner",

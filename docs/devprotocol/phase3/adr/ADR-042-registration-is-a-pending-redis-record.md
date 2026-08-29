@@ -41,7 +41,7 @@ a real document, and all of it is defective in a way that has nothing to do with
 - **`shopOwnerRegister.mts:90-112` never reads `existing.deleted` at all.** It has two branches where
   `userRegister` has four, so an admin-closed but unverified shop owner falls into the *"unfinished attempt"*
   branch, and `restartShopOwnerRegistration.mts:30-38` unconditionally `$unset`s `deleted` — reviving an
-  account an operator closed, through an unauthenticated public mutation, with a caller-supplied password,
+  account an admin closed, through an unauthenticated public mutation, with a caller-supplied password,
   and without restoring the `waitApprov` gate that `funShopOwnerDelete.mts:20` removed. The repository's own
   suite names the case: `test/shopOwnerRegisterMutation.test.mts:236-248`, *'a tombstoned unverified
   document'*, asserting the revival.

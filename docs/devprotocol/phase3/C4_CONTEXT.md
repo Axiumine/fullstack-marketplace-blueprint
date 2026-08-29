@@ -45,7 +45,7 @@ graph TB
         Anon[Anonymous visitor]
         Cust["User — customer"]
         Owner[ShopOwner]
-        Op["Admin — operator"]
+        Op["Admin — admin"]
         Dev[Platform developer]
     end
 
@@ -95,7 +95,7 @@ graph TB
 | Anonymous visitor | no session | reads public SSR routes on `marketplace-user` (`/`, `/shops`, `/shop/:slug`, `/category/:slug`) — GraphQL over the public-resource service, no auth token |
 | User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything, ever — no cart or order model exists and none will be built ([ADR-038](./adr/ADR-038-commerce-is-permanently-out-of-scope.md)) |
 | ShopOwner | shop owner, `shopOwner` collection | arrives one of two ways — self-registers at `/register/seller` on the **public** app `marketplace-user` and waits on `waitApprov`, or is provisioned by an Admin through `shopOwnerAdd` and waits on nothing. Then confirms the email, logs in on `marketplace-shopowner`, manages own `company` document(s) and `item` catalogue. ⚠️ `marketplace-shopowner` has **no registration screen** — it is the panel you reach once you have an account |
-| Admin | platform operator, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
+| Admin | platform admin, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
 | Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 
 Full contract detail: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.1. No `role` field anywhere on the
@@ -135,7 +135,7 @@ Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CO
 | Marketplace | Redis | session store, one shared `REDIS_KEY` prefix on purpose — the single logout service depends on it |
 | Marketplace | SocketLabs | verify-email / reset-password transactional email |
 | Marketplace | Sentry | error and perf telemetry, opt-in via DSN presence |
-| Marketplace | Nominatim (two topologies) | address geocode/search — self-hosted, proxied for `marketplace-user`; public OSM, direct for the two operator SPAs |
+| Marketplace | Nominatim (two topologies) | address geocode/search — self-hosted, proxied for `marketplace-user`; public OSM, direct for the two admin SPAs |
 | Marketplace | Cloudflare Turnstile | anti-bot verification on public-resource writes and on all three logins |
 | Marketplace | Protomaps PMTiles | static map tile source for the customer-facing map island |
 | Marketplace | nginx | documented reverse-proxy / cache boundary, not installed in this workspace |

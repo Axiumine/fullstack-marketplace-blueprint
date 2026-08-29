@@ -60,7 +60,7 @@ open piece, and §6 spells out what was accepted: whole-card last-write-wins, si
 object enumerating every field rather than a diff. Recorded as accepted in
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. The `item.published` race the question compared itself to
 (R29) stays **Open** — same race class, opposite cost — and was not put to the owner in this pass.
-v1.3 - 2026-08-14: it was put to the owner immediately after, and answered the same way — an operator
+v1.3 - 2026-08-14: it was put to the owner immediately after, and answered the same way — an admin
 unpublishing and the shop owner publishing it again is fine. §6's closing paragraph is rewritten: the
 decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
 `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6 (that record moved to
@@ -70,7 +70,7 @@ decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md
 ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), and `epics/E11.md` — the file
 that carried it — is deleted; see §6 below for what its record said before it went.
 v1.4 - 2026-08-14: accepting the race exposed the thing under it — `published` was a field of
-`GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an operator reopening a stale
+`GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an admin reopening a stale
 card republished a shop somebody had just taken down. The platform owner asked for publishing to be a
 separate operation on both tiers, and it is: `published` left both input types, `companyAdd` stamps `false`,
 and `companyUpdatePublished(_id, published)` is the only writer on each tier. §2, §3 and the new **E04-S08**
@@ -79,7 +79,7 @@ writers of `companyUpdatePublished` still last-writer-wins.
 v1.5 - 2026-08-14: **the file left `epics/` and became this record**, for the reason §0 gives. No story
 changed, no ID moved, and nothing was dropped in the move — only the links, which now resolve from
 `phase5/` rather than from `phase5/epics/`.
-v1.6 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
+v1.6 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the admin's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
 ## 0. Why this record is not under `epics/`
 
@@ -353,9 +353,9 @@ has written, not a resolver gap.
   — and neither builds a diff against what it read. So the loser of a race does not lose only the field
   both writers touched: it loses every field the other writer changed since the form was loaded,
   including fields it never opened. Two people overwriting each other's `description` is the obvious
-  case; an operator's save silently reverting a `vatNumber` the owner corrected ten minutes earlier is
+  case; an admin's save silently reverting a `vatNumber` the owner corrected ten minutes earlier is
   the same event, and is the one worth knowing about. The repair is the same either way — reload, retype
-  — because every field is operator- or owner-typed and none is derived.
+  — because every field is admin- or owner-typed and none is derived.
 
   **Four fields sit outside the race by construction and stay there.** `_id` and `idShopOwner` are
   omitted from both payload types, so no save moves a company between owners
@@ -365,13 +365,13 @@ has written, not a resolver gap.
   therefore remain `companyDel`'s alone on both tiers, and a stale card cannot resurrect a retired
   company. ⚠️ **`published` joined them later the same day** (E04-S08): it was inside both input types when
   this paragraph was first written, which is exactly why a stale card republished a shop. It is now
-  `companyUpdatePublished`'s alone. Two operators racing *that* mutation still resolve last-writer-wins —
+  `companyUpdatePublished`'s alone. Two admins racing *that* mutation still resolve last-writer-wins —
   the decision above is narrowed to the flag's own writer, not reversed.
 
   ⚠️ **The same decision was extended to `item.published` hours later, on 2026-08-14.** It was recorded
   here first as covering `company` alone, because `published` is a moderation flag and the reverted-save
   outcome that is a re-edit here is a failed takedown there; the platform owner was asked and answered
-  that an operator unpublishing and the owner publishing it again is equally fine. So
+  that an admin unpublishing and the owner publishing it again is equally fine. So
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
   `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and [`CATALOGUE.md`](./CATALOGUE.md) §6 all close
   with this one. One question this did **not** close, and now never will by an answer: whether an order
@@ -393,7 +393,7 @@ has written, not a resolver gap.
   [`CATALOGUE.md`](./CATALOGUE.md) E05-S08's, stand exactly as decided.
 
   ⚠️ **Accepting the race is not accepting the trigger.** Hours after answering, the platform owner read
-  the consequence in full — an ordinary save wrote the flag, so an operator reopening a stale card
+  the consequence in full — an ordinary save wrote the flag, so an admin reopening a stale card
   republished a shop somebody had just taken down without touching anything called "publish" — and asked
   for publishing to be its own operation on both tiers. It now is, for `company` (E04-S08) and for `item`
   ([`CATALOGUE.md`](./CATALOGUE.md) E05-S08). What the owner accepted stands: two deliberate publishers still resolve

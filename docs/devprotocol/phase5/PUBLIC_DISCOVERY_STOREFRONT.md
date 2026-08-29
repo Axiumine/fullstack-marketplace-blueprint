@@ -276,7 +276,7 @@ anonymous-safe.
 - `hasMore` comes from `limit + 1` fetched-then-popped, never derived from the capped `total` — derived,
   the listing would end at whatever `COUNT_CAP` happens to be.
 - The radius is `$geoWithin`/`$centerSphere`, never `$near`/`$geoNear`: a query has exactly one sort and
-  a text search's sort is its relevance, so a proximity operator that also sorts cannot combine with
+  a text search's sort is its relevance, so a proximity admin that also sorts cannot combine with
   `$text` at all. Within the radius a closer shop does not outrank a better-matching one — accepted.
 - `marketplace-user` renders one kind per request at `/search?q=&kind=&page=&near=`, `kind` defaulting to
   items and **absent from the URL when it is the default** (`src/lib/search.ts`,

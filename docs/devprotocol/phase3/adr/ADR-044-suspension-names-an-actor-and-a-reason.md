@@ -16,10 +16,10 @@
 allowed"*. `funUserUpdateStatus.mts:32` and `funShopOwnerUpdateStatus.mts:28-32` set and unset it, and
 `checkUserAuthorizationDisDel.mts:5-16` refuses a login when it is true. Nothing records who set it or why.
 
-An operator opening a suspended account therefore learns that somebody suspended it, and nothing else. There
+An admin opening a suspended account therefore learns that somebody suspended it, and nothing else. There
 is no second place to look: no audit collection, no event log, no admin note. The information does not exist.
 
-The platform owner closed this on 2026-08-29, in the same ruling that made suspension the operator's only
+The platform owner closed this on 2026-08-29, in the same ruling that made suspension the admin's only
 lever against an account:
 
 > *"admin must be able to soft deactivate/suspend an user, not hard delete. so use a structure like
@@ -38,7 +38,7 @@ erasure is not something the platform suspends, so a suspended customer can stil
 mandatory reason attached to `disabled` therefore does **not** reach an ordinary self-closure, and must not
 be built as though it did.
 
-**A reason is free text an operator writes about a person**, which puts it under ADR-029 rather than beside
+**A reason is free text an admin writes about a person**, which puts it under ADR-029 rather than beside
 it. That is the whole difficulty of this ADR, because of a property of the encryption: an encrypted path
 declares `bsonType: 'binData'` and nothing else. No `pattern`, no `minLength`, **no `maxLength`**. The
 validator cannot count characters it cannot read.
@@ -49,7 +49,7 @@ validator cannot count characters it cannot read.
 
 | Option | Pros | Cons |
 |---|---|---|
-| A — `disabledReason` as a cleartext string with `maxLength: 1000` in the validator | the cap is enforced where ADR-035 says a cap belongs — in the schema, with the service's copy existing only to make the refusal a 400 that names the limit | it is operator prose about a customer, and it will contain personal data the moment anybody writes *"suspended after the call on the 3rd, see the complaint from …"*. Storing it in clear puts PII outside CSFLE in the collection ADR-029 was written about, to buy a length check |
+| A — `disabledReason` as a cleartext string with `maxLength: 1000` in the validator | the cap is enforced where ADR-035 says a cap belongs — in the schema, with the service's copy existing only to make the refusal a 400 that names the limit | it is admin prose about a customer, and it will contain personal data the moment anybody writes *"suspended after the call on the 3rd, see the complaint from …"*. Storing it in clear puts PII outside CSFLE in the collection ADR-029 was written about, to buy a length check |
 | B — `disabledReason` encrypted with `ALGORITHM_RANDOM`; the database enforces **presence**, the service enforces **length** | the field is covered by ADR-029 like every other personal field; presence is still a database rule, because `dependencies` needs no access to the value | the 1000 is enforced in one place instead of two, so a direct database write can exceed it. It reads as a regression from ADR-035 and has to be explained every time somebody notices |
 | C — no field: an audit collection recording every status change | a real history rather than a latest-value; would also cover un-suspension, which a single field cannot | a seventh collection, its own validator, migration, indexes and data key, for a surface with one writer; and the owner asked for a field on the account. Nothing prevents this later — a field is not in its way |
 | D — one `reason` shared by suspension and closure | one field, one name, fewer paths | the two are independent (above), so a shared field would be ambiguous exactly when it is populated and one of the two stamps is set. And it would make a reason mandatory on a customer's own closure, which ADR-036's reasoning refuses |
@@ -65,7 +65,7 @@ can see.**
 |---|---|---|---|
 | `disabledBy` | `objectId` — an `admin._id` | no | alongside `disabled: true`, always |
 | `disabledReason` | `string`, at most 1000 characters | **yes**, `ALGORITHM_RANDOM` | alongside `disabled: true`, always |
-| `deletedBy` | `objectId` — an `admin._id` | no | alongside `deleted`, **only** when an operator closed the account |
+| `deletedBy` | `objectId` — an `admin._id` | no | alongside `deleted`, **only** when an admin closed the account |
 
 **`disabledReason` is mandatory whenever `disabled` is true, and the database says so** —
 `dependencies: { disabled: ['disabledReason'] }` in the `$jsonSchema`. A dependency asserts that a path
@@ -74,7 +74,7 @@ service, alone, because `binData` admits no `maxLength`.
 
 ⚠️ **This is not ADR-035 being reversed.** ADR-035 put `maxItems` in the validator and called the service's
 copy a nicety, and that ordering is right whenever the validator *can* apply the rule. Here it cannot see the
-value at all, and the choice is not *"validator or service"* but *"encrypt the operator's prose about a
+value at all, and the choice is not *"validator or service"* but *"encrypt the admin's prose about a
 customer, or count its characters"*. Encryption wins, and the cost is stated rather than hidden: the
 1000 is a service rule, and a write that bypasses the service can exceed it.
 
@@ -96,7 +96,7 @@ the owner would rather not have it, dropping it changes nothing else.
 the previous suspension survives. Option C is the answer if that is ever wanted, and this decision does not
 foreclose it.
 
-⚠️ **Only the Admin tier writes any `disabled*` field, and lifting a suspension is an operator act.**
+⚠️ **Only the Admin tier writes any `disabled*` field, and lifting a suspension is an admin act.**
 Confirmed by the platform owner on 2026-08-29 — *"if admin suspend an account, admin must remove the
 suspension for allow the shopowner to log in again"* — and already true of the code this ADR extends, in
 three independent places worth naming so a later self-service feature cannot quietly undo it:
@@ -119,14 +119,14 @@ because the authorization gates above are reads.
 ⚠️ **The consequence nobody should discover later: a suspended account cannot be closed by its owner.** They
 cannot log in, so they cannot reach the closure mutation, so the retention clock — which starts at `deleted`
 — never starts. A suspension is therefore indefinite storage of a live account's personal data, and the only
-hand that ends it is an operator's. This does not contradict
+hand that ends it is an admin's. This does not contradict
 [ADR-036](./ADR-036-erasure-is-not-something-the-platform-suspends.md): that decision keeps `disabled` out of
 the closure resolver's *own* guard, so a suspended caller still holding a valid access token may close their
 account. It does not, and cannot, give them a session once the token expires.
 
 **Scrub interaction.** ADR-041's retention scrub **overwrites** `disabledReason` with a fixed string and never
 removes it: removing it while `disabled` is true would violate the dependency this ADR adds, and the write
-that violates it is the scrub's own. `disabledBy` and `deletedBy` are operator identifiers rather than the
+that violates it is the scrub's own. `disabledBy` and `deletedBy` are admin identifiers rather than the
 data subject's data, so they survive the scrub unchanged — they are the attribution the kept document exists
 to carry.
 
@@ -140,9 +140,9 @@ to carry.
   as an alternative.
 - **The reason is covered by ADR-029 from the first line it is written**, rather than being a cleartext
   personal-data field somebody notices two years later.
-- **Presence is still a database rule.** The most likely defect — a mutation shipping that lets an operator
+- **Presence is still a database rule.** The most likely defect — a mutation shipping that lets an admin
   suspend without saying why — fails at the write, not in review.
-- **Attribution survives erasure.** A scrubbed document still names the operator who acted on it, so the
+- **Attribution survives erasure.** A scrubbed document still names the admin who acted on it, so the
   thirty-day retention does not erase the platform's own accountability along with the person's data.
 
 ### Negative
@@ -151,7 +151,7 @@ to carry.
   because there is nowhere else to test it.
 - **The admin frontend grows a required field.** Suspending is now a form with a mandatory textarea rather
   than a toggle, on both the customers table and the shop-owners table.
-- **`disabledReason` is not readable in the database.** An operator investigating with a shell sees
+- **`disabledReason` is not readable in the database.** An admin investigating with a shell sees
   `binData`; the reason is legible only through the admin surface that decrypts it.
 - **No history.** The fields answer *why is this account suspended now*, never *what has happened to this
   account*. Repeated suspensions overwrite one another silently.
@@ -166,11 +166,11 @@ to carry.
 - **The reason becoming a dumping ground.** A free-text field on an account with no length feedback from the
   database is where notes, tickets and unrelated history end up. The service's 1000 is the only brake, and it
   is a weak one; revisit with Option C if the field starts being used as a log.
-- **An operator putting third-party personal data in it** — a complainant's name, another customer's order.
+- **An admin putting third-party personal data in it** — a complainant's name, another customer's order.
   It is encrypted, which bounds the exposure, but it is also displayed in the admin UI and it survives to the
   scrub as a placeholder rather than as content. Nothing technical prevents this; the admin form's label is
   the control.
-- **`disabledBy` pointing at a deleted operator.** `admin` documents are outside the retention design
+- **`disabledBy` pointing at a deleted admin.** `admin` documents are outside the retention design
   entirely, and nothing stops an `admin._id` from becoming unresolvable. The field is an attribution, not a
   foreign key, and no read should join on it expecting a hit.
 

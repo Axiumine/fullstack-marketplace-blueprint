@@ -40,7 +40,7 @@ frontends point at 4030.
 ⚠️ **The Admin resource row carries two concerns that are not domain data**, and that is a recorded
 decision rather than drift: `sessions` / `reuseEvents` / `revokeSession` / `revokeAllSessions` read and
 write another tier's Redis sessions, and `keygripStatus` / `keygripRotate` / `keygripRetire` administer the
-platform's cookie-signing keys. Both are Admin-tier operator tooling and both are answered here rather than
+platform's cookie-signing keys. Both are Admin-tier admin tooling and both are answered here rather than
 by a tenth deployable — see [`docs/decisions/admin-session-tooling-placement.md`](./decisions/admin-session-tooling-placement.md), which also states
 what would reopen it.
 
@@ -94,7 +94,7 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
 - Refresh token: Koa signed cookie (Keygrip SHA-512), httpOnly. The signing keys are **not** environment
   variables: they are one AES-256-GCM-wrapped record in Redis that each signing service unwraps with
   `KEYGRIP_KEK` at boot, refusing to start if it cannot (ADR-034).
-  **They also reach a running process, without a restart.** An operator rotates or retires through the
+  **They also reach a running process, without a restart.** An admin rotates or retires through the
   Admin API, which rewrites the record and publishes on `<REDIS_KEY>keygrip:rotated`; each of the five
   signing services re-reads and unwraps it for itself — the message is a nudge and never carries key
   material — and rebuilds its `Keygrip`, reassigning `app.keys` so in-flight requests finish against the
@@ -123,9 +123,9 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
 - ⚠️ **A self-registered shop owner carries both flags, and they come down by different hands.** Since
   E03-S08 the public site has a seller registration (`shopOwnerRegister`, 4027) that writes
   `waitApprov: true` alongside the unconfirmed address: the activation link clears the verification, an
-  operator clears the approval, and `tryLoginShopOwner` checks them in that order — verification first,
+  admin clears the approval, and `tryLoginShopOwner` checks them in that order — verification first,
   because it is the one the person at the keyboard can act on. `shopOwnerAdd` on the Admin service writes
-  no `waitApprov` at all, deliberately: an operator creating the account by hand *is* the approval.
+  no `waitApprov` at all, deliberately: an admin creating the account by hand *is* the approval.
 - Passwords: bcrypt via `@node-rs/bcrypt`, `SALT_ROUNDS=14`.
 
 ### What one session is made of
@@ -161,7 +161,7 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
   it is neither live nor known-consumed. Presenting a consumed token inside `GRACE_SECONDS` (10) answers
   a retry — that is a page's two tabs racing, not an attacker — and past it is a replay:
   `revokeSessionFamily` deletes every member of the family set and appends to `<REDIS_KEY>reuse:<tier>:<accountId>`,
-  the trail the operator console reads. The access session of the rotated refresh token is deleted in the
+  the trail the admin console reads. The access session of the rotated refresh token is deleted in the
   same pass, so the pre-rotation bearer stops working at rotation rather than at its own expiry. It is
   found by the `accessKey` field the refresh hash carries — stamped at login, re-stamped by every rotation
   — and not only by the token the client presented, so the deletion also happens on the reload path, where
@@ -173,12 +173,12 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
   per live session, the field name being the refresh session's key body and the value `{ tier, mintedAt }`,
   each field `HEXPIRE`d to its own session's remaining cap. It exists because this platform may not run
   `SCAN` or `KEYS` (BCON-08), and it is what makes "end every session of this account" possible at all:
-  a password or email change (E15-S05, E15-S06), a status transition, or an operator pressing revoke.
+  a password or email change (E15-S05, E15-S06), a status transition, or an admin pressing revoke.
 
 ⚠️ **Only refresh sessions are indexed, and a revocation now ends both halves of each one it finds**
 (R54, closed 2026-08-13). The index files refresh sessions alone and does not need to file more: every
 refresh hash records the key of the access session minted beside it (`accessKey`), so
-`revokeAllSessionsForAccount` and the operator's `revokeSession` read that field and delete the access half
+`revokeAllSessionsForAccount` and the admin's `revokeSession` read that field and delete the access half
 **before** the session that names it — the field lives inside the hash being deleted, so the other order
 reads nothing. Family revocation reached both halves already, its set holding the pair every rotation files.
 Until this landed, a password change, a status transition or a revoke left the account a working bearer

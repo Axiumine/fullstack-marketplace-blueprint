@@ -110,8 +110,8 @@ still cannot be, and for them the paragraph above stands unchanged.
 
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
-| Missing/empty required env var | `checkRequiredEnv()`, called synchronously at module load, outside `start()`'s try | `Missing required environment variable: <NAME>` — plain `Error`, thrown before any GraphQL envelope exists | Operator fixes the env file and restarts. No retry, no partial boot. |
-| Mongo/Redis unreachable at boot | `MongoDBConnect` / `RedisConnect` inside `start()`'s try (`src/index.mts`) | driver-native connection error, caught, logged, process exits non-zero | Operator fixes connectivity and restarts. |
+| Missing/empty required env var | `checkRequiredEnv()`, called synchronously at module load, outside `start()`'s try | `Missing required environment variable: <NAME>` — plain `Error`, thrown before any GraphQL envelope exists | Admin fixes the env file and restarts. No retry, no partial boot. |
+| Mongo/Redis unreachable at boot | `MongoDBConnect` / `RedisConnect` inside `start()`'s try (`src/index.mts`) | driver-native connection error, caught, logged, process exits non-zero | Admin fixes connectivity and restarts. |
 
 ### Layer 2 — Authentication errors (401)
 
@@ -279,7 +279,7 @@ calls `throwAlreadyTakenError` → HTTP 409, title `Conflict`.
 ### Layer 7 — Infrastructure errors (500)
 
 Anything `throwIfMongoErr` doesn't recognise, plus Redis/mail-provider failures. Reported to Sentry before
-the generic 500 is thrown, so the operator sees it even though the client gets nothing specific.
+the generic 500 is thrown, so the admin sees it even though the client gets nothing specific.
 
 ```ts
 export const throwMongoDBErrors = (e: IMongoDBError): never => {
@@ -296,7 +296,7 @@ carry the connection string or a stack fragment.
 
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
-| Any Mongo error not a duplicate-key or `[Validator]` | `throwMongoDBErrors`, wraps `throwIfMongoErr` | `throwInternalError()`, 500, `Error reported to Dev Team.` | Client shows a generic failure; operator investigates via Sentry, not via the response body. |
+| Any Mongo error not a duplicate-key or `[Validator]` | `throwMongoDBErrors`, wraps `throwIfMongoErr` | `throwInternalError()`, 500, `Error reported to Dev Team.` | Client shows a generic failure; admin investigates via Sentry, not via the response body. |
 | Redis unreachable mid-request (session read/write) | ad hoc per call site — no single wrapper equivalent to `throwMongoDBErrors` exists for Redis on this platform | uncaught → Koa's default error handler → 500 | Same as above; this is a gap, see §8. |
 | Mail provider (SocketLabs) failure on verify-email send | resolver-local catch, not audited in this pass | not verified — flag in §8 | — |
 
@@ -356,7 +356,7 @@ this class (see platform [`docs/testing.md`](../../testing.md) §Traps that make
 
 | Error (non-throwing) | When it would have gone unnoticed | Message pattern | Action |
 |---|---|---|---|
-| `matchedCount: 1, modifiedCount: 0` on an id-bearing pipeline update | any write whose filter matches but whose pipeline stage silently no-ops (uncoerced id, wrong operator) | none — this IS the bug: no message, `Boolean!` mutation answers `true` | Prescribed: assert the count, throw `throwInternalError()` if it disagrees with the intended cardinality. |
+| `matchedCount: 1, modifiedCount: 0` on an id-bearing pipeline update | any write whose filter matches but whose pipeline stage silently no-ops (uncoerced id, wrong admin) | none — this IS the bug: no message, `Boolean!` mutation answers `true` | Prescribed: assert the count, throw `throwInternalError()` if it disagrees with the intended cardinality. |
 
 ### Layer 9 — Frontend error surfacing
 
@@ -510,7 +510,7 @@ a policy the code does not have:
   terminal from the client's point of view — no automatic retry, no backoff, no circuit breaker anywhere
   in this codebase.
 - **Boot failure has no resume path — it has a restart path.** `checkRequiredEnv` throwing means the
-  operator fixes the environment and restarts the process; there is no degraded-start mode (§Layer 1).
+  admin fixes the environment and restarts the process; there is no degraded-start mode (§Layer 1).
 - **Migrations are immutable and replayable, which is the platform's actual notion of "resume."** A
   failed migration run is fixed by a *new* migration, never by editing the failed one (ADR-014); this is
   the only place on the platform where "how do we recover" has a designed answer, and it is a

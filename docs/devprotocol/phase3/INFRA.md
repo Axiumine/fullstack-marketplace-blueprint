@@ -165,7 +165,7 @@ is not a stand-in for a second topology that exists.
 | 4030 | `marketplace-dev-authenticated-logout` | all 3 tiers | logout — one process, deletes Redis key by token content | `BEs/dev/marketplace-dev-authenticated-logout/env` |
 | 4031 | `marketplace-dev-user-authenticated-authorization` | User | authorization | `BEs/dev/marketplace-dev-user-authenticated-authorization/env` |
 | 4032 | `marketplace-dev-user-authenticated-resource` | User | account, personal data, addresses | `BEs/dev/marketplace-dev-user-authenticated-resource/env` |
-| 3043 | `marketplace-admin` | Admin (SPA) | operator UI | `marketplace-admin/vite.config.ts:39` — `port: Number(env.PORT ?? 3043)` |
+| 3043 | `marketplace-admin` | Admin (SPA) | admin UI | `marketplace-admin/vite.config.ts:39` — `port: Number(env.PORT ?? 3043)` |
 | 3044 | `marketplace-shopowner` | ShopOwner (SPA) | shop-owner UI | `marketplace-shopowner/vite.config.ts` (same pattern) |
 | 3045 | `marketplace-user` | User + anonymous (SSR) | public site + customer area | `marketplace-user/serve.mjs:47` |
 | 8080 | self-hosted Nominatim | infra, not a Marketplace repo | geocoding, proxied at `/geocode/` by the apex vhost | `marketplace-nginx/conf.d/10-upstreams.conf:56` (`upstream mkt_nominatim { server 127.0.0.1:8080; keepalive 8; }`) |
@@ -488,7 +488,7 @@ alone:
 header policies), and one vhost per hostname in `sites-available/` — `marketplace-domain.com`,
 `shopowner.`, `admin.`. It terminates TLS for all three, proxies eleven loopback upstreams, serves both
 SPAs and the SSR app's static output off disk, and rewrites both session cookies to `Secure`.
-[`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) is the operator
+[`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) is the operations
 document; the four customer-only files this section used to cite,
 `marketplace-user/docs/nginx/*.conf`, are deleted.
 

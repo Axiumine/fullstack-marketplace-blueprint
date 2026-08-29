@@ -48,7 +48,7 @@ Option C. `preferGetMethod: false` set in all 4 urql client configs. Reasoning s
 `marketplace-admin/src/api/client.ts:44-48`: `credentials: 'include'` plus a GET is the exact shape CSRF
 prevention exists to stop, so forcing POST is the right call independently of Apollo's check — not merely a
 workaround for it — and a query string would otherwise land in nginx access logs and browser history,
-carrying operation variables (e.g. an operator's search term, a name). Option B would have satisfied Apollo's
+carrying operation variables (e.g. an admin's search term, a name). Option B would have satisfied Apollo's
 check while keeping the shape CSRF prevention flags as risky; Option D would have removed the check platform
 side instead of fixing the client. Option C matches the security reasoning and takes one line per client
 instead of new logic per client.

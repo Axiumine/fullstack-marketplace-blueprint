@@ -54,7 +54,7 @@ epics' worth of design, working, on the first run.
 | # | Finding | Severity |
 |---|---|---|
 | F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration was broken in production. Fixed 2026-08-13, see §5** |
-| F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the operator console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | **Medium — the orphan and the accumulation are fixed, 2026-08-13, see §6. One residual left open by decision** |
+| F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the admin console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | **Medium — the orphan and the accumulation are fixed, 2026-08-13, see §6. One residual left open by decision** |
 
 Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a
 production defect in a story nobody had written, and it is stated here because this is the document that
@@ -214,9 +214,9 @@ hash and drop the hook — plus the end-to-end test that would have caught it.
 **Fixed the same day, the first way** (`marketplace-dev-public-resource`, `fix/double-hashed-registration-password`).
 Dropping the hook was the other candidate and the more dangerous one: every write path that relies on it
 would then store a **plaintext** password until someone noticed, and `shopOwnerAdd` on the Admin service is
-already such a path — it hands its operator's plaintext straight to `create`. An unusable hash is a broken
+already such a path — it hands its admin's plaintext straight to `create`. An unusable hash is a broken
 account; a plaintext one is a breach. So the rule is now stated where both functions can be read: **the write
-operator decides, never the field** — `create`/`save` hash themselves, `updateOne`/`findOneAndUpdate` do not.
+admin decides, never the field** — `create`/`save` hash themselves, `updateOne`/`findOneAndUpdate` do not.
 
 The test lives in `test/integration/index.itest.mts`, not beside the unit tests, because the unit tests are
 where this hid: they mock the model, and a mock runs no middleware. Both functions are now driven against
@@ -246,7 +246,7 @@ and structurally cannot on the path that matters most: a page reload wipes the i
 first operation after it refreshes with nothing to present (`marketplace-user/src/api/client.ts:82-92`).
 Every reload therefore orphans one access token, which is in no family (§4), listed in no index row — the
 index names refresh sessions only — and so reachable by neither `revokeSessionFamily` nor
-`revokeAllSessionsForAccount` nor the E17 operator console. **This session's own probing left five of
+`revokeAllSessionsForAccount` nor the E17 admin console. **This session's own probing left five of
 them**, found by scanning for the account's `email` field and deleted by hand.
 
 That access tokens outlive a revocation is already stated where it matters
@@ -277,12 +277,12 @@ access token per session is live at any moment, and logout ends it. The measured
 reproduces; the reload path in particular now behaves as row 1 already did for a header-carrying refresh.
 
 ⚠️ ~~**What it deliberately does not close — the residual, carried as R54.** `revokeSessionFamily`,
-`revokeAllSessionsForAccount` and the E17 operator "end session" button still end *refresh* sessions only.
-An account whose password was changed, or which an operator has just revoked, keeps its current access
+`revokeAllSessionsForAccount` and the E17 admin "end session" button still end *refresh* sessions only.
+An account whose password was changed, or which an admin has just revoked, keeps its current access
 token for up to the rest of its 30–91 minutes.~~ **The decision was taken the same day and R54 is closed.**
 `revokeAllSessionsForAccount` and `funRevokeSession` call `retireAccessSession` before each session `del` —
 before, because the `accessKey` field lives inside the hash being deleted and a read afterwards finds
-nothing. A password change, a disable and an operator's revoke all end the access token now.
+nothing. A password change, a disable and an admin's revoke all end the access token now.
 
 ⚠️ **The residual named three paths and only two were in it.** `revokeSessionFamily` was never part of this
 window: the family set holds the *pair* every rotation files (`refreshSessionTokens.mts:222`), so a family

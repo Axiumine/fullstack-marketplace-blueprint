@@ -9,7 +9,7 @@
 v1.3 - 2026-08-27: §1 and §10 read as "no flow yet"; they are now "no flow ever". ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §10's table cells move from `UNBUILT` to `WILL NOT BUILD`, its closing paragraph says a speculative diagram contradicts an accepted ADR rather than merely jumping ahead, and the `price` note records that a display-only price was refused the same day.
 v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
 §2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
-v1.2 - 2026-08-25: E19. §2.8 was the only operator-writes-someone-else's-account flow documented, and it
+v1.2 - 2026-08-25: E19. §2.8 was the only admin-writes-someone-else's-account flow documented, and it
 covered `shopOwner` only. §2.10 adds the `user` pair — why the table takes no search term or second sort
 key, and why the status write ends the suspended customer's sessions but restoring ends nothing.
 **Depends on:** `phase2/EVENT_STORMING.md` ✅ · `phase4/API_CONTRACTS.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅ · `phase4/DDD_AGGREGATES.md` ✅ · `phase5/CONSTRAINTS.md` ✅ (binding, §4 Flow rules)
@@ -44,7 +44,7 @@ single field. `Admin` calls `shopOwnerAdd` on `marketplace-dev-admin-authenticat
 the `shopOwner` collection directly, no activation-link step. Source of truth:
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerAdd.mts`,
 event `Shop Owner Account Created` / `Duplicate Login Email Rejected` per
-`phase2/UBIQUITOUS_LANGUAGE.md` §14-15. It writes **no `waitApprov` and no `emailVerify`**: an operator
+`phase2/UBIQUITOUS_LANGUAGE.md` §14-15. It writes **no `waitApprov` and no `emailVerify`**: an admin
 creating the account by hand has approved it by the act of creating it, and there is no address to confirm
 because nobody claimed one. The account can log in the moment it exists.
 
@@ -104,7 +104,7 @@ instead of the customer's route. Two differences are the whole story:
 
 - `registerNewShopOwner.mts:44` writes **`waitApprov: true`** alongside the login and the hash. Confirming
   the address proves the person exists; only `shopOwnerUpdateStatus` clearing that flag admits them.
-  Selling here is a commercial relationship with the operator, so a stranger may *ask* to become a shop
+  Selling here is a commercial relationship with the admin, so a stranger may *ask* to become a shop
   owner and may not *become* one by filling in a form.
 - There is **no resend mutation** to pair with `userVerifyEmailResend` (§2.7). Submitting the form again
   re-mints the hash and re-sends, which is the recovery for a mail that never arrived — the seller has no
@@ -124,7 +124,7 @@ is unconfirmed rather than that they are queued. `=== false`, never `!== true`: 
 is what every §2.1 account has, and collapsing absent into unverified would lock out every shop owner
 created before this flow existed.
 
-### 2.10 — `usersActiveTbl` / `userUpdateStatus` (the operator's reach into a customer account)
+### 2.10 — `usersActiveTbl` / `userUpdateStatus` (the admin's reach into a customer account)
 §2.8's shape on the `user` collection, one tier over and with one extra step (E19, 2026-08-25). Both live on
 `marketplace-dev-admin-authenticated-resource`, the only service that reads `user` for anyone but its owner.
 
@@ -598,7 +598,7 @@ sequenceDiagram
    owner of their own.
    `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:1-58`
 3. **Admin's `itemUpdatePublished` carries no ownership guard at all** — moderation is the point of the
-   Admin tier, and an operator does not "own" any company to be checked against. The only gate is
+   Admin tier, and an admin does not "own" any company to be checked against. The only gate is
    `assertTier(session.tier, TIER.admin)` at the transport layer; nothing downstream re-checks who created
    the item.
    `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts:1-37`

@@ -24,13 +24,13 @@ no the script does not retire.** Scope and boundaries untouched.
 v1.5 - 2026-08-27, later still: the pin named in the item-7 closure moved again, this time by our hand. **All nine services and `marketplace-common` are now on `@axiumine/koa-utils@^7.0.0`** — eight service `package.json` files and `marketplace-common`'s devDependency were bumped from `^6.0.0`, each with a `yarn install` whose lockfile diff moved the `koa-utils` entry and nothing else, and each repo's own suite green afterwards. The one API change between 6 and 7 is `uploadTemp` → `uploadTempImage`, which only `marketplace-dev-authenticated-resource` could have consumed and does not. §8 item 7's closure prose is corrected to match; the closure itself does not re-open. Scope and boundaries untouched.
 v1.4 - 2026-08-27, later the same day: **open question 7 closes** — `@axiumine/koa-utils` is on `registry.npmjs.org` through `7.0.0`, so the *"`yarn install` fails there until it is published"* block is gone; the pin it named is stale twice over, the service being on `^6.0.0` at line 40 rather than `^5.9.0` at line 38. `R37` closes with it. Scope and boundaries untouched.
 v1.3 - 2026-08-27: two facts this document asserted had stopped being true. Open question 8 is **closed — the 4 Qodana Cloud projects were never missing**, each named by the scan artefact on disk (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`); all fifteen code-shipping repos hold fifteen distinct projects, and no repo stands on `SKIP_QODANA=1`. §6's `marketplace-common` row corrected after `ADR-037`: the package is published at `1.0.1`, so `deploy-local.sh` bridges the gap between releases rather than the absence of one. Scope, boundaries and scores untouched.
-v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
+v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform admin, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 ---
 
 ## 1. What are we building?
 
-Multi-tenant marketplace platform. Many independent shops, one operator. Customers order from shops; shop owner runs own shop; platform operator runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-operator area — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state.
+Multi-tenant marketplace platform. Many independent shops, one admin. Customers order from shops; shop owner runs own shop; platform admin runs whole platform. Four target surfaces: public catalogue pages, customer account area, shop-owner area, platform-admin area — see [`CLAUDE.md`](../../../CLAUDE.md) §Build state.
 
 Polyrepo, 16 independent git repos, no monorepo tooling. Verified: `find . -maxdepth 4 -name ".git" -type d` returns 16 dirs (parent + `BEs/marketplace-common` + `BEs/marketplace-db-setup` + 9 under `BEs/dev/marketplace-dev-*` + `marketplace-admin` + `marketplace-nginx` + `marketplace-shopowner` + `marketplace-user`).
 
@@ -42,7 +42,7 @@ graph LR
     A[Public catalogue<br/>read + SSR]
     B[Customer identity<br/>+ addresses]
     C[Shop-owner tier<br/>full CRUD]
-    D[Operator tier<br/>full CRUD]
+    D[Admin tier<br/>full CRUD]
   end
   subgraph OutOfScope [Will not build — permanently out of scope, ADR-038]
     E[Cart]
@@ -58,7 +58,7 @@ Four surfaces exist at very different depths. Public pages + customer identity l
 
 ## 2. Why are we building it?
 
-The platform vendor operates a multi-tenant marketplace for independent shop owners who lack own e-commerce infra. Shop owner needs: register shop, manage catalogue, get discovered. Customer needs: browse shops, eventually order. Platform operator needs: onboard/moderate shop owners, curate taxonomy.
+The platform vendor operates a multi-tenant marketplace for independent shop owners who lack own e-commerce infra. Shop owner needs: register shop, manage catalogue, get discovered. Customer needs: browse shops, eventually order. Platform admin needs: onboard/moderate shop owners, curate taxonomy.
 
 Design note, not a current problem: the catalogue (`item` + `itemCategory`) is deliberately domain-neutral, presuming nothing about what is sold — built 2026-08-05 alongside a full customer identity tier. Why now: the catalogue must stay domain-neutral before any product type is addable — that constraint is what "why now" answers. Commerce layer is next but has no decision yet (§8).
 
@@ -70,7 +70,7 @@ Design note, not a current problem: the catalogue (`item` + `itemCategory`) is d
 |---|---|---|
 | End customer (`User`) | registers, confirms email, fills personal data, manages addresses. Cannot buy anything, permanently — `BEs/marketplace-db-setup/lib/schemas/user.js` carries no order/cart reference and never will | account + browse, and that is the whole surface — ADR-038, no order ever |
 | Shop owner (`ShopOwner`) | runs 1+ `company` documents, each a real shop; manages own `item` catalogue under admin-curated `itemCategory` taxonomy | catalogue mgmt + discoverability, no commerce ops yet |
-| Platform operator (`Admin`) | the vendor's own staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
+| Platform admin (`Admin`) | the vendor's own staff; onboards/moderates shop owners, owns `itemCategory` taxonomy writes exclusively — `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17` states shop owners "pick from this list; they cannot add to it" | approval + taxonomy control |
 | Anonymous visitor | unauthenticated, hits public SSR pages only | browse shops/items, no login required |
 | Platform vendor / developer | operates the 16-repo polyrepo itself — deploys `marketplace-common` across 9 consumers, runs migrations, maintains quality gates | one coherent platform out of 16 independently-committed repos |
 
@@ -165,7 +165,7 @@ graph TD
 
 ## 7. Success definition
 
-Complete when a developer or operator can:
+Complete when a developer or admin can:
 
 1. Clone all 16 repos, run `./deploy-local.sh` from `BEs/marketplace-common`, and have all 9 services build against it with no registry publish.
 2. Run any of the 9 backend services with `yarn dev` and reach it on its documented port (4024–4032) bound wide, verified against the `env` template in each repo.

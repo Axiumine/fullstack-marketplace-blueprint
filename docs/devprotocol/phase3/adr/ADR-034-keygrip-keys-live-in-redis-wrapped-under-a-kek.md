@@ -73,15 +73,15 @@ the decision may not assume a KMS, and may not assume Redis is unreachable by an
 | **A** — leave env as the source of truth, add a workspace script that fingerprints the five files | ~30 lines, no runtime risk, no new failure mode, closes the *detection* half of R02 | detects nothing until a human runs it; rotation stays five hand edits and five restarts, which is the problem that actually matters; the sweep already exists as a shell one-liner and was not run between 2026-08-07 and 2026-08-09 |
 | **B** — Redis holds only a fingerprint; keys stay in env | boot gate is real and no key material moves; smallest diff of the four that gate anything | rotation still manual, so the expensive half is untouched; two sources of truth for one secret, and the fingerprint can disagree with the key it claims to describe |
 | **C** — raw keys in Redis, env holds nothing | simplest possible implementation; nothing left in env to disagree; rotation trivial | a Redis read becomes a full cookie forge — the one property the current design has, deleted. Rejected on that line alone |
-| **D** — keys in Redis, AES-256-GCM-wrapped under a `KEYGRIP_KEK` that stays in env | one source of truth; a wrong KEK cannot decrypt, so disagreement is refused at boot instead of surfacing as a 401 six hours later; rotation needs no env edit and no restart; the array can hold more than two keys, so the thirty-day window stops being a squeeze | Redis becomes a boot dependency for five services; `createServer()` changes signature in five repos; a new seed step exists before a virgin stack can boot; an operator with an admin session can mint a signing key |
-| **E** — a secrets manager (Vault, SOPS, cloud KMS) distributes the pair | the industry answer; solves this and `INTROSPECTION_CODE` and `REDIS_PASSWORD` in one move | needs the production topology ADR-032 says is owed, an operator story nobody has, and a vendor decision that has not been made. Not available to take today |
+| **D** — keys in Redis, AES-256-GCM-wrapped under a `KEYGRIP_KEK` that stays in env | one source of truth; a wrong KEK cannot decrypt, so disagreement is refused at boot instead of surfacing as a 401 six hours later; rotation needs no env edit and no restart; the array can hold more than two keys, so the thirty-day window stops being a squeeze | Redis becomes a boot dependency for five services; `createServer()` changes signature in five repos; a new seed step exists before a virgin stack can boot; an admin with an admin session can mint a signing key |
+| **E** — a secrets manager (Vault, SOPS, cloud KMS) distributes the pair | the industry answer; solves this and `INTROSPECTION_CODE` and `REDIS_PASSWORD` in one move | needs the production topology ADR-032 says is owed, an admin story nobody has, and a vendor decision that has not been made. Not available to take today |
 
 ---
 
 ## Decision
 
 **Option D.** Redis holds the key array, wrapped; env holds one `KEYGRIP_KEK` per service; a service
-that cannot unwrap the record refuses to boot; rotation is an operator mutation that running services
+that cannot unwrap the record refuses to boot; rotation is an admin mutation that running services
 apply without restarting.
 
 Option C was rejected for the threat delta and nothing else — it is otherwise the nicest of the five.
@@ -110,7 +110,7 @@ The plaintext under `wrapped` is the array Keygrip is built from, newest first:
 [{ "id": "k7", "material": "<64 random bytes, base64>", "createdAt": "2026-08-12T09:14:22.581Z" }]
 ```
 
-`fp` covers the **ids**, never the material — it exists so an operator screen and a holders heartbeat can
+`fp` covers the **ids**, never the material — it exists so an admin screen and a holders heartbeat can
 compare fleet state without any part of the system handling a key to do it.
 
 AES-256-GCM, key = 32 bytes decoded from `KEYGRIP_KEK`, a fresh 12-byte IV per wrap, and **the version as
@@ -140,7 +140,7 @@ rather than silent.
 ### Rotation
 
 `keygripRotate` on `marketplace-dev-admin-authenticated-resource` — a domain mutation belongs in a
-resource service, and minting a signing key is an operator act, so it must sit behind the Admin tier.
+resource service, and minting a signing key is an admin act, so it must sit behind the Admin tier.
 **Not** the logout service: logout is the one service all three tiers reach (ADR-005), and giving it the
 mint would put key material behind a route customers hit.
 
@@ -155,14 +155,14 @@ It unwraps, mints 64 random bytes, unshifts, drops entries **demoted** more than
 version, writes it back under a compare-and-set, and publishes. ⚠️ *Demoted*, not *minted* — see the
 2026-08-28 amendment, which corrects this paragraph and the one below it.
 
-**The write is a Lua script, not `WATCH` + `MULTI`.** Two operators rotating at the same moment must not
+**The write is a Lua script, not `WATCH` + `MULTI`.** Two admins rotating at the same moment must not
 both win: the loser's blob would land under a version that already describes different bytes, and every
 service that unwrapped the winner's record would then fail the AAD check on the next re-read. `WATCH`
 does prevent that, but it watches a key on *one* connection, and the record lives on a Redis cluster
 where the client that holds the watch is not guaranteed to be the client the retry runs on. `EVAL`
 compares `version` and swaps all three fields inside a single server-side execution, on the node that
 owns the slot — no connection affinity to get wrong. A rotation whose compare fails is refused outright
-rather than retried, because the operator's next click reads the record the winner wrote.
+rather than retried, because the admin's next click reads the record the winner wrote.
 
 **Rotation prepends; only retirement is age-gated.** A new signer is harmless at any cadence — what
 would log a remembered customer out is dropping a key that is still verifying cookies, and that is
@@ -176,7 +176,7 @@ restart and no dropped connection. A service that was down when the message fire
 boot anyway; a service whose subscription silently died re-reads on a five-minute `HGET` of `version`.
 Both paths converge on the same load function.
 
-### The operator surface
+### The admin surface
 
 `keygripStatus` returns the version, one entry per key — `id`, `createdAt`, age in days, **never
 material** — and the holders rows with a flag for whether each service's fingerprint matches the current
@@ -226,9 +226,9 @@ written.
 - `createServer()` changes signature in five repos, and each has integration tests that call it.
 - A virgin environment has a new mandatory step before the services will start. Forgetting it is a clear
   message rather than a mystery, but it is one more thing in `SETUP.md`.
-- An operator with an admin session can mint signing keys. It buys no session — a signature over a token
+- An admin with an admin session can mint signing keys. It buys no session — a signature over a token
   Redis does not know is still refused — but it is a new capability behind that session, and the mutation
-  must therefore be logged like the other operator-only writes.
+  must therefore be logged like the other admin-only writes.
 - The wrap/unwrap helper, the load path, the seed script, the mutation, the subscription and the screen
   are all new code in eight repos, every line of it at 100% coverage and mutation score 100.
 
@@ -343,6 +343,6 @@ can only verify cookies that are already alive, and those expire on their own.
   than 30 days ago"*. `marketplace-dev-admin-authenticated-resource` asserts it verbatim.
 - §Compliance's **Signals a violation** now reads: a `keygripRotate` path that can leave fewer than two
   keys, or retire one **demoted** less than `SESSION_CAP_DAYS_REMEMBERED` ago.
-- `keygripStatus` still reports `ageDays` from `createdAt`, which is what an operator asked for and is
+- `keygripStatus` still reports `ageDays` from `createdAt`, which is what an admin asked for and is
   still true — it is simply no longer the retirement predicate. Rendering the demotion age is
   **E17-S08**'s call, not this amendment's.

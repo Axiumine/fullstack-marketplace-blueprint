@@ -143,7 +143,7 @@ logout call at port 4030. Nothing designed-but-unbuilt in this context.
 worth naming here.** `logout` is the *voluntary* teardown — one caller, one token, the holder asking. E15
 built the involuntary one: `revokeAllSessionsForAccount` in `marketplace-common` ends **every** session an
 account holds, and four call sites reach for it — a password change, a login-email write, parking a
-ShopOwner, and an operator's revoke from E17's console. Neither path knows about the other, and neither
+ShopOwner, and an admin's revoke from E17's console. Neither path knows about the other, and neither
 should: this service reads no account id at all (E02-S03), so it could not enumerate an account's sessions
 even if it wanted to.
 

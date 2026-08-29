@@ -125,7 +125,7 @@ must not be added; tier = which collection you authenticate against.
 | bcrypt password hashing, cost 14 | In | credential check BC-01 owns |
 | Email verification (`GET /check/verify-email*`) | In | BC-01 Produces "Verification Email Sent, Email Verified" |
 | `logout` mutation | Out | BC-02, separate context on purpose — deletes by token content, no tier read |
-| `waitApprov`, `notes`, onboarding field **writes** | Out | BC-03 writes them, and E01-S10's lint keeps it that way. The `waitApprov` **read** is In, and is E01-S11: `login` projects it and refuses on it, `refresh` re-checks it on every rotation. `notes` stays out in every shape — no BC-01 service has a reason to load an operator's private note about the person logging in |
+| `waitApprov`, `notes`, onboarding field **writes** | Out | BC-03 writes them, and E01-S10's lint keeps it that way. The `waitApprov` **read** is In, and is E01-S11: `login` projects it and refuses on it, `refresh` re-checks it on every rotation. `notes` stays out in every shape — no BC-01 service has a reason to load an admin's private note about the person logging in |
 | `personalData` / `addresses` on `user` | Out | BC-07 Customer Account & Addresses |
 | any order/cart/delivery/payment auth | Out, permanently | not built platform-wide and never will be — [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), 2026-08-27 (`CLAUDE.md` §Build state) |
 
@@ -154,14 +154,14 @@ E15-S06 (2026-08-13) made writing a login email revoke every session that accoun
 required reading the whole flow. Four facts came out of that read, and they belong here because the login
 email is BC-01's identity, whoever writes it.
 
-- **There is exactly one writer**, `shopOwnerUpdateEmail` on the Admin tier — an operator changing a shop
+- **There is exactly one writer**, `shopOwnerUpdateEmail` on the Admin tier — an admin changing a shop
   owner's login address. No self-service email change exists on any of the three tiers.
 - ⚠️ **There is no confirm-a-change flow, and the field that looks like one is dead.** `shopOwner` carries
   `newEmailTmp`, which reads as the pending half of a confirm-first design; **nothing writes it and nothing
   reads it**. Do not build against it assuming the other half exists somewhere.
 - ⚠️ **The new address is live immediately, and `emailVerify.valid` is not touched.** The account
   authenticates against the new address on the next login while the platform still records the address as
-  verified — so an operator typo moves the account to an address nobody has proved anyone controls *and*,
+  verified — so an admin typo moves the account to an address nobody has proved anyone controls *and*,
   since E15-S06, ends every session the real owner was holding. The owner is locked out of an account that
   now answers to a stranger's inbox. This is the finding, not a hypothetical: it is what the code does
   today.
@@ -191,7 +191,7 @@ accept it.
 
 ### E01-S02 — Admin login, no onboarding flow to skip   `built`
 **As an** Admin, **when** I log in with `loginAdmin`, **I want** `onboardingDone` returned already `true`
-**so that** the operator SPA never renders an onboarding step that does not exist for this tier.
+**so that** the admin SPA never renders an onboarding step that does not exist for this tier.
 **domains:** backend, database
 **Acceptance criteria:**
 - `loginAdmin` hardcodes `onboardingDone: true` in its response, never reading a stored value —
@@ -309,15 +309,15 @@ session.
 **Traces:** NFR-SE07 (the gate `loginUser` reads)
 **Evidence:** `src/middleware/router/index.mts`
 
-### E01-S10 — The two operator-only `shopOwner` fields are refused by construction   `built`
-**As a** platform operator, **when** I write an internal note about a shop owner or hold their account for
+### E01-S10 — The two admin-only `shopOwner` fields are refused by construction   `built`
+**As a** platform admin, **when** I write an internal note about a shop owner or hold their account for
 approval, **I want** no ShopOwner-tier service able to select, project, type or return either field **so
 that** "BC-01 does not read BC-03's fields" is a property of the build rather than a description of how the
 code happens to be written today.
 **domains:** backend
 **Acceptance criteria:**
-- `OPERATOR_ONLY_FIELDS_SHOP_OWNER` names `notes` in one place —
-  `BEs/marketplace-common/src/others/operatorOnlyFields.mts`, exported through the `exports` map — and
+- `ADMIN_ONLY_FIELDS_SHOP_OWNER` names `notes` in one place —
+  `BEs/marketplace-common/src/others/adminOnlyFields.mts`, exported through the `exports` map — and
   `APPROVAL_GATE_FIELD_SHOP_OWNER` names `waitApprov` beside it, a separate constant because the two
   fields are now under two different rules (see the amendment below)
 - Every name in both constants resolves to a real path on `ShopOwnerSchema`, so a rename fails in the repo
@@ -328,11 +328,11 @@ code happens to be written today.
   space-separated string — in `eslint.config.js` of `marketplace-dev-public-authorization`,
   `marketplace-dev-authenticated-authorization` and `marketplace-dev-authenticated-resource`
 - The rule stays silent on prose naming either field, proven by a compliant fixture carrying both real
-  projections and a sentence about who owns them — `test/fixtures/restrictedSyntax/operator-only-*`
+  projections and a sentence about who owns them — `test/fixtures/restrictedSyntax/admin-only-*`
 - The two live ShopOwner projections are asserted against the constants themselves, not only against a
   literal — `tryLoginShopOwner.test.mts`, `tokenInfoShopOwner.test.mts`
 **Traces:** NFR-SE12, CON-12
-**Evidence:** `BEs/marketplace-common/src/others/operatorOnlyFields.mts`, the three `eslint.config.js`
+**Evidence:** `BEs/marketplace-common/src/others/adminOnlyFields.mts`, the three `eslint.config.js`
 
 ⚠️ **Amended 2026-08-12 by E01-S11, the same day it was built.** As first written this story banned all
 four shapes of *both* names in all three repos, on the strength of a fact that was true and is not any
@@ -358,7 +358,7 @@ ShopOwner-tier resolver widening a projection by one word. That is what this sto
 two selector pairs and a list.
 
 ### E01-S11 — A shop owner awaiting approval cannot hold a session   `built`
-**As a** platform operator, **when** I hold a shop owner's account for approval, **I want** them refused at
+**As a** platform admin, **when** I hold a shop owner's account for approval, **I want** them refused at
 login and their open session refused at its next refresh **so that** `waitApprov` is the gate every
 document already called it, rather than a boolean the Admin area writes and nobody reads.
 **domains:** backend
@@ -389,12 +389,12 @@ document already called it, rather than a boolean the Admin area writes and nobo
 `marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`
 
 ⚠️ ~~**What this story does not decide:** whether a *new* shop owner starts parked. `shopOwnerAdd` writes no
-`waitApprov`, so an account is created ungated and the gate only ever bites one an operator has held by
+`waitApprov`, so an account is created ungated and the gate only ever bites one an admin has held by
 hand. Flipping that is one line plus a migration for the rows already on disk, and it is a product call —
 `BOUNDED_CONTEXT.md` §7 q3, still open and now load-bearing.~~ **Decided 2026-08-12 by E03-S08:** it
 depends on which mutation created the account. `shopOwnerRegister` — the public seller registration that
 did not exist when this story was written — writes `waitApprov: true`; `shopOwnerAdd` still writes
-nothing, because an operator who typed the account in has approved it by doing so. No migration was
+nothing, because an admin who typed the account in has approved it by doing so. No migration was
 needed: every row on disk predates the form. The criterion above that reads "there is no public
 shop-owner registration" was true on the day and is not now; what it was protecting still holds, since
 `registerNewShopOwner` sets the flag rather than checking it.
@@ -440,7 +440,7 @@ of the five signing services — the two that make R02 a regression test rather 
 `new Keygrip([process.env.KEYGRIP_KEY_1!, process.env.KEYGRIP_KEY_2!], 'sha512')` at `src/index.mts`, and
 nothing anywhere compared one service's pair with another's
 
-### E01-S13 — An operator rotates the signing key, and no service restarts   `built`
+### E01-S13 — An admin rotates the signing key, and no service restarts   `built`
 State plainly: rotation must be a mutation whose effect reaches five running processes, because the only
 alternative — five hand-edited files and five restarts — is why the key has never been rotated.
 **domains:** backend
@@ -477,13 +477,13 @@ reading what the first wrote · the `watchKeygrip` wiring in `src/index.mts` of 
 `marketplace-dev-public-authorization/test/integration/keygripAdopt.itest.mts`, the one test that proves
 the whole loop: a record rewritten under a running process, announced on the channel, adopted without a
 restart, with the cookie signed a moment earlier still verifying.
-⚠️ **Operator action, or the service will not boot:** add `KEYGRIP_KEK` to
+⚠️ **Admin action, or the service will not boot:** add `KEYGRIP_KEK` to
 `marketplace-dev-admin-authenticated-resource`'s `.env` — the same value the five signing services carry.
 Before this story that service had no keygrip variable at all, so an existing machine that pulls this
 change and restarts gets `Missing required environment variable: KEYGRIP_KEK` and nothing else.
 
-### E01-S14 — The operator can see which service holds which key   `built`
-**As a** platform operator, **when** I rotate, **I want** to watch all five services converge on the new
+### E01-S14 — The admin can see which service holds which key   `built`
+**As a** platform admin, **when** I rotate, **I want** to watch all five services converge on the new
 fingerprint **so that** "the mutation returned true" and "the fleet agrees" stop being the same claim.
 **domains:** backend, frontend
 **Acceptance criteria:**
@@ -539,7 +539,7 @@ list, the eslint rules that refuse the names, and prose that says they are gone 
 under `test/`.
 ⚠️ **The one deliberate survivor is `marketplace-db-setup/env`**, which still lists the pair as an
 optional, empty, one-time input: it is the documented path for a machine that ran the old arrangement,
-and deleting it would strand exactly the operator this story is trying not to strand. That is the
+and deleting it would strand exactly the admin this story is trying not to strand. That is the
 criterion's own stated exception, not a miss. The second survivor is the historical record — the
 2026-08-07 mismatch and the 2026-08-09 wrapped-value incident are what several documents exist to
 remember, and a closed risk is not a deleted one.
@@ -576,10 +576,10 @@ owns.
 | # | Question | Closed by | Answer |
 |---|---|---|---|
 | 1 | Should a real anti-corruption layer land before a fourth tier copies the pattern? | E01-S10, 2026-08-12 | **No, and not later either.** BC-01 is Conformist to BC-03's model by design, permanently: one `$jsonSchema` builder, one Mongoose model — a Shared Kernel, not two models needing a translator, so a mapper would be an identity function paid for forever under CON-08. The defect was real but misnamed: not corruption, **scope** — nothing mechanically stopped a ShopOwner-tier resolver selecting `notes` or writing `waitApprov`. Two cheap locks now do (CON-12), and a fourth tier copies *them*. Revisit only if the two contexts stop sharing the builder, at which point it is a different question |
-| 2 | `shopOwner.waitApprov` gates nothing — is it meant to bite at login, or is it operator-facing and several documents call it a gate wrongly? | E01-S11, 2026-08-12 | **It is a gate, and it bites at login and at every refresh.** E01-S10 carved exactly the narrow exception the question predicted — one field, the write shape only, `src/**` of two repos, with the scoping itself under test. What did *not* follow from the answer, and was checked rather than assumed: `resetPwdFlow` still ignores the flag, because refusing there leaks account state to an unauthenticated caller and buys nothing the login gate has not already taken away (`phase2/BOUNDED_CONTEXT.md` §7 q8) |
-| 3 | Does a freshly created `ShopOwner` start parked? | E03-S08, 2026-08-12 | **It depends on who created it, and that is the answer rather than a compromise.** `shopOwnerRegister` — the public self-service registration — writes `waitApprov: true`; `shopOwnerAdd` still writes nothing, because an operator who typed the account in has approved it by doing so, and a stranger who typed it in themselves has not been approved by anybody. No migration was needed: every row on disk predates the public form, so every one was Admin-created and correctly ungated |
-| 4 | No automated gate verifies `KEYGRIP_KEY_1`/`_2` agreement across the signing services (BCON-03); a mismatch was live in production data on 2026-08-07, caught by a manual fingerprint sweep and by no suite | ADR-034 → E01-S12..S15 | **Two corrections to the question first:** the pair lived in **five** `.env` files, not four — `marketplace-dev-authenticated-logout` clears the same cookie and carries the same keys (`INFRA.md` §7) — and a startup fingerprint check was the smaller half. The larger half was that the key **could not be rotated at all** without editing five git-ignored files by hand and restarting five services, which is why it never had been. The answer: one record in Redis wrapped under a `KEYGRIP_KEK`, a boot that refuses on a tag mismatch rather than a comparison that reports one, and rotation as an operator mutation that running services apply in place. Raw keys in Redis were rejected — a Redis read must not become a cookie forge. `yarn seed:keygrip --force` survives as the disaster path only, for a keyspace that was flushed |
-| 5 | **OPEN — Product.** Should a confirm-first email-change flow be built at all: the account holder asks for a new address, the platform mails a confirmation link there, and only the click writes `login.email`? | — | **Undecided, and it is the platform owner's call rather than an implementation detail.** It was raised by E15-S06, which found that `newEmailTmp` is written by nothing and that the single writer, Admin-tier `shopOwnerUpdateEmail`, moves the account to the new address immediately while `emailVerify.valid` still reads `true` — §3.1 above. So the flow's absence has a cost today: an operator typo hands the account to an unverified address and, since E15-S06, signs the real owner out of it in the same call. What is *not* undecided is the engineering half, which E15-S06 settled and §3.1 records: if it is built, the revoke fires at the confirmation and never at the request. ⚠️ **The question is only about whether to build the flow, and no story in any epic proposes it** — it does not appear in `EPICS_STORIES.md` §2’s E16 row nor in `epics/E17.md` … `epics/E19.md`, and it is not a gap in E15, which built everything it designed |
+| 2 | `shopOwner.waitApprov` gates nothing — is it meant to bite at login, or is it admin-facing and several documents call it a gate wrongly? | E01-S11, 2026-08-12 | **It is a gate, and it bites at login and at every refresh.** E01-S10 carved exactly the narrow exception the question predicted — one field, the write shape only, `src/**` of two repos, with the scoping itself under test. What did *not* follow from the answer, and was checked rather than assumed: `resetPwdFlow` still ignores the flag, because refusing there leaks account state to an unauthenticated caller and buys nothing the login gate has not already taken away (`phase2/BOUNDED_CONTEXT.md` §7 q8) |
+| 3 | Does a freshly created `ShopOwner` start parked? | E03-S08, 2026-08-12 | **It depends on who created it, and that is the answer rather than a compromise.** `shopOwnerRegister` — the public self-service registration — writes `waitApprov: true`; `shopOwnerAdd` still writes nothing, because an admin who typed the account in has approved it by doing so, and a stranger who typed it in themselves has not been approved by anybody. No migration was needed: every row on disk predates the public form, so every one was Admin-created and correctly ungated |
+| 4 | No automated gate verifies `KEYGRIP_KEY_1`/`_2` agreement across the signing services (BCON-03); a mismatch was live in production data on 2026-08-07, caught by a manual fingerprint sweep and by no suite | ADR-034 → E01-S12..S15 | **Two corrections to the question first:** the pair lived in **five** `.env` files, not four — `marketplace-dev-authenticated-logout` clears the same cookie and carries the same keys (`INFRA.md` §7) — and a startup fingerprint check was the smaller half. The larger half was that the key **could not be rotated at all** without editing five git-ignored files by hand and restarting five services, which is why it never had been. The answer: one record in Redis wrapped under a `KEYGRIP_KEK`, a boot that refuses on a tag mismatch rather than a comparison that reports one, and rotation as an admin mutation that running services apply in place. Raw keys in Redis were rejected — a Redis read must not become a cookie forge. `yarn seed:keygrip --force` survives as the disaster path only, for a keyspace that was flushed |
+| 5 | **OPEN — Product.** Should a confirm-first email-change flow be built at all: the account holder asks for a new address, the platform mails a confirmation link there, and only the click writes `login.email`? | — | **Undecided, and it is the platform owner's call rather than an implementation detail.** It was raised by E15-S06, which found that `newEmailTmp` is written by nothing and that the single writer, Admin-tier `shopOwnerUpdateEmail`, moves the account to the new address immediately while `emailVerify.valid` still reads `true` — §3.1 above. So the flow's absence has a cost today: an admin typo hands the account to an unverified address and, since E15-S06, signs the real owner out of it in the same call. What is *not* undecided is the engineering half, which E15-S06 settled and §3.1 records: if it is built, the revoke fires at the confirmation and never at the request. ⚠️ **The question is only about whether to build the flow, and no story in any epic proposes it** — it does not appear in `EPICS_STORIES.md` §2’s E16 row nor in `epics/E17.md` … `epics/E19.md`, and it is not a gap in E15, which built everything it designed |
 
 ## 7. Changelog
 
@@ -602,5 +602,5 @@ owns.
 | 1.14 | 2026-08-27, later still | §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed. |
 | 1.15 | 2026-08-28 | §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted and its record **distributed**, not moved: the E11 way, not E12's. No twelfth record joined the index, so the count in §0 stays eleven. The seven facts it held that lived nowhere else went to `EPICS_STORIES.md` §2's E13 row, `SECURITY_AUTH.md` §3.6 and `dependency-tree-advisory-scan.md` §6.1. E13 keeps its id and all eleven story ids. Nothing about BC-01, or about this record's own content or build state, changed. |
 | 1.16 | 2026-08-28, later still | §0's range narrows again, from "E14..E19" to **E15..E19** — `phase5/epics/E14.md` was deleted and its record **distributed rather than moved**, the E11/E13 way, not E12's. All nine stories were `built`, its §6 read "None open.", and an audit of the 521-line file found only nine facts held nowhere else. No twelfth record joined the index, so the count in §0 stays eleven (E01..E10 and E12). The seven-step landing order and the "land E13-S01 and E13-S02 first" ordering went to `EPICS_STORIES.md` §2's E14 row and §2.1; the two rejected alternatives (tier-keyed session cap, cached-successor-pair grace) to `ADR-INDEX.md` §4; the abandoned `setLoginCookies` cookie-side comment to `architecture.md`; "two windows, not one" to `RISK_REGISTER.md` R52; the Cloudflare rate-limiting alternative to `TELEMETRY_EGRESS_HARDENING.md`; why E17 needs `familyId` to `epics/E17.md` §5; and the cross-service-harness residual to `token-handling-security-audit.md` §3.4. The two defects E14-S09 found stay open in `multi-tab-refresh-behaviour.md` §4, §5 and §9. E14 keeps its id and all nine story ids. Nothing about BC-01, or about this record's own content or build state, changed. |
-| 1.17 | 2026-08-28, later the same day | §0's range narrows from "E15..E19" to **E16..E19** — `phase5/epics/E15.md` deleted and its record distributed, the E11/E13/E14 way and not E12's, so no twelfth record joined the eleven beside this one. **This file is the pass's main receiver.** New **§3.1** records what E15-S06 found while making a login-email write revoke sessions: one writer only (Admin-tier `shopOwnerUpdateEmail`), **no confirm-a-change flow at all**, `newEmailTmp` written and read by nothing, the new address live immediately with `emailVerify.valid` untouched — so an operator typo moves an account to an unverified address *and* ends every session its owner held — and the recorded engineering answer for whoever builds the flow: revoke at the confirmation, never at the request. §6 stops reading "all four closed" and gains **question 5, open**: whether that flow is wanted at all. That row is the one line of E15's §6 that survived the file, relocated rather than deleted — E15's §6 was **not** empty like E14's. §0's citation list drops `epics/E15.md`. E15 keeps its id and all ten story ids. Nothing about BC-01's build state changed: §3.1 describes a flow that does not exist and a mutation that belongs to BC-03 |
+| 1.17 | 2026-08-28, later the same day | §0's range narrows from "E15..E19" to **E16..E19** — `phase5/epics/E15.md` deleted and its record distributed, the E11/E13/E14 way and not E12's, so no twelfth record joined the eleven beside this one. **This file is the pass's main receiver.** New **§3.1** records what E15-S06 found while making a login-email write revoke sessions: one writer only (Admin-tier `shopOwnerUpdateEmail`), **no confirm-a-change flow at all**, `newEmailTmp` written and read by nothing, the new address live immediately with `emailVerify.valid` untouched — so an admin typo moves an account to an unverified address *and* ends every session its owner held — and the recorded engineering answer for whoever builds the flow: revoke at the confirmation, never at the request. §6 stops reading "all four closed" and gains **question 5, open**: whether that flow is wanted at all. That row is the one line of E15's §6 that survived the file, relocated rather than deleted — E15's §6 was **not** empty like E14's. §0's citation list drops `epics/E15.md`. E15 keeps its id and all ten story ids. Nothing about BC-01's build state changed: §3.1 describes a flow that does not exist and a mutation that belongs to BC-03 |
 | 1.18 | 2026-08-28, later the same day | §0's range narrows from "E16..E19" to **E19** — `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open questions and E18's three are all closed. What the audit found held nowhere else went to `EPICS_STORIES.md` §2's E17 and E18 rows and §2.1's E17 row, `docs/testing.md`, and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6. The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this record's own content or build state changed. |

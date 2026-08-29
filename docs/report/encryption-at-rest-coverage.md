@@ -56,7 +56,7 @@ carrying:
 
 - 🟠 **The `user` collection is not the exposed one — `shopOwner` is.** Every personal field on `user` is
   encrypted. `shopOwner` leaves a **first name, a last name and a city** in the clear, permanently and on
-  purpose, because the operator table sorts and prefix-searches all three. A volume reader gets a list of
+  purpose, because the admin table sorts and prefix-searches all three. A volume reader gets a list of
   named shop owners and the towns they live in.
 - 🟠 **E18-S05's own premise about Redis is wrong: session values *are* personal data.** The access-token
   session hash holds `email` in plaintext (`IRedisDataAdminCommon`, `IRedisDataShopOwnerCommon`,
@@ -126,7 +126,7 @@ Read straight from `encryptedFields.mts`. **D** = deterministic (equality lookup
 | `personalData.contacts.mobile` | R | mobile number |
 | `personalData.contacts.landline` | R | landline number |
 | `personalData.contacts.email` | R | contact address (not the credential) |
-| `notes` | R | what an operator wrote *about* this person |
+| `notes` | R | what an admin wrote *about* this person |
 
 ### `user` — DEK `user`, 14 paths
 
@@ -179,10 +179,10 @@ in the indexes, in the oplog and in any dump.
 | `personalData.lastName` | `shopOwner` | same three indexes, same failure |
 | `personalData.address.city` | `shopOwner` | `tbl_active_city` sorts it and `SEARCHABLE_PATHS` prefix-searches it |
 
-⚠️ **This is the platform's single largest plaintext personal-data exposure and it is on the operator's
+⚠️ **This is the platform's single largest plaintext personal-data exposure and it is on the admin's
 own collection, not the customer's.** The same three fields on `admin` and on `user` *are* encrypted,
 because nothing sorts or searches those. Closing it means dropping the three `tbl_active_*` indexes and
-paging the operator table another way — the condition ADR-029 records for revisiting the trade. Adding the
+paging the admin table another way — the condition ADR-029 records for revisiting the trade. Adding the
 fields to `encryptedFields.mts` without doing that in the same change does not make the table slow, it
 makes it **silently wrong**.
 
@@ -218,7 +218,7 @@ Two caveats, both real and neither currently handled:
   named here because a reader of the encrypted-fields list would otherwise conclude `company` holds no
   personal data at all.
 - ⚠️ **Free text can contain anything.** `company.description`, `company.registryExtract` and
-  `item.description` are operator- or owner-authored prose. Nothing stops one holding a phone number or a
+  `item.description` are admin- or owner-authored prose. Nothing stops one holding a phone number or a
   person's name, and no encryption decision can be made per-occurrence. `shopOwner.notes` is the one
   free-text field on the platform that *is* encrypted, precisely because it is guaranteed to be about a
   named person.

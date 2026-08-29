@@ -17,7 +17,7 @@ be recorded here rather than left in a source comment.
 tier whose subject is **the account relationship itself** rather than a field inside it. Every other write
 there edits data belonging to an account that continues to exist; this one ends it.
 
-`disabled` is the operator's suspension flag, and it is enforced **at the edges of a session, not on each
+`disabled` is the admin's suspension flag, and it is enforced **at the edges of a session, not on each
 write**:
 
 - **at login** — `checkUserAuthorization` → `checkUserAuthorizationDisDel`
@@ -37,7 +37,7 @@ access-token lifetime.
 Three further facts fix the shape of the question:
 
 - **`disabled` has a writer.** `funUserUpdateStatus` / `userUpdateStatus` on the Admin resource service
-  (E19-S03, built 2026-08-25) is the operator lever that did not exist when the customer account model was
+  (E19-S03, built 2026-08-25) is the admin lever that did not exist when the customer account model was
   written. Before it, this question could not arise.
 - **The window is real but short.** `accessTokenExpiry()` in `@axiumine/koa-utils` randomises the access
   token between 30 and ~91 minutes. That is how long after a suspension a customer can still reach
@@ -55,10 +55,10 @@ withholds.
 
 | Option | Pros | Cons |
 |---|---|---|
-| Gate `userDel` on `disabled`, as `funUserUpdatePwd` does | One rule for the two writes that change an account's standing rather than its contents; an operator holding an account for fraud keeps it exactly as it was | Hands an operator a way to deny a data subject an Art. 17 right by flipping one boolean — no review, no recorded refusal, no expiry. It is also the wrong analogy: the password gate exists to stop a suspended account being *permanently re-keyed*, and closing an account takes nothing over, it gives it up |
+| Gate `userDel` on `disabled`, as `funUserUpdatePwd` does | One rule for the two writes that change an account's standing rather than its contents; an admin holding an account for fraud keeps it exactly as it was | Hands an admin a way to deny a data subject an Art. 17 right by flipping one boolean — no review, no recorded refusal, no expiry. It is also the wrong analogy: the password gate exists to stop a suspended account being *permanently re-keyed*, and closing an account takes nothing over, it gives it up |
 | Gate on `disabled`, but let it expire — refuse for N days, then allow | Preserves a short investigative hold without making the denial permanent | Invents a duration nobody decided, needs a second timestamp to measure it from, and still refuses a right during the window with no way for the customer to hear why. A hold with legal weight is a legal hold, and that is not what this flag is |
-| **No `disabled` gate; `deleted` still guarded (adopted)** | The right cannot be withheld by an operator action. The operator's record survives intact because the delete is soft — the document stays, `disabled: true` stays. Consistent with the five writes that already run no guard | The tier's one in-resolver guard now has to be understood as *specific to credential writes* rather than as a rule `userDel` is exempt from. That reading is correct but has to be written down, which is what this ADR is for |
-| Refuse with a reason instead of silently — 403 naming the suspension | Honest to the customer, auditable | There is nothing to be honest *about*: no legal-hold concept exists here, so the reason would be "an operator suspended you", which is not a lawful ground to refuse erasure. Building the refusal before the ground exists is building the wrong half first |
+| **No `disabled` gate; `deleted` still guarded (adopted)** | The right cannot be withheld by an admin action. The admin's record survives intact because the delete is soft — the document stays, `disabled: true` stays. Consistent with the five writes that already run no guard | The tier's one in-resolver guard now has to be understood as *specific to credential writes* rather than as a rule `userDel` is exempt from. That reading is correct but has to be written down, which is what this ADR is for |
+| Refuse with a reason instead of silently — 403 naming the suspension | Honest to the customer, auditable | There is nothing to be honest *about*: no legal-hold concept exists here, so the reason would be "an admin suspended you", which is not a lawful ground to refuse erasure. Building the refusal before the ground exists is building the wrong half first |
 
 ---
 
@@ -82,7 +82,7 @@ if (user.deleted) {
 Three properties make that safe rather than merely permissive:
 
 1. **The delete is soft (ADR-011).** `deleted` gains a `Date` and nothing is removed. The document, the
-   personal data, the addresses and `disabled: true` itself all survive the close — so whatever an operator
+   personal data, the addresses and `disabled: true` itself all survive the close — so whatever an admin
    suspended the account to preserve is still there afterwards. A hard delete would make this a genuinely
    hard call; a stamp does not.
 2. **`deleted` is still a guard, and it answers 410, not 401.** 401 on this tier keeps its single meaning —
@@ -104,10 +104,10 @@ suite rather than passing quietly.
 ## Consequences
 
 ### Positive
-- An Art. 17 right cannot be withheld by an operator action. That is the whole point, and it is the one
+- An Art. 17 right cannot be withheld by an admin action. That is the whole point, and it is the one
   property that would have been lost by reasoning from `funUserUpdatePwd` without asking what its guard is
   for.
-- The operator loses nothing. Soft delete means the suspension, the record and the personal data are all
+- The admin loses nothing. Soft delete means the suspension, the record and the personal data are all
   still on disk after the customer closes — available to whatever the hold was for.
 - It settles the shape of the tier's one in-resolver guard: it is a **credential-write** rule, not a
   general authorization rule with exceptions. Anyone adding a write here now has a stated test for whether
@@ -120,7 +120,7 @@ suite rather than passing quietly.
   is a level down. The unit test is what makes it visible to a change, not the reading.
 
 ### Risks
-- **`disabled` acquiring a second meaning.** The flag today means *an operator suspended this account*. If
+- **`disabled` acquiring a second meaning.** The flag today means *an admin suspended this account*. If
   it ever also means a legal hold, a chargeback freeze or a retention duty, this decision is wrong and must
   be revisited — but the fix is a **new field with its own semantics**, not a gate re-added to this one.
   Revisit trigger: any story that makes `userUpdateStatus` mean more than "suspended".
@@ -132,7 +132,7 @@ suite rather than passing quietly.
   address destroys the closed document outright and ends the wait early (ADR-011 §Amendment 2026-08-26).
   Struck rather than deleted because the reasoning above depends on it: property 1 of §Decision says the
   delete is soft and *nothing is removed*, and that is now true for 30 days rather than indefinitely. It
-  does not weaken the decision — an operator's hold survives a close for the whole retention window, and
+  does not weaken the decision — an admin's hold survives a close for the whole retention window, and
   a hold that needs to outlive it was never this flag's job (see the `disabled` risk above).
   ⚠️ **Reversed 2026-08-29, three days later, and the bullet above is kept a second time for the same
   reason.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) drops `deleted_ttl`
@@ -142,11 +142,11 @@ suite rather than passing quietly.
   re-registering the address inside the window **restores** the closed account instead of destroying it.
   ⚠️ **This ADR's own decision is untouched by both.** `userDel` still does not gate on `disabled`, and a
   suspension still survives everything here — including the undo, which clears `deleted` and leaves
-  `disabled` exactly where the operator put it (ADR-044).
-- **The Admin counterpart is still missing.** An operator can suspend a customer and cannot close one —
+  `disabled` exactly where the admin put it (ADR-044).
+- **The Admin counterpart is still missing.** An admin can suspend a customer and cannot close one —
   there is no Admin-tier equivalent of `shopOwnerDel` for `user` (`phase5/epics/E19.md` §Open questions 3).
   Whoever builds it inherits this question from the other side and should not assume the answer is
-  symmetric: an operator closing somebody else's account is not the exercise of a data-subject right.
+  symmetric: an admin closing somebody else's account is not the exercise of a data-subject right.
 
 ---
 

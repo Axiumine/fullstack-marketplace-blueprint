@@ -121,7 +121,7 @@ repos of sixteen and has no exception.
 - The secret-guard body exists in **six** variants. Nothing enforces that they stay identical; it is a
   `diff` run by hand, and a fix to one must be copied to the other five.
 - `pre-push` depends on a container engine and a locally present image. An offline push, or a push from a
-  machine without Docker or podman, is blocked until the operator installs or pulls — which is the
+  machine without Docker or podman, is blocked until the admin installs or pulls — which is the
   intended behaviour and is still a real cost.
 - **No static analysis of nginx directives exists, and none is added by this ADR.** `nginx -t` is a
   parser, not a linter: it accepts a backslash-continued `Content-Security-Policy` that drops the header
