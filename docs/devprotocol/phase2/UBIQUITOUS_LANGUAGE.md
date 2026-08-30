@@ -2,10 +2,18 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
-**Date:** 2026-08-29
+**Version:** 1.11
+**Date:** 2026-08-30
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.11 - 2026-08-30: **the `deploy-local.sh` term is retired and its script is deleted.** The platform owner
+ruled that an edit to `marketplace-common` reaches a consumer by being published and by nothing else
+([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)), so §13's entry for the
+script becomes an entry for **Release (`marketplace-common`)** — the nine-step flow that replaced it — and
+§19 gains the name as a banned term. The three earlier entries below that argued over *when* to re-run the
+script are left as written: they are the record of a rule that was live at the time, and v1.6's conclusion
+that no `yarn install` path may invoke it is the half that survives, now unconditionally. Versions move to
+`3.0.0` / `^3.0.0` where they were the live state. No other term definition changed.
 v1.10 - 2026-08-29: **"operator" is banned platform-wide.** The platform owner ruled that there are three
 human roles and their names are admin, shop owner and customer; a fourth word for the `Admin` tier only made
 readers ask which of the three it meant. Every prose use of it across the sixteen repos is now "admin", the
@@ -523,9 +531,10 @@ These five fields on `company` all look like "some official string about the bus
 **Definition:** the directory the fifteen sub-repos are checked out under — `fullstack-marketplace-blueprint` by default, wherever a clone puts it; <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online. A 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
-### deploy-local.sh
-**Definition:** Script in `marketplace-common` that builds the package and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` by globbing the workspace. Bridges the gap between an edit to `src/` and the *released* build the registry serves — `@axiumine/marketplace-common` is published at `1.0.1` and consumers pin `^1.0.1` (`ADR-037`), so an unreleased edit is invisible until this runs. ⚠️ It is **not** part of installing: nothing in any `yarn install` path invokes it, and nothing may — an install resolves the released `^1.0.1`, which is the right answer whenever common carries no unreleased edit. Must be re-run after every edit to common, and after an install in a consumer **only while common is carrying such an edit**, because that install drops the released build back over the deployed one.
-**Used in:** `BEs/marketplace-common/deploy-local.sh`.
+### Release (`marketplace-common`)
+**Definition:** the nine steps that carry an edit to `marketplace-common` from `src/` to a call site: decide the bump, branch, `npm version --no-git-tag-version`, changelog, merge `--no-ff`, annotated tag, `git push --follow-tags` (which runs the full gate), `yarn upload`, then `npm view` to verify and a range bump in each consumer as separate work. ⚠️ **It is the only route.** The package is consumed by name from `registry.npmjs.org` — `3.0.0`, consumers on `^3.0.0` — so an unpublished edit is invisible at every call site, and a `yarn install` is authoritative everywhere because there is nothing else for it to overwrite. Consumers resolve through their own `yarn.lock`, so a release reaches none of them until that lockfile moves.
+**Used in:** [`BEs/marketplace-common/CLAUDE.md`](https://github.com/Axiumine/marketplace-common/blob/main/CLAUDE.md) §Publishing a release, [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).
+**Replaces:** `deploy-local.sh`, the script that used to sync a local build into every consumer's `node_modules` — deleted 2026-08-30 and banned in §19.
 
 ### Migration
 **Definition:** One `migrate-mongo`-managed file under `BEs/marketplace-db-setup/migrations/`, timestamp-prefixed, immutable once applied — never edit an applied migration, add a new one. `<ts>-create-<coll>.js` creates a collection + validator + indexes in one call. There is no `<ts>-alter-<coll>.js` and no `collMod`: a collection is declared once, in its final shape.
@@ -675,6 +684,7 @@ Every term below is forbidden platform-wide. Reintroducing one — even as a com
 | `JWT` (as a real mechanism) | Stale type name in some `schema.graphql` slices only. Auth is opaque token + Redis session, not JWT. | "access token" / "refresh token" |
 | any identifier, comment, UI string or route that is not English | The platform is English-only, everywhere, with no exception (§1). A second language in one file is a second language in the database the day that file is read. | the English name — this document is the list |
 | "operator" as a name for the `Admin` tier | Three human roles, three names — admin, shop owner, customer (platform owner, 2026-08-29). A fourth word for a role that already has a name only makes a reader ask which of the three it was. It is swept out of all sixteen repos. Untouched: a MongoDB *update operator* (`$set`, `$pull`) and a language operator (`&&`) — neither names a person. | "admin" in prose, `Admin` in code |
+| `deploy-local.sh`, and any hand-copied build | An edit reaches a consumer by being published and by nothing else (platform owner, 2026-08-30 — ADR-047). The script copied a fresh build into every consumer's `node_modules`: no version, no lockfile entry, nothing another machine could reproduce, and the next `yarn install` silently put the released build back. `rsync`, `cp`, `yarn link` and a `file:` path are the same thing under other names. | publish a release — §13 |
 | "customer" / "admin" / "superadmin" as code identifiers | Business-role words never appear in code — see §2. | `User` / `ShopOwner` / `Admin` |
 
 **Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Two naming rules and [`docs/data-model.md`](../../data-model.md).

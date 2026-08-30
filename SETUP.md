@@ -231,17 +231,19 @@ cd BEs/marketplace-common
 cp env .env            # MONGODB_URI + the MONGO_TEST_* block (test db: dbMarketplaceTestCommon)
 yarn install
 yarn build
-./deploy-local.sh
 ```
 
-⚠️ **`marketplace-common` is consumed by package name, and the registry only carries what was
-released**, so `deploy-local.sh` — which syncs `dist/` and `package.json` into every consumer's
-`node_modules` — is what carries an edit that no release has shipped yet. Re-run it after every edit to
-this repo. ⚠️ It is not part of installing: no `yarn install` in any repo calls it, and none may. Only if
-this repo is carrying an unreleased edit does an install in a consumer undo the deploy, and only then does
-it need re-running. Rationale: ADR-015 for the bridge,
+⚠️ **Nothing here has to reach the other repos, and nothing may be copied into them.**
+`marketplace-common` is consumed by name from `registry.npmjs.org`, so every consumer gets it from its own
+`yarn install` — this step builds the library for its own tests and gates, not for anybody else. An edit
+made here reaches a consumer only when it is **published**: the nine-step release flow in
+[`BEs/marketplace-common/CLAUDE.md`](./BEs/marketplace-common/CLAUDE.md). ⚠️ **`deploy-local.sh` is
+deleted** — it used to copy `dist/` into every consumer's `node_modules`, which produced a build no
+lockfile named and no other machine could reproduce. Rationale: ADR-015 for the consumption pattern,
 [`ADR-037`](./docs/devprotocol/phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) for the
-publication.
+publication,
+[`ADR-047`](./docs/devprotocol/phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) for why
+the local copy is gone.
 
 ⚠️ **Corrected 2026-08-27.** This paragraph said the package was *unpublished* and that skipping the
 script left every service unable to resolve `@axiumine/marketplace-common`. It is published —
@@ -643,8 +645,8 @@ and are gate removals — use them only when you have decided to.
 | `up.sh` stops at `Unauthorized` on the root user | a root user already exists with a different password than `.env` now holds. Restore the old value or `./down.sh --purge` |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh` |
 | a service exits at boot naming one missing variable | that `.env` is incomplete. `checkRequiredEnv()` throws on the *first* one it finds, so fixing it can uncover a second — and an empty value counts as missing |
-| a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | `./deploy-local.sh` was not re-run after that edit, or a later `yarn install` in the consumer put the released `^2.0.0` build back over the deployed one |
-| `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@axiumine/marketplace-common' imported from …` | the package is genuinely absent from that consumer's `node_modules` — run `yarn install` there. It resolves from `registry.npmjs.org` since `ADR-037`, and `deploy-local.sh` is not what puts it back |
+| a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | that edit was never published. A consumer runs the version its `yarn.lock` names and nothing else (ADR-047) — cut a release, then move that consumer's range and re-install |
+| `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@axiumine/marketplace-common' imported from …` | the package is genuinely absent from that consumer's `node_modules` — run `yarn install` there. It resolves from `registry.npmjs.org` since `ADR-037`, and that install is the only thing that puts it back |
 | a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else |
 | a service exits with `KEYGRIP_KEK_MISMATCH` | its `KEYGRIP_KEK` is not the one the record was written under. The keys are fine; this one `.env` is wrong |
 | every login returns 401 after a refresh | the five cookie services are not on the same keygrip record. `HGETALL "<REDIS_KEY>keygrip:holders"` — every row must carry the same fingerprint. A stale row means that service has not been restarted since a rotation |

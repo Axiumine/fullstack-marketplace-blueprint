@@ -35,13 +35,20 @@ E12's: no twelfth record joined the index, so the count of eleven records beside
 seven facts it held that were not already recorded elsewhere went to `EPICS_STORIES.md` §2's E13 row,
 `SECURITY_AUTH.md` §3.6 and `dependency-tree-advisory-scan.md` §6.1. E13 keeps its epic id and all eleven
 story ids, `E13-S01`..`E13-S11`.
+v1.8 - 2026-08-30: **E10-S03 is rewritten around the decision that replaced its subject.**
+[`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes
+`deploy-local.sh`, so the story's obligation moves from *sync the build* to *publish the release*: same id,
+same domain, same place in the landing order, and an acceptance criterion that can now be checked by
+`npm view` rather than by a directory listing. §2's ownership table and §3's build state lose the bridge
+row with it, and §5's landing order says "publish a release" where it said "run the script". The 1.6 and
+1.7 entries below are left as written — they were true on their dates.
 v1.7 - 2026-08-28: E10-S03's Evidence line carries `marketplace-common` `2.0.1`, the JSDoc-only
 patch released that day. The criterion and the consumers' `^2.0.0` are untouched — the point of the range is
 that a patch needs neither.
 v1.4 - 2026-08-27: `phase5/epics/E11.md` is deleted, its record distributed rather than
 v1.6 - 2026-08-27, later still: E10-S03's acceptance criterion and Evidence line carry `marketplace-common`
 `2.0.0` / `^2.0.0` after that release. The story's obligation is unaffected — `deploy-local.sh` bridges the gap
-between releases whatever the released version is.
+between releases whatever the released version is. **(That bridge is gone since 2026-08-30 — see v1.8.)**
 replaced. §5 absorbs what its own §5 held — the 7th model and the `TIER`-scoped service pair BC-11 would
 have needed, and the tier-vs-concern question that went with them, closed as moot by ADR-038. Every
 citation of `epics/E11.md` in this file is repointed to
@@ -186,8 +193,8 @@ minus `marketplace-dev-authenticated-logout`, which touches Redis only) import a
 | `Tier`, `assertTier`, `checkUserAuthorizationDisDel` | A `role` field/enum | Banned term, `phase2/UBIQUITOUS_LANGUAGE.md:79` — role = which collection you authenticate against |
 | `resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens` (shared authz body) | Merging the 3 `*-authenticated-authorization` deployables into 1 process | Decided against 2026-08-07, [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md); NFR-AV01 |
 | The 6 Mongoose models (`Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`) | A shop/collection model | Never existed, never will — a shop IS a `company` |
-| `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally; `deploy-local.sh` stays as the between-releases bridge, so BC-10 still owns the sync and not the release calendar |
-| `deploy-local.sh` sync into 9 consumers' `node_modules` | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only |
+| `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally. ⚠️ **Corrected again 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)**: `deploy-local.sh` is deleted, so there is no between-releases bridge and BC-10 owns the `exports` map only — a change reaches a consumer as a published version or not at all |
+| ~~`deploy-local.sh` sync into 9 consumers' `node_modules`~~ **the published release (`yarn upload`) the consumers install** | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only. The row's left-hand side changed mechanism on 2026-08-30 (ADR-047), not scope |
 | `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27) |
 
 ## 3. Build state
@@ -204,7 +211,8 @@ Koa/GraphQL-shaped surface on 2026-08-07.
 - Fail-closed anti-bot: `BEs/marketplace-common/src/others/assertTurnstile.mts:26,29-32`.
 - Models: `BEs/marketplace-common/src/models/MongoDB/{Admin,ShopOwner,Company,User,Item,ItemCategory}.mts`.
 - Exports map: `BEs/marketplace-common/package.json` — 216 `"key":` entries (`grep -c '":'`), no barrel.
-- Deploy bridge: `BEs/marketplace-common/deploy-local.sh`.
+- Release: `BEs/marketplace-common/package.json` `scripts.upload` — `npm publish --registry=https://registry.npmjs.org/`,
+  the only channel into a consumer since ADR-047. There is no local deploy script and there must not be one.
 - Gates: `BEs/marketplace-common/vitest.config.mts`, `stryker.config.mjs`, `test/` (unit + `test:contract`
   + `test:int` + `test:types`), `test:contract` script at `package.json:24`.
 - Consolidation record: [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md).
@@ -238,31 +246,31 @@ crash domain.
 **Traces:** NFR-AV01, NFR-AV02, ADR-006 (per `phase4/API_CONTRACTS.md:341`).
 **Evidence:** [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md), `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`.
 
-### E10-S03 — `deploy-local.sh` carries every edit the registry has not released yet   `built`
-Technical story. `marketplace-common` is consumed by package name (`@axiumine/marketplace-common`);
-`deploy-local.sh` must build `dist/` and sync it plus `package.json` into every consumer's `node_modules`
-after every edit, or consumers silently compile against a stale build.
-⚠️ **This story's premise changed on 2026-08-26 and the story did not.** It was written on 2026-08-07 as
-*"`deploy-local.sh` is the only publish channel"*, when nothing was on any registry, and its second criterion
-proved the script mandatory by proving the package 404s.
-[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) superseded the publication half
-of [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md): the owner publishes to
-`registry.npmjs.org` personally, and consumers install `^2.0.0` from it. ⚠️ **The script is not retired by
-that, and inferring so is the documented wrong turn** (ADR-037 §Decision 2): it closes the gap *between*
-releases, so a workspace without it runs every consumer against the last **published** build rather than the
-last **written** one — stale and plausible, where today's failure is loud and at the call site. The criterion
-below is restated to prove the same obligation against the state that now exists.
+### E10-S03 — a published release is the only way an edit reaches a consumer   `built`
+Technical story. `marketplace-common` is consumed by package name (`@axiumine/marketplace-common`) from
+`registry.npmjs.org`, so an edit under `src/` reaches the nine services when it is **published** — bump,
+changelog, merge, tag, gated push, `yarn upload`, then move each consumer's range — and at no other moment.
+⚠️ **This story's subject has been replaced twice, and the id is deliberately kept.** It was written on
+2026-08-07 as *"`deploy-local.sh` is the only publish channel"*, when nothing was on any registry and the
+second criterion proved the script mandatory by proving the package 404s.
+[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) (2026-08-26) put the package on
+the registry and kept the script as a between-releases bridge; four days later
+[`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) **deleted the script** on
+the platform owner's ruling. What that reverses is a mechanism, not this story's obligation: the kernel's
+edits must reach its consumers by a route both can name. The route is now a version number.
 **domains:** backend, infra
 **Acceptance criteria:**
-- `BEs/marketplace-common/deploy-local.sh` globs this workspace and writes into every consumer's
-  `node_modules/@axiumine/marketplace-common/`.
-- An edit under `BEs/marketplace-common/src/` that has not been published is invisible to all 9 services
-  until the script runs — a fresh `yarn install` resolves `^2.0.0` from the registry and restores the last
-  *released* build over it, which is why "run `./deploy-local.sh` after every edit" is a rule and not a
-  convenience (NFR-PO04, ADR-037 §Decision 2).
-**Traces:** NFR-PO04, BCON-07 (`phase5/CONSTRAINTS.md` §3), ADR-037 (supersedes ADR-015 in part).
-**Evidence:** `BEs/marketplace-common/deploy-local.sh`; `BEs/marketplace-common/package.json` `version`
-`2.0.1` + `publishConfig.registry`; `^2.0.0` in the consumers' `package.json`.
+- `BEs/marketplace-common/deploy-local.sh` **does not exist**, and nothing — script, hook, `dev.sh` step,
+  `yarn link`, `file:` path — writes a locally built copy of this package into a consumer's `node_modules`
+  (ADR-047 §Compliance).
+- An edit under `BEs/marketplace-common/src/` is invisible to all 9 services until a release carrying it is
+  published *and* that consumer's range and `yarn.lock` reach it. `npm view @axiumine/marketplace-common
+  version` is the check, and it answers for every machine rather than for this one (NFR-PO04, ADR-047).
+**Traces:** NFR-PO04, BCON-07 (`phase5/CONSTRAINTS.md` §3), ADR-037 (supersedes ADR-015 in part), ADR-047
+(supersedes ADR-015 and ADR-037, each in part).
+**Evidence:** `BEs/marketplace-common/package.json` `version` `3.0.0` + `publishConfig.registry` +
+`scripts.upload`; `^3.0.0` in the twelve consumers' `package.json`; `BEs/marketplace-common/CLAUDE.md`
+§The release flow.
 
 ### E10-S04 — Every file reachable only via the `exports` map   `built`
 Technical story. No barrel export exists; an unlisted file is unreachable by any consumer. Adding a
@@ -321,7 +329,8 @@ Technical story. `Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`
   context at compile time (`phase2/BOUNDED_CONTEXT.md` §4 relationship table). No epic in this phase can
   land ahead of E10's build state — it already exists, so this is a standing constraint, not a landing
   order: any story elsewhere that edits a model or an `others/` helper is really an E10 change, followed
-  by `./deploy-local.sh`, followed by a separate per-consumer commit (BCON-05, BCON-07).
+  by a **published release** of `marketplace-common`, followed by a separate per-consumer commit that moves
+  the range (BCON-05, BCON-07, ADR-047).
 - **Downstream of nothing** inside this platform — BC-10 consumes no other context
   (`phase2/BOUNDED_CONTEXT.md:181` "Consumes: nothing from the other contexts").
 - **E11 (Ordering & Fulfilment) never designed, so it never added anything here, and now never will.** Had

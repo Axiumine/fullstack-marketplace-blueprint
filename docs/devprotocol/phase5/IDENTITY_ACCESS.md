@@ -553,9 +553,9 @@ from the required list, and a repo-wide ban would refuse the test that proves th
 ## 5. Dependencies
 
 - Depends on `BEs/marketplace-common` (`Tier.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`,
-  `refreshSessionTokens`) being deployed via `./deploy-local.sh` before any story here is testable in a
-  consumer — BCON-07. Already deployed; a future edit to common must repeat the deploy step before this
-  epic's gates mean anything.
+  `refreshSessionTokens`) being **published** before any story here is testable in a consumer — BCON-07.
+  Already published (`3.0.0`, consumers on `^3.0.0`); a future edit to common must be released and each
+  consumer's range moved before this epic's gates mean anything (ADR-047).
 - BC-03 (Shop Owner Onboarding & Approval) must create the `shopOwner` document before E01-S01 can succeed
   for that account, **and must not be holding it**: since E01-S11 a `waitApprov` document is refused at
   login and at every refresh. This line has now said all three things in turn — first that login waited on

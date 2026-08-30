@@ -56,9 +56,12 @@ published on 2026-08-26 (`ADR-037`), and `yarn audit` in `marketplace-dev-public
 packages audited, 80 advisories; 268 and 28 with `--groups dependencies`. Everything below was accurate when
 measured and the scan's conclusions do not rest on it.
 
-`@axiumine/marketplace-common` is unpublished by design — it is consumed by package name and deployed with
-`deploy-local.sh` — and yarn 1 aborts the **entire** audit when any single package fails to resolve against the
-registry, rather than skipping it. The failure is identical with `--registry https://registry.npmjs.org` and
+`@axiumine/marketplace-common` was unpublished when this ran — consumed by package name and copied into each
+consumer by a local script — and yarn 1 aborts the **entire** audit when any single package fails to resolve
+against the registry, rather than skipping it. ⚠️ **Neither half survives:** the package has been on
+`registry.npmjs.org` since 2026-08-26 (`ADR-037`) and the script was deleted on 2026-08-30
+(`ADR-047`), so the resolution failure this paragraph describes cannot happen again — re-run the audit
+before treating anything below as current. The failure is identical with `--registry https://registry.npmjs.org` and
 against the default. It is not a misconfiguration: it is what yarn 1 does, and it means the obvious command has
 never been able to answer this question in this workspace. That alone explains why no one had run it.
 
@@ -287,7 +290,7 @@ have to rediscover it.
 | Package | Version | Where it is declared | What it does in the auth path | Ours to change |
 |---|---|---|---|---|
 | `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27, 7.1.0 since 2026-08-28** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcoded `redis://` in the cluster branch through `7.0.0`; `7.1.0` reads the scheme from `REDIS_TLS` instead, which no `env` here sets (R45, still open) | **no — external, unpublished from here, no source in this workspace** |
-| `@axiumine/marketplace-common` | 1.0.0 | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, deployed with `deploy-local.sh` |
+| `@axiumine/marketplace-common` | 1.0.0 (`3.0.0` published since 2026-08-30) | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, resolved from `registry.npmjs.org` like any other dependency since `ADR-037`; the local copy step this column named is deleted (`ADR-047`) |
 | `keygrip` | 1.1.0 | `dependencies` in 6 services, transitive in 3 | Cookie signing and the rotating key list behind ADR-034 | **no — external** |
 | `cookies` | 0.9.1 | transitive in all 9, via `koa` | Writes and reads the signed cookies; the `Secure` attribute the edge rewrites | **no — external** |
 | `koa` | 3.2.1 | `dependencies` in all 9 | The HTTP layer; owns `ctx.cookies` | **no — external** |

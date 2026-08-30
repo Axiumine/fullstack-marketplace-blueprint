@@ -317,8 +317,8 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
 
 - BC-01 (Identity & Access) ships first: `userRegister`/`verify-email-user` mint the `User` document this
   epic's mutations operate on — no landing-order issue for this retrofit, both already built.
-- Shares `marketplace-common`'s `assertTier`/`TIER` (BC-10) — an edit there needs `./deploy-local.sh`
-  before this service picks it up (BCON-07).
+- Shares `marketplace-common`'s `assertTier`/`TIER` (BC-10) — an edit there has to be published, and this
+  service's range moved, before it picks it up (BCON-07, ADR-047).
 - `marketplace-user`'s `/account/*` routes (frontend half) depend on this service's schema slice under
   `marketplace-user/src/gql/` staying in sync with the resolvers — see [`docs/frontends.md`](../../frontends.md)'s warning that
   `schema/*.graphql` slices are hand-maintained, not the contract.

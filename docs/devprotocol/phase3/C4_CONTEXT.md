@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-28
+**Version:** 1.7
+**Date:** 2026-08-30
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-08-30: the platform developer no longer runs a local sync script, because there is not one:
+`marketplace-common` reaches a consumer by being published and by nothing else, and `deploy-local.sh` is
+deleted ([`adr/ADR-047-a-common-change-ships-as-a-published-release.md`](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)).
+The actor row, the mermaid edge and the §5 interaction row now name publishing a release; the npm-registry
+row carries `3.0.0` and drops the bridge clause. No container, actor or relationship added or removed.
 v1.6 - 2026-08-28: the npm-registry rows in §3 and §4 carry `2.0.1`, the JSDoc-only patch released that day.
 No system, actor or relationship changed.
 v1.5 - 2026-08-27, later the same day: the npm-registry row and its changelog note carry `2.0.0` rather than the
@@ -69,7 +74,7 @@ graph TB
     Cust -->|"GraphQL + refresh cookie"| M
     Owner -->|"GraphQL + refresh cookie"| M
     Op -->|"GraphQL + refresh cookie"| M
-    Dev -->|"migrations, deploy-local.sh, git"| M
+    Dev -->|"migrations, common releases, git"| M
 
     M --> Mongo
     M --> Redis
@@ -96,7 +101,7 @@ graph TB
 | User | end customer, `user` collection | registers, confirms email, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` under `marketplace-user` `/account/*`. Cannot buy anything, ever — no cart or order model exists and none will be built ([ADR-038](./adr/ADR-038-commerce-is-permanently-out-of-scope.md)) |
 | ShopOwner | shop owner, `shopOwner` collection | arrives one of two ways — self-registers at `/register/seller` on the **public** app `marketplace-user` and waits on `waitApprov`, or is provisioned by an Admin through `shopOwnerAdd` and waits on nothing. Then confirms the email, logs in on `marketplace-shopowner`, manages own `company` document(s) and `item` catalogue. ⚠️ `marketplace-shopowner` has **no registration screen** — it is the panel you reach once you have an account |
 | Admin | platform admin, `admin` collection | uses `marketplace-admin` — approves ShopOwners, exclusive write access to `itemCategory` |
-| Platform developer | no session — operates the repos, not the app | runs migrations, `BEs/marketplace-common/deploy-local.sh`, commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
+| Platform developer | no session — operates the repos, not the app | runs migrations, publishes each `marketplace-common` release to `registry.npmjs.org` (the only way an edit there reaches a service), commits/pushes 16 independent repos, provisions Qodana/Mongo/Redis credentials outside this tree |
 
 Full contract detail: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.1. No `role` field anywhere on the
 platform — actor identity = which MongoDB collection the session authenticated against (`CLAUDE.md`
@@ -116,7 +121,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
-| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`), `2.0.0` since 2026-08-27 and `2.0.1` since 2026-08-28, where this row recorded a 404. `deploy-local.sh` now bridges *edited → released* rather than *unpublished → published* |
+| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`), `3.0.0` since 2026-08-30, where this row recorded a 404. It is the **only** route from an edit in that repo to a service: the local bridge this row used to name is deleted (`ADR-047`) |
 
 Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.2 and §5.
 
@@ -130,7 +135,7 @@ Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CO
 | User | Marketplace | `loginUser` → opaque session → account area, identity only, no commerce |
 | ShopOwner | Marketplace | `login` → manages own `company` + `item` documents, gated by `waitApprov` |
 | Admin | Marketplace | `loginAdmin` → approves ShopOwners, sole writer of `itemCategory` |
-| Platform developer | Marketplace | out-of-band ops — migrations, `deploy-local.sh`, git, Qodana tokens |
+| Platform developer | Marketplace | out-of-band ops — migrations, publishing `marketplace-common` releases, git, Qodana tokens |
 | Marketplace | MongoDB | primary datastore, 6 collections, ownership chain `shopOwner → company → item → itemCategory` |
 | Marketplace | Redis | session store, one shared `REDIS_KEY` prefix on purpose — the single logout service depends on it |
 | Marketplace | SocketLabs | verify-email / reset-password transactional email |

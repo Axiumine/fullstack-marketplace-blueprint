@@ -426,8 +426,9 @@ copies `location.href` whole either way.
 because the story asks for it: the three frontends share no package of their own, so "one implementation"
 in any other place would be a new package built for one function; the module imports nothing and walks plain
 object bags, so it is browser-safe by construction and the existing `./others/sentryBeforeSend` subpath export
-puts exactly one file into a browser bundle, not the Mongoose models beside it; and `deploy-local.sh`
-discovers consumers *by declaration*, so the three `package.json` entries are the whole of the plumbing. Three
+puts exactly one file into a browser bundle, not the Mongoose models beside it; and a consumer opts in *by
+declaration*, so the three `package.json` entries plus one published version are the whole of the
+plumbing. Three
 copies would have to be corrected three times, and the first correction that reaches two of them is the leak.
 
 It is wired as **both** `beforeSend` and `beforeSendTransaction` in all three apps, for §6's reason applied to

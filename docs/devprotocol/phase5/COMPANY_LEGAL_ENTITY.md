@@ -2,11 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
-**Date:** 2026-08-28
+**Version:** 1.14
+**Date:** 2026-08-30
 **Author:** epics-agent
 **Bounded context:** BC-04 — Legal Entity / Company
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.14 - 2026-08-30: the two places that named `./deploy-local.sh` as how a `marketplace-common` model
+change reaches the two resource services now name a published release — the platform owner ruled that an
+edit there reaches a consumer by that route and by no other, and the script is deleted
+([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). No story, field,
+acceptance criterion or open question changed.
 v1.13 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
 `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not
 moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
@@ -254,8 +259,8 @@ Technical story. One Mongoose model consumed by `marketplace-dev-authenticated-r
 **domains:** backend
 **Acceptance criteria:**
 - `BEs/marketplace-common/src/models/MongoDB/Company.mts` has exactly one `exports` entry in `marketplace-common/package.json` — no second copy exists in either resource service's own `src/models`.
-- A field added to `ICompanySchema.mts` is visible to both resource services after `./deploy-local.sh`, without editing either service's own source.
-**Traces:** BCON-07 (edit invisible until `deploy-local.sh` run).
+- A field added to `ICompanySchema.mts` is visible to both resource services once the version carrying it is published and each service's range has moved, without editing either service's own source.
+**Traces:** BCON-07 (edit invisible until published — ADR-047).
 **Evidence:** `BEs/marketplace-common/src/models/MongoDB/Company.mts`, `BEs/marketplace-common/src/models/MongoDBInterfaces/ICompanySchema.mts`.
 
 ### E04-S03 — ShopOwner registers a company `built`
@@ -333,8 +338,8 @@ has written, not a resolver gap.
 - BC-05 (Catalogue) depends on this epic, not the reverse — `item.idCompany` needs an existing `company`.
 - BC-08 (Public Discovery) reads `company` through `LIVE_PUBLIC_PIPELINE` but never writes it; landing
   order does not matter for this epic's own stories.
-- Model change flow if `company.js` ever changes: `marketplace-common` model → `./deploy-local.sh` → both
-  resource services' consumers bumped — separate commits per BCON-05.
+- Model change flow if `company.js` ever changes: `marketplace-common` model → publish the release → both
+  resource services' ranges moved — separate commits per BCON-05.
 
 ## 6. Open questions — the one there was is closed
 

@@ -51,8 +51,9 @@ and the reason is worth writing down rather than rediscovering:
 Two constraints shape what can actually be decided here.
 
 **The application-side value is not ours to change.** `tokenOptions.mjs` lives in `@axiumine/koa-utils`,
-the seventeenth repo, outside this workspace and not bridged by `deploy-local.sh` the way
-`marketplace-common` is (ADR-015). Editing `sameSite` from here is not a thing that can be done — but a
+the seventeenth repo, outside this workspace — so unlike `marketplace-common`, none of the release
+discipline recorded here is observable from it (ADR-047; this sentence named a local sync script until
+2026-08-30, when it was deleted). Editing `sameSite` from here is not a thing that can be done — but a
 koa-utils release that relaxed it would arrive as an ordinary dependency bump and reach production with
 no diff in any of the sixteen repos.
 
