@@ -252,6 +252,14 @@ because `_id` is, `login.password` a real bcrypt hash of random bytes, `name` `'
 ([`ADR-041`](./devprotocol/phase3/adr/ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)). The
 scrub list is derived **by exclusion** from a keep-list, so a personal field added to either collection is
 overwritten by default rather than forgotten.
+⚠️ **"By exclusion" means within those two collections, and the sweep reaches no third one**
+([`ADR-050`](./devprotocol/phase3/adr/ADR-050-the-scrub-stops-at-the-account-collections.md)). `company.contactPerson` and
+`company.administrator` are the two personal-looking fields outside the account chain, and they are **not** scrubbed: they are
+registration data of a legal entity, both are `required` so `$unset` is unavailable, either may name somebody who never held an
+account, and `company` carries no `scrubbedAt` for a sweep to read — its `deleted` stamp is `funCompanyDelete`'s, a shop the
+owner removed, on a timeline of its own. So a closed owner's name can stay legible on
+a company after their own document is overwritten — a consequence of the boundary rather than a hole in it. Widening the sweep
+means a superseding ADR; it is not a bug to be fixed by adding a member to `ScrubbableTier`.
 
 ⚠️ **Inside those thirty days the closure is undoable, and the door is a registration rather than a login.**
 Registering again at the same address and confirming the message clears `deleted` and hands the same `_id`

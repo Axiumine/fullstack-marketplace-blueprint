@@ -2,10 +2,33 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.25
+**Version:** 1.27
 **Date:** 2026-08-30
 **Author:** adr-agent
 **Changelog:**
+v1.27 - 2026-08-30, after that: **ADR-051 added — a session exit is a page load.** Each app builds one urql
+client per page load and gives it a document cache keyed by query and variables alone, so a sign-out that
+cleared the token and the session and then navigated with the router left every cached result standing —
+and a second sign-in inside the same page load could be served the first one's. The queries that decide it
+take no variables at all: `shopOwnerCompanies`, which the loading screen probes the session with, and `Me`,
+which the customer's account gate asks before it renders anything private. Both exits — the logout button
+and `onSessionLost` — now end in `window.location.assign('/')`, six call sites across the three apps, and a
+full load rebuilds every module rather than the one store somebody remembered. ⚠️ **This covers the exit
+and not the entrance**: `marketplace-user` has no guard on `/login`, so a signed-in customer can still
+reach the form by ordinary links and sign in as somebody else without a load — recorded as E20 §6 question
+7 rather than closed here. Filed under **Frontend**, beside ADR-027. §4 gains one row.
+v1.26 - 2026-08-30, after that: **ADR-050 added — the scrub stops at the account collections.** The
+platform owner answered E20 §6 question 1 with *no*: day 30 overwrites `user` and `shopOwner`, and
+`company.contactPerson` / `company.administrator` are not in its reach. ⚠️ **This turns a gap into a
+boundary.** The keep-list is derived by exclusion on two collections, so a third one holding a natural
+person's name was an open question rather than a decision; it is a decision now, and widening the sweep to
+close it needs a superseding ADR. The reasons are all three of the kind that do not soften: the two fields
+are `required` on `company` so they cannot be unset, they name whoever the registration named rather than
+whoever is closing an account, and `company` carries no `scrubbedAt` at all — its `deleted` stamp is
+`funCompanyDelete`'s, a shop the owner removed, on a timeline of its own. Filed
+under **Data model** beside ADR-041 and ADR-029 — it bounds a destructive write's reach over collections,
+which is where that write is described. One consequence is recorded rather than hidden: a closed shop
+owner's name can stay legible on a company after the account that held it is scrubbed. §4 gains one row.
 v1.25 - 2026-08-30, last that day: **ADR-049 added — the admin tables offer the four account states, on
 both tiers.** It supersedes nothing and adds no field: `disabled` and `deleted` have always been
 independent, and the two screens that list accounts offered fewer combinations than the two levers can
@@ -263,17 +286,20 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-047 | A change to `marketplace-common` ships as a published release; `deploy-local.sh` is deleted | accepted | 2026-08-30 | ADR-015 and ADR-037, each in part | — | Build and quality gates |
 | ADR-048 | An admin closes a customer account, and the retention clock starts once | accepted | 2026-08-30 | — | — | Identity and access |
 | ADR-049 | The admin tables offer the four account states, on both tiers | accepted | 2026-08-30 | — | — | Frontend |
+| ADR-050 | The scrub stops at the account collections | accepted | 2026-08-30 | — | — | Data model |
+| ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 
 ## 3. By area
 
 **Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034, ADR-036, ADR-040,
 ADR-042, ADR-044, ADR-046, ADR-048
 
-**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035, ADR-041, ADR-043
+**Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035, ADR-041, ADR-043,
+ADR-050
 
 **Catalogue** — ADR-008, ADR-009, ADR-012, ADR-038, ADR-045
 
-**Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049
+**Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049, ADR-051
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
 ADR-037, ADR-047
@@ -306,6 +332,8 @@ ADR-037, ADR-047
 | Add a field naming which collection `deletedBy` points at, so the two closures can be told apart without knowing the tier | [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md), [ADR-002](./ADR-002-role-is-authentication-collection.md) | there is exactly one possible actor collection per stamp, so the field's own name carries it. A second field saying which is a `role` field arriving by the back door |
 | Collapse the two admin tables' four filters into a three-value status enum — Active, Suspended, Closed — because that is how a status reads | [ADR-049](./ADR-049-the-admin-tables-offer-the-four-account-states.md), [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md) | `disabled` and `deleted` are independent and no path writes one while writing the other, so *closed after being suspended* is a state accounts reach the moment an admin uses both levers — and it is the one a three-value enum cannot name. Under it that account answers to no filter and is invisible on the only screen that lists it, which is the defect ADR-049 exists to remove. The enum also has to be mapped back to the two index-leading fields on both tiers, so it buys one argument and owes two translations. Violation looks like a `status`/`state` enum argument on `usersActiveTbl` or `shopOwnersActiveTbl`, or a fifth `ACCOUNT_FILTER` entry that is not a `{disabled, deleted}` pair |
 | Add an *all accounts* option to either table, or an *include closed* checkbox alongside the filter | [ADR-049](./ADR-049-the-admin-tables-offer-the-four-account-states.md) | both mean *either* on a field that leads every index these tables page on — `{deleted, disabled, …}` on `user.tbl_active_registeredAt` and on all four `shopOwner.tbl_active_*`. An unbound leading field loses the index for the sort as well as the match, so the page becomes a blocking in-memory sort under a 32 MB cap on the two collections most certain to grow, and it fails by growing slow rather than by erroring. Greying closed rows in place is the same request wearing a different control: it needs the rows fetched. Violation looks like a nullable `disabled` or `deleted` argument on either table query, or a filter branch that omits one of them |
+| Turn either session exit back into a router navigation — the reload is jarring and the stores are cleared anyway | [ADR-051](./ADR-051-a-session-exit-is-a-page-load.md) | the stores an app knows about are cleared; the urql client is not one of them. It is a module singleton with a document cache keyed by query and variables and by nothing that names a session, so a navigation leaves the previous session's `shopOwnerCompanies` and `Me` — both variable-free, both certain to collide — answering the next sign-in inside the same page load. A load rebuilds every module at once, including the next one somebody adds at module scope. Violation looks like `navigate({ to: '/' })` or `router.navigate` in `useLogout` or in an `onSessionLost`, on any of the three apps |
+| Widen the day-30 retention sweep to overwrite `company.contactPerson` and `company.administrator` when the owner who holds the company is scrubbed | [ADR-050](./ADR-050-the-scrub-stops-at-the-account-collections.md), [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) | the two fields are `required` on a validator with `additionalProperties: false`, so they cannot be unset and can only be falsified; they name whoever the registration named, which may be two people who never held an account here; and `company` has no `scrubbedAt` — its `deleted` stamp is a shop removal on a timeline of its own — so every run would re-derive its work from somebody else's document. The reach of a mass overwrite with no undo is a ruling, not a patch — the platform owner answered *no* on 2026-08-30. Violation looks like a third member on `ScrubbableTier`, a `Company` import in `retentionSweep.mts`, or any `$set` on `company` inside a retention path |
 | Republish a shop owner's companies when their suspension is cleared — "restore what we took down" | [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) | suspending or closing an owner writes `published: false` on every company they own; clearing `disabled` writes **nothing**. The platform owner ruled it directly: *"un-suspending must not re-enable in the same place the companies, shopOwner must re-enable them by hands"*. The symmetry is the trap — restoring the flag means remembering its old value, which is the extra field this decision was chosen to avoid, and it would republish a shop the owner had deliberately taken down. ⚠️ **This does not reopen the 2026-08-14 ruling two rows above**: the cascade writes `published: false` only, never `true`, from a named status path — `companyUpdatePublished` is still the only writer of `true`, on either tier. ⚠️ **Amended the same day**: the cascade reaches `item` as well, it fires from *any* path that makes an owner inactive — the owner's own self-closure as much as an admin's — and restoring an owner writes to the `shopOwner` document **alone**, never to `company` and never to `item`. Violation looks like `published: true` in a status or closure path, an `ownerInactive`-style second flag on `company`, a missing item cascade, or a restore path that reads or writes either collection |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |
