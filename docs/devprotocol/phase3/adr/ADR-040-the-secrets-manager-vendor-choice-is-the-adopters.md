@@ -11,7 +11,7 @@ untouched, and so is every option, consequence and risk that turns on it. `ADR-I
 immutable once accepted; this is the second exception in the tree, after
 [ADR-011](./ADR-011-soft-delete-and-global-uniques.md), and it is an exception on the same grounds: the owner
 authorised it, and the alternative was an accepted ADR that misdescribes the code it greps for.
-**Deciders:** platform owner, ruling directly when asked how to close E16’s last open question (the record was `phase5/epics/E16.md`, deleted 2026-08-28 — [`phase5/EPICS_STORIES.md`](../../phase5/EPICS_STORIES.md) §2 carries it now)
+**Deciders:** platform owner, ruling directly when asked how to close E16’s last open question,
 §6 question 4 — *does the wrapping key have a custody story of its own* — for a repository that is
 **published as a blueprint rather than operated as a deployment**, the same standing the
 [ADR-037](./ADR-037-marketplace-common-is-published-to-npm.md) *Deciders* line already records. The ruling,
@@ -235,4 +235,5 @@ interface in `marketplace-common/src`, `ADR-INDEX` §5's shared-secret bullet st
   of an integration.
 - [`phase5/RISK_REGISTER.md`](../../phase5/RISK_REGISTER.md) **R50** (accepted, §5) and **R39** (open,
   unchanged in scope).
-- E16 §6 question 4 — closed on this decision. That record file, `phase5/epics/E16.md`, was deleted 2026-08-28 with all four of its questions closed; its record is [`phase5/EPICS_STORIES.md`](../../phase5/EPICS_STORIES.md) §2.
+- E16 §6 question 4 — closed on this decision, the last of E16's four open questions, all closed by
+  2026-08-28.

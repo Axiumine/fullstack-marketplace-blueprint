@@ -41,7 +41,7 @@ the same cache standing.
 
 ## Decision
 
-**B.** The platform owner's ruling of 2026-08-30, answering [`E20`](../../phase5/epics/E20.md) §6
+**B.** The platform owner's ruling of 2026-08-30, answering E20 §6
 question 6.
 
 1. **Both exits end in `window.location.assign('/')`, in all three apps.** The logout button, through
@@ -73,12 +73,13 @@ question 6.
   has a `test/helpers/location.ts` that stubs the whole global instead, and `unstubGlobals` puts it back.
   The stub goes in **after** a render that starts the router at a path, or the router freezes on a copy of
   the wrong location.
-- **The entrance is not covered by this decision, and one door is still open.** `marketplace-user` has no
-  guard on `/login`: a signed-in customer can reach the form by ordinary in-app links and sign in as
-  somebody else without a page load, and `Me` is cached under a key that does not name either of them. The
-  two SPAs have no such path — nothing in either links to `/`, and the only soft return to the login screen
-  is the loading screen's failed probe, which happens before any authenticated result exists. Recorded as
-  E20 §6 question 7; closing it is a decision about the sign-in, not about this one.
+- **The entrance was a decision of its own, and it went the same way.** `marketplace-user` links to
+  `/login` from the header and the footer, so a signed-in customer can reach the form without a page load
+  and sign in as somebody else while `Me` is still cached under a key that names neither of them. The two
+  SPAs have no such path — nothing in either links to `/`, and the only soft return to the login screen is
+  the loading screen's failed probe, which happens before any authenticated result exists.
+  [`ADR-052`](./ADR-052-a-session-entrance-is-a-page-load-too.md) closes it with the mechanism this one
+  uses, which makes the pair a single rule: **a session boundary is a page load, in both directions.**
 - **Sentry sees a page load where it used to see a route change.** Sign-out stops appearing as a
   navigation in a session replay and appears as the end of the session, which is what it is.
 

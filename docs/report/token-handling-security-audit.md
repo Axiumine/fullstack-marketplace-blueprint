@@ -9,7 +9,7 @@ v1.2, 2026-08-13, appends an outcome to every finding and adds [§7](#7-closing-
 rewriting none of what was already here; v1.3, 2026-08-28, appends the topology outcome to the three
 places that ended on ADR-032 — §3.6c, §3.7b and §7's owed-ADR entry — in the same append-only way; v1.4,
 2026-08-28, appends the E14-S06 cross-service-harness reason to §3.4's outcome — the accepted-residual
-fact `epics/E14.md` §7 held alone, carried here before that epic was deleted and its record distributed)
+fact the `E14` epic record §7 held alone, carried here before that epic was deleted and its record distributed)
 **Scope:** access token + refresh token handling only. Password hashing, upload scanning, catalogue
 authorization and the Order/Cart/Delivery/Payment surface are out of scope — that surface was unbuilt when
 this audit ran and became **permanently** out of scope on 2026-08-27 (ADR-038), so nothing here is pending
@@ -31,10 +31,9 @@ place and marked as such; being overtaken by later work is not that.
 **Since v1.2 (2026-08-13) each finding carries an outcome appended below it, and [§7](#7-closing-record--what-happened-to-every-finding)
 records all fifteen in one table.** That reverses only *where* the answer lives, not what a finding says:
 E18-S06 amends this report in place rather than putting a v1.2 beside it, on the platform owner's decision,
-because a reader who found this file had no way of knowing which epic had overtaken it. An outcome block is
-always dated, always names the story that did the work, and never rewrites the sentence above it. The epics
-remain the authority on how each was built — read a finding alongside
-[`phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) for that. `git log` on this path is the
+because a reader who found this file had no way of knowing what had overtaken it. An outcome block is
+always dated, always names the story that did the work, never rewrites the sentence above it, and is the
+authority on how each finding was closed. `git log` on this path is the
 only frozen snapshot of the report as first written, and is deliberately the only one.
 
 ---
@@ -231,7 +230,7 @@ already there.
 >
 > ⚠️ **Recorded 2026-08-28.** That gap is accepted, not merely unclosed: no cross-service harness exists
 > anywhere in these sixteen repos, and building one for this single assertion would only re-prove what
-> `sessionKeys.mts` being a single implementation already proves. That reasoning lived in `epics/E14.md` §7
+> `sessionKeys.mts` being a single implementation already proves. That reasoning lived in the `E14` epic record §7
 > (E14-S06) until the epic was deleted and its record distributed on 2026-08-28; this is where it now
 > stands.
 

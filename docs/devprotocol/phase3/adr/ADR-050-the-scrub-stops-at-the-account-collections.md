@@ -57,7 +57,7 @@ Three facts bound what could be done about it:
 
 ## Decision
 
-**B.** The platform owner's ruling of 2026-08-30, answering [`E20`](../../phase5/epics/E20.md) §6
+**B.** The platform owner's ruling of 2026-08-30, answering E20 §6
 question 1 — *does the scrub reach `company.contactPerson` and `company.administrator`?* — is **no**.
 
 1. **`retentionSweep` reads and writes `user` and `shopOwner`, and no third collection.** `ScrubbableTier`

@@ -150,6 +150,19 @@ There is no scrubbed-account branch in the confirm flow and there must not be on
 - **A restore lifting `disabled`.** `$unset`ting the suspension flags alongside `deleted` looks tidy and
   hands a sanctioned account back to its holder.
 
+### Build record
+
+- **Built as `E20-S08`, `E20-S11`, `E20-S12` and `E20-S14`.** `E20-S08` is the restore: inside the window,
+  confirming a fresh registration at a closed address clears `deleted` and `deletedBy`, takes the password just
+  chosen, re-raises `waitApprov` on the seller tier, and leaves `_id`, `registeredAt` and the `disabled*` trio
+  alone — so the shops stay attached and only Admin lifts a suspension. `E20-S11` puts the weakening in
+  `/privacy` in words rather than keeping the older, stronger sentence, and says plainly that there is no
+  erasure-request queue. `E20-S12` trued up what the earlier decisions said, `funUserDel`'s docstring included,
+  so no document under `docs/` and no service docstring still describes a TTL removal or a destructive
+  re-registration. `E20-S14` is the customer's own close-account screen at `/account/close`, sent with
+  `CTX_USER_RESOURCE` rather than `CTX_ACCOUNT_WRITE` so invalidating `GraphQLUserMe` does not send
+  `AccountGate` to re-read an account that no longer answers, racing the sign-out for a 401 nobody reads.
+
 ---
 
 ## Compliance

@@ -211,8 +211,8 @@ written.
   `KEYGRIP_KEK` is a GCM tag mismatch at boot, not a 401 storm in the customer's browser.
 - **No fifth DEK, and no prose correction owed.** Signing keys in Redis are not a CSFLE field on a Mongo
   document, so the four data encryption keys `fieldEncryption.mts:78` and `:105-109` describe stayed four
-  and that prose stayed right. The superseded design (`phase5/epics/E16.md` E16-S01, deleted 2026-08-28)
-  required a fifth DEK *and* a sweep correcting every "four data encryption keys" in the tree; neither ever
+  and that prose stayed right. The superseded design (E16-S01) required a fifth DEK *and* a sweep
+  correcting every "four data encryption keys" in the tree; neither ever
   became owed, and that absence is the clearest single marker of the mechanism swap. ⚠️ Do not "correct"
   that prose to five.
 - The holders heartbeat gives the first fleet-wide view of a shared secret this platform has ever had.
@@ -314,8 +314,6 @@ the middle, which leaves the tail's neighbour newer than the key that actually d
 needs; early logs a customer out. The error is on the side that costs a byte.
 
 ### Why thirty, and not the ninety `REFRESH_TOKEN_EXPIRY` allows
-
-*Absorbed from `phase5/epics/E16.md` §6 question 2, deleted 2026-08-28.*
 
 The figure is `SESSION_CAP_DAYS_REMEMBERED`, decided 2026-08-10 alongside the one-day default (E14-S05),
 because this window must cover the longest session anyone can hold rather than the common one. The question

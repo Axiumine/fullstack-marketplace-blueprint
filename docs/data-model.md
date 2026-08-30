@@ -239,8 +239,10 @@ so `deletedBy` has two writers on two collections. An empty `deletedBy` therefor
 this*, and reading it as "not recorded" gets the actor backwards. ⚠️ **Every closure on `user`
 carries `deleted: {$exists: false}` in its filter**, on both tiers — the clock below starts once and a
 second close answers 404 or 410 rather than moving it.
-⚠️ **`admin` has no closure at all, and that is a ruling rather than a gap** (2026-08-29,
-`phase5/epics/E20.md` §6 question 2). The collection carries `deleted` and `disabled` — both come from
+⚠️ **`admin` has no closure at all, and that is a ruling rather than a gap** — the platform owner's
+2026-08-29 ruling *"admin can not be deleted"*
+([ADR-044](./devprotocol/phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided —
+may an admin be suspended?). The collection carries `deleted` and `disabled` — both come from
 `lib/schemas/account.js`, and `findAccountForSession` reads them on every refresh — and **nothing anywhere
 writes either one**: there is no `adminDel` on any tier and none may be built. So an admin account is
 never closed, never scrubbed and never restored, and the four ADR-044 fields stay off the collection because
@@ -395,8 +397,6 @@ nothing else may be added to it without a decision — the refused additions and
 `familyId`/cap row in [`ADR-INDEX.md`](./devprotocol/phase3/adr/ADR-INDEX.md) §4 (platform owner,
 2026-08-13, from E15-S02; that row also records that one of `tier`'s two original reasons turned out wrong
 once built — the key a revocation rebuilds needs no tier, since the tier is in the index key's own name).
-⚠️ **Repointed 2026-08-28**: this line cited `phase5/epics/E15.md` §6, and that file has been deleted and
-its record distributed.
 
 ### How a field leaves the index
 

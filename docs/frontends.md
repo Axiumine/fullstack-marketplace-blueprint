@@ -30,14 +30,20 @@ editing that app.**
   is set. ⚠️ The token variable must still be *sent* (`turnstileToken: null` is the correct request
   locally); a form that drops it looks identical on screen and fails only against a deployment that
   holds the secret.
-- ⚠️ **A session exit is a page load, never a router navigation** (ADR-051). Both exits — the logout
-  button in `src/auth/useLogout.ts`, and `onSessionLost` in `src/main.tsx` on the two SPAs and in
-  `src/router.tsx` on `marketplace-user` — end in `window.location.assign('/')`. The urql client is a
-  module singleton and its document cache is keyed by query and variables and by nothing that names a
-  session, so a navigation leaves the previous session's `shopOwnerCompanies` and `Me` — both variable-free
-  — answering the next sign-in inside the same page load. The local teardown still runs first and still
-  runs whatever the server answered; nothing is awaited after the call. ⚠️ **The entrance is not covered**:
-  `marketplace-user` has no guard on `/login` (E20 §6 question 7).
+- ⚠️ **A session boundary is a page load, never a router navigation — in both directions** (ADR-051 for
+  the exits, ADR-052 for the entrance). The two exits are the logout button in `src/auth/useLogout.ts` and
+  `onSessionLost`, in `src/main.tsx` on the two SPAs and in `src/router.tsx` on `marketplace-user`; both end
+  in `window.location.assign('/')`. The entrance is a successful sign-in in
+  `marketplace-user/src/features/auth/LoginForm.tsx`, which ends in `window.location.assign('/account')`.
+  The urql client is a module singleton and its document cache is keyed by query and variables and by
+  nothing that names a session, so a navigation leaves the previous session's `shopOwnerCompanies` and `Me`
+  — both variable-free — answering the next sign-in inside the same page load. The local teardown still
+  runs first and still runs whatever the server answered; nothing is awaited after the call. ⚠️ **Only
+  `marketplace-user` needs the entrance half**: it links to `/login` from the header and the footer of every
+  page, so a signed-in customer can reach the form without a load. `/login` gets no `beforeLoad` guard —
+  the route is server-rendered and the session is browser-only module state, so the server would have to
+  guess — and the sign-in button stays disabled for the length of the load, because `assign` is
+  asynchronous and a second click would buy a second `LoginUser`.
 - Gated at **100% coverage and 100% mutation score**, plus `yarn lint:check`, `tsc --noEmit` and
   Qodana — all five in `.githooks/pre-push`, all but mutation in `.githooks/pre-commit`.
 

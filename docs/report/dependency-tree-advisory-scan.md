@@ -316,7 +316,7 @@ seven times over.
 
 ### 6.1 `@axiumine/koa-utils` and the introspection bypass — what each version did
 
-Absorbed from `phase5/epics/E13.md` on 2026-08-28, when that record was deleted. It is here rather than in
+This section is here rather than in
 [`../devprotocol/phase3/SECURITY_AUTH.md`](../devprotocol/phase3/SECURITY_AUTH.md) §3.6 because every fact in it
 is about a package **outside this workspace** — nothing below can be fixed, tested or gated from here, which is
 the same boundary §6's table draws.

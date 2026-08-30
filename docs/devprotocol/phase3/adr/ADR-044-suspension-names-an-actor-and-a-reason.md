@@ -174,6 +174,39 @@ to carry.
   entirely, and nothing stops an `admin._id` from becoming unresolvable. The field is an attribution, not a
   foreign key, and no read should join on it expecting a hit.
 
+### Still undecided — may an admin be suspended?
+
+⚠️ **This is the one lifecycle question left open, and it is the platform owner's alone.** The closure half
+was ruled on 2026-08-29 — *"admin can not be deleted"* — so there is no `adminDel` on any tier and none may
+be built: `admin` does not join the lifecycle, and there is no thirty-day window, no undo and nothing for the
+day-30 sweeper to scrub there. The suspension half was not ruled on and stays open.
+
+What that leaves standing:
+
+- **`admin` carries `deleted` and `disabled`** from `account.js`'s shared blocks, and `findAccountForSession`
+  reads both on every refresh — the gates were never the gap. What is missing is any *writer*, on any tier.
+- **The four fields of this ADR are deliberately absent from `admin`.** Migration `20260829000000` gives the
+  collection none of them, because an actor is only worth recording where an act is possible. Suspending an
+  admin would therefore need `disabledBy` and `disabledReason` migrated onto `admin` first — which is the
+  decision, not a detail of it.
+- **The absence is enforced by nothing but absence.** The lint rule that bans the `disabled*` write shapes
+  covers three tiers and says nothing about `admin`; the guard here is this record and a reviewer. Making it
+  structural would take a rule of its own, and none is written.
+- **Nothing here weakens the attribution stance above.** No application path can put an unresolvable
+  `admin._id` in `disabledBy`; a hand-run `deleteOne` still can, which is why the field stays an attribution
+  rather than a foreign key.
+
+- **Built as `E20-S02`, `E20-S04`, `E20-S09` and `E20-S13`.** `E20-S02` moves `disabled`, `disabledBy` and
+  `disabledReason` as one on both collections, taking the actor from `ctx.state.user._id` and never from the
+  wire, with `validateDisabledReason` carrying the *required when this other argument is true* contract
+  graphql-js cannot express and the 1000-character cap the collection cannot enforce on a `binData`.
+  `E20-S04` is the read half: the pair is randomly encrypted, so it decrypts only in the service holding the
+  data key, on `shopOwnerById`'s projection and on the customers table row. `E20-S09` is the admin form — a
+  mandatory textarea with a counter, replacing a `window.confirm`, sending `null` when a suspension is lifted
+  so a sanction's text does not outlive the sanction. `E20-S13` is the anti-story: a lint rule in four
+  services bans the four `disabled*` **write** shapes on the ShopOwner and User tiers and bans no read,
+  scoped to `src/**` so the integration suites can still seed a suspension to prove it is refused.
+
 ---
 
 ## Compliance
