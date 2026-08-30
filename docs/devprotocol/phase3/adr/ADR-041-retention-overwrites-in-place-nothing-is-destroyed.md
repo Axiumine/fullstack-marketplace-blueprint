@@ -82,22 +82,21 @@ deleted.**
 
 The lifecycle is three states and one clock.
 
-1. **Closure stamps `deleted`** — `funUserDel` for a customer closing their own account, `funShopOwnerDelete`
-   for an admin closing a shop owner's. Sessions are revoked in the same operation. ⚠️ **A third writer
-   landed 2026-08-30**: `funUserDelete`, an admin closing a *customer's* account
-   ([ADR-048](./ADR-048-an-admin-closes-a-customer-account.md)). It stamps the same field and starts this
-   same clock. ⚠️ **And every closure on `user` now guards the stamp in its filter** — `deleted:
-   {$exists: false}` — so the thirty days below are measured from the first closure and a second one
-   cannot restart them. `funUserDel` read the document and then wrote it until that date, which let two
-   concurrent closes both stamp and push the day-30 overwrite thirty days out. ⚠️ `shopOwnerDel.mts`
-   does not revoke today — `shopOwnerUpdateStatus.mts:49` does it for a mere suspension and the closure
-   mutation does not do it at all — and that asymmetry is fixed here, because a closure is now a durable,
-   audited decision rather than a stamp that a re-registration would shortly erase.
-2. **Days 1 to 30, the document is untouched and still holds the address.** Nothing is cleared early, and
-   the account is not recoverable — there is no un-delete, exactly as before. ⚠️ **That last clause was
-   superseded later the same day** by [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md):
-   registering again at the address and confirming the message clears `deleted` and hands the same
-   document back. Nothing else in this step moves — still nothing cleared early, still nothing destroyed.
+1. **Closure stamps `deleted`** — four writers, one per tier and account kind: `funUserDel` and
+   `funShopOwnerDel` for a holder closing their own account, `funUserDelete`
+   ([ADR-048](./ADR-048-an-admin-closes-a-customer-account.md)) and `funShopOwnerDelete` for an admin closing
+   somebody's. All four stamp the same field and start this same clock; the admin pair also writes
+   `deletedBy`, which is what says who closed it (ADR-044). Each mutation revokes every session that
+   account holds, in the same operation and unconditionally — a closure has one direction. ⚠️ **Every one
+   of the four guards the stamp in its filter** — `deleted: trusted({$exists: false})` — so the thirty days
+   below are measured from the first closure and a second one answers 404 or 410 instead of restarting
+   them. A read-then-write would let two concurrent closes both stamp and push the day-30 overwrite thirty
+   days out; the `trusted()` wrapper is what keeps `sanitizeFilter` from rewriting the clause into an
+   equality that matches nothing.
+2. **Days 1 to 30, the document is untouched and still holds the address.** Nothing is cleared early and
+   nothing is destroyed. The window is an undo window ([ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md)): registering again at that address
+   and confirming the message clears `deleted` and hands the same document back, which is the only way
+   back in and takes the holder proving control of the address again.
 3. **At day 30 the personal data is overwritten in place** and `scrubbedAt` is stamped. The document
    survives, permanently, carrying `_id`, `deleted`, `deletedBy`, `disabled`, `disabledBy`, the registration
    date and `scrubbedAt` — enough to answer *there was an account, it closed on this date, at whose

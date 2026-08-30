@@ -41,17 +41,14 @@ What was already recorded, and is unchanged:
 
 Two facts about the wire matter to what follows, and both are measured rather than assumed:
 
-- **Redis is cleartext and this workspace cannot change it.** ⚠️ **The second half of that sentence
-  stopped being true hours after this ADR was accepted**, and it is annotated rather than rewritten
-  because it records what was measured on the day: `@axiumine/koa-utils@7.1.0` (2026-08-28) reads the
-  cluster scheme from a `REDIS_TLS` flag, and the ten dependent repos are on `^7.1.0`. **Nothing in the
-  decision below moves**: the flag is set nowhere, the dev Redis serves no TLS listener, and the leg
-  described here is still cleartext (**R45**, still open). Original text, as measured:
-  `@axiumine/koa-utils@7.0.0`
-  `dist/dataSources/Redis.mjs:9-11` builds the cluster rootNodes as
-  `redis://${REDIS_DB{1,2,3}_HOST}:${…_PORT}`, and every service `env` selects that branch with
-  `REDIS_IS_CLUSTER=1`. The session hash — `_id`, `email`, `tier` — the session keys, and the `AUTH` that
-  carries `REDIS_PASSWORD` all cross that leg in the clear (**R45**).
+- **Redis is cleartext on every leg this ADR describes** (**R45**, open). `@axiumine/koa-utils@7.1.0`
+  (2026-08-28) reads the cluster scheme from a `REDIS_TLS` flag and the ten dependent repos are on
+  `^7.1.0`, so the package no longer hardcodes it — but **the flag is set nowhere, and the dev Redis
+  serves no TLS listener**, which is why nothing in the decision below moves. What was measured on the day
+  this ADR was accepted, under `@axiumine/koa-utils@7.0.0`: `dist/dataSources/Redis.mjs:9-11` builds the
+  cluster rootNodes as `redis://${REDIS_DB{1,2,3}_HOST}:${…_PORT}`, and every service `env` selects that
+  branch with `REDIS_IS_CLUSTER=1`. The session hash — `_id`, `email`, `tier` — the session keys, and the
+  `AUTH` that carries `REDIS_PASSWORD` all cross that leg in the clear.
 - **MongoDB is cleartext today by configuration, not by constraint.** The dev `MONGODB_URI` ends
   `?ssl=false`. Unlike Redis, nothing upstream prevents `ssl=true` — the driver supports it and no
   published package hardcodes the scheme. CSFLE keeps 30 field paths encrypted end to end regardless

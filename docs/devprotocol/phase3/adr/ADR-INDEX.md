@@ -2,16 +2,29 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.23
+**Version:** 1.24
 **Date:** 2026-08-30
 **Author:** adr-agent
 **Changelog:**
+v1.24 - 2026-08-30, last that day: **a false statement in an ADR is deleted and the text rewritten as
+though it had been correct from the start** — platform owner, *"delete false ADR statements, rewrite ADR as
+write correctly from day 0"*. The convention until then was to strike the sentence and append a dated
+pointer, which had accumulated across seven ADRs; every one of them is rewritten and the corpus now holds
+no `~~struck~~` text and no *"this stopped being true on"* note. ⚠️ **The immutability rule is unchanged
+and this does not touch it**: a *decision* still changes only by a new ADR with `Supersedes` filled in.
+What changed is what happens to a *fact* that stopped being true — it is simply made true, and the record
+of the change lives here and in the `Superseded by` fields rather than in the body of the page. §1 gains
+the rule. Rewritten: **ADR-011** (the amendment reads as the record of a reversed decision, in the past
+tense), **ADR-015** (the bridge half likewise; the by-name consumption and the licence half are what remain
+in force), **ADR-034**, **ADR-036** (both §Risks bullets now state live rules), **ADR-037** (property 2
+states the rule ADR-047 left it in), **ADR-041**, **ADR-045** and this index's §5, where four closed gaps
+become one line each instead of a struck paragraph
 v1.23 - 2026-08-30, later the same day: **ADR-048 added — an admin closes a customer account, and the
 retention clock starts once.** It supersedes nothing: it fills the hole ADR-036 recorded in its own
 §Consequences and left a warning beside, on the platform owner's ruling that *"admin must act on shop
 owners and on customers in the same way"*. One row in §2, one name in §3's **Identity and access** line,
-two rows in §4. **The warning was answered rather than overtaken**, which is why ADR-036's bullet is struck
-only in its first sentence: an admin closing somebody else's account is not a data-subject right, and
+two rows in §4. **The warning was answered rather than overtaken**, so ADR-036's bullet states the answer
+as a live rule: an admin closing somebody else's account is not a data-subject right, and
 ADR-048 keeps the two apart by keeping suspension and closure from ever writing each other's fields rather
 than by making the admin's closure a weaker one. ⚠️ **The build also fixed something nobody had asked
 about.** Diffing the two tiers to obey the parity instruction found `funUserDel` reading the document and
@@ -24,8 +37,8 @@ property of a decision this index called *partial on purpose*: ADR-037 kept the 
 in its §Decision property 2, and the platform owner ended it four days and two major releases later —
 *"never use `./deploy-local.sh` in your development, always publish the package"*. ADR-015 loses the last
 half it still governed except the licence one; ADR-037 keeps everything but property 2 and is what ADR-047
-stands on. Both are struck in place with pointers rather than edited, the convention §1 sets. One row in
-§2, two status changes, one name in §3's **Build and quality gates** line, one row in §4. **The reversal is
+stands on. Both are corrected in place — ADR-015's bridge half in the past tense, ADR-037's property 2
+restated in the form ADR-047 left it. One row in §2, two status changes, one name in §3's **Build and quality gates** line, one row in §4. **The reversal is
 recorded as an inversion, not a mistake**: property 2 described what deletion does perfectly and read the
 sign backwards — a consumer running the last *published* build is the state to want, because it is the only
 one a lockfile names or a stranger can reproduce
@@ -109,8 +122,8 @@ supersession in this index and it is **partial on purpose**: ADR-015 said it wou
 revised" on the day the owner decided to publish, but ADR-015 also carries the GPL-3.0-or-later licence
 decision and the `deploy-local.sh` bridge, neither of which the registry touches and neither of which is
 recorded anywhere else. Marking it wholly superseded would have orphaned a licence decision, so its §2 row
-and its header read *superseded in part*, and the two now-false sentences in its body are struck in place
-with a pointer rather than deleted — the 404 is the premise its whole argument reasons from. One row in §2,
+and its header read *superseded in part*, and the sentences the publish falsified are corrected in place —
+the 404 stays as the dated premise its whole argument reasons from. One row in §2,
 one name in §3's **Build and quality gates** line, one clarifying clause in §5. **The header was stale at
 1.7 while this changelog already carried a v1.8**, so this entry is v1.9 and the header now agrees with it;
 no entry was skipped. §5's git-hosting gap is **not** closed by ADR-037 and gains a clause saying so — where
@@ -130,7 +143,16 @@ v1.15 - 2026-08-28, later the same day: **ADR-040 added — the secrets-manager 
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
-`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and five
+`Supersedes` field, then flip the old one's `Superseded by`.
+
+⚠️ **A statement that has become false is deleted, and the page rewritten as though it had been correct
+from the start** — platform owner, 2026-08-30. No `~~struck~~` sentence, no *"this was true until"* note,
+no paragraph explaining what an earlier paragraph used to say. **This is not licence to revise a
+decision** — the rule above is untouched, and a decision changes only by a new ADR. It is about *facts*: a
+fact that stopped being true is simply made true, and a decision that was superseded is written in the past
+tense with its successor named in the header. A reader needs what holds now and which ADR holds it; the
+record of the change is in this index's changelog and in the `Supersedes`/`Superseded by` fields, where it
+can be read without wading through the version that is wrong. Every ADR below is `accepted`, and five
 supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part (the
 topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
 narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main
@@ -160,9 +182,9 @@ change of a decision writes a new one, and an amendment needs the owner to say s
 ⚠️ **That amendment was itself superseded on 2026-08-29 — by a new ADR, the ordinary way.**
 [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) reverses it: nothing on this
 platform is destroyed, `user` included, and the address a closed account holds is freed by overwriting the
-value rather than by removing the document. ADR-011 keeps the amendment in place, struck where it stopped
-describing the tree and pointing forward — which is the convention working as intended, and is why the
-exception above did not have to be granted a second time.
+value rather than by removing the document. ADR-011 keeps the amendment as the record of a decision that
+was taken and reversed — written in the past tense, with ADR-041 named in its header — which is the
+convention working as intended, and is why the exception above did not have to be granted a second time.
 
 New ADR: copy [`ADR-000-template.md`](./ADR-000-template.md), next free number, fill in `Status`, `Date`, `Deciders`.
 
@@ -319,32 +341,18 @@ Decisions this platform still owes an ADR, once taken:
   not strike this bullet on the strength of ADR-040, and do not cite ADR-040 as having closed the
   cross-file agreement check: that check needs no vendor, is not declined, and stays open under **R39**
   and `INFRA.md` §14 q8.
-- ~~**Ordering.** Cart, order state machine, delivery, payment — no collection, no resolver, no design. ADR-009 records only that item has no price *because* of this gap. Needs its own ADR when the design starts.~~ **Closed 2026-08-27 — it is no longer a gap, and it got the ADR from the other side.** [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are permanently out of scope, so the design this bullet was waiting on does not start. Struck rather than deleted because the wait is the reason the bullet was here for thirty-seven ADRs, and because the sentence it ends on — *needs its own ADR when the design starts* — is what ADR-038 answers. Everything the bullet asserts about the working tree is still true and stays true: no collection, no resolver, no design, and `item` still has no price.
-- ~~**Does suspending or closing a shop owner take their storefront off-air?** Opened 2026-08-29 with
-  [`ADR-044`](./ADR-044-suspension-names-an-actor-and-a-reason.md), which makes suspension the admin's
-  only lever now that [`ADR-041`](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) has
-  removed deletion as an alternative — and the lever currently stops at the login.
-  `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts:32-34` filters public reads on
-  `company`'s **own** fields, `{ published: true, deleted: { $exists: false } }`, and reads nothing on
-  `shopOwner`; `companies.mts:59` and `companyBySlug.mts:35` both go through it. So a suspended or closed
-  shop owner keeps a fully live, browsable storefront and every `item` beneath it. This may be the right
-  separation — suspending a person's login and taking a business off-air are different acts, and cascading
-  one into the other is not reversible by un-suspending if `published` was already false — but it has never
-  been decided either way, and it was not surfaced when `disabled` was built. It needs the platform owner,
-  and it needs an ADR only if the answer is *yes, cascade*: leaving it as it is changes nothing and is
-  already the shipped behaviour.~~ **Closed 2026-08-29, hours after it was opened — the answer is yes,
-  cascade.** [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) records it. ⚠️ **The struck text's own objection was answered rather than
-  overruled, and the answer is the interesting part.** It says a cascade into `published` is not
-  reversible by un-suspending — true, and the platform owner ruled that un-suspending restores nothing:
-  *"shopOwner must re-enable them by hands"*. With nothing to restore there is nothing to remember, so
-  the *"cheap read"* the owner also asked for turns out to need no new field, no clause and no read
-  change at all. The bullet is struck rather than deleted because the shipped behaviour it describes —
-  `publicRead.mts:32-34` reading nothing on `shopOwner` — is exactly what stays true: the read is
-  untouched and only the two writers of the owner's state change. One question it raises is **not**
-  answered and is left framed in ADR-045 instead of here: whether `waitApprov` should hide a storefront
-  the same way.
+- **Ordering — closed 2026-08-27, and declined rather than answered.** Cart, order state machine, delivery and payment have no collection, no resolver and no design, and [ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md) records the platform owner's decision that the four are **permanently out of scope**, so none of it starts. ADR-009's *no price on `item`* follows from that and is not a gap either. This is a refusal, not a hole: re-opening it takes a superseding ADR and is the platform owner's call alone.
+- **Does suspending or closing a shop owner take their storefront off-air? Closed 2026-08-29 — yes, it
+  cascades.** [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) records it: the
+  two writers of the owner's state unpublish every `company` and every `item` beneath it, and the public
+  read is untouched — `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts:32-34`
+  still filters on `company`'s **own** fields, `{ published: true, deleted: trusted({ $exists: false }) }`,
+  and reads nothing on `shopOwner`. ⚠️ **Un-suspending restores nothing** — *"shopOwner must re-enable them
+  by hands"* — so there is nothing to remember and the cheap read needed no new field, no clause and no
+  read change. One question stays open and is framed in ADR-045 rather than here: whether `waitApprov`
+  should hide a storefront the same way.
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in `phase5/epics/E09.md` §6 — now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) — which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037.
-- ~~**Production topology — now owned by [`ADR-032`](./ADR-032-production-topology-owed.md), which records it as *owed* rather than answering it.** The edge itself is written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ADR-032 names the owner and the date, and rules that until it is superseded **no control may be argued closed by appeal to a network boundary** — so the gap stays open here, deliberately, rather than being closed by an assumption.~~ **Closed 2026-08-28 — the topology is written, and this bullet is what it was written against.** [ADR-039](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) answers all four questions the struck text lists: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 from Cloudflare's ranges, which is what ADR-022's wildcard bind now sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. Struck rather than deleted because the three findings named above are the reason this bullet existed, and only two of them move: **R46** closes, E13-S11 and E14-S08 keep their controls unchanged, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is *not* closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups.
+- **Production topology — closed 2026-08-28 by [`ADR-039`](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)**, which answers the four questions [`ADR-032`](./ADR-032-production-topology-owed.md) had recorded as *owed*: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 to Cloudflare's ranges, which is what ADR-022's wildcard bind sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. ⚠️ **Two of the three findings this gap bounded do not move**: `INTROSPECTION_CODE` reachability and the floodable `refresh` keep their controls, **R46** closes, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is not closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups. The edge itself was always written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: `INTROSPECTION_CODE` is reachable wherever a service port is (E13-S11), `refresh` is floodable with distinct garbage tokens (E14-S08), and the Redis leg is plaintext `redis://` (R45). ⚠️ **ADR-032's rule survives in narrowed form**: a boundary may be cited as a second layer for the legs ADR-039 describes, never as the whole argument for a control being closed.
 
 v1.17 - 2026-08-28, later the same day: **ADR-040 amended in place, hours after acceptance, at the platform
 owner's instruction — the second exception to §1's immutability rule after ADR-011, and the first taken by
@@ -456,4 +464,4 @@ owning the same companies, unpublished, behind `waitApprov`, and the stamp is li
 click rather than by an admin. ⚠️ **`disabled` is not cleared by any of it**, which is the one line every
 ADR in this block shares. Four stale citations of the superseded mechanism were annotated at the same time,
 in `data-model.md`, `phase4/ERD.md`, `phase1/NFR.md` and `phase5/RISK_REGISTER.md`, plus the §Note bullet of
-[ADR-036](./ADR-036-erasure-is-not-something-the-platform-suspends.md) — all struck in place, none rewritten.
+[ADR-036](./ADR-036-erasure-is-not-something-the-platform-suspends.md).

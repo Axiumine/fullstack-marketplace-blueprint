@@ -5,16 +5,17 @@
 **Date:** 2026-08-04
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md), **in part.** The
-platform owner decided to publish, which is the trigger §Risks names below, so *"the package is not
-published to any registry"* stops being true and ADR-037 owns that half.
-[`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), **in part, 2026-08-30** — the
-`deploy-local.sh` bridge, the half ADR-037 kept verbatim and this one ends: **the script is deleted and a
-change ships by publishing a release.** ⚠️ **One half is not superseded and stays here:** the
-GPL-3.0-or-later licence decision with its eighteen `LICENSE` copies and fifteen `qodana.yaml` key lists,
-which nothing else records. Everything below about the bridge is the right answer to a premise — no
-registry entry — that no longer holds; it is struck where it would now be read as an instruction, and kept
-where it is the reasoning of its day.
+**Superseded by:** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md), **in part** — the publication half. The platform owner decided to publish on
+2026-08-26, which is the trigger §Risks names below, and ADR-037 owns everything about the registry.
+[`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), **in part, 2026-08-30** — the `deploy-local.sh` bridge: **the script is deleted and a change ships by
+publishing a release.**
+
+⚠️ **Two halves of this ADR are in force and one is history.** In force: `marketplace-common` is consumed
+by its real scoped package name, `@axiumine/marketplace-common`, in every consumer's `package.json`; and
+the platform is **GPL-3.0-or-later**, with the eighteen `LICENSE` copies and fifteen `qodana.yaml` key
+lists that nothing else records. History: the local bridge this ADR built for a package that had no
+registry entry — described below in the past tense, because there is no registry-less state left to bridge
+and no script to run.
 
 ---
 
@@ -22,11 +23,10 @@ where it is the reasoning of its day.
 
 Nine backend services (`BEs/dev/*`) share one code library, `BEs/marketplace-common`. Its `package.json`
 names it `@axiumine/marketplace-common` at version `1.0.0`, and every consumer depends on that exact
-string at `^1.0.0` — a real npm-scoped package name. ~~**The package is not published to any registry.**
-`registry.npmjs.org/@axiumine/marketplace-common` 404s.~~ **True when this ADR was written and until
-2026-08-26; [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) ends it.** The 404 is the
-premise the rest of this ADR reasons from, so it is struck rather than removed — everything below is the
-right answer *to that premise*, and ADR-037 changes the premise rather than faulting the answer.
+string at `^1.0.0` — a real npm-scoped package name. ⚠️ **On 2026-08-04 that package was not published
+to any registry**: `registry.npmjs.org/@axiumine/marketplace-common` 404ed. That 404 is the premise this
+ADR reasons from, and it held until 2026-08-26, when [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) ends it by publishing. The reasoning below is the
+answer to the premise of its day; ADR-037 changed the premise rather than faulting the answer.
 
 Polyrepo, and no workspace tool (`yarn workspaces`, `pnpm`, Nx) links the repos — each is its own
 independent git checkout with its own `node_modules` (ADR-001, [`docs/workflow.md`](../../../workflow.md) §Repo layout). A plain
@@ -73,34 +73,16 @@ alternative that removes the polyrepo boundary (`yarn workspaces`) is rejected b
 option is the only one left that touches neither. No consumer `package.json` needs to change on the day of
 a real publish, because the dependency string was always the real one.
 
-~~⚠️ **`deploy-local.sh` is not deleted on that day.** It is tempting to read it as scaffolding for the
-missing registry, but that is wrong about its job: the script is what closes the gap *between* releases.
-An edit to `src/` is not on the registry until someone publishes it, so a workspace that deleted the
-script would silently run every consumer against the last published build. It goes only if the workspace
-stops consuming this package by name.~~ **Reversed 2026-08-30 by
-[`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md): the script is deleted.** The
-paragraph is struck rather than removed because its last sentence is the one that decided it — the
-workspace still consumes this package by name, and the answer turned out to be that a consumer running the
-last **published** build is the state to want, not the state to prevent. The gap between an edit and a
-release is closed by cutting the release.
+⚠️ **A consumer runs the version its lockfile names, and a change reaches it by being published** — the
+bridge is gone ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md)). The gap between an edit and a release is closed by cutting the release, and a
+consumer running the last *published* build turned out to be the state to want rather than the state to
+prevent. What this ADR decided and ADR-047 kept is the sentence the bridge rested on: the workspace
+consumes this package **by name**.
 
-~~Consumer discovery is by **declaration**, not by what happens to be installed: `deploy-local.sh` globs
-`find "$ROOT" -maxdepth 4 -name package.json … -exec grep -l "\"$PKG_NAME\""` — a repo that lists the
-dependency but has never run `yarn install` is still deployed to, not silently skipped. The script also
-checks the declared semver range's major against the built version and warns on mismatch: a version bump
-alone does not fix a stale consumer, the range has to move too.~~ **Gone with the script (ADR-047).** A
-consumer is now reached by its own `yarn.lock`, and the major-mismatch warning this paragraph describes is
-replaced by step 9 of the release flow: `npm view` the published version, then move each range by hand.
-
-~~**The publish is prepared and deliberately not executed.**~~ **The trigger fired on 2026-08-26 and the
-publish is decided — see [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md).** Struck rather
-than deleted because the prepared state it describes is exactly what ADR-037 collects, and the sentence
-after it — *running the publish is the platform owner's act and nobody else's* — is not superseded but
-confirmed. `package.json` carries
-`publishConfig: { access: "public", registry: "https://registry.npmjs.org/" }` — a scoped package defaults
-to `restricted`, so that key is what makes a public publish possible at all. Running the publish is the
-platform owner's act and nobody else's. The day it happens, this ADR is superseded rather than revised;
-that is the trigger CON-09 describes.
+`package.json` carries `publishConfig: { access: "public", registry: "https://registry.npmjs.org/" }` — a
+scoped package defaults to `restricted`, so that key is what makes a public publish possible at all.
+**Running the publish is the platform owner's act and nobody else's**, which the publication decision
+([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)) confirms rather than supersedes.
 
 **Licensing follows from the repositories being public, not from the publish.** The whole platform is
 **GPL-3.0-or-later**: the full text sits in **eighteen** copies — all sixteen repos plus `marketplace-services-status/`
@@ -129,22 +111,16 @@ links `./LICENSE` rather than `../LICENSE` for the same reason.
 ## Consequences
 
 ### Positive
-- Edits to `marketplace-common` reach all nine services, and everything else in the workspace depending on
-  it, with one command and no per-repo manual copy.
-- Consumer `package.json` files never need editing for this reason — the dependency name and range are
-  exactly what they would be against a real registry, so the eventual publish is additive rather than a
-  breaking rewrite across nine repos.
-- `--dry-run` and `--no-build` flags let a deploy be previewed or re-run without rebuilding, useful when
-  only the consumer set changed.
+- Consumer `package.json` files never needed editing when the publish came — the dependency name and range
+  were exactly what they would be against a real registry, so the publish was additive rather than a
+  breaking rewrite across nine repos. That is the whole return on choosing the real name from day one.
 - One licence, one text, eighteen copies: no directory of this workspace can be lifted out and end up
   unlicensed, and no manifest disagrees with the file next to it.
 
 ### Negative
-- An edit that is not deployed is invisible and fails at the call site, not at import — a consumer keeps
-  compiling and running against the previous `dist/`, and the failure surfaces only when the changed code
-  path executes.
-- The step is easy to forget: nothing in `yarn install`, `yarn build`, or a service's own `pre-commit`
-  hook runs it. It is a discipline, not an enforced gate.
+- An edit that is not published is invisible and fails at the call site, not at import — a consumer keeps
+  compiling and running against the version its lockfile names, and the failure surfaces only when the
+  changed code path executes. Publishing is the discipline ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) §The release flow), not an enforced gate.
 - Every new exported file needs a hand-added `exports` entry (53 as of this ADR) — a file with no entry is
   unreachable from any consumer even immediately after a correct deploy, and the two failure modes (stale
   deploy vs. missing `exports` entry) look identical from the call site: module not found, or stale
@@ -153,45 +129,35 @@ links `./LICENSE` rather than `../LICENSE` for the same reason.
   new repo that copies neither is a repo distributing code under no stated terms.
 
 ### Risks
-- **Drift risk**: a consumer's declared semver range moves out of sync with the ~~deployed~~ **published**
-  major version. ~~Revisit if `deploy-local.sh`'s major-mismatch warning starts firing routinely rather than
-  as a one-off — that means the warning is being ignored rather than acted on.~~ **The warning went with the
-  script (ADR-047); the risk did not.** It is now checked by hand at step 9 of the release flow, and it bit
-  for real on `2.0.0` and `3.0.0` — twelve `package.json` ranges each time.
+- **Drift risk**: a consumer's declared semver range moves out of sync with the **published** major
+  version. Nothing warns about it — it is checked by hand at step 9 of the release flow, `npm view` the
+  published version and then move each range — and it bit for real on `2.0.0` and `3.0.0`, twelve
+  `package.json` ranges each time. Revisit by automating the check if a consumer is ever found on a range
+  that cannot resolve the current major.
 - **Missing-exports risk**: a new file is added to `src/` with no matching `exports` entry, caught only by
   `yarn test:contract`. Revisit if a consumer bug is ever traced to an unreachable common module that
   `test:contract` should have caught and did not.
-- ~~**Never-deployed risk**: someone edits `src/` and pushes without running `./deploy-local.sh`. Not caught
-  by any hook. Revisit — by adding a pre-push check in `BEs/marketplace-common/.githooks/` — the second
-  time a consumer is found running against a `dist/` that predates the commit it was supposed to carry.~~
-  **Closed 2026-08-30 by deletion, not by the hook this bullet asked for
-  ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md)).** A consumer can no longer run
-  a `dist/` that predates anything: it runs the version its lockfile names.
+- **Unpublished-edit risk**: someone edits `src/`, merges, and never cuts the release. No hook catches it,
+  and no consumer moves — which is the safe failure, because a consumer cannot run a build that predates
+  anything: it runs the version its lockfile names ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md)).
 - **Licence-gate risk**: a manifest's `license` field is changed without its `qodana.yaml` keys, and the
   SCA licence check silently matches nothing while reporting green. Revisit by asserting the pairing in
   the hook if it ever happens once.
-- ~~**Scope creep risk**: real `npm publish` is deferred by CON-09, not rejected forever. Revisit only when
-  the platform owner explicitly decides to publish — at which point this ADR is superseded, not revised.~~
-  **Fired 2026-08-26.** The owner decided to publish and
-  [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) records it. Superseded **in part**
-  rather than wholly, as this bullet expected: the licence half and the `deploy-local.sh` bridge are
-  independent of the registry and stay in force here. **The bridge half outlived that by four days only —
-  [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) deletes the script on 2026-08-30,
-  and the licence half is what is left of this ADR in force.**
+- **Scope creep risk**: real `npm publish` was deferred by CON-09 rather than rejected forever, and the
+  owner decided to publish on 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)). This ADR was superseded **in part** rather than wholly, as
+  that expected — and the bridge half outlived it by four days, until [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md). The licence half and the
+  by-name consumption are what remain in force here.
 
 ---
 
 ## Compliance
 
-⚠️ **The bridge half of this section is superseded by
-[`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) §Compliance** — verify the script is
-*absent*, not that it ran. What survives here is the name and the contract test:
+⚠️ **The absence of `deploy-local.sh` is checked by [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) §Compliance, not here** — verify the script is
+*absent*, never that it ran. What this ADR checks is the name, the release, and the contract test:
 
 - `grep -n '"name"' BEs/marketplace-common/package.json` must read `@axiumine/marketplace-common`, matching
   every consumer's dependency string in its own `package.json`.
-- ~~After any edit under `BEs/marketplace-common/src/`, `./deploy-local.sh` must run before the change is
-  considered live; `./deploy-local.sh --dry-run` lists every consumer it would touch without writing.~~
-  **An edit under `src/` is live when it is published, and only then.**
+- An edit under `BEs/marketplace-common/src/` is live when it is published, and only then.
 - `yarn test:contract` must pass — it is what catches a file with no `exports` entry.
 - Licence coverage, from the workspace root:
 

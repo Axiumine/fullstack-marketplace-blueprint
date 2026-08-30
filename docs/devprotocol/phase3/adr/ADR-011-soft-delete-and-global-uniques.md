@@ -6,15 +6,13 @@
 **Deciders:** platform owner
 **Supersedes:** —
 **Superseded by:** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md), **in part** — the 2026-08-26 Amendment
-only. The main body below is untouched and still states the platform's soft-delete convention for all
-five collections.
-**Amended:** 2026-08-26 — see [§Amendment](#amendment--2026-08-26-the-user-collection-is-destroyed-rather-than-kept). Everything below stands for
-`company`, `shopOwner`, `item` and `itemCategory`. It no longer describes `user`, which is the only
-collection on the platform whose documents are removed — by a TTL index, and by one application write.
-⚠️ **That last sentence stopped being true on 2026-08-29**, when [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) reversed the
-amendment: no collection on this platform has its documents removed, `user` included. The amendment is
-left standing below, struck where it no longer describes the tree, because it is cited elsewhere and a
-reader arriving at it needs to be told rather than to find nothing.
+only. The main body below is untouched and states the platform's soft-delete convention for all five
+collections.
+**Amended:** 2026-08-26 — see [§Amendment](#amendment--2026-08-26-the-user-collection-is-destroyed-rather-than-kept), which is the record of a
+decision that was reversed three days later. ⚠️ **The body below stands for all five collections, `user`
+included: no collection on this platform has its documents removed.** The amendment held otherwise for
+`user`, and [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) put `user` back under this ADR's convention — a stamp, a document that stays,
+and a scrub that overwrites it in place at day 30.
 
 ---
 
@@ -164,8 +162,9 @@ Three things, all on 2026-08-26, none of which existed when row B was written.
    relationship with it rather than a business record. It stamps `user.deleted` and revokes every session.
 3. **The stamp made the address unusable.** `login.email_unique` has no `partialFilterExpression` — by
    this ADR — so a closed account keeps its email. `userRegister` reads a closed document as verified and
-   answers "you are already registered", while `loginUser` refuses the same address 401. There is no
-   un-delete and no Admin counterpart to reach it with. Under the original reading that was permanent:
+   answers "you are already registered", while `loginUser` refuses the same address 401. On 2026-08-26
+   there was no un-delete and no Admin counterpart to reach it with. Under the original reading that was
+   permanent:
    **closing an account burned its email address**, and the only remedy was a hand edit in the database.
 
 A retention period that nothing carries out is not a retention period, and row B as read forbade the only
@@ -173,11 +172,11 @@ mechanism that would carry it out. That is the conflict this amendment resolves.
 
 ### Decision
 
-~~**Two removals are permitted, and only on `user`.**~~ **— superseded 2026-08-29: none are, on any
-collection.** Both mechanisms below are retired by [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md); `deleted_ttl` is dropped by a
-new migration and `purgeClosedUser.mts` is deleted. What replaces them is an in-place overwrite at the
-same thirty days, brought forward by the same re-registration, carried out by a sweeper rather than by
-the storage engine. The two items below are kept as the record of what was retired:
+**Two removals were permitted, and only on `user`** — and both were retired on 2026-08-29 by
+[ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md), which permits none on any collection: `deleted_ttl` is dropped by a new migration and
+`purgeClosedUser.mts` is deleted. What replaced them is an in-place overwrite at the same thirty days,
+brought forward by the same re-registration, carried out by a sweeper rather than by the storage engine.
+The two mechanisms this amendment introduced were:
 
 1. **`user.deleted_ttl`** — a TTL index over `deleted`, `expireAfterSeconds: 2592000`, declared in
    `BEs/marketplace-db-setup/lib/schemas/user.js` and applied by
@@ -190,12 +189,11 @@ the storage engine. The two items below are kept as the record of what was retir
    is not a second policy: it is the *same* removal, brought forward to the request that needs the
    address, so the erasure happens earlier than the retention rule requires rather than later.
 
-~~Retention therefore reads **"30 days after closure, or until the same address registers again, whichever
-comes first."**~~ **— the sentence survives the supersession almost intact.** Under ADR-041 it reads
-*"30 days after closure, or the moment the same address is confirmed by a new registration, whichever
-comes first"* — the clock, the bring-forward and the trigger are unchanged, and only what happens at the
-end of it is: the document is emptied rather than removed. ⚠️ **`registers again` becomes `is confirmed`**,
-which is not a wording change: the closed document is now untouched until the link is clicked
+Retention reads *"30 days after closure, or the moment the same address is confirmed by a new
+registration, whichever comes first."* The clock, the bring-forward and the trigger are what this
+amendment set and ADR-041 kept; what ADR-041 changed is the end of it, where the document is emptied
+rather than removed. ⚠️ **The trigger is the confirmation and not the registration attempt**: the closed
+document is untouched until the link is clicked
 ([ADR-042](./ADR-042-registration-is-a-pending-redis-record.md)).
 
 ⚠️ **Option C is still rejected, and this amendment is not a way back to it.** The address is freed
@@ -223,19 +221,13 @@ legal identity that must never be reassigned — the whole of §Decision's VAT a
 `user` does not have. And it is the only collection anyone has decided a retention period for, because it
 is the only one holding a *data subject* rather than a trader's registration.
 
-⚠️ **`shopOwner` is deliberately not included, and the two rows above are closer than they look.** A shop
-owner's address is a credential too. What separates them is that `company.idShopOwner` points at it, and
-that no Art. 17 self-service path exists on that tier — a shop owner cannot close their own account today.
-Whoever builds one inherits this question and should answer it here rather than assume symmetry.
-⚠️ **Answered 2026-08-29, and the answer is symmetry — reached from the other end.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)
-gives `shopOwner` the same thirty-day retention and the same reclaimable address, and it is safe there
-precisely because it stops removing documents: the objection in this paragraph — `company.idShopOwner`
-points at it — is an objection to *deletion*, and an overwrite strands no reference. ~~The self-service
-Art. 17 path this paragraph also notes as missing is still missing; a shop owner is closed by an
-admin~~ — ⚠️ **that half was overtaken the same day and this correction is dated 2026-08-30**:
-`shopOwnerDel` exists on the ShopOwner tier too, taking the owner's `_id` off the session and taking no
-argument, so the Art. 17 path is theirs to walk. The clock starts from the stamp either way, and which
-tier stamped it is what `deletedBy` records — absent for a self-close, an admin's `_id` for the other
+⚠️ **`shopOwner` sits outside that row, and the two are closer than they look.** A shop owner's address
+is a credential too. What separated them was `company.idShopOwner` pointing at it — and that is an
+objection to *deletion*, which [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) answers by deleting nothing: an overwrite strands no
+reference. So `shopOwner` carries the same thirty-day retention and the same reclaimable address as
+`user`, and the Art. 17 self-service path exists on that tier as well — `shopOwnerDel`, taking the owner's
+`_id` off the session and taking no argument. The clock starts from the stamp whichever tier wrote it, and
+which one did is what `deletedBy` records: absent for a self-close, an admin's `_id` for the other
 ([ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md),
 [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md), which gives `user` the same pair).
 
@@ -250,10 +242,11 @@ tier stamped it is what `deletedBy` records — absent for a self-close, an admi
   added to `user` afterwards is one the next holder of that address silently inherits.
 
 #### Negative
-- The convention now has an exception, and "no application code hard-deletes" is no longer true as
-  written. Anybody reasoning from the shape of the code will find one `deleteOne` and has to come here.
-- A closed account is unrecoverable after the TTL fires, and immediately unrecoverable if the address is
-  registered again. That is what erasure means, and there is no undo to build.
+- The convention carried an exception for as long as this amendment stood: "no application code
+  hard-deletes" was not true as written, and one `deleteOne` existed to be found. ADR-041 removed both.
+- A closed account was unrecoverable once the TTL fired, and immediately unrecoverable if the address was
+  registered again. [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md) is the undo this bullet
+  said there was none of: the same `_id` comes back, owning the same companies.
 - `user` carries two indexes over `deleted` — `deleted_ttl` and `tbl_active_registeredAt` — which reads as
   redundancy and is not: `expireAfterSeconds` is rejected on a compound index, so the TTL cannot ride
   along on the other one.

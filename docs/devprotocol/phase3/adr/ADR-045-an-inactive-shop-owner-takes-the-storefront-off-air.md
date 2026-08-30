@@ -96,15 +96,12 @@ exists to prevent.
 filter in this codebase. `$set: { published: false }` is never refused by the collection's `$expr`, which
 only demands a `slug` and a `publicName` when `published` is **true**.
 
-~~**`item` is not touched.** An item disappears because its company does — `livePublic()` gates both, and
-`funCompanyUpdatePublished`'s own comment already records that unpublishing a company hides its whole
-catalogue. Each item keeps its own `published` value through the whole episode, so republishing the company
-brings the catalogue back exactly as the owner left it. Cascading into `item` as well would destroy that and
-give the owner a second, much longer list to rebuild by hand.~~
-
-⚠️ **Struck the same day by the Amendment below.** The platform owner ruled that `item` cascades too. The
-objection above — that it hands the owner a much longer list to rebuild by hand — was not disputed; it was
-answered, by making the list something the owner clears in one click rather than one item at a time.
+⚠️ **`item` is cascaded as well** — the Amendment below, the platform owner's ruling of the same day. An
+item already disappears when its company does (`livePublic()` gates both, and `funCompanyUpdatePublished`'s
+own comment records that unpublishing a company hides its whole catalogue), so the cascade is not what makes
+an item invisible. What it changes is that each item's own `published` value goes false too, which costs the
+owner a list to rebuild rather than one company-level click. That cost is real and is answered by a bulk
+control that clears the list in one action, not by pretending it is small.
 
 **The frontend has to say this out loud.** An owner who is un-suspended and finds their shops dark, with no
 explanation, will read it as data loss. `marketplace-shopowner` must state on the company list that shops are
@@ -130,9 +127,9 @@ was created in the first place. It is noted here so that whoever asks it finds i
   self-healing sweep — none of it has to exist.
 - **Coming back is an explicit, audited act by the owner**, through a mutation with an ownership filter and a
   validator, rather than a bulk write performed on their behalf by an admin clearing an unrelated flag.
-- ~~**The catalogue survives intact.** Item-level publish state is untouched, so one call per shop restores
-  what could otherwise be hundreds of items of hand work.~~ Withdrawn by the Amendment: the catalogue does
-  not survive, and the hand work is answered with a bulk control instead.
+- **Coming back is one bulk action rather than hundreds.** The cascade clears item-level publish state, and
+  the Amendment pairs it with a bulk control so restoring a catalogue is one call per shop rather than one
+  per item.
 
 ### Negative
 - **The owner's prior publish state is lost.** After un-suspension the platform cannot say which shops were
@@ -143,11 +140,9 @@ was created in the first place. It is noted here so that whoever asks it finds i
 - **A silently dark shop.** An owner who never logs back in leaves a storefront down permanently with no
   admin action having explicitly taken it down. That is the intended reading of *"by hands"*, but it means
   un-suspension alone does not restore the platform to its prior state and never will.
-- ~~**Items are hidden transitively, not directly.** An `item` has no relationship to `shopOwner`; it
-  disappears because its `company` does. Any future public read that reaches `item` without the company
-  filter bypasses this entirely.~~ ⚠️ **Reversed in effect by the Amendment, and the risk it names is what
-  the Amendment removes**: after it, an item is hidden *directly* by its own `published: false` as well as
-  transitively, so a public read that reaches `item` without the company filter no longer leaks it.
+- **The item's own publish state is destroyed, not remembered.** The cascade writes `published: false` on
+  every item, so after un-suspension neither the platform nor the owner can say which items were live
+  before — the same price §Negative's first bullet names, paid a second time one level down.
 
 ### Risks
 - **A future refactor "helpfully" restoring `published`.** Clearing `disabled` and republishing what was
@@ -201,7 +196,7 @@ unpublished and that the owner can bring one back with `companyUpdatePublished` 
 
 A violation on disk looks like: `published: true` written by any status or closure path; a new
 `ownerInactive`-style field on `company`; the company update sitting outside the `shopOwner` write's session;
-~~a cascade reaching `item`~~ **an item cascade that is missing** (see the Amendment); or a public catalogue
+an item cascade that is missing (see the Amendment); or a public catalogue
 read that does not go through `livePublic()`.
 
 ---

@@ -1,4 +1,4 @@
-# ADR-037 — `@axiumine/marketplace-common` is published to npmjs, the platform owner publishes it, and (until ADR-047) `deploy-local.sh` stays
+# ADR-037 — `@axiumine/marketplace-common` is published to npmjs and the platform owner is the one who publishes it
 # Marketplace
 
 **Status:** accepted, **superseded in part 2026-08-30** — §Decision property 2 only, the half that kept
@@ -10,8 +10,8 @@ published for the community rather than a private deployment.
 **Supersedes:** [`ADR-015`](./ADR-015-common-consumed-by-package-name-unpublished.md) **in part** — the
 publication half only. ADR-015's other two halves, the `deploy-local.sh` bridge and the GPL-3.0-or-later
 licence decision, are untouched and stay in force there.
-**Superseded by:** [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), **in part.**
-Property 2 of §Decision is reversed: the script is deleted and a change ships as a published release.
+**Superseded by:** [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), **in part.** Property 2 of §Decision is reversed — the script is deleted and a
+change ships as a published release — and property 2 below states the rule in the form ADR-047 left it.
 ⚠️ **Everything else here is in force and is what ADR-047 stands on** — the registry, the owner as the
 only publisher, the manual publish, no committed token, no CI job, and no gate weakened by publishing.
 
@@ -113,27 +113,19 @@ Four properties fix what that means:
    ever**; ADR-015 already lists a committed `.npmrc` token as a violation shape and that stays exactly as it
    was. The credential lives in the owner's own environment and nowhere in these sixteen repositories.
 
-2. ~~⚠️ **`deploy-local.sh` is not deleted, and the manual step does not go away.** This is the single most
-   likely wrong inference from this ADR, and ADR-015 already refused it in advance: the script's job is to
-   close the gap *between* releases. An edit under `src/` is not on the registry until someone publishes it,
-   so a workspace that deleted the script would silently run every consumer against the last **published**
-   build instead of the last **written** one — a failure mode strictly worse than today's, because today's
-   at least fails at the call site rather than resolving to something plausible and stale.
-   **The rule in `CLAUDE.md` — run `./deploy-local.sh` after every edit to `marketplace-common` — is
-   unchanged by this decision.**~~
-   ⚠️ **Reversed 2026-08-30 by [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), on
-   this property's own description of what deletion does.** A consumer running the last **published** build
-   is the state to want: it is the only build a lockfile can name, a second machine can reproduce, or a
-   stranger who cloned this blueprint can obtain. The struck text weighs a stale local copy against a stale
-   published one and misses that only one of the two is reproducible. **The rule in `CLAUDE.md` is now the
-   opposite: never sync locally, publish a release** — three of them had been cut by the day it changed.
+2. **A change reaches a consumer by being published, and by nothing else** — no `rsync`, no `cp`, no
+   `yarn link`, no `file:` path, and no local-deploy script. ⚠️ **This is the rule [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) set on 2026-08-30**,
+   reversing what this property held when this ADR was accepted; the reasoning it turns on is that a
+   consumer running the last **published** build is the state to *want*, because a published build is the
+   only one a lockfile can name, a second machine can reproduce, or a stranger who cloned this blueprint
+   can obtain. A stale local copy and a stale published one are not symmetric: one of the two is
+   reproducible. `CLAUDE.md`'s rule is **never sync locally, publish a release**.
 
 3. **A publish is a version bump, and the range has to be able to reach it.** Consumers pin `^1.0.0`, so a
-   `1.x` release reaches them on a plain `yarn install` and a `2.0.0` does not. ~~`deploy-local.sh` already
-   warns on a declared-range/built-version major mismatch; that warning now has a second meaning — it also
-   predicts which consumers a real release would fail to reach.~~ **The warning went with the script
-   (ADR-047); the check is now step 9 of the release flow, run by hand.** It has fired twice for real —
-   `2.0.0` and `3.0.0` each moved twelve ranges.
+   `1.x` release reaches them on a plain `yarn install` and a `2.0.0` does not. ⚠️ **Nothing warns about a
+   declared-range/major mismatch** — the check is step 9 of the release flow, run by hand: `npm view` the
+   published version, then move every consumer's range. It has been needed twice for real, `2.0.0` and
+   `3.0.0`, twelve ranges each time.
 
 4. **Publication does not weaken any gate.** The push gates (100% coverage on four metrics, mutation score
    100, Qodana, `test:contract`) are what a release is cut from, and `test:contract` in particular is what
@@ -169,27 +161,23 @@ place both of those live.
   corrected by publishing `1.0.1`, never by removing `1.0.0`.
 - **A second distribution surface now has to stay honest.** The registry can disagree with the tree —
   a published version whose `dist/` predates a commit, or an `exports` map that shipped incomplete. Nothing
-  in the push gates checks the registry, so this is discipline, ~~exactly like `deploy-local.sh` is~~
-  **and since ADR-047 it is the only surface there is, which is what made the discipline keepable.**
+  in the push gates checks the registry, so this is discipline — and since ADR-047 it is the only
+  distribution surface there is, which is what makes the discipline keepable.
 - **The author field becomes a registry page.** `package.json:5` carries the owner's real name, address and
   homepage, and npm renders them. They are already public in sixteen public repositories, so this widens the
   audience rather than the disclosure — but it is a deliberate widening, not a side effect nobody chose.
-- `BEs/marketplace-common/CLAUDE.md:3` has said *"published to npm"* since before it was true. It becomes
-  true on the day the first publish runs and not before; until then the sentence is still ahead of the fact.
+- `BEs/marketplace-common/CLAUDE.md:3` says *"published to npm"*, which the first publish made true and
+  three releases have kept true.
 
 ### Risks
-- ~~**Publish-then-forget.** A release is cut and `deploy-local.sh` is then treated as obsolete, so the next
-  edit reaches nobody and every consumer runs the last release. Revisit — by making `deploy-local.sh`'s
-  absence from a workflow an explicit `pre-push` check in `BEs/marketplace-common/.githooks/` — the first
-  time a consumer is found running published code where a working-tree change was expected.~~
-  **This risk read the outcome correctly and the sign backwards.** Every consumer running the last release
-  is the decision of 2026-08-30 ([ADR-047](./ADR-047-a-common-change-ships-as-a-published-release.md)); the
-  proposed `pre-push` check was never written, and the shortcut was removed instead.
+- **Publish-then-forget.** An edit is merged into `marketplace-common` and the release is never cut, so
+  every consumer keeps running the previous one. Nothing catches it — no hook, no gate — and the remedy is
+  the release flow itself. Revisit if a consumer is ever found waiting on a change that was merged and
+  never published.
 - **Range drift becomes visible to strangers.** Today a stale major only affects this machine. After a
-  release, a consumer whose `^1.0.0` cannot reach the current major fails for anyone who clones it. ~~Revisit
-  if `deploy-local.sh`'s major-mismatch warning fires on a release rather than on a local build.~~ **It has
+  release, a consumer whose `^1.0.0` cannot reach the current major fails for anyone who clones it. It has
   happened twice, deliberately: `2.0.0` and `3.0.0` are major releases and each was followed by twelve range
-  bumps in the same piece of work.**
+  bumps in the same piece of work.
 - **Publishing under pressure.** The gates take tens of minutes (mutation alone), and the temptation on a
   bad day is to publish from a tree the gates have not passed. Revisit — by pinning the release to a pushed,
   gated commit — the first time a version is published from a dirty working tree.
@@ -215,10 +203,8 @@ grep -n '"name"\|"private"\|"access"\|"registry"' package.json   # @axiumine/mar
 grep -n '"upload"' package.json                                   # npm publish --registry=https://registry.npmjs.org/
 ```
 
-~~Verify the bridge is still the mechanism, not scaffolding — ADR-015 §Compliance is unchanged and still
-applies in full: `./deploy-local.sh` after every edit under `src/`, `yarn test:contract` green.~~
-**Superseded by [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) §Compliance: verify
-the script is absent.** `yarn test:contract` green is unchanged and still required.
+⚠️ **The mechanism to verify is the release, and the absence of any local one** — [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md) §Compliance checks
+that the script is gone. `yarn test:contract` green is required here and unchanged.
 
 Verify the release, once cut:
 
@@ -235,9 +221,7 @@ A violation looks like:
   incident, not a finding;
 - anyone other than the platform owner running `npm publish` / `yarn upload` for this package, or a CI job
   configured to;
-- ~~`deploy-local.sh` deleted, or a `CLAUDE.md` that stops requiring it after an edit — property 2 of
-  §Decision is the reason it stays;~~ **inverted 2026-08-30: both are now required, and the violation is a
-  local copy of this package appearing in any consumer's `node_modules`
-  ([ADR-047](./ADR-047-a-common-change-ships-as-a-published-release.md));**
+- a local copy of this package appearing in any consumer's `node_modules` by any route other than
+  `yarn install` — property 2 of §Decision, and [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md);
 - a version published from a tree whose gates have not passed, or from a commit that was never pushed;
 - this ADR cited as closing `ADR-INDEX.md` §5's git-hosting gap.

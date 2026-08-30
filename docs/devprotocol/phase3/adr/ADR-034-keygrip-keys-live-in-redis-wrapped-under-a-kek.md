@@ -166,7 +166,7 @@ rather than retried, because the admin's next click reads the record the winner 
 
 **Rotation prepends; only retirement is age-gated.** A new signer is harmless at any cadence — what
 would log a remembered customer out is dropping a key that is still verifying cookies, and that is
-governed by ~~`createdAt` alone~~ **how long ago the key stopped signing** (amendment 2026-08-28). The
+governed by **how long ago the key stopped signing** rather than by `createdAt` (amendment 2026-08-28). The
 array is capped at five, and a rotate that would exceed the cap while every entry is still inside its
 thirty-day window is refused rather than served by an early retirement.
 
