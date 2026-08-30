@@ -43,8 +43,15 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 *customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
 one with `userUpdateStatus`, both on 4024 (E19). Since 2026-08-29 it opens with a counter and a
 registrations chart above that table — `usersStats` and `usersPerPeriod`, the counterparts of the pair
-`/shopOwners` has always had (E19 §6 question 2). ⚠️ **That screen still has no search box and one sortable
-column, deliberately** — ADR-029 encrypts every other field on `user`, `registeredAt` and the status flags
+`/shopOwners` has always had (E19 §6 question 2). ⚠️ **Since 2026-08-30 both admin tables filter by account
+state, and both offer four of them** — Active, Suspended, Closed and Closed & suspended, carried in the URL
+as `?status=` and sent to the service as the `disabled` / `deleted` pair both table queries take as
+required booleans (ADR-049). Four rather than three because the two flags are independent: an account
+suspended and *then* closed carries both, and it belonged to no filter either screen offered — `/customers`
+had two, `/shopOwners` had none, so a shop owner left that table the moment an admin acted on them. The
+state is never sent as a name: an *all accounts* option would unbind the leading field of the indexes both
+tables page on and turn the sort into a blocking one. ⚠️ **The customers screen still has no search box and one
+sortable column, deliberately** — ADR-029 encrypts every other field on `user`, `registeredAt` and the status flags
 being the only ones left to sort or filter on. The counter and the chart are not an exception to that: a
 count reads no field at all and the chart buckets `registeredAt`, so what the encryption blocks is matching
 and ordering, never counting. `marketplace-shopowner`

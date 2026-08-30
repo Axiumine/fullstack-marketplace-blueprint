@@ -2,10 +2,17 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
+**Version:** 1.11
 **Date:** 2026-08-30
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.11 - 2026-08-30, later the same day: `shopOwnersActiveTbl` gains `disabled: Boolean! = false` and
+`deleted: Boolean! = false`, and its row gains the `disabled` trio and `deleted`
+([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md)). It had hard-wired both
+flags absent since it was built, so the two levers the Admin tier holds over a seller — `shopOwnerUpdateStatus`
+and `shopOwnerDel` — removed the account from the only table that lists it. `usersActiveTbl` is unchanged: it
+has taken the pair since E19-S02, and the four states the admin app now offers on both screens are built from
+it. No new operation, no field on any collection, and no migration.
 v1.10 - 2026-08-30: the Admin resource service's mutation table gains `userDel`, the customer counterpart of `shopOwnerDel`, built on the platform owner's ruling that *"admin must act on shop owners and on customers in the same way"* ([`ADR-048`](../phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)). The directory count moves twenty-two to twenty-three and the `Boolean!` count twenty-one to twenty-two, both recounted from the working tree rather than incremented. `deletedBy` now has a writer on both account collections, so the `shopOwnerDel` row's "stamps `deleted`" is joined by a row that says which admin.
 v1.9 - 2026-08-29: the Admin resource service's query table gains `usersStats` and `usersPerPeriod`, built the day the platform owner answered `phase5/epics/E19.md` §6 question 2 — the customer counterparts of `shopOwnersStats` and `shopOwnersPerPeriod`, fourteen queries where there were twelve. The `queries.mts` line range above the table moves with them. ⚠️ **`usersActiveTbl`'s row is untouched and stays true**: no `search`, one sort member. The two new rows are not a softening of ADR-029 — a count reads no field and the series buckets `registeredAt`, which was never encrypted — and the row for `usersPerPeriod` says so, because this table is where somebody will look before proposing a search argument again.
 v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
@@ -420,7 +427,7 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
 | `infoAdminAfterLogin` | none — identity from the session | `GraphQLAdminInfoAfterLogin!` | Post-login bootstrap for the admin SPA | `schema/queries/infoAdminAfterLogin.mts:7` |
-| `shopOwnersActiveTbl` | `offset: Int! = 0`, `limit: Int! = SHOP_OWNERS_TBL_DEFAULT_LIMIT`, `search: String`, `sortBy: ShopOwnersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLShopOwnersActiveTblPage!` | Paginated, searchable, sortable shopOwner table | `schema/queries/shopOwnersActiveTbl.mts:10,15-22` |
+| `shopOwnersActiveTbl` | `offset: Int! = 0`, `limit: Int! = SHOP_OWNERS_TBL_DEFAULT_LIMIT`, `disabled: Boolean! = false`, `deleted: Boolean! = false`, `search: String`, `sortBy: ShopOwnersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLShopOwnersActiveTblPage!` | Paginated, searchable, sortable shopOwner table. ⚠️ **The two state flags arrived 2026-08-30** ([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md)): the filter used to hard-wire both to absent, so a suspended or closed shop owner was unreachable from the only table that lists them. They are `Boolean!` with a default rather than nullable filters for the same reason `usersActiveTbl`'s are — all four `tbl_active_*` indexes lead with `{deleted, disabled}`, and an unbound leading field costs the index for the sort too. The row projects the `disabled` trio and `deleted` with it, so the admin's status column can read what it renders | `schema/queries/shopOwnersActiveTbl.mts:10,15-33` |
 | `shopOwnersStats` | none | `Int!` | Aggregate shopOwner count | `schema/queries/shopOwnersStats.mts:6` |
 | `shopOwnersPerPeriod` | `period: ShopOwnersPeriod! = ALL` | `GraphQLShopOwnersPerPeriod!` | Time-bucketed signup stats | `schema/queries/shopOwnersPerPeriod.mts:8,18-19` |
 | `shopOwnerById` | `idShopOwner: ID!` | `GraphQLShopOwnerById!` | One shopOwner, any of them — no ownership filter on this tier. ⚠️ Its `personalData` is **nullable** since 2026-08-12: a self-registered seller has none until onboarding, and a `NonNull` field would have made every such account a hard GraphQL error rather than a row with blanks | `schema/queries/shopOwnerById.mts:11,13-14` |
