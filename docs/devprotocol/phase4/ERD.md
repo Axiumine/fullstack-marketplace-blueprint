@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-08-29
+**Version:** 1.8
+**Date:** 2026-08-30
 **Author:** erd-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-08-30: no index changes — a note added to §7 `shopOwner` and `user`, because the five
+`tbl_active_*` indexes stopped serving only active rows on 2026-08-30 and their names did not
+([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md)). Both admin tables now
+bind `{deleted, disabled}` to one of four combinations per page rather than to absent-and-absent, which is
+what the leading pair was always for; the keys, the ESR order and the `_id` tiebreak are untouched.
 v1.7 - 2026-08-29, later the same day: §7 `user` gains `registeredAt_series` — `{registeredAt:1}`, plain, the byte-identical twin of `shopOwner`'s — added by `20260829000200-user-add-registered-at-series-index.js` after the platform owner answered `phase5/epics/E19.md` §6 question 2 and asked for the customer counterparts of `shopOwnersStats` and `shopOwnersPerPeriod`. ⚠️ **The paragraph below the table ended by saying there is no such counterpart because no `usersPerPeriod` chart exists to need one; that sentence is struck rather than deleted** — it was true when written and the chart is what changed, not the reasoning. Nothing about ADR-029 moved: the series buckets `registeredAt`, which was never encrypted, so the rest of that paragraph — one `tbl_active_*` index where `shopOwner` has four, one member in `UsersTblSortField` — stands exactly as it was.
 v1.6 - 2026-08-29: §7 `user` loses `deleted_ttl` — dropped by `20260829000100-user-retire-deleted-ttl.js`, three days after v1.4 recorded it as the only index on this platform that deletes documents. The platform owner reversed the mechanism (ADR-041): the document is permanent and the personal fields are overwritten in place at day 30 by a sweep in the Admin resource service, on `shopOwner` as well as `user`. ⚠️ **The index row and its paragraph are struck rather than deleted**, because v1.4's warning about a database not rebuilt after 2026-08-26 inverts — an unrebuilt database still has the TTL and will destroy accounts the design now keeps, so `db.user.getIndexes()` is still the check and the answer it should give is *no such index*. The destructive-re-registration sentence goes with it (ADR-046: re-registering inside the window restores the account). No field, no validator and no other index changed.
 v1.5 - 2026-08-27: §8's first four bullets stop being "not this phase" and become "not ever" — ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope. The `price` bullet loses its "it arrives with the ordering tier, in one migration" ending, which described a tier that is not coming, and §9 question 3 closes as moot rather than answered.
@@ -368,6 +373,12 @@ Not tuning — part of the design. The public catalogue is read by anonymous tra
 | `tbl_active_city` | `{deleted:1,disabled:1,'personalData.address.city':1,_id:1}` | `sortBy: CITY` | same |
 | `registeredAt_series` | `{registeredAt:1}`, plain, no compound | `shopOwnersPerPeriod` chart aggregation (`$match` range + `$group` by day/month) — deliberately does **not** filter `deleted`/`disabled`, so it cannot reuse `tbl_active_registeredAt`'s leading keys | `20260301000100-create-shopOwner.js` |
 
+⚠️ **`active` in these four names is now historical.** Until 2026-08-30 `shopOwnersActiveTbl` hard-wired
+`{deleted: absent, disabled: absent}`; it takes both as `Boolean!` arguments since (ADR-049), so the same
+indexes serve all four states — the leading pair is *bound* on every page, which is what they were built
+for, rather than bound to one value. Renaming them would mean an index rebuild on both collections for a
+word, so the names stay and this note carries the meaning.
+
 ⚠️ `search` on this collection is **deliberately not indexed** — the resolver's case-insensitive prefix regex (`/^term/i`) disqualifies index use regardless (the `i` flag rules out the scan, and `$regex` ignores collation), and the cardinality is shop owners, not the ~50k-scale end-customer collection. Revisit if `shopOwner` reaches six figures (`BEs/marketplace-db-setup/migrations/20260301000100-create-shopOwner.js`).
 
 ### `company`
@@ -412,7 +423,7 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 | Index | Keys | Serves | Source |
 |---|---|---|---|
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
-| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the admin's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
+| `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the admin's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row. The leading pair is bound to one of four combinations per page, never left unbound — see the note under §7 `shopOwner` | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
 | `registeredAt_series` | `{registeredAt:1}`, plain, no compound | `usersPerPeriod` chart aggregation (`$match` range + `$group` by day/month) — deliberately does **not** filter `deleted`/`disabled`, so it cannot ride on `tbl_active_registeredAt`'s leading keys, exactly as on `shopOwner`. Not unique (two customers may register in the same millisecond) and not partial (the chart counts closed accounts too, and since ADR-041 a closed account's document is permanent, so a bucket's height never changes later) | `20260829000200-user-add-registered-at-series-index.js` — a **new** migration again, the create one being immutable |
 
 ⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). ⚠️ **`registeredAt_series` is the counterpart that does exist**: a chart over `registeredAt` was always possible here, since that field is not encrypted, and `usersPerPeriod` and its index landed together on 2026-08-29. Read with the sentence above, the two are the boundary this collection has: **count and bucket freely, match and order nothing but `registeredAt`.**
