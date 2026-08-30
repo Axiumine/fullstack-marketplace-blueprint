@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-27
+**Version:** 1.4
+**Date:** 2026-08-30
 **Author:** sequence-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.4 - 2026-08-30: §2.10 ended on "Nothing here sets `deleted`, which no mutation on the platform writes on a `user`" — false since 2026-08-26 on the customer tier and false on this very service since 2026-08-30, when `userDel` landed ([ADR-048](../phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)). The section gains the third operation and keeps the point the stale sentence was making, which is the separation of the two levers rather than the absence of one. No diagram is added: the closure is linear — one guarded write, then an unconditional revoke.
 v1.3 - 2026-08-27: §1 and §10 read as "no flow yet"; they are now "no flow ever". ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §10's table cells move from `UNBUILT` to `WILL NOT BUILD`, its closing paragraph says a speculative diagram contradicts an accepted ADR rather than merely jumping ahead, and the `price` note records that a display-only price was refused the same day.
 v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
 §2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
@@ -124,7 +125,7 @@ is unconfirmed rather than that they are queued. `=== false`, never `!== true`: 
 is what every §2.1 account has, and collapsing absent into unverified would lock out every shop owner
 created before this flow existed.
 
-### 2.10 — `usersActiveTbl` / `userUpdateStatus` (the admin's reach into a customer account)
+### 2.10 — `usersActiveTbl` / `userUpdateStatus` / `userDel` (the admin's reach into a customer account)
 §2.8's shape on the `user` collection, one tier over and with one extra step (E19, 2026-08-25). Both live on
 `marketplace-dev-admin-authenticated-resource`, the only service that reads `user` for anyone but its owner.
 
@@ -139,10 +140,25 @@ match would compare against base64 and a sort would order ciphertext.
 of every session that customer holds, access half first (R54). The write is the target state rather than a
 transition, so a re-suspension revokes again over an already-empty index — cheaper than the read that would
 skip it, and with no window between a read and the write for a login to slip through. Re-enabling revokes
-nothing, deliberately: no credential changed. Nothing here sets `deleted`, which no mutation on the platform
-writes on a `user`.
+nothing, deliberately: no credential changed. ~~Nothing here sets `deleted`, which no mutation on the platform
+writes on a `user`.~~
+
+`userDel` is the third operation and the one that sets `deleted` (2026-08-30,
+[ADR-048](../phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)). It is linear and needs no diagram
+either: one `updateOne` filtered on `{_id, deleted: {$exists: false}}`, stamping `deleted` and `deletedBy`
+with the admin's `_id` off `ctx.state.user`, then `endEveryUserSession` — **unconditionally**, because a
+closure has one direction and there is no *off* to compare against. ⚠️ **The struck sentence's point
+survives its premise, and it is the rule between the two levers**: `userUpdateStatus` writes no `deleted*`
+field and `userDel` writes no `disabled*` one, so closing a suspended customer leaves the suspension
+standing and ADR-046's undo hands it back untouched. The filter's `$exists` clause is what makes the
+thirty-day retention clock start once — a second close answers 404 rather than re-stamping the date and
+pushing the day-30 overwrite out — and it needs `trusted()`, because `sanitizeFilter` is global and
+rewrites a bare `$exists` into an equality that matches nothing.
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/userUpdateStatus.mts`,
-`.../schema/queries/usersActiveTbl.mts`, front end `/customers` on `marketplace-admin`.
+`.../schema/mutations/userDel.mts`, `.../schema/queries/usersActiveTbl.mts`, front end `/customers` on
+`marketplace-admin` — which drives the first two and **not** the third: `userDel` has no screen, exactly as
+`shopOwnerDel` has none, and the operation document belongs in `marketplace-admin` alongside the screen that
+needs it rather than before.
 
 ---
 

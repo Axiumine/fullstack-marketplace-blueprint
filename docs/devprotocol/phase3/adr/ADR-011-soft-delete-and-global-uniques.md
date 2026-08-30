@@ -230,9 +230,14 @@ Whoever builds one inherits this question and should answer it here rather than 
 ⚠️ **Answered 2026-08-29, and the answer is symmetry — reached from the other end.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)
 gives `shopOwner` the same thirty-day retention and the same reclaimable address, and it is safe there
 precisely because it stops removing documents: the objection in this paragraph — `company.idShopOwner`
-points at it — is an objection to *deletion*, and an overwrite strands no reference. The self-service
+points at it — is an objection to *deletion*, and an overwrite strands no reference. ~~The self-service
 Art. 17 path this paragraph also notes as missing is still missing; a shop owner is closed by an
-admin, and the retention clock starts from that stamp either way.
+admin~~ — ⚠️ **that half was overtaken the same day and this correction is dated 2026-08-30**:
+`shopOwnerDel` exists on the ShopOwner tier too, taking the owner's `_id` off the session and taking no
+argument, so the Art. 17 path is theirs to walk. The clock starts from the stamp either way, and which
+tier stamped it is what `deletedBy` records — absent for a self-close, an admin's `_id` for the other
+([ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md),
+[ADR-048](./ADR-048-an-admin-closes-a-customer-account.md), which gives `user` the same pair).
 
 ### Consequences
 

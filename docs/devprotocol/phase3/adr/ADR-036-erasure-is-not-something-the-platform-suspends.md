@@ -143,10 +143,16 @@ suite rather than passing quietly.
   ⚠️ **This ADR's own decision is untouched by both.** `userDel` still does not gate on `disabled`, and a
   suspension still survives everything here — including the undo, which clears `deleted` and leaves
   `disabled` exactly where the admin put it (ADR-044).
-- **The Admin counterpart is still missing.** An admin can suspend a customer and cannot close one —
-  there is no Admin-tier equivalent of `shopOwnerDel` for `user` (`phase5/epics/E19.md` §Open questions 3).
-  Whoever builds it inherits this question from the other side and should not assume the answer is
-  symmetric: an admin closing somebody else's account is not the exercise of a data-subject right.
+- ~~**The Admin counterpart is still missing.** An admin can suspend a customer and cannot close one —
+  there is no Admin-tier equivalent of `shopOwnerDel` for `user`.~~ ⚠️ **Built 2026-08-30 —
+  [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md).** `userDel` on the Admin resource service
+  calls `funUserDelete(_id, adminId)`, so the counterpart exists and the sentence above is false from that
+  date. **The warning this bullet carried is not struck, because it was answered rather than overtaken:**
+  whoever builds it inherits this question from the other side and should not assume the answer is
+  symmetric — an admin closing somebody else's account is not the exercise of a data-subject right.
+  ADR-048 answers it by keeping the two instruments apart rather than by making the admin's closure a
+  weaker one: a closure writes no `disabled*` field and a suspension writes no `deleted*` field, on either
+  tier, and `deletedBy` is what records which of the two closures happened.
 
 ---
 

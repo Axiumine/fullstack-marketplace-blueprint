@@ -2,10 +2,22 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.22
+**Version:** 1.23
 **Date:** 2026-08-30
 **Author:** adr-agent
 **Changelog:**
+v1.23 - 2026-08-30, later the same day: **ADR-048 added — an admin closes a customer account, and the
+retention clock starts once.** It supersedes nothing: it fills the hole ADR-036 recorded in its own
+§Consequences and left a warning beside, on the platform owner's ruling that *"admin must act on shop
+owners and on customers in the same way"*. One row in §2, one name in §3's **Identity and access** line,
+two rows in §4. **The warning was answered rather than overtaken**, which is why ADR-036's bullet is struck
+only in its first sentence: an admin closing somebody else's account is not a data-subject right, and
+ADR-048 keeps the two apart by keeping suspension and closure from ever writing each other's fields rather
+than by making the admin's closure a weaker one. ⚠️ **The build also fixed something nobody had asked
+about.** Diffing the two tiers to obey the parity instruction found `funUserDel` reading the document and
+then writing it, so two closes fired at once could both stamp `deleted` and push the day-30 overwrite
+thirty days out — the erasure ADR-041 measures and ADR-046 bounds. It is a guarded write now on both tiers,
+and its 500 branch is gone with the second query that produced it
 v1.22 - 2026-08-30: **ADR-047 added — a change to `marketplace-common` ships as a published release, and
 `deploy-local.sh` is deleted.** It is the fifth supersession in this index and the first to reverse a
 property of a decision this index called *partial on purpose*: ADR-037 kept the local-deploy bridge alive
@@ -208,11 +220,12 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-045 | An inactive shop owner takes the storefront off-air; only the owner puts it back | accepted, **amended 2026-08-29** — the cascade reaches `item`, fires from either tier, and gains a bulk control; **superseded in part the same day** — a closed owner returns and re-enables | 2026-08-29 | — | ADR-046, in part | Catalogue |
 | ADR-046 | The retention window is an undo window: re-registering at the same address restores the account | accepted | 2026-08-29 | ADR-041, ADR-042 and ADR-045, each in part | — | Identity and access |
 | ADR-047 | A change to `marketplace-common` ships as a published release; `deploy-local.sh` is deleted | accepted | 2026-08-30 | ADR-015 and ADR-037, each in part | — | Build and quality gates |
+| ADR-048 | An admin closes a customer account, and the retention clock starts once | accepted | 2026-08-30 | — | — | Identity and access |
 
 ## 3. By area
 
 **Identity and access** — ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-033, ADR-034, ADR-036, ADR-040,
-ADR-042, ADR-044, ADR-046
+ADR-042, ADR-044, ADR-046, ADR-048
 
 **Data model** — ADR-007, ADR-010, ADR-011, ADR-013, ADR-014, ADR-029, ADR-035, ADR-041, ADR-043
 
@@ -246,6 +259,9 @@ ADR-037, ADR-047
 | Scrub a closed account at the confirmation click, to "free the address" for the new registration | [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md) | it is what the code did on the morning of 2026-08-29, and it makes *close, then re-register an hour later* an instant self-erasure — defeating the only thing the retention window was still for. The address needs no freeing inside the window: the closed document **is** the account being handed back, `_id`, shops and all. `buildAccountScrub` has exactly one caller, the day-30 sweep, and a second one deletes accounts people are in the middle of recovering. Violation looks like `buildAccountScrub` imported anywhere under `marketplace-dev-public-resource/src/` |
 | Skip `waitApprov` when restoring a shop owner, because the account was approved once already | [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md) | approval is not a property an account keeps through a closure. The platform owner made the gate the whole human checkpoint on this flow — *"the state of waitApprove is true, so admin can not approve the user if it is a problem"* — and it is the only defence against a recycled mailbox recovering somebody else's seller account. The customer tier has none, which is a known and accepted asymmetry. Violation looks like a restore path that does not `$set` `waitApprov` on the seller tier |
 | Clear `disabled` as part of an undo, alongside `deleted` | [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md), [ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md) | the two stamps mean opposite things: `deleted` is the subject giving the account up, `disabled` is the platform taking it away. An undo is performed by the subject, so one that lifted a suspension would be a sanction a person can clear themselves by closing their account and signing up again. A suspended-then-closed account comes back **still suspended**, and only `shopOwnerUpdateStatus` / `userUpdateStatus` lift it. Violation looks like `disabled` in the `$unset` of any registration path |
+| Fold closure into `userUpdateStatus` — one admin mutation that can suspend *and* close, since both end in a revoke | [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md) | it makes one mutation able to trade a sanction for a closure. `deleted` says whether the account is still held and `disabled` says whether it may be used; a caller that can write both can lift the second by setting the first, which is the laundering ADR-046 keeps the `disabled*` trio across an undo to prevent. The two are separate mutations on both tiers and neither writes the other's fields |
+| Drop the `deleted: {$exists: false}` clause from a closure's filter — the write is idempotent, so a second close is harmless | [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md), [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) | it is not idempotent: the value written is `new Date()`, so a second stamp moves the day-30 overwrite thirty days further out and postpones an erasure the first closure already promised. The clause is what makes the clock start exactly once, and it is what a 404 or a 410 on a re-close is telling the caller |
+| Add a field naming which collection `deletedBy` points at, so the two closures can be told apart without knowing the tier | [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md), [ADR-002](./ADR-002-role-is-authentication-collection.md) | there is exactly one possible actor collection per stamp, so the field's own name carries it. A second field saying which is a `role` field arriving by the back door |
 | Republish a shop owner's companies when their suspension is cleared — "restore what we took down" | [ADR-045](./ADR-045-an-inactive-shop-owner-takes-the-storefront-off-air.md) | suspending or closing an owner writes `published: false` on every company they own; clearing `disabled` writes **nothing**. The platform owner ruled it directly: *"un-suspending must not re-enable in the same place the companies, shopOwner must re-enable them by hands"*. The symmetry is the trap — restoring the flag means remembering its old value, which is the extra field this decision was chosen to avoid, and it would republish a shop the owner had deliberately taken down. ⚠️ **This does not reopen the 2026-08-14 ruling two rows above**: the cascade writes `published: false` only, never `true`, from a named status path — `companyUpdatePublished` is still the only writer of `true`, on either tier. ⚠️ **Amended the same day**: the cascade reaches `item` as well, it fires from *any* path that makes an owner inactive — the owner's own self-closure as much as an admin's — and restoring an owner writes to the `shopOwner` document **alone**, never to `company` and never to `item`. Violation looks like `published: true` in a status or closure path, an `ownerInactive`-style second flag on `company`, a missing item cascade, or a restore path that reads or writes either collection |
 | Lower a coverage or mutation threshold | ADR-016 | the rule that outlived every other instruction here; a commit that needs a threshold lowered needs a test instead |
 | Add `ignoreStatic` to a Stryker config | ADR-016 | masks real gaps; the survivor it appears to fix is usually a load-time mutant needing a dynamic import instead |

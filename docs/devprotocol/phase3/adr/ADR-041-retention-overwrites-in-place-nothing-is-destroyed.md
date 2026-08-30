@@ -83,7 +83,13 @@ deleted.**
 The lifecycle is three states and one clock.
 
 1. **Closure stamps `deleted`** — `funUserDel` for a customer closing their own account, `funShopOwnerDelete`
-   for an admin closing a shop owner's. Sessions are revoked in the same operation. ⚠️ `shopOwnerDel.mts`
+   for an admin closing a shop owner's. Sessions are revoked in the same operation. ⚠️ **A third writer
+   landed 2026-08-30**: `funUserDelete`, an admin closing a *customer's* account
+   ([ADR-048](./ADR-048-an-admin-closes-a-customer-account.md)). It stamps the same field and starts this
+   same clock. ⚠️ **And every closure on `user` now guards the stamp in its filter** — `deleted:
+   {$exists: false}` — so the thirty days below are measured from the first closure and a second one
+   cannot restart them. `funUserDel` read the document and then wrote it until that date, which let two
+   concurrent closes both stamp and push the day-30 overwrite thirty days out. ⚠️ `shopOwnerDel.mts`
    does not revoke today — `shopOwnerUpdateStatus.mts:49` does it for a mere suspension and the closure
    mutation does not do it at all — and that asymmetry is fixed here, because a closure is now a durable,
    audited decision rather than a stamp that a re-registration would shortly erase.
