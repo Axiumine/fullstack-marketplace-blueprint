@@ -30,6 +30,14 @@ editing that app.**
   is set. ⚠️ The token variable must still be *sent* (`turnstileToken: null` is the correct request
   locally); a form that drops it looks identical on screen and fails only against a deployment that
   holds the secret.
+- ⚠️ **A session exit is a page load, never a router navigation** (ADR-051). Both exits — the logout
+  button in `src/auth/useLogout.ts`, and `onSessionLost` in `src/main.tsx` on the two SPAs and in
+  `src/router.tsx` on `marketplace-user` — end in `window.location.assign('/')`. The urql client is a
+  module singleton and its document cache is keyed by query and variables and by nothing that names a
+  session, so a navigation leaves the previous session's `shopOwnerCompanies` and `Me` — both variable-free
+  — answering the next sign-in inside the same page load. The local teardown still runs first and still
+  runs whatever the server answered; nothing is awaited after the call. ⚠️ **The entrance is not covered**:
+  `marketplace-user` has no guard on `/login` (E20 §6 question 7).
 - Gated at **100% coverage and 100% mutation score**, plus `yarn lint:check`, `tsc --noEmit` and
   Qodana — all five in `.githooks/pre-push`, all but mutation in `.githooks/pre-commit`.
 
@@ -177,13 +185,13 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 
 | App | Test files | Tests | Mutants killed / timed out / survived |
 |---|---|---|---|
-| `marketplace-admin` | 71 | 1071 | 2053 / 7 / 0 |
-| `marketplace-shopowner` | 49 | 677 | 1083 / 5 / 0 |
+| `marketplace-admin` | 74 | 1158 | 2053 / 7 / 0 |
+| `marketplace-shopowner` | 51 | 729 | 1083 / 5 / 0 |
 | `marketplace-user` | 76 | 1433 | 2171 / 7 / 0 |
 | `marketplace-services-status` | 7 | 379 | 1102 / 1 / 0 |
 
-File and test counts are a `yarn test` run of 2026-08-25, except `marketplace-user`'s, recounted
-2026-08-29 with the close-account screen. ⚠️ **The mutant columns are older than that** —
+File and test counts are a `yarn test` run of 2026-08-30 for the three apps, and of 2026-08-25 for
+`marketplace-services-status`. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
 E19 added. The gate is hook-only in all four repos, so the next push is what re-measures them; do not
 start a run to refresh this table.
