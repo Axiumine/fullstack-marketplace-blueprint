@@ -232,12 +232,11 @@ Verify a geo query with `.explain()` and expect an `IXSCAN` on the 2dsphere, nev
 take everything it had published off the public site; the document itself is permanent. ⚠️ **`deletedBy`
 tells the two closures apart** (ADR-044): a self-close — `funUserDel` on the customer tier, reached from
 `/account/close` in `marketplace-user`, and `funShopOwnerDel` on the owner's — stamps `deleted` alone,
-while the Admin tier names the admin who closed it. ⚠️ **Both closure mutations exist on two tiers now, and
-the tier is what tells them apart rather than the name**: `userDel` gained its Admin-tier twin on
-2026-08-30 ([ADR-048](./devprotocol/phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)), calling
-`funUserDelete(_id, adminId)`, so `deletedBy` has two writers on two collections. This paragraph said only
-one closure ever wrote the field, which was true until that date. An empty `deletedBy` therefore says *the
-holder did this*, and reading it as "not recorded" gets the actor backwards. ⚠️ **Every closure on `user`
+while the Admin tier names the admin who closed it. ⚠️ **Both closure mutations exist on two tiers, and
+the tier is what tells them apart rather than the name**: `userDel` on the Admin service calls
+`funUserDelete(_id, adminId)` ([ADR-048](./devprotocol/phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)),
+so `deletedBy` has two writers on two collections. An empty `deletedBy` therefore says *the holder did
+this*, and reading it as "not recorded" gets the actor backwards. ⚠️ **Every closure on `user`
 carries `deleted: {$exists: false}` in its filter**, on both tiers — the clock below starts once and a
 second close answers 404 or 410 rather than moving it.
 ⚠️ **`admin` has no closure at all, and that is a ruling rather than a gap** (2026-08-29,

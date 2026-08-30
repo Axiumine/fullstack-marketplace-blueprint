@@ -124,35 +124,21 @@ suite rather than passing quietly.
   it ever also means a legal hold, a chargeback freeze or a retention duty, this decision is wrong and must
   be revisited — but the fix is a **new field with its own semantics**, not a gate re-added to this one.
   Revisit trigger: any story that makes `userUpdateStatus` mean more than "suspended".
-- ~~**Erasure is built and not yet effective, for an unrelated reason.**~~ **Closed the same day, later:
-  the purge shipped.** It is `user.deleted_ttl`, a TTL index over `deleted` rather than the scheduled job
-  this bullet assumed — so the stamp `funUserDel` writes *is* the erasure order and MongoDB carries it out
-  30 days later with no code involved. `login.email_unique` still carries no `partialFilterExpression`, so
-  the address is freed by the document going rather than by the index ignoring it; re-registering the same
-  address destroys the closed document outright and ends the wait early (ADR-011 §Amendment 2026-08-26).
-  Struck rather than deleted because the reasoning above depends on it: property 1 of §Decision says the
-  delete is soft and *nothing is removed*, and that is now true for 30 days rather than indefinitely. It
-  does not weaken the decision — an admin's hold survives a close for the whole retention window, and
-  a hold that needs to outlive it was never this flag's job (see the `disabled` risk above).
-  ⚠️ **Reversed 2026-08-29, three days later, and the bullet above is kept a second time for the same
-  reason.** [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) drops `deleted_ttl`
-  and makes retention a day-30 **overwrite in place**, so property 1 of §Decision — the delete is soft and
-  *nothing is removed* — is true indefinitely again rather than for thirty days, and it is now true on
-  `shopOwner` too. [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md) reverses the other half:
-  re-registering the address inside the window **restores** the closed account instead of destroying it.
-  ⚠️ **This ADR's own decision is untouched by both.** `userDel` still does not gate on `disabled`, and a
-  suspension still survives everything here — including the undo, which clears `deleted` and leaves
-  `disabled` exactly where the admin put it (ADR-044).
-- ~~**The Admin counterpart is still missing.** An admin can suspend a customer and cannot close one —
-  there is no Admin-tier equivalent of `shopOwnerDel` for `user`.~~ ⚠️ **Built 2026-08-30 —
-  [ADR-048](./ADR-048-an-admin-closes-a-customer-account.md).** `userDel` on the Admin resource service
-  calls `funUserDelete(_id, adminId)`, so the counterpart exists and the sentence above is false from that
-  date. **The warning this bullet carried is not struck, because it was answered rather than overtaken:**
-  whoever builds it inherits this question from the other side and should not assume the answer is
-  symmetric — an admin closing somebody else's account is not the exercise of a data-subject right.
-  ADR-048 answers it by keeping the two instruments apart rather than by making the admin's closure a
-  weaker one: a closure writes no `disabled*` field and a suspension writes no `deleted*` field, on either
-  tier, and `deletedBy` is what records which of the two closures happened.
+- **Erasure rewrites the document and never removes it, so property 1 of §Decision holds without a time
+  limit.** The delete is soft and *nothing is removed*: at day 30 the closed document is **overwritten in
+  place** and keeps `_id`, `deleted`, `deletedBy`, the `disabled*` trio and `scrubbedAt`
+  ([ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md)), and inside the window, registering the address again and confirming the message
+  **restores** the account ([ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md)). The same holds on `shopOwner`. Neither touches this ADR's
+  decision: `userDel` does not gate on `disabled`, and a suspension survives both — the undo clears
+  `deleted` and leaves `disabled` exactly where the admin put it (ADR-044). An admin's hold that needs to
+  outlive a closure was never this flag's job either (see the `disabled` risk above).
+- **The Admin counterpart is a second instrument, not a stronger suspension.** An admin closes a customer
+  account through `userDel` on the Admin resource service, which calls `funUserDelete(_id, adminId)` — the
+  equivalent of `shopOwnerDel` for `user` ([ADR-048](./ADR-048-an-admin-closes-a-customer-account.md)). ⚠️ **It does not inherit this ADR's reasoning
+  wholesale**: an admin closing somebody else's account is not the exercise of a data-subject right, so the
+  two instruments stay apart rather than the admin's closure being a weaker one. A closure writes no
+  `disabled*` field and a suspension writes no `deleted*` field, on either tier, and `deletedBy` is what
+  records which of the two closures happened.
 
 ---
 
