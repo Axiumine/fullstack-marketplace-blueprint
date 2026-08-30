@@ -70,10 +70,10 @@ unpublishing and the shop owner publishing it again is fine. §6's closing parag
 decision now covers `item.published` too, closing R29, `phase2/EVENT_STORMING.md` §5 hotspot 4 and §6 q5,
 `phase2/BOUNDED_CONTEXT.md` §7 q5, `phase4/DDD_AGGREGATES.md` §10 q4 and `epics/E05.md` §6 (that record moved to
 [`CATALOGUE.md`](./CATALOGUE.md) later on 2026-08-14).
-~~`epics/E11.md` §6 q3 stays open, being about an order snapshotting catalogue state rather than the race.~~
-⚠️ **It does not stay open.** It closed moot on 2026-08-27, together with the four other BC-11 questions
+⚠️ **`epics/E11.md` §6 q3 — an order snapshotting catalogue state rather than the race — closed
+moot on 2026-08-27**, together with the four other BC-11 questions
 ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)), and `epics/E11.md` — the file
-that carried it — is deleted; see §6 below for what its record said before it went.
+that carried it — is deleted; §6 below holds its record.
 v1.4 - 2026-08-14: accepting the race exposed the thing under it — `published` was a field of
 `GraphQLInputCompany`, so every ordinary save of the card wrote the flag and an admin reopening a stale
 card republished a shop somebody had just taken down. The platform owner asked for publishing to be a
@@ -343,10 +343,10 @@ has written, not a resolver gap.
 
 ## 6. Open questions — the one there was is closed
 
-- ~~Two independent writers of the same company (`ShopOwner` and `Admin`) with no version/lock field on
+- Two independent writers of the same company (`ShopOwner` and `Admin`) with no version/lock field on
   `company` — same unexamined race class the EVENT_STORMING doc flags for `item.published`
   (`EVENT_STORMING.md` §5), just not yet named for `company`. No optimistic-lock field exists in
-  `company.js` today; whether one is needed has not been asked of the user.~~
+  `company.js` today; whether one is needed has not been asked of the user.
 
   ⚠️ **Closed 2026-08-14 by the platform owner: two writers on one company is fine, last writer wins.**
   No version field, no lock, no read-then-compare precondition on either tier. `company.js` stays as it

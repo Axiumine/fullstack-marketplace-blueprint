@@ -372,8 +372,8 @@ rather than under `epics/` — see §0.
   not a question — it restated NFR.md's own open question 1, which was closed on 2026-08-26 when the
   platform owner decided GDPR is in scope; what remains of it continues as NFR.md open question 6, and none
   of the obligations there falls to this context.
-- ~~No story here names who owns publishing `marketplace-common` past `deploy-local.sh` to a real npm
-  registry.~~ **Closed 2026-08-26 by
+- No story here names who owns publishing `marketplace-common` past `deploy-local.sh` to a real npm
+  registry. **Closed 2026-08-26 by
   [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md).** The platform owner owns
   `marketplace-common` and every other repo in this workspace, and decided that
   `@axiumine/marketplace-common` is published to `registry.npmjs.org` with public access, by him
@@ -382,19 +382,14 @@ rather than under `epics/` — see §0.
   [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part**: the
   publication half only, since ADR-015 also carries the `deploy-local.sh` bridge and the GPL-3.0-or-later
   licence decision, and neither is touched by a registry.
-  ⚠️ ~~**`deploy-local.sh` does not go away, and BCON-07 in §5 is unchanged.** A published release is not
-  where an edit lands — the script is what closes the gap *between* releases, and a workspace that deleted
-  it would silently run every consumer against the last published build. ADR-037 §Decision property 2 keeps
-  it and lists its deletion as a violation shape.~~
-  **Reversed 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).**
-  The platform owner ruled that publishing is the only route and deleted the script. The struck paragraph
-  read the consequence correctly and its sign backwards: every consumer running the last *published* build
-  is the wanted state, because that build is the one their `yarn.lock` names and the one another machine
-  can reproduce. What closes the gap between releases is a release. BCON-07 keeps its teeth for the
-  unchanged half — a commit in common is not a shipped change.
-  ⚠️ **This question had been citing the wrong gap.** It pointed at
-  [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the sixteen repos get published, and
-  under which org"*, which is about **git hosting** — ADR-031's territory — not about the npm registry. That
-  bullet is still open and ADR-037 does not close it. The npm question was ADR-015 §Risks' own revisit
-  trigger from the day it was written; §5 now carries a clause saying so, so the two cannot be conflated
-  again.
+  ⚠️ **`deploy-local.sh` is deleted, by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)
+  on 2026-08-30**: the platform owner ruled that publishing is the only route an edit takes to a consumer.
+  Every consumer running the last *published* build is the wanted state, because that build is the one
+  their `yarn.lock` names and the one another machine can reproduce — and what closes the gap between
+  releases is a release. BCON-07 in §5 keeps its teeth for the half that did not change: a commit in
+  common is not a shipped change.
+  ⚠️ **This question is about the npm registry and nothing else.** It is ADR-015 §Risks' own revisit
+  trigger. [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the sixteen repos get
+  published, and under which org"* is a different gap — **git hosting**, ADR-031's territory — which is
+  still open and which ADR-037 does not close; §5 carries a clause saying so, so the two cannot be
+  conflated.

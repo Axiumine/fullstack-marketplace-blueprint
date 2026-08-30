@@ -292,21 +292,20 @@ a consumer by being published and by nothing else
 
 ## Follow-ups the survey surfaced, independent of this decision
 
-- ~~Promote `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type.~~ **Done** —
+- Promoting `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type: **done** —
   `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@1.0.0`.
-- ~~Resolve the dependency skew listed under option (d).~~ **Done** for the two runtime ranges and the
-  `qodana.yaml` override; ~~the stale `yarn.lock` entries remain and need the package published first~~ **Done
-  2026-08-27** — published (`ADR-037`) and regenerated; all three pin `^1.0.1` → `1.0.1`, then `^2.0.0` → `2.0.0`
-  later the same day.
+- Resolving the dependency skew listed under option (d): **done** — the two runtime ranges and the
+  `qodana.yaml` override first, then the `yarn.lock` entries that needed the package published, on
+  2026-08-27 (`ADR-037`); all three pin `^1.0.1` → `1.0.1`, then `^2.0.0` → `2.0.0` later the same day.
 - Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly
   overtaken**: the mismatch branch itself now lives in `marketplace-common` and is tested there, at 100%
   coverage and a 100 mutation score, so it can no longer be wrong in one service and right in the other two.
   What the two repos still lack is the *wire* test the user repo has — a signed refresh carrying a foreign
   tier driven through the real server, asserting the 403 **and** that the tier-specific model was never
   queried. That is what pins the ordering of the two steps, which no unit test of either piece can.
-- ~~The admin-authorization upstream is **absent** from `marketplace-user/docs/nginx/`. Either it lives on
-  a vhost outside this workspace or it was never written; confirm which.~~ **Answered: it was never
-  written.** The edge now lives at the workspace root in `marketplace-nginx/`, with a vhost per hostname;
+- Where the admin-authorization upstream lives, given that `marketplace-user/docs/nginx/` does not carry
+  it: **it was never written there.** The edge lives at the workspace root in `marketplace-nginx/`, with a
+  vhost per hostname;
   `admin.marketplace-domain.com` proxies 4025 at `/admin-authenticated-authorization` and 4024 at
   `/admin-authenticated-resource`. `marketplace-user/docs/nginx/` is retired — it only ever described the
   customer surface, which is why the two panels' upstreams appeared to be missing rather than absent.

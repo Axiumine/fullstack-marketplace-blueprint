@@ -381,23 +381,19 @@ document already called it, rather than a boolean the Admin area writes and nobo
   and expect 401 — a mocked helper would pass even if the projection stopped asking for the field
 - Two places deliberately unchanged, each with the reason written down where it is: `resetPwdFlow`
   (`marketplace-dev-public-resource`), because refusing there turns silence-vs-email into a state oracle on
-  an address anyone can type, and the account is already unusable; and registration, because there is no
-  public shop-owner registration — `registerNewUser` writes to `user`
+  an address anyone can type, and the account is already unusable; and registration, because the
+  public sign-up writes the flag rather than reading it — `confirmRegistration` stamps
+  `waitApprov: true` on the shop-owner account it creates, which is what the gate is for
 **Traces:** NFR-SE07, CON-12, `phase2/BOUNDED_CONTEXT.md` §7 q8
 **Evidence:** `BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`,
 `marketplace-dev-public-authorization/src/lib/db/login/tryLoginShopOwner.mts`,
 `marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`
 
-⚠️ ~~**What this story does not decide:** whether a *new* shop owner starts parked. `shopOwnerAdd` writes no
-`waitApprov`, so an account is created ungated and the gate only ever bites one an admin has held by
-hand. Flipping that is one line plus a migration for the rows already on disk, and it is a product call —
-`BOUNDED_CONTEXT.md` §7 q3, still open and now load-bearing.~~ **Decided 2026-08-12 by E03-S08:** it
-depends on which mutation created the account. `shopOwnerRegister` — the public seller registration that
-did not exist when this story was written — writes `waitApprov: true`; `shopOwnerAdd` still writes
-nothing, because an admin who typed the account in has approved it by doing so. No migration was
-needed: every row on disk predates the form. The criterion above that reads "there is no public
-shop-owner registration" was true on the day and is not now; what it was protecting still holds, since
-`registerNewShopOwner` sets the flag rather than checking it.
+⚠️ **Whether a *new* shop owner starts parked depends on which mutation created the account**
+(E03-S08, 2026-08-12). The public seller registration does — `shopOwnerRegister`, confirmed through
+`confirmRegistration`, stamps `waitApprov: true` — while `shopOwnerAdd` writes nothing, because an admin
+who typed the account in has approved it by doing so.
+No migration was needed for the rows already on disk: every one of them predates the public form.
 
 ### E01-S12 — The Keygrip pair leaves five `.env` files for one wrapped record in Redis   `built`
 **As a** platform, **when** a service that signs or verifies the refresh cookie boots, **I want** it to take

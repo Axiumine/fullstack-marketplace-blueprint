@@ -523,20 +523,20 @@ reopen it; "routed" means it was never a code question and now belongs to a deci
 §4's five do-not-fix items all held, and §5's five blind spots were all answered — three by investigations
 this backlog ran (E12-S12, E14-S09, E18-S09) and two by reports written for the purpose (E18-S04, E18-S05).
 
-**What this report leaves open, stated so nobody reads the table as "done":**
+**The items this report does not close on its own, and where each of them stands:**
 
-- ~~**E13-S10** — the pre-cutover dual-read fallback and its counter~~ — **closed 2026-08-14.** It was
+- **E13-S10** — the pre-cutover dual-read fallback and its counter — **closed 2026-08-14.** It was
   held shut by a date and a counter reading zero rather than by a decision; both preconditions turned out
   to be moot, because the cutover was never deployed and the counter key was never created. The raw-key
   read, `DUAL_READ_REMOVE_AFTER`, the dated test and the counter left in one change, the dual delete
   became one key, and E13-S02's integration test was **inverted** rather than deleted: it still seeds a
   session in the pre-cutover shape and now asserts it does not authenticate. §3.6a is owed nothing.
-- ~~**ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
-  §3.6c's real subject, and §3.7b's second half depends on the same answer.~~ **Written 2026-08-28**:
+- **ADR-032** — which host runs the edge and how the nine service ports are closed to everything but it.
+  §3.6c's real subject, and §3.7b's second half depends on the same answer. **Written 2026-08-28**:
   [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) — Cloudflare at the edge, one application host, a cloud security group closing every
   port but 443, datastores on a separate host on a trusted private segment. **R46 closes with it; R45 does
   not**, and §3.6c's control stands unchanged by owner's decision rather than by omission.
-- ~~**Revocation still ends refresh sessions only**~~ — **closed 2026-08-13, hours after it was written
+- **Revocation ending refresh sessions only** — **closed 2026-08-13, hours after it was written
   here.** `revokeAllSessionsForAccount` and the E17 console's `funRevokeSession` retire the access half
   through the refresh hash's `accessKey` before deleting the hash that names it, so a password change, a
   disable and an admin's revoke all end the access token now (§3.4's residual, **R54**, closed).
