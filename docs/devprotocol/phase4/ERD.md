@@ -414,32 +414,18 @@ The two `_name` indexes replaced 3-key predecessors that omitted `name` — both
 | `login.email_unique` | `{'login.email':1}`, unique | login credential, from the shared `INDEXES_LOGIN_EMAIL` | `account.js`, applied by `20260301000300-create-user.js` |
 | `tbl_active_registeredAt` | `{deleted:1,disabled:1,registeredAt:-1,_id:-1}` | `usersActiveTbl` — the admin's customers table, same ESR order and `_id` tiebreak as its `shopOwner` namesake, so a page boundary cannot repeat or skip a row | `20260825000000-user-add-tbl-active-index.js` — a **new** migration, which was the rule this repo follows |
 | `registeredAt_series` | `{registeredAt:1}`, plain, no compound | `usersPerPeriod` chart aggregation (`$match` range + `$group` by day/month) — deliberately does **not** filter `deleted`/`disabled`, so it cannot ride on `tbl_active_registeredAt`'s leading keys, exactly as on `shopOwner`. Not unique (two customers may register in the same millisecond) and not partial (the chart counts closed accounts too, and since ADR-041 a closed account's document is permanent, so a bucket's height never changes later) | `20260829000200-user-add-registered-at-series-index.js` — a **new** migration again, the create one being immutable |
-| ~~`deleted_ttl`~~ **— dropped 2026-08-29** by `20260829000100-user-retire-deleted-ttl.js` (ADR-041), so no live database carries it; `INDEXES_USER` still declares it because the create migration reading that constant is immutable, and `test/migrations.test.mjs` asserts the end state instead. What it used to be: `{deleted:1}`, `expireAfterSeconds: 2592000` | the retention purge — thirty days after `userDel` stamps `deleted`, MongoDB's TTL monitor removes the document, its `personalData` and its `addresses` (`phase1/NFR.md` open question 6, GDPR Art. 5(1)(e)) | `lib/schemas/user.js` (`INDEXES_USER`), applied by `20260301000300-create-user.js` — ⚠️ **that migration was edited after it had been applied**, on the owner's call, and the database rebuilt in the same work |
 
-⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). ~~There is no `registeredAt_series` counterpart either: no `usersPerPeriod` chart exists to need one.~~ ⚠️ **That last sentence stopped being true on 2026-08-29** and is struck rather than removed: the owner answered E19 §6 question 2, `usersPerPeriod` was built, and the index above it landed the same day. The reasoning it rested on never changed — a chart over `registeredAt` was always possible on this collection, since that field was never encrypted; what was missing was the decision to build one. Read together, the two facts are the boundary this collection actually has: **count and bucket freely, match and order nothing but `registeredAt`.**
+⚠️ **`user` has one `tbl_active_*` index where `shopOwner` has four, and that is the whole design.** The other three sort `shopOwner` by last name, first name and city; on `user` those three fields are randomly encrypted (ADR-029), so an index over them would order ciphertext — stable, arbitrary, and indistinguishable from a working sort. `registeredAt` is clear, so it is the only sortable column the customers table has and `UsersTblSortField` has exactly one member (`phase5/epics/E19.md` E19-S05). ⚠️ **`registeredAt_series` is the counterpart that does exist**: a chart over `registeredAt` was always possible here, since that field is not encrypted, and `usersPerPeriod` and its index landed together on 2026-08-29. Read with the sentence above, the two are the boundary this collection has: **count and bucket freely, match and order nothing but `registeredAt`.**
 
-⚠️ **Superseded 2026-08-29 — the paragraph below describes an index this collection no longer has, and is
-kept only so the reversal is legible.** Retention is now a day-30 **overwrite in place** run by
-`retentionSweep.mts` in `marketplace-dev-admin-authenticated-resource`, on `user` and `shopOwner` alike, and
-the document survives it permanently (ADR-041). The final sentence is wrong twice over: re-registering inside
-the thirty days now **restores** the account rather than destroying it (ADR-046), and the platform has no
-application hard delete at all.
-
-~~⚠️ **`deleted_ttl` is what makes `userDel` an erasure rather than a flag, and it is `user`'s alone.**~~
-`funUserDel` stamps `deleted`, revokes every session and writes nothing else, so without the index the
-record and its `login.email_unique` entry would stand for ever and the person who closed the account could
-never register that address again. Three things about its shape are not free choices: it is **single-field**
-because `expireAfterSeconds` is refused on a compound index, so it stands beside `tbl_active_registeredAt`
-rather than riding on it even though that index already leads with `deleted` — read as duplicates and
-merged, the purge disappears; it reads `deleted` only because that field is **not** in
-`ENCRYPTED_FIELDS_USER` (ADR-029), a `binData` never comparing as a date; and it is declared in
-`INDEXES_USER` rather than on the shared `INDEXES_LOGIN_EMAIL`, which would destroy `admin` and
-`shopOwner` accounts thirty days after an admin disabled them. On this collection `deleted` is
-therefore a destruction clock rather than a status. ⚠️ Because the create migration was edited in place and
-`migrate-mongo-config.js` sets `useFileHash: false`, **a database not rebuilt on or after 2026-08-26 has no
-`deleted_ttl` and its changelog will not say so** — `db.user.getIndexes()` is the check. Re-registering a
-closed address destroys the document at once instead of waiting out the thirty days, the platform's one
-application hard delete (ADR-011 §Amendment 2026-08-26).
+⚠️ **No TTL index, on this collection or any other, and `deleted` is a status rather than a clock.**
+`INDEXES_USER` still declares `deleted_ttl` — `{deleted:1}`, `expireAfterSeconds: 2592000` — because the
+create migration that reads that constant is immutable, and `20260829000100-user-retire-deleted-ttl.js`
+drops the index it made; `test/migrations.test.mjs` asserts the end state rather than the constant.
+Retention is a day-30 **overwrite in place** run by `retentionSweep.mts` in
+`marketplace-dev-admin-authenticated-resource`, on `user` and `shopOwner` alike, and the document survives
+it permanently (ADR-041) — `funUserDel` stamps `deleted`, revokes every session and writes nothing else.
+Re-registering the same address inside the thirty days **restores** the account (ADR-046), and the platform
+has no application hard delete at all.
 
 No `2dsphere` over `addresses[].position` — nothing on the platform queries customers by distance.
 
@@ -484,5 +470,5 @@ All six live in one database, `dbMarketplaceDev` (dev) / `dbMarketplaceTest` (ea
 |---|---|---|---|
 | 1 | `search` on `shopOwner` is unindexed by design at current cardinality — no threshold or alert exists for "collection reached six figures, revisit." | `BEs/marketplace-db-setup/migrations/20260301000100-create-shopOwner.js` | open, no owner |
 | 2 | `company.idShopOwner` has no existence guard at `companyAdd` time beyond trusting the authenticated session's own id — correct today because the id cannot be attacker-supplied, but the absence is implicit rather than a named guard the way `throwIfShopOwnerDontOwnCompany` is for reads. | `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts` | flagged, not a defect under current call pattern |
-| 3 | ~~Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason.~~ | [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6, [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) | **Closed 2026-08-27 — moot, not answered.** The four are permanently out of scope, so there is no undesigned collection waiting on a designer. Nothing to ask about before inventing, because nothing is to be invented |
+| 3 | Order / Cart / Delivery / Payment collections — genuinely undesigned, not merely undocumented. `item` carries no `price` for exactly this reason. | [`docs/devprotocol/phase4/CONSTRAINTS.md`](./CONSTRAINTS.md) §6, [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) | **Closed 2026-08-27 — moot, not answered.** The four are permanently out of scope, so there is no undesigned collection waiting on a designer. Nothing to ask about before inventing, because nothing is to be invented |
 | 4 | Whether a "genuinely new product type" ever needs a 7th collection (vs. an `itemCategory` document) has no decision procedure beyond "check first" — the bar to clear is undocumented as a checklist. | parent [`docs/data-model.md`](../../data-model.md) | owned by whoever proposes the next product type, not this phase |

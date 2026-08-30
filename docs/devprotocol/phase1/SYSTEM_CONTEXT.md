@@ -444,13 +444,13 @@ variable, the request must skip the lookup **and** never be stored, and there is
 true and the other is not. Two maps were a place for those answers to drift apart. Anything still citing
 `$mkt_user_has_session` is citing a variable that no longer exists.
 
-~~Doc/impl gap: the apex vhost proxies `/api/register`, and no such route exists in
-`marketplace-user/src/routes/`.~~ **Resolved by removing the block, not by building the route.** There
-was a `location = /api/register` and a `location /api/`, both proxying to the SSR process under a 5r/m
-`mkt_register` zone. No `/api/*` route has ever existed in `marketplace-user/src/routes/` — no server
-route, no `createServerFn` — so every request there 404'd at the renderer and the zone metered nothing.
+⚠️ **The apex vhost proxies no `/api/` block, and the fix was deleting it rather than building the
+route it named.** There was a `location = /api/register` and a `location /api/`, both proxying to the SSR
+process under a 5r/m `mkt_register` zone, and no `/api/*` route has ever existed in
+`marketplace-user/src/routes/` — no server route, no `createServerFn` — so every request there 404'd
+at the renderer and the zone metered nothing.
 
-The route was **not** built, because the design it described is weaker than what already runs on both
+The route is not built, because the design it described is weaker than what already runs on both
 counts it claimed. The Turnstile secret is server-side already and always was: `assertTurnstile` calls
 Cloudflare from `marketplace-dev-public-resource`, so no verification moves closer to the user by adding
 an SSR hop. And the rate limit is already stricter than an edge zone can be: `guardPublicWrite` spends
@@ -465,13 +465,12 @@ public write, bounded there by `mkt_public` (120r/m), and metered properly one h
 vhost and `marketplace-nginx/conf.d/20-rate-limit.conf` carry this reasoning in place of the deleted block, so it is
 not re-added on the strength of the comment that used to describe it.
 
-~~The admin-authenticated-authorization upstream (port 4025) is **absent** from every file under
-`marketplace-user/docs/nginx/`.~~ **Resolved: it was never written, and now it is.** `mkt_admin_authz`
-(4025) and `mkt_admin_resource` (4024) are in the upstream table above, proxied from
+⚠️ **Every tier's upstream is in the table above, and the customer surface is not the whole of it.**
+`mkt_admin_authz` (4025) and `mkt_admin_resource` (4024) are in the upstream table above, proxied from
 `admin.marketplace-domain.com` at `/admin-authenticated-authorization` and
 `/admin-authenticated-resource`; `mkt_owner_authz` (4029) and `mkt_owner_resource` (4026) likewise from
-`shopowner.marketplace-domain.com`. The old files described the customer surface only, which is why the
-other two tiers looked missing rather than unwritten.
+`shopowner.marketplace-domain.com`. An edge document that covers one tier is how the upstream on
+4025 comes to look absent rather than unwritten.
 
 ### 5.12 Marketplace repos → Qodana Cloud
 
@@ -570,9 +569,9 @@ everywhere and can now undo nothing** — the collision this section used to des
 
 |#|Question|Owner|Status|
 |---|---|---|---|
-|1|~~Does the `/api/register` SSR route that the apex vhost proxies get built, or does the block go?~~|platform owner|**closed — the block went.** Neither thing it claimed to add was missing: the Turnstile secret is already server-side and `guardPublicWrite` already limits per IP *and per email*, which no `$binary_remote_addr` zone can do. Both `location`s and the `mkt_register` zone are deleted, §5.11|
-|2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
+|1|Does the `/api/register` SSR route that the apex vhost proxies get built, or does the block go?|platform owner|**closed — the block went.** Neither thing it claimed to add was missing: the Turnstile secret is already server-side and `guardPublicWrite` already limits per IP *and per email*, which no `$binary_remote_addr` zone can do. Both `location`s and the `mkt_register` zone are deleted, §5.11|
+|2|Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
-|4|~~Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?~~|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
-|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published. ⚠️ Its second half was answered *no* then and reversed to *yes* on 2026-08-30.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `3.0.0` and `^3.0.0` since 2026-08-30 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). Publication first changed what the script bridged rather than retiring it; four days later the platform owner deleted it outright, and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
+|4|Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
+|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|**closed 2026-08-26 — published. ⚠️ Its second half was answered *no* then and reversed to *yes* on 2026-08-30.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `3.0.0` and `^3.0.0` since 2026-08-30 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). Publication first changed what the script bridged rather than retiring it; four days later the platform owner deleted it outright, and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

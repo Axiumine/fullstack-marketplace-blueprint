@@ -276,10 +276,7 @@ What this closes, exactly: no access token is unreachable any more, and none acc
 access token per session is live at any moment, and logout ends it. The measured table above no longer
 reproduces; the reload path in particular now behaves as row 1 already did for a header-carrying refresh.
 
-⚠️ ~~**What it deliberately does not close — the residual, carried as R54.** `revokeSessionFamily`,
-`revokeAllSessionsForAccount` and the E17 admin "end session" button still end *refresh* sessions only.
-An account whose password was changed, or which an admin has just revoked, keeps its current access
-token for up to the rest of its 30–91 minutes.~~ **The decision was taken the same day and R54 is closed.**
+⚠️ **R54, the residual this observation opened, closed the same day.**
 `revokeAllSessionsForAccount` and `funRevokeSession` call `retireAccessSession` before each session `del` —
 before, because the `accessKey` field lives inside the hash being deleted and a read afterwards finds
 nothing. A password change, a disable and an admin's revoke all end the access token now.

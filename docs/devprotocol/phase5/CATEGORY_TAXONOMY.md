@@ -332,9 +332,9 @@ all four metrics, mutation score 100.
 
 ## 6. Open questions
 
-- ~~No `itemCategoryDisable`/publish-toggle equivalent to `item.published` or `company.published` exists —
+- No `itemCategoryDisable`/publish-toggle equivalent to `item.published` or `company.published` exists —
   a category is either present or soft-deleted, with no intermediate "draft" state. Whether the taxonomy
-  needs one has not been asked of the user.~~ ⚠️ **Closed 2026-08-14 by the platform owner: no intermediate
+  needs one has not been asked of the user. ⚠️ **Closed 2026-08-14 by the platform owner: no intermediate
   draft state.** Present or soft-deleted stays the whole state space of a category — no `published` field
   on `itemCategory`, no disable mutation, and no third value between the two. The other two flags exist
   because a shop drafts its *own* public surface; the taxonomy is admin-written on the Admin tier alone
@@ -346,10 +346,10 @@ all four metrics, mutation score 100.
   it is created, and shows an empty listing until they arrive. The admin's lever is ordering — create
   it when it is wanted — or `itemCategoryDel`, which soft-deletes and leaves the items that already point
   at it resolvable. Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
-- ~~Until E06-S07 the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
+- Until E06-S07 the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
   whether any category documents already exist in `dbMarketplaceDev` from such a call is still unanswered.
   The screen no longer depends on the answer — it renders whatever is there, including a subcategory whose
-  parent is missing, which is a document only a call of that kind could have produced.~~ ⚠️ **Closed
+  parent is missing, which is a document only a call of that kind could have produced. ⚠️ **Closed
   2026-08-25 by inspection, and the premise was the wrong one.** A direct call against port 4024 lands on
   the same three resolvers the screen calls and meets the same three guards: `throwIfParentNotTopLevel`
   wants the parent to exist, to be live and to be top-level; `throwIfHasChildren` refuses a parent to a
@@ -368,17 +368,17 @@ all four metrics, mutation score 100.
   appends an orphan last instead of dropping it, `parentLabel` renders `---` for the parent it cannot find,
   and `marketplace-admin/test/features/categories/Categories.test.tsx` asserts both ("keeps a subcategory
   whose parent is gone, at the end").
-- ~~**Nothing wraps the three write paths in a transaction, so both halves of the depth cap carry a
-  read-then-write window.**~~ `funItemCategoryAdd` reads the parent and then creates; `funItemCategoryUpdate`
-  reads twice and then updates; `funItemCategoryDelete` counts twice and then stamps `deleted` — and no
-  `startSession` or `withTransaction` exists anywhere in `marketplace-dev-admin-authenticated-resource` or
-  in `marketplace-common`. Two concurrent Admin calls therefore reach, with neither write invalid on its
+- **Do the three write paths need a transaction, given that both halves of the depth cap carry a
+  read-then-write window?** `funItemCategoryAdd` read the parent and then created; `funItemCategoryUpdate`
+  read twice and then updated; `funItemCategoryDelete` counted twice and then stamped `deleted` — with no
+  `startSession` or `withTransaction` anywhere in `marketplace-dev-admin-authenticated-resource` or in
+  `marketplace-common`. Two concurrent Admin calls therefore reached, with neither write invalid on its
   own:
-  - `itemCategoryAdd({ idParent: P })` passes its parent check, `itemCategoryDel(P)` counts zero live
-    children and stamps `deleted`, then the create lands — a live subcategory under a retired parent,
+  - `itemCategoryAdd({ idParent: P })` passed its parent check, `itemCategoryDel(P)` counted zero live
+    children and stamped `deleted`, then the create landed — a live subcategory under a retired parent,
     which is the exact document `funItemCategoryDelete` exists to prevent.
-  - `itemCategoryUpdate(C, { idParent: P })` passes `throwIfHasChildren(C)`, `itemCategoryAdd({ idParent: C })`
-    finds `C` still top-level and creates under it, then the update lands — three levels, with no single
+  - `itemCategoryUpdate(C, { idParent: P })` passed `throwIfHasChildren(C)`, `itemCategoryAdd({ idParent: C })`
+    found `C` still top-level and created under it, then the update landed — three levels, with no single
     write naming the grandchild.
 
   ⚠️ **Closed 2026-08-25 by implementation, on the platform owner's decision to fix it rather than record

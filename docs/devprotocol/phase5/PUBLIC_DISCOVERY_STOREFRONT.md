@@ -361,18 +361,17 @@ Technical story: a tile-serving process behind `/tiles/` would be invisible from
 
 ## 6. Open questions
 
-- ~~`NFR-PF08`/`NFR-PF09` (cache, PMTiles range requests) are Medium priority *today* only because no
-  nginx is installed in this workspace — `phase1/NFR.md` §3 flags they become 🟠 High "the day it is
-  deployed." No story here can mark that transition; it is an operational event, not a code change.~~
-  ⚠️ **Removed 2026-08-26 as a duplicate, not closed as answered** — see §0. The question is real and
-  stays open; it is [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2, owner platform owner / ops,
-  and it covers SE09, SE10, SC01 and SC02 as well as these two. What was wrong here was the reason given:
-  both mechanisms *are* written and *are* verified — E08-S08 drives the cache through MISS → HIT → BYPASS
-  and E08-S10 drives a `Range:` request to a `206` with the exact slice, both against a live nginx in
-  `marketplace-nginx/test/run.sh`. Only the deployment is absent, and no story in any epic can mark that.
-- ~~`search`'s `near` radius bound and `limit` bound are enforced in the resolver, not upstream — is
+- `NFR-PF08`/`NFR-PF09` (cache, PMTiles range requests) are Medium priority *today* and become
+  🟠 High "the day it is deployed" — ⚠️ **and the question is asked once, in
+  [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2**, owner platform owner / ops, where it covers
+  SE09, SE10, SC01 and SC02 as well as these two. It is not asked again here, because the transition is an
+  operational event rather than a code change and no story in any epic can mark it. Both mechanisms *are*
+  written and *are* verified: E08-S08 drives the cache through MISS → HIT → BYPASS and E08-S10 drives a
+  `Range:` request to a `206` with the exact slice, both against a live nginx in
+  `marketplace-nginx/test/run.sh`. Only the deployment is absent.
+- `search`'s `near` radius bound and `limit` bound are enforced in the resolver, not upstream — is
   there a platform-wide max worth codifying once traffic is real, or is per-resolver bounding the
-  permanent design?~~ **Answered v1.1: per-resolver, and it stays that way.** The bound that matters is
+  permanent design? **Answered v1.1: per-resolver, and it stays that way.** The bound that matters is
   not the same number twice — `offset` is capped at 10 000 on `searchCompanies` and at 2 000 on
   `searchItems`, because a skipped item is multiplied by `OVERFETCH` and joined, and a skipped company is
   one index entry. A platform-wide maximum would be the loosest of them, which bounds nothing, or the

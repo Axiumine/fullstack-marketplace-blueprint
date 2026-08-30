@@ -194,7 +194,7 @@ minus `marketplace-dev-authenticated-logout`, which touches Redis only) import a
 | `resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens` (shared authz body) | Merging the 3 `*-authenticated-authorization` deployables into 1 process | Decided against 2026-08-07, [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md); NFR-AV01 |
 | The 6 Mongoose models (`Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`) | A shop/collection model | Never existed, never will — a shop IS a `company` |
 | `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally. ⚠️ **Corrected again 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)**: `deploy-local.sh` is deleted, so there is no between-releases bridge and BC-10 owns the `exports` map only — a change reaches a consumer as a published version or not at all |
-| ~~`deploy-local.sh` sync into 9 consumers' `node_modules`~~ **the published release (`yarn upload`) the consumers install** | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only. The row's left-hand side changed mechanism on 2026-08-30 (ADR-047), not scope |
+| The published release (`yarn upload`) the nine consumers install | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only — a published version is the whole delivery mechanism (ADR-047) |
 | `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27) |
 
 ## 3. Build state
@@ -350,9 +350,9 @@ Technical story. `Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`
 answers rather than deleted, because one carries a re-open trigger and the other bounds how far it was
 verified.
 
-- ~~Should the shared authz body (`resolveAuthorizationSession`/`findAccountForSession`/
+- Should the shared authz body (`resolveAuthorizationSession`/`findAccountForSession`/
   `refreshSessionTokens`) grow a 4th caller if a 4th tier is ever added, or does a 4th tier get its own
-  body copy first and consolidate later the way the first 3 did?~~ **Closed 2026-08-27 — moot, no 4th
+  body copy first and consolidate later the way the first 3 did? **Closed 2026-08-27 — moot, no 4th
   tier is coming.** The platform owner stated no further backend service is planned, so the premise the
   question rests on does not occur. This does not overturn anything: it aligns E10 with the constraint
   the rest of the corpus already carries — `phase4/CONSTRAINTS.md` §"No new tier" (`admin`/`shopOwner`/`user`
@@ -364,9 +364,9 @@ verified.
   callers had proven identical, and nothing here claims it generalises to a caller nobody has written.
   What stays closed either way is option (a), one dispatching service: rejected on doctrine (ADR-002,
   "not a role check bolted onto the existing ones") and on NFR-AV01 crash-domain isolation.
-- ~~`marketplace-common` has no Qodana Cloud project gap noted anywhere for itself (unlike
+- `marketplace-common` has no Qodana Cloud project gap noted anywhere for itself (unlike
   `marketplace-services-status`/`marketplace-user`/the 2 user-tier services, `phase1/NFR.md` open question 4) — is
-  that confirmed provisioned, or simply unchecked?~~ **Closed 2026-08-27 — provisioned, and the silence was
+  that confirmed provisioned, or simply unchecked? **Closed 2026-08-27 — provisioned, and the silence was
   accurate.** The Cloud project is **`MP common`, id `b892b`** — named on disk by this repo's own last scan,
   in `.qodana/results/open-in-ide.json`, alongside the origin URL `Axiumine/marketplace-common`. Around it:
   `qodana.yaml`, a `qodana.sh` that fails closed on a missing `QODANA_TOKEN` (`"QODANA_TOKEN missing or

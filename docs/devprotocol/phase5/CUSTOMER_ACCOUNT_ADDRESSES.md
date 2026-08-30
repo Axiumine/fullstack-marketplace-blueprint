@@ -325,9 +325,9 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
 
 ## 6. Open questions
 
-- ~~No `waitApprov`-equivalent exists for `User` by design (self-service) — is there any future gate
+- No `waitApprov`-equivalent exists for `User` by design (self-service) — is there any future gate
   (fraud check, spam signup) planned for this tier, or is self-service permanent? Not answered in
-  `phase2/BOUNDED_CONTEXT.md` BC-07 or [`CLAUDE.md`](../../../CLAUDE.md).~~ ⚠️ **Closed 2026-08-25 by
+  `phase2/BOUNDED_CONTEXT.md` BC-07 or [`CLAUDE.md`](../../../CLAUDE.md). ⚠️ **Closed 2026-08-25 by
   the platform owner: self-service is permanent, and there is no equivalent for `user`.** No approval, no
   fraud check, no spam-signup hold between `userRegister` and the first login. `emailVerify.valid` stays
   the only gate, checked by `tryLoginUser`
@@ -352,10 +352,10 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
   Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, and **closed the same day by
   [`E19.md`](./epics/E19.md)** — all six stories built 2026-08-25, `userUpdateStatus` the lever among them. The
   gate before registration stays absent, permanently; only the lever after it was the hole.
-- ~~`addresses[].position` is optional — no story here defines when/how it gets populated (client
+- `addresses[].position` is optional — no story here defines when/how it gets populated (client
   geocode vs manual pin). Out of this epic's built scope; flagging because BC-08's map feature
   (`ShopMap.tsx`) already consumes `company.address.position`, and the customer-address analog has no
-  resolver-side geocode step visible in `userAddressAdd.mts`.~~ ⚠️ **Closed 2026-08-26 by building it —
+  resolver-side geocode step visible in `userAddressAdd.mts`. ⚠️ **Closed 2026-08-26 by building it —
   E07-S11.** The answer is *both*, in the client, and neither in the resolver: picking a geocoder
   suggestion places the point, a draggable pin corrects it, and a hand-typed address the geocoder does not
   know is placed by the pin alone. `userAddressAdd.mts` still geocodes nothing, deliberately — a

@@ -374,24 +374,22 @@ writer of the field, `GraphQLItemFrag` does not carry it, and the two other tier
 
 ## 6. Open questions
 
-- ~~No image-upload mutation exists despite the middleware being mounted (`graphqlUploadKoa`, 30 MB/file,
+- No image-upload mutation exists despite the middleware being mounted (`graphqlUploadKoa`, 30 MB/file,
   10 files max — `marketplace-dev-authenticated-resource/src/index.mts:132-133`). `itemAdd.mts`'s own doc
   comment gestures at "uploading its image, most obviously" but no mutation declares a `GraphQLUpload`
   argument (`phase4/API_CONTRACTS.md` §5.2). Whether this ships as a follow-up field on `itemAdd` or a
-  separate mutation has not been asked of the user.~~ ⚠️ **Closed 2026-08-14 — E05-S09.** A field on
+  separate mutation has not been asked of the user. ⚠️ **Closed 2026-08-14 — E05-S09.** A field on
   `itemAdd`, not a separate mutation: the `Upload` sits inside `GraphQLInputItem`, so adding an item and
   giving it a picture are one call. The reference lives in a new optional `image` on `item`, which was the
   platform owner's choice; it widened the shared `$jsonSchema`, so every database that has run these
   migrations is replayed in the same piece of work. Two things stayed deliberately out: the field is not
   on `GraphQLItemFrag`, so the Admin and public tiers cannot read it, and no frontend sends or renders one.
-- ~~Two independent writers of `item.published` (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`)
+- Two independent writers of `item.published` (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`)
   with no version/lock field in `item.js` — the same race class as E04's open question, unexamined
-  (`EVENT_STORMING.md` §5 hotspot 4).~~ ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
+  (`EVENT_STORMING.md` §5 hotspot 4). ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
   lock field.** An admin unpublishes, the owner publishes it again, and that is an accepted outcome —
   decided together with the same race on `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6) and recorded in
-  [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. ⚠️ ~~Worth knowing when writing any story here: the owner
-  need not republish deliberately. `funItemUpdatePublished` sets that one flag, `funItemUpdate` `$set`s the
-  whole card and `IItemUpdate` keeps `published`, so **an ordinary save of any other field restores the
-  owner's value of the flag**.~~ **Struck later the same day**: publishing was split out of `itemUpdate` on
-  both tiers, so a republish is now always deliberate. The admin action that survives it is `itemDel` —
-  `deleted` is outside every input.
+  [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. ⚠️ **A republish is always deliberate**: publishing is
+  split out of `itemUpdate` on both tiers, `published` is in no input object, and `funItemUpdatePublished`
+  sets that one flag alone — so an owner's ordinary save of another field cannot restore their value of
+  it. The admin action that survives a save is `itemDel` — `deleted` is outside every input.
