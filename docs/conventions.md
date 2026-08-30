@@ -65,17 +65,15 @@ keeps a root-JS block off the minified Qodana report.
   `package.json` `exports` map (~38 entries) or it is unreachable. `yarn test:contract` catches
   omissions.
 - ⚠️ **Consumed by package name, and published** — ADR-015 for the consumption pattern, `ADR-037` for
-  the publication. `package.json` names it `@axiumine/marketplace-common`; the nine services depend on
-  that name at `^2.0.0`, and `registry.npmjs.org` serves `2.0.0`. Until 2026-08-26 this bullet said the
-  name 404s there and that a fresh `yarn install` keeps 404ing until a real publish; neither is true now.
-  `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every
-  consumer's `node_modules/`, discovered by globbing this workspace, which is how an edit reaches the
-  nine services before a release carries it. **Re-run it after every edit to common**, or the consumers
-  keep resolving the previous build and the edit fails at the call site rather than at import. ⚠️ `yarn
-  install` does **not** need this script and must not be wired to it — it resolves `^2.0.0` from the
-  registry, which is the correct answer whenever common has no unreleased edit. The one case where the
-  two collide: while common *does* carry an unreleased edit, an install in a consumer drops the released
-  build back over the deployed one, so redeploy after that install — and only in that case.
+  the publication, `ADR-047` for the release-only rule. `package.json` names it
+  `@axiumine/marketplace-common`; the twelve consumers depend on that name at `^3.0.0`, and
+  `registry.npmjs.org` serves `3.0.0`. Until 2026-08-26 this bullet said the name 404s there; that has not
+  been true since. **An edit reaches a consumer when it is published and not before** — the nine-step
+  release flow in `BEs/marketplace-common/CLAUDE.md`, every step, every time. ⚠️ **There is no local
+  deploy.** `deploy-local.sh` synced `dist/` into every consumer's `node_modules` and is **deleted**
+  (2026-08-30): the build it wrote carried no version, no integrity hash and no `yarn.lock` entry, so it
+  existed on one machine only and the next `yarn install` there silently replaced it. `yarn install` is
+  authoritative everywhere and destroys nothing.
 
 ## Leftovers
 

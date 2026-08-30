@@ -2,11 +2,19 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-29
+**Version:** 1.10
+**Date:** 2026-08-30
 **Author:** nfr-agent
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
-**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+**Changelog:** v1.10 - 2026-08-30: **NFR-PO04 is inverted, and it is the requirement that moved rather than
+its evidence.** It required `marketplace-common` to be consumable straight from the working tree *without
+waiting on a registry release*; the platform owner decided the opposite on 2026-08-30 — a release is the
+only route to a consumer, and the script that bridged the working tree is deleted
+([`phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)).
+The row is restated as what portability now means here: any machine can reproduce any consumer's build from
+a version number, which is the property the working-tree shortcut was costing. §Risk ranking follows. No
+other NFR changed.
+v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
 v1.1 - 2026-08-11: §4 no longer requires team sign-off or a second approver — this platform has a single
 developer. The change-control weight is unchanged: a 🔴 Critical change still needs a written reason and a new
 `PDR.md` version.
@@ -102,7 +110,7 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 | NFR-PO01 | Every repo with a `package.json` must declare `engines.node: "^24.18.0"`, and this must be a hard gate under yarn classic | Verified in `BEs/dev/marketplace-dev-user-authenticated-resource/package.json:30-31`; [`docs/conventions.md`](../../conventions.md) §Node and package manager — a mismatch is `exit 1` with `The engine "node" is incompatible with this module`, not a warning. `pre-push` selects the pinned version via nvm before shelling to yarn, in every repo (`docs/workflow.md` §Git hooks) |
 | NFR-PO02 | Every backend service must be authored as ESM `.mts`, compiled to `.mjs`, never CommonJS | [`docs/architecture.md`](../../architecture.md) §Services: "Entry always `src/index.mts`. ESM (`.mts` → `.mjs`)" |
 | NFR-PO03 | Every backend service must mount Apollo Server 5 on Koa 3 via `@as-integrations/koa`, at one GraphQL path per service | [`docs/architecture.md`](../../architecture.md) §Services — the one exception is `marketplace-dev-public-resource`, which also mounts a real `@koa/router` at `/check` for the three REST verify-email/health endpoints |
-| NFR-PO04 | `marketplace-common` must remain buildable and consumable straight from the working tree, without waiting on a registry release | `BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/` (`docs/workflow.md` §Repo layout). ⚠️ **Restated 2026-08-27 after [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row required the package to be consumable *"without a real npm publish"* and asserted that *"`registry.npmjs.org` 404s on that package name today"* until then. Neither holds: `@axiumine/marketplace-common` is published at `1.0.1` and the nine services resolve `^1.0.1` from the registry. The requirement survives the change because it was never really about the 404 — an edit that has not been released is still invisible to every consumer until the script runs |
+| NFR-PO04 | Every consumer's build of `marketplace-common` must be reproducible from a version number on any machine — no consumer may run a build that only one workstation can produce | `@axiumine/marketplace-common` is published to `registry.npmjs.org` at `3.0.0`, the nine services and three frontends resolve `^3.0.0`, and each pins the exact version in its own `yarn.lock`. The nine-step release flow (`BEs/marketplace-common/CLAUDE.md` §Publishing a release) is the only way an edit reaches a call site. ⚠️ **Restated twice, and the second time it reversed.** 2026-08-27 after [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md): the row had asserted the package 404s on npm, which stopped being true on 2026-08-26. 2026-08-30 after [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md): the requirement itself read *"consumable straight from the working tree, without waiting on a registry release"*, and the platform owner decided the opposite — the working-tree shortcut is what made a consumer's build unreproducible, and the script that provided it is deleted |
 | NFR-PO05 | Node version must be switchable per-repo without touching the machine default | `dev.sh` in each service bind-mounts `node_modules` onto a tmpfs ramdisk via nvm (`docs/workflow.md` §Commands) |
 
 ---
@@ -152,7 +160,7 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 | NFR-MA03, MA04, MA06, MA07 | Maintainability (gate wiring) | 🟠 High | No |
 | NFR-CS01–CS03 | Maintainability (code style) | 🟡 Medium | CS02 (English-naming) is non-negotiable on doctrine grounds; CS01/CS03 are tooling hygiene |
 | NFR-PF08, PF09 | Performance (nginx cache, PMTiles) | 🟡 Medium | Yes — both mechanisms are container-tested (`marketplace-nginx/test/run.sh`) but installed on no host; becomes 🟠 the day it is deployed, and what gates that is open question 2 below, not the configuration |
-| NFR-PO02–PO05 | Portability (module system, framework, build bridge) | 🟡 Medium | PO04 (deploy-local.sh) is High in practice — skipping it silently stales every consumer |
+| NFR-PO02–PO05 | Portability (module system, framework, release discipline) | 🟡 Medium | PO04 is High in practice — an edit nobody publishes silently stales every consumer, and a published one still reaches none of them until each range moves |
 | NFR-SC04, SC05 | Scalability (schema/tier growth path) | 🟡 Medium | No — SC05 is doctrine (`PDR.md` §9 change control), not a preference |
 | NFR-CO01 | Compliance (secrets) | 🔴 Critical | No |
 | NFR-CO02 | Compliance (GDPR obligations) | 🟡 Medium | **No on applicability** — settled 2026-08-26 and not a preference. Medium reflects exposure, not importance: the platform is installed on no host and holds no real personal data, so nothing is being processed unlawfully today. Becomes 🔴 Critical the day real personal data reaches a host, and what gates that is open question 2, the same trigger as NFR-PF08/PF09 |

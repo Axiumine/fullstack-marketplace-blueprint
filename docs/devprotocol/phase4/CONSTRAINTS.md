@@ -27,7 +27,7 @@ Already settled. Do NOT restate body, point at source.
 
 | What | Where settled |
 |---|---|
-| CON-01..CON-12 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common deploy-local, SSR/CSR split, English+tabs+node, admin-only fields listed-and-linted rather than translated) | `phase3/CONSTRAINTS.md` §2 |
+| CON-01..CON-12 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common ships as a published release, SSR/CSR split, English+tabs+node, admin-only fields listed-and-linted rather than translated) | `phase3/CONSTRAINTS.md` §2 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3 could not redesign (6 collections, ownership chain, defaultAddress pointer shape, shared REDIS_KEY, 3 authz deployables, no barrel in common, quality gate regime, SSR/CSR, migration immutability, BC-01/03 + BC-01/07 conformist boundaries) | `phase3/CONSTRAINTS.md` §4 |
 | Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call — ⚠️ the GDPR call was **made** on 2026-08-26, out of phase as intended: in scope, `phase1/NFR.md` §2.7) | `phase3/CONSTRAINTS.md` §5 |

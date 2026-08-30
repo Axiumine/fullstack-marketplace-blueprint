@@ -134,7 +134,7 @@ blockers and no mitigations attached.
 three ports remain, so the ops surface does not shrink at all, and "one BE like logout" is not achieved.
 `marketplace-common` grows a Koa/GraphQL-shaped surface it did not have before, which widens what a
 breaking change there can hit — the library is consumed by all nine services, so an edit to the shared
-handler is deployed to all nine even though only three use it. Every edit needs `./deploy-local.sh`
+handler is installed in all nine even though only three use it. Every edit needs a published release
 before the consumers see it, and a common bump is a separate commit in each consuming repo.
 
 ### (d) Do nothing
@@ -280,11 +280,15 @@ three pin `@axiumine/marketplace-common@^1.21.0` → `1.21.0` from registry.npmj
 `package.json` here has declared for a long time. They were already stale before this work and a `yarn install`
 resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
 edit visible. Regenerating them needs the package published first.
-⚠️ **Both halves expired.** `ADR-037` published `@axiumine/marketplace-common` on 2026-08-26, and the three
-`yarn.lock` files were regenerated on 2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1`
-— `^2.0.0` → `2.0.0` since later that day — and `^1.21.0` appears in no lockfile in the workspace.
-`./deploy-local.sh` still matters, for the narrower reason
-that it bridges *edited → released* — and a plain `yarn install` puts the released build back, which only costs something while such an edit exists. No install invokes the script.
+⚠️ **Both halves expired, and the third clause has since been deleted outright.** `ADR-037` published
+`@axiumine/marketplace-common` on 2026-08-26, and the three `yarn.lock` files were regenerated on
+2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1` — `^3.0.0` → `3.0.0` since
+2026-08-30 — and `^1.21.0` appears in no lockfile in the workspace. The paragraph above says a
+`yarn install` *"resolves against the registry rather than the lock"*, which was the reason the local sync
+script was said to matter; both are gone. Each consumer resolves the exact version its own regenerated
+lockfile names, and `deploy-local.sh` was deleted on 2026-08-30 — a change to `marketplace-common` reaches
+a consumer by being published and by nothing else
+([`ADR-047`](../devprotocol/phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)).
 
 ## Follow-ups the survey surfaced, independent of this decision
 

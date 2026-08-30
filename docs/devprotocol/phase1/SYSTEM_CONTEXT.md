@@ -7,6 +7,12 @@
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.7 - 2026-08-30: **§5.13 is rewritten again and loses its subject.**
+[`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes
+`deploy-local.sh`, so the gap the section was named for is closed by publishing rather than bridged: the
+heading, the Platform-developer actor row, the context-diagram edge, the data-flow row and closed question
+5's answer all follow. Live versions move to `3.0.0` / `^3.0.0`. No boundary, actor or flow crosses the
+system boundary differently — the one compile-time edge is now a registry fetch and nothing else.
 v1.6 - 2026-08-27, later the same day: §5.13's two live version strings read `2.0.0` / `^2.0.0` after that
 release; closed question 5 keeps the `1.0.1` it was closed on and gains the follow-on version. Nothing about the
 system context changed.
@@ -63,7 +69,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything, ever — `item.js` has no price field and never gets one (ADR-009, ADR-038)|
 |Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
 |Platform admin|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
-|Platform developer|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
+|Platform developer|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), cuts `marketplace-common` releases (`yarn upload`) that the 9 services then install from `registry.npmjs.org`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
 
 No `role` field, no permission enum. Actor identity = which MongoDB collection the session authenticated
 against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a role check.
@@ -150,7 +156,7 @@ graph TB
 
     Dev --> DBSETUP
     Dev --> COMMON
-    COMMON -.deploy-local.sh, not npm.-> SVC
+    COMMON -.published release, npm.-> SVC
     Dev -->|yarn install, all others| NPM
     DBSETUP --> Mongo
     Dev --> Qodana
@@ -501,10 +507,10 @@ named here as blocked on a missing token are not (`PDR.md` §8 item 8, closed 20
 artefact records where the *last* scan uploaded, not live account state — a project deleted in the Cloud
 UI would still read as present on disk.
 
-### 5.13 `yarn install` → npm registry, and the gap `deploy-local.sh` bridges
+### 5.13 `yarn install` → npm registry, the only route into the nine services
 
 `@axiumine/marketplace-common` is consumed as a package name by 9 services, and since 2026-08-26 it is
-also published — `registry.npmjs.org`, version `2.0.0`, consumers on `^2.0.0`
+also published — `registry.npmjs.org`, version `3.0.0`, consumers on `^3.0.0`
 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes the
 publication half of `ADR-015`):
 
@@ -513,19 +519,18 @@ publication half of `ADR-015`):
 "name": "@axiumine/marketplace-common",
 ```
 
-⚠️ **Rewritten 2026-08-27.** This paragraph read *"`registry.npmjs.org` 404s on that name"* and called
-the package the one dependency in the workspace that does not resolve. It resolves. The gap
-`deploy-local.sh` bridges is no longer *unpublished → published* but *edited → released*:
-`BEs/marketplace-common/deploy-local.sh` builds `dist/` and syncs it plus `package.json` straight into
-each consumer's `node_modules/@axiumine/marketplace-common/`, discovered by globbing this workspace, so
-an edit reaches all 9 services before any release carries it. ⚠️ **The script is not part of installing.**
-No `yarn install` in any of the 16 repos invokes it — the only lifecycle script any of them defines is
-`prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an unrelated
-clean/smudge filter for the `yarn.lock` registry host — and none may be wired to it. An install resolving
-`^2.0.0` from the registry is the *correct* result whenever common carries no unreleased edit. What
-remains is one narrow collision, and it exists only while such an edit does: skipping the script after an
-edit leaves consumers compiling the previous build with no error at the call site, and an install in a
-consumer then restores the last released build over the deployed one, equally silently.
+⚠️ **Rewritten twice.** On 2026-08-27 this paragraph stopped saying *"`registry.npmjs.org` 404s on that
+name"*, which had been true until ADR-037. On **2026-08-30 it lost the second mechanism it described**:
+`deploy-local.sh` built `dist/` and copied it into each consumer's `node_modules`, and
+[`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) deleted it. **One route
+crosses this boundary now** — a version published to `registry.npmjs.org`, fetched by each consumer's own
+`yarn install` against its own `yarn.lock`. An edit under `BEs/marketplace-common/src/` reaches no service
+until a release carries it and that consumer's range moves; the reason the script went is that the state it
+produced had no version, no integrity hash and no lockfile entry, so it existed on one machine and no other.
+The install path itself is unchanged and stays deliberately plain: the only lifecycle script any of the 16
+repos defines is `prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an
+unrelated clean/smudge filter for the `yarn.lock` registry host. **`yarn install` is authoritative
+everywhere and can now undo nothing** — the collision this section used to describe cannot occur.
 
 ### 5.14 Data flow summary
 
@@ -543,7 +548,7 @@ consumer then restores the last released build over the deployed one, equally si
 |`marketplace-user` browser ↔ Cloudflare Turnstile|bidirectional|HTTPS, widget script + token|anti-bot challenge/response|
 |`marketplace-dev-public-resource` → Cloudflare `siteverify`|out then in|HTTPS POST|token verification result|
 |Every repo's hook → Qodana Cloud|out|Qodana CLI over HTTPS|static-analysis SARIF-shaped report|
-|`yarn install`/`deploy-local.sh` → npm registry / local `node_modules`|in|HTTPS (registry) / filesystem copy (common)|package tarballs / built `dist/`|
+|`yarn install` → npm registry|in|HTTPS|package tarballs, `@axiumine/marketplace-common` among them — no local copy path exists (ADR-047)|
 
 ---
 
@@ -569,5 +574,5 @@ consumer then restores the last released build over the deployed one, equally si
 |2|~~Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?~~|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|~~Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?~~|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
-|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published; `deploy-local.sh` stays.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `2.0.0` and `^2.0.0` since 2026-08-27 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)). The second half of the question answered no: the script is what carries an edit that has not been released yet, so publication changed what it bridges rather than retiring it (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
+|5|~~Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?~~|platform owner|**closed 2026-08-26 — published. ⚠️ Its second half was answered *no* then and reversed to *yes* on 2026-08-30.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `3.0.0` and `^3.0.0` since 2026-08-30 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). Publication first changed what the script bridged rather than retiring it; four days later the platform owner deleted it outright, and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

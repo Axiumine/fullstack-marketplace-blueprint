@@ -30,7 +30,8 @@ If it is genuinely new, touch in this order:
 
 1. model in `marketplace-common` (start from `ItemModel` as reference)
 2. its `exports` entry in `package.json` — there is no barrel, so an unlisted file is unreachable
-3. `./deploy-local.sh`
+3. **publish a release of `marketplace-common`** and move each consumer's range — the nine steps in that
+   repo's `CLAUDE.md`. Nothing below can be built against the model until it is on the registry (ADR-047)
 4. migration in `marketplace-db-setup`, with its `$jsonSchema` builder under `lib/schemas/`
 5. resolvers in the resource services
 6. schema slice + codegen in the frontends that read it

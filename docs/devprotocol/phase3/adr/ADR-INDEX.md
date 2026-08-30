@@ -2,10 +2,21 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.21
-**Date:** 2026-08-29
+**Version:** 1.22
+**Date:** 2026-08-30
 **Author:** adr-agent
 **Changelog:**
+v1.22 - 2026-08-30: **ADR-047 added — a change to `marketplace-common` ships as a published release, and
+`deploy-local.sh` is deleted.** It is the fifth supersession in this index and the first to reverse a
+property of a decision this index called *partial on purpose*: ADR-037 kept the local-deploy bridge alive
+in its §Decision property 2, and the platform owner ended it four days and two major releases later —
+*"never use `./deploy-local.sh` in your development, always publish the package"*. ADR-015 loses the last
+half it still governed except the licence one; ADR-037 keeps everything but property 2 and is what ADR-047
+stands on. Both are struck in place with pointers rather than edited, the convention §1 sets. One row in
+§2, two status changes, one name in §3's **Build and quality gates** line, one row in §4. **The reversal is
+recorded as an inversion, not a mistake**: property 2 described what deletion does perfectly and read the
+sign backwards — a consumer running the last *published* build is the state to want, because it is the only
+one a lockfile names or a stranger can reproduce
 v1.16 - 2026-08-28, later still: **three rows added to §4, all from `phase5/epics/E15.md`**, deleted and
 distributed the same day on the same pattern (no replacement file; the epic id and all ten story ids
 `E15-S01`..`E15-S10` survive). They carry the three designs E15 was offered and refused and that no other
@@ -80,7 +91,8 @@ reversed:** row B still stands for `company`, `shopOwner`, `item` and `itemCateg
 a partial unique index — is refused again in the amendment
 
 v1.9 - 2026-08-26, last that day: **ADR-037 added — `@axiumine/marketplace-common` is published to npmjs,
-the platform owner publishes it personally, and `deploy-local.sh` is not deleted.** It is the first
+the platform owner publishes it personally, and `deploy-local.sh` is not deleted** (that last half was
+reversed on 2026-08-30 by ADR-047 — see v1.22). It is the first
 supersession in this index and it is **partial on purpose**: ADR-015 said it would be "superseded, not
 revised" on the day the owner decided to publish, but ADR-015 also carries the GPL-3.0-or-later licence
 decision and the `deploy-local.sh` bridge, neither of which the registry touches and neither of which is
@@ -106,7 +118,7 @@ v1.15 - 2026-08-28, later the same day: **ADR-040 added — the secrets-manager 
 ## 1. How to use this index
 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
-`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and three
+`Supersedes` field, then flip the old one's `Superseded by`. Every ADR below is `accepted`, and five
 supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part (the
 topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
 narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main
@@ -115,7 +127,11 @@ widest of them**: ADR-046 supersedes **ADR-041, ADR-042 and ADR-045, each in par
 owner's — the thirty days are an undo window — so three decisions taken that morning were narrowed that
 afternoon by the person who took them rather than by a later reading. Nothing in the three is withdrawn:
 closure still stamps, a registration still lives in Redis until the link is clicked, an inactive owner
-still goes off-air. What changed is that `deleted` can be cleared. §2 says so in all nine rows. Every other
+still goes off-air. What changed is that `deleted` can be cleared. §2 says so in all nine rows. ⚠️ **A fifth landed on
+2026-08-30 and is the only one that reverses rather than narrows**: ADR-047 supersedes **ADR-015 and
+ADR-037, each in part**, deleting `deploy-local.sh` — the bridge ADR-015 built while nothing was on a
+registry and ADR-037 deliberately kept afterwards. Nothing about the registry, the publisher or the gates
+is withdrawn; what changed is that there is no longer a second way for code to reach a consumer. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch
 the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
 independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
@@ -159,7 +175,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, with no carve-out | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
-| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part 2026-08-26** — the publication half only; the bridge and the licence stay | 2026-08-04 | — | ADR-037, in part | Build and quality gates |
+| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part twice** — 2026-08-26, the publication half; 2026-08-30, the bridge half. The GPL-3.0-or-later licence decision is what still stands here | 2026-08-04 | — | ADR-037 and ADR-047, each in part | Build and quality gates |
 | ADR-016 | 100% coverage on all four metrics + 100 mutation score, everywhere | accepted | 2026-08-06 | — | — | Build and quality gates |
 | ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-018 | SSR public routes, CSR-only /account/*, cache bypasses on session cookie | accepted | 2026-08-05 | — | — | Frontend |
@@ -181,7 +197,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted | 2026-08-12 | — | — | Identity and access |
 | ADR-035 | `user.addresses` capped at six, in the validator and in the write that appends | accepted | 2026-08-26 | — | — | Data model |
 | ADR-036 | Erasure is not something the platform suspends: `userDel` does not gate on `disabled` | accepted | 2026-08-26 | — | — | Identity and access |
-| ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted | 2026-08-26 | ADR-015, in part | — | Build and quality gates |
+| ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted, **superseded in part 2026-08-30** — §Decision property 2 only, the half that kept the script | 2026-08-26 | ADR-015, in part | ADR-047, in part | Build and quality gates |
 | ADR-038 | Cart, order, delivery and payment are permanently out of scope | accepted | 2026-08-27 | — | — | Catalogue |
 | ADR-039 | The production topology, decided: Cloudflare, one app host, datastores on a trusted segment | accepted | 2026-08-28 | ADR-032, in part | — | Infrastructure and delivery |
 | ADR-040 | The secrets-manager vendor choice is the adopter's, not this blueprint's | accepted, **amended 2026-08-28** — the KEK decode is one site, not three | 2026-08-28 | — | — | Identity and access |
@@ -191,6 +207,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-044 | Suspension names an actor and a reason; the database enforces presence, the service enforces length | accepted | 2026-08-29 | — | — | Identity and access |
 | ADR-045 | An inactive shop owner takes the storefront off-air; only the owner puts it back | accepted, **amended 2026-08-29** — the cascade reaches `item`, fires from either tier, and gains a bulk control; **superseded in part the same day** — a closed owner returns and re-enables | 2026-08-29 | — | ADR-046, in part | Catalogue |
 | ADR-046 | The retention window is an undo window: re-registering at the same address restores the account | accepted | 2026-08-29 | ADR-041, ADR-042 and ADR-045, each in part | — | Identity and access |
+| ADR-047 | A change to `marketplace-common` ships as a published release; `deploy-local.sh` is deleted | accepted | 2026-08-30 | ADR-015 and ADR-037, each in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -204,7 +221,7 @@ ADR-042, ADR-044, ADR-046
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
-ADR-037
+ADR-037, ADR-047
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039
 
@@ -212,6 +229,7 @@ ADR-037
 
 | Temptation | Settled by | Why not |
 |---|---|---|
+| Bring back a local-deploy shortcut for `marketplace-common` — a script, an alias, a `yarn link`, a `file:` path, or an `rsync` in someone's shell history | [ADR-047](./ADR-047-a-common-change-ships-as-a-published-release.md) | it is ten lines to recreate and it costs the one property the registry was published for. A copied build has no version, no integrity hash and no `yarn.lock` entry, so it is reproducible on exactly one machine — and the next `yarn install` in that consumer silently puts the released tarball back over it, making "which build is this running?" a question about command order. ADR-037 §Decision property 2 argued the other way and was reversed by the platform owner on 2026-08-30 in his own words, *"never use `./deploy-local.sh` in your development, always publish the package"*: the gap between an edit and a release is closed by cutting the release, and a patch release costs nine gated steps and no consumer left running code nobody else can obtain. Violation looks like a `node_modules/@axiumine/marketplace-common` whose contents do not match the version its lockfile names |
 | Merge the three authorization services into one | ADR-006 | dispatching on a tier read from the session is the pattern ADR-002 rejects; one `process.exit(1)` for three tiers is an availability cost paid by customers |
 | Fold `logout` back into the three `*-authenticated-authorization` services, or add a tier-named `adminLogout`/`shopOwnerLogout`/`userLogout` | ADR-005 | the resolver reads no `tier` and opens no collection, so three copies could never diverge — it is one `del` per key either way — while each copy pays the full CON-08 gate cost (lint, 100% coverage, mutation 100, Qodana) for a failure isolation session teardown has no use for; it also reintroduces the tier-dispatch pattern ADR-002 rejects. Stated as a standing boundary in `phase5/SESSION_TERMINATION.md` §E02-S05, which is what a PR proposing it has to answer. Violation looks like a `logout*.mts` appearing under any authorization service's `schema/mutations/`, or `assertTier` appearing inside `marketplace-dev-authenticated-logout/src/` |
 | Per-tier `REDIS_KEY` prefixes | ADR-004 | breaks the single logout service (ADR-005), which finds a session by token content alone; the tier assertion is the layer that holds even if a prefix is reused by mistake |

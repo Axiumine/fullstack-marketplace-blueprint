@@ -136,13 +136,18 @@ admin, user — outside the chain
   Merging into `main` is the user's decision alone.
 - **`marketplace-common` is the only repo that may be committed, merged, pushed and published without
   asking. Every other repo is push-on-request, always.**
-- **After every edit to `marketplace-common`, run `./deploy-local.sh`** — it is consumed by package
-  name, and the registry only has what was released, so an undeployed edit is invisible and fails at the
-  call site. ⚠️ It is published (`registry.npmjs.org`, `2.0.0`, consumers on `^2.0.0` — ADR-037), so
-  `yarn install` is authoritative and never needs this script: no install path anywhere calls it, and
-  none may. The two collide in exactly one case — **while common carries an edit no release has shipped**,
-  an install in a consumer drops the released build back over the deployed one. Redeploy then, and only
-  then.
+- ⚠️ **An edit to `marketplace-common` reaches a consumer by being published, and by nothing else.**
+  It is consumed by name from `registry.npmjs.org` (`3.0.0`, consumers on `^3.0.0` — ADR-037, ADR-047), so
+  an unpublished edit is invisible at every call site. Cut a release: bump, changelog, merge, tag,
+  `git push --follow-tags`, `yarn upload`, then move each consumer's range — the nine steps in
+  [`BEs/marketplace-common/CLAUDE.md`](./BEs/marketplace-common/CLAUDE.md) §The release flow, all of them,
+  every time. **`yarn install` is authoritative everywhere and can destroy nothing.**
+  ⚠️ **Never copy a local build into a consumer's `node_modules`** — no `rsync`, no `cp`, no `yarn link`,
+  no `file:` path, and no revival of `deploy-local.sh`, which is **deleted** (platform owner, 2026-08-30 —
+  [`ADR-047`](./docs/devprotocol/phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). A
+  copied build has no version, no lockfile entry and no second machine that can reproduce it. Iterate
+  inside `marketplace-common` with `yarn test`; if a consumer needs the change, the change is worth a
+  version number.
 - **One logical change = N+1 commits**: one per affected sub-repo, plus one in the parent bumping the
   submodule pointers (ADR-031). Land dependencies first; say which repos you touched. A sub-repo commit
   with no pointer bump leaves the parent describing a state that no longer exists.

@@ -9,8 +9,8 @@ more services, and queries in the frontends.
 - Trace a change end to end across repos **before** editing. The nine services share
   `marketplace-common`, so a breaking edit there lands on all of them.
 - One logical change = **N separate commits**, one per affected repo. There is no atomic cross-repo
-  commit. Land dependencies first (`marketplace-common` → `./deploy-local.sh` → bump consumers), and say
-  plainly which repos you touched.
+  commit. Land dependencies first (`marketplace-common` → **publish a release** → bump each consumer's
+  range), and say plainly which repos you touched.
 - The repos drift. Shell scripts and service scaffolding are near-duplicates — `prod-build-local.sh` is
   byte-identical across all nine. A fix in one usually belongs in the other eight.
 
@@ -285,7 +285,7 @@ yarn start          # node dist/index.mjs
 
 # marketplace-common
 yarn build          # ESM only — build:all / prepare:all are BROKEN (missing tsconfig.cjs.json)
-./deploy-local.sh   # build, then sync dist/ + package.json into every consumer's node_modules
+yarn upload         # npm publish — the ONLY way an edit reaches a consumer (ADR-047). No local deploy exists
 yarn test           # unit          yarn test:cov
 yarn test:contract  # verifies package.json exports map
 yarn test:int  yarn test:types  yarn test:mutation  yarn test:all

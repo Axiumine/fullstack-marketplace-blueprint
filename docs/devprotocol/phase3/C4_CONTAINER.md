@@ -19,6 +19,13 @@ v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `u
 to a customer account.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅ · [`docs/devprotocol/phase3/C4_CONTEXT.md`](./C4_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
+v1.6 - 2026-08-30: the `COMMON` node, its edge label, the compile-time relationship row, the tree comment
+and §Rules all described a **filesystem sync** into every consumer's `node_modules`.
+[`ADR-047`](./adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes `deploy-local.sh`: the
+only route from this container to its nine consumers is a published version, resolved by each consumer's own
+`yarn.lock`. The library is `3.0.0` and the twelve consumers pin `^3.0.0`. No container, and no
+*deployment* relationship, changed — what changed is that the one compile-time edge is a registry fetch
+rather than an `rsync`.
 v1.5 - 2026-08-27, later the same day: the `marketplace-common` container row said a plain `yarn install` restores the
 released build over a deployed one, without saying that this costs nothing unless an unreleased edit exists, and without
 saying that no install path invokes the script. Both added. No container or relationship changed.
@@ -26,7 +33,7 @@ v1.4 - 2026-08-27, later the same day: the `COMMON` node label, its edge label a
 said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it at `1.0.1` on
 2026-08-26; it is `2.0.0` since 2026-08-27 and every consumer pins `^2.0.0`. `deploy-local.sh` keeps a narrower
 job — *edited → released* — which the
-diagram now says. v1.3's Qodana-id correction stands; no container or relationship changed.
+diagram now says. **(That job ended on 2026-08-30: the script is deleted, ADR-047 — see v1.6.)** v1.3's Qodana-id correction stands; no container or relationship changed.
 v1.3 - 2026-08-27: the `marketplace-admin/` tree comment cited Qodana project `1rylx`. It is `VOZEg` — enumerated from every repo's scan artefact into `phase1/SYSTEM_CONTEXT.md` §5.12, which is now the one place that list lives. Two ADRs carried the same wrong id and are corrected in the same pass. Nothing about the container split changed.
 v1.2 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
 
@@ -82,7 +89,7 @@ graph TB
     Mongo[("MongoDB\n6 collections")]
     Redis[("Redis cluster\nshared REDIS_KEY prefix")]
 
-    COMMON["marketplace-common\n(published @axiumine/marketplace-common 2.0.1;\ndeploy-local.sh bridges edited → released)"]
+    COMMON["marketplace-common\n(published @axiumine/marketplace-common 3.0.0;\nreleases only — no local sync path)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
     STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
@@ -124,7 +131,7 @@ graph TB
     UR --> Redis
     LO --> Redis
 
-    COMMON -.compiled in, ^2.0.0 + deploy-local.sh.-> PA
+    COMMON -.compiled in, ^3.0.0 from registry.npmjs.org.-> PA
     COMMON -.-> PR
     COMMON -.-> SA
     COMMON -.-> SR
@@ -187,7 +194,7 @@ monitoring (`marketplace-services-status`).
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `2.0.1` (`1.0.1` when this cell was written, `2.0.0` on 2026-08-27, `2.0.1` on 2026-08-28), every consumer on `^2.0.0` (`ADR-037`); `BEs/marketplace-common/deploy-local.sh` builds it and syncs `dist/` + `package.json` into every consumer's `node_modules/@axiumine/marketplace-common/`, which is how an edit becomes visible before it is released. An unreleased, undeployed edit is dead weight to all 9 services, and a plain `yarn install` restores the released build over a deployed one — which costs nothing unless such an edit exists. No install path invokes the script. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
+| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `3.0.0` (`1.0.1` when this cell was written, `2.0.0` on 2026-08-27, `2.0.1` on 2026-08-28, `3.0.0` on 2026-08-30), every consumer on `^3.0.0` (`ADR-037`). ⚠️ **A release is the only way an edit leaves this repo** ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit is dead weight to all 9 services, and `yarn install` in a consumer is authoritative — it resolves the version that consumer's `yarn.lock` names and can undo nothing. The `deploy-local.sh` sync this cell described until 2026-08-30 is deleted. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
 | `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |
@@ -206,7 +213,7 @@ monitoring (`marketplace-services-status`).
 | Any `*-resource`/`*-authorization` service | MongoDB | Mongoose driver | reads/writes one or more of the 6 `$jsonSchema`-validated collections |
 | Any `*-resource`/`*-authorization` service | Redis cluster | Redis client (`hGetAll`/`hSet`/`del` etc.) | opaque session hash under the shared `REDIS_KEY` prefix; `del` is one key per call — cluster mode throws `CROSSSLOT` on multi-key `del` |
 | Any service | any other service (declared, not concretely traced) | `x-introspectioncode` header (`INTROSPECTION_CODE`) | bypasses the access-token check for service-to-service calls — treated as a secret, never logged, never sent to a browser (`docs/architecture.md` §Auth model) |
-| `marketplace-common` (compile-time) | all 9 backend services | filesystem sync, not a network call | `BEs/marketplace-common/deploy-local.sh` builds `dist/` and copies it + `package.json` into each consumer's `node_modules/@axiumine/marketplace-common/` |
+| `marketplace-common` (compile-time) | all 9 backend services | `yarn install` from `registry.npmjs.org`, at build time only | each consumer resolves `^3.0.0` through its own `yarn.lock`. ⚠️ **There is no filesystem sync**: `deploy-local.sh` copied `dist/` into every consumer's `node_modules` and is deleted ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)) — an edit here reaches a service only as a published version |
 | `marketplace-db-setup` | MongoDB | migrate-mongo | `yarn migrate:up` applies migrations that define every collection's `$jsonSchema` |
 | `marketplace-services-status` | all 9 backend services | HTTP health poll | no GraphQL — reads whatever health surface each service exposes |
 
@@ -236,10 +243,9 @@ Verified on disk this session (`ls`, `find`, `grep`), not inferred.
 fullstack-marketplace-blueprint/                 # parent workspace, its own git repo — tracks only workspace files
 ├── BEs/
 │   ├── marketplace-common/                      # WHY: shared code consumed by npm PACKAGE NAME, not a path link —
-│   │   ├── src/others/Tier.mts                   #      an edit here is invisible to all 9 services until deploy-local.sh runs
+│   │   ├── src/others/Tier.mts                   #      an edit here is invisible to all 9 services until a release carries it
 │   │   ├── src/others/assertTier.mts
 │   │   ├── src/others/resolveAuthorizationSession.mts
-│   │   └── deploy-local.sh                       # build + sync dist/ into every consumer's node_modules/
 │   ├── marketplace-db-setup/                     # WHY: single source of every collection's $jsonSchema — migrations immutable
 │   │   ├── lib/schemas/                           #      (account.js, collection.js, geo.js, shopOwner.js, company.js,
 │   │   │                                          #       user.js, item.js, itemCategory.js) — builders, not the migrations themselves
@@ -276,9 +282,9 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 |---|---|
 | New domain query/mutation for an existing tier | `BEs/dev/marketplace-dev-<tier>-resource/src/graphQLApi/schema/{queries,mutations}/` — **public-resource spells it `src/graphQLPublic/`, not `src/graphQLApi/`** |
 | Token-lifecycle change (refresh/rotate) | the matching `*-authenticated-authorization` service only, or `marketplace-common`'s `resolveAuthorizationSession`/`refreshSessionTokens` if the change applies to all three |
-| New shared Mongoose model or session helper | `BEs/marketplace-common/src/`, add its entry to `package.json` `exports` (no barrel export — an unlisted file is unreachable), then `./deploy-local.sh` |
+| New shared Mongoose model or session helper | `BEs/marketplace-common/src/`, add its entry to `package.json` `exports` (no barrel export — an unlisted file is unreachable), then **publish a release** and move each consumer's range |
 | New collection or schema change | `$jsonSchema` builder in `BEs/marketplace-db-setup/lib/schemas/<name>.js`, new migration under `migrations/`, then a full rebuild of every database that ran the migrations |
-| New product type | model in `marketplace-common` → its `exports` entry → `deploy-local.sh` → migration in `marketplace-db-setup` → resolvers in the resource services → schema slice + codegen in the frontends that read it (`docs/data-model.md`) — but check first whether it is genuinely a new type or just an `item` with a different `idCategory` |
+| New product type | model in `marketplace-common` → its `exports` entry → **published release** → migration in `marketplace-db-setup` → resolvers in the resource services → schema slice + codegen in the frontends that read it (`docs/data-model.md`) — but check first whether it is genuinely a new type or just an `item` with a different `idCategory` |
 | Admin SPA screen | `marketplace-admin/src/` |
 | ShopOwner SPA screen | `marketplace-shopowner/src/` |
 | Public page or customer-account screen | `marketplace-user/src/routeOptions/` for behaviour, a one-line `createFileRoute(id)(options)` route file to wire it in |
@@ -287,7 +293,8 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 ### Rules
 
 - Services never import each other's `src/` directly. `marketplace-common` is the only shared import, and
-  it is **synced**, not linked — an edit is invisible until `deploy-local.sh` runs.
+  it is **installed from the registry**, never linked and never copied in — an edit is invisible until a
+  release carries it and the consumer's range reaches that version (ADR-047).
 - Resource services own every domain write; authorization services carry token-lifecycle code only. Put a
   new domain mutation in the wrong one and it is unreachable from the frontend that needs it.
 - `itemCategory` writes exist **only** in `marketplace-dev-admin-authenticated-resource` — the depth-2 cap

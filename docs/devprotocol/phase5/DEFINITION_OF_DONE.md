@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.5
-**Date:** 2026-08-27
+**Version:** 1.6
+**Date:** 2026-08-30
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.6 - 2026-08-30: **the `marketplace-common` checklist item is a release, not a deploy.** The platform
+owner ruled that an edit there reaches a consumer by being published and by nothing else, and deleted the
+sync script ([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)); the
+cross-repo item now asks for a published version *and* a moved range in every consumer, which is the half
+the old wording never checked. The ADR-015 line in the build/gate item is repointed at ADR-047, since the
+half of ADR-015 it cited is the half that was superseded. No other item added, removed or weakened.
 v1.5 - 2026-08-27, later the same day: `phase5/epics/E11.md` is deleted, its record distributed rather
 than moved to one successor. §3's `E11` epic-level checkbox no longer cites "ADR-038" bare — it now names
 both `ADR-038` and `EPICS_STORIES.md` §6.1 as where the refusal is recorded, and notes plainly that the
@@ -156,7 +162,8 @@ document is that doctrine in checklist form.
 - [ ] Frontend change checked against ADR-018 (SSR public / CSR `/account/*`), ADR-019 (new urql client per
   SSR request), ADR-020 (route files as one-line `createFileRoute`), ADR-021 (`preferGetMethod` stays
   false), ADR-027 (one app per tier).
-- [ ] Build/gate change checked against ADR-015 (`marketplace-common` package-name + `deploy-local.sh`),
+- [ ] Build/gate change checked against ADR-047 (`marketplace-common` reaches a consumer only as a
+  published release — superseding the bridge half of ADR-015),
   ADR-016 (100/100 everywhere), ADR-017 (Qodana in both hooks), ADR-023 (per-repo integration DB naming),
   ADR-024 (tabs + eslint + prettier together), ADR-025 (`marketplace-services-status` gated by parent hooks), ADR-026
   (`engines.node` pin).
@@ -205,9 +212,11 @@ document is that doctrine in checklist form.
   in every one of the 16 repos (`docs/workflow.md` §Git rules, "Never commit on main. Ever.").
 - [ ] One logical change = N separate commits, one per affected repo — no atomic cross-repo commit exists on
   this platform (BCON-05).
-- [ ] Any `marketplace-common` change is followed by `./deploy-local.sh` in the SAME piece of work — an
-  undeployed edit is invisible to all 9 consumers, which keep resolving the previous build (BCON-07;
-  `BEs/marketplace-common/deploy-local.sh`).
+- [ ] Any `marketplace-common` change a call site needs is **published** in the SAME piece of work, and
+  every consumer's range moved with it — an unpublished edit is invisible to all 9 consumers, and a
+  published one still reaches none of them until their `yarn.lock` moves (BCON-07; the nine steps in
+  `BEs/marketplace-common/CLAUDE.md` §Publishing a release). There is no local shortcut and no script
+  offering one (ADR-047).
 - [ ] Merged branch deleted immediately with `git branch -d <slug>` (never `-D`) — in the same breath as the
   merge, never "later" (`docs/workflow.md` §Git rules, "Delete the local branch the moment it is
   merged").

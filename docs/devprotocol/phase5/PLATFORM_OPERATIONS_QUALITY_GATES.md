@@ -2,11 +2,19 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-28
+**Version:** 1.10
+**Date:** 2026-08-30
 **Author:** epics-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.10 - 2026-08-30: **§5's `deploy-local.sh` precondition and §6's closing note are both overtaken by
+[`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).** The platform owner
+ruled that an edit to `marketplace-common` reaches a consumer by being published and by nothing else, and
+deleted the script; §5's dependency bullet now names the release as what a green gate in common is a
+precondition for, and the ⚠️ note under §6's closed npm question — which said in as many words that the
+script *does not go away* — is struck in place with a pointer, since it is the exact sentence the later
+ruling reverses. The question itself stays closed and ADR-037 still owns it. No gate, no story and no open
+question changed.
 v1.9 - 2026-08-28, later the same day: **§6 gains its first live question in this record's history**, and
 §0's range narrows from "E16..E19" to **E19** — `phase5/epics/E17.md` and `phase5/epics/E18.md` were both
 deleted and their records distributed, the E11/E13/E14/E15/E16 way. E18's §6 question 3 read as answered
@@ -330,9 +338,10 @@ pinned node via nvm before the first gate runs.
 - Every other epic (E01-E08, E11) depends on this one landing first in the sense that its gates are what
   make any of their "built" claims verifiable — but this context ships nothing new to any of them; it is
   infrastructure, not a feature they consume at runtime.
-- `BEs/marketplace-common`'s own gate (coverage + mutation + `test:contract`) is a precondition for
-  `./deploy-local.sh` being trustworthy — BCON-07 still applies: a green gate in common is not a shipped
-  change until deployed to consumers.
+- `BEs/marketplace-common`'s own gate (coverage + mutation + `test:contract`) is a precondition for the
+  **release** that carries an edit to a consumer — it is what `git push --follow-tags` runs before
+  `yarn upload` can happen at all. BCON-07 still applies with the same teeth: a green gate in common is not
+  a shipped change until the version is published *and* each consumer's range has moved (ADR-047).
 - Parent workspace's own `core.hooksPath` has no `package.json`/`prepare` script to restore it after a
   fresh clone — `git config core.hooksPath .githooks` must be run by hand there, unlike the 14 sub-repos that are
   packages.
@@ -373,10 +382,16 @@ rather than under `epics/` — see §0.
   [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part**: the
   publication half only, since ADR-015 also carries the `deploy-local.sh` bridge and the GPL-3.0-or-later
   licence decision, and neither is touched by a registry.
-  ⚠️ **`deploy-local.sh` does not go away, and BCON-07 in §5 is unchanged.** A published release is not
+  ⚠️ ~~**`deploy-local.sh` does not go away, and BCON-07 in §5 is unchanged.** A published release is not
   where an edit lands — the script is what closes the gap *between* releases, and a workspace that deleted
   it would silently run every consumer against the last published build. ADR-037 §Decision property 2 keeps
-  it and lists its deletion as a violation shape.
+  it and lists its deletion as a violation shape.~~
+  **Reversed 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).**
+  The platform owner ruled that publishing is the only route and deleted the script. The struck paragraph
+  read the consequence correctly and its sign backwards: every consumer running the last *published* build
+  is the wanted state, because that build is the one their `yarn.lock` names and the one another machine
+  can reproduce. What closes the gap between releases is a release. BCON-07 keeps its teeth for the
+  unchanged half — a commit in common is not a shipped change.
   ⚠️ **This question had been citing the wrong gap.** It pointed at
   [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the sixteen repos get published, and
   under which org"*, which is about **git hosting** — ADR-031's territory — not about the npm registry. That

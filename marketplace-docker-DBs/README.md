@@ -296,11 +296,12 @@ Bring things up in this order. Every command runs from the repo it names.
 cd marketplace-docker-DBs && ./up.sh --with-redis
 ```
 
-**2 — the shared library.** It is consumed by package name and is not published, so an un-deployed
-edit is invisible at every call site.
+**2 — the shared library.** It is consumed by package name from `registry.npmjs.org`, so `yarn install`
+in each consumer is what brings it in — nothing is copied anywhere. Building it here is only for working
+*in* the repo; an edit reaches a call site by being published (ADR-047).
 
 ```sh
-cd BEs/marketplace-common && yarn install && yarn build && ./deploy-local.sh
+cd BEs/marketplace-common && yarn install && yarn build
 ```
 
 **3 — the schema.** Collections, `$jsonSchema` validators and indexes; `SEED_DEMO=true` in
