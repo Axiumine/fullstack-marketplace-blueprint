@@ -18,7 +18,7 @@ material. One process held the clock: it took `t0`, issued the mutation over HTT
 hash every 25 ms until every row carried the new fingerprint. The namespace was deleted afterwards. Static
 reading was used only to explain results already observed.
 **Reads against:** [`ADR-034`](../devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) ·
-[`E16`](../devprotocol/phase5/EPICS_STORIES.md) E16-S02, E16-S04, E16-S08 ·
+E16-S02, E16-S04, E16-S08 ·
 `BEs/marketplace-common/src/others/{watchKeygrip,loadKeygrip,recordKeygripHolder,sessionKeys}.mts` ·
 `BEs/dev/marketplace-dev-public-authorization/src/index.mts:134-160,248-300` ·
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/keygrip/{funKeygripRotate,funKeygripRetire}.mts`

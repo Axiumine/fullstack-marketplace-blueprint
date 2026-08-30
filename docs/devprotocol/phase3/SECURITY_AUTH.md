@@ -13,8 +13,8 @@ which *narrows* the supply-chain surface rather than widening it: every consumer
 version number identifies and a lockfile pins, so what a machine is executing can be verified from the
 registry. The `koa-utils` row loses a comparison to a script that no longer exists. Versions move to
 `3.0.0` / `^3.0.0`. No threat, control or mitigation changed.
-v1.16 - 2026-08-28, later the same day: §3's threat table gains one fact from `phase5/epics/E15.md`, which
-was deleted and distributed that day — **`checkShopOwnerApproval` is called after the password check, not
+v1.16 - 2026-08-28, later the same day: §3's threat table gains one fact from the epic that recorded it,
+distributed the same day it was deleted — **`checkShopOwnerApproval` is called after the password check, not
 before it**, because refusing a parked account earlier answers faster for a parked address than for an
 unknown one and turns the login into an enumeration oracle. The row also records that since E15-S07 the flag
 revokes rather than only refuses. Nothing else in this document changed, and no control's residual moved.
@@ -24,9 +24,9 @@ pre-lookup (`REFRESH_ATTEMPT_BUCKET`, `REFRESH_ATTEMPTS_PER_WINDOW` = 20 per `RE
 = 60, keyed on `hashSessionToken(presentedRefreshToken)`) and post-lookup (`REFRESH_FAMILY_BUCKET`,
 `REFRESH_MINTS_PER_WINDOW` = 20 per `REFRESH_FAMILY_WINDOW_SECONDS` = 3600, keyed on `familyId`), both
 defined in `BEs/marketplace-common/src/others/refreshRateLimit.mts` and called from the three authorization
-services' middleware. `phase5/epics/E14.md` is deleted in the same pass this fact is distributed from; the
+services' middleware. The epic that tracked `E14-S08` is deleted in the same pass this fact is distributed from; the
 sizing rationale for the two windows now lives in `phase5/RISK_REGISTER.md` R52. No control changed.
-v1.14 - 2026-08-28: §3.6 absorbs the introspection-bypass record from `phase5/epics/E13.md`, which is deleted
+v1.14 - 2026-08-28: §3.6 absorbs the introspection-bypass record from the epic that held it, deleted
 in the same pass. Its snippet was **stale rather than merely thin** — it showed the ungated `===` at
 `:27-37`, the shape the 2026-08-10 audit found, three weeks after `E13-S03` and `E13-S11` replaced it with a
 gated `constantTimeEquals`; corrected against the working tree, with the line range that is actually there.
@@ -304,7 +304,7 @@ This is the platform's only application-level auth-path rate limiting. The nginx
 >   presented token — and a single shared window would make one of the two buckets useless.
 >
 > The sizing rationale for both windows — "two windows, not one" — lives in
-> `../phase5/RISK_REGISTER.md` R52. `phase5/epics/E14.md`, where `E14-S08` was tracked, is deleted the same
+> `../phase5/RISK_REGISTER.md` R52. The epic that tracked `E14-S08` is deleted the same
 > day this note is added; its record is distributed across this document and others rather than moved. No
 > control described in the paragraph above changed — the paragraph is simply no longer the complete list.
 

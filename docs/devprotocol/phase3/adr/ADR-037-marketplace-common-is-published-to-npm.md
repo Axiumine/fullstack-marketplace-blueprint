@@ -34,12 +34,12 @@ That is the trigger, and it has fired. **This ADR exists because the platform ow
 
 Two questions have been conflated and are worth separating before either is answered:
 
-- **Who owns the publish.** `phase5/epics/E09.md` §6 carried this one — that record left `epics/` in this
+- **Who owns the publish.** Epic E09 §6 carried this one — that record was retired in this
   same piece of work and is now
   [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md): *"No story here names who owns
   publishing `marketplace-common` past `deploy-local.sh` to a real npm registry."* It is now answered —
   the platform owner, alone, personally. There is no maintainer committee, no CI credential, no delegation.
-  This was the last live question in E09, which is why that record leaves `epics/` in the same piece of work.
+  This was the last live question in E09, which is why that record is retired in the same piece of work.
 - ⚠️ **E09 cited the wrong gap for it.** It pointed at [`ADR-INDEX.md`](./ADR-INDEX.md) §5, *"Where the
   sixteen repos get published, and under which org"* — but that bullet is about **git hosting**: which forge
   the sixteen repositories live on, ADR-031's territory. It is not about the npm registry, and it is not
@@ -76,8 +76,7 @@ the dependency string was always the real one. That was ADR-015's whole point an
 
 ### The cost of *not* publishing, measured
 
-Not publishing is not free, and the price is already recorded elsewhere in this tree. From
-[`phase5/EPICS_STORIES.md`](../../phase5/EPICS_STORIES.md) changelog v1.26 (2026-08-13), during E18-S10:
+Not publishing is not free, and the price is already on record: during E18-S10 (2026-08-13),
 
 > **`yarn install` cannot run anywhere in this workspace** — `@axiumine/marketplace-common` answers 404 on
 > both registries and yarn 1 aborts the whole resolution over it — so the lockfiles were pruned by a
@@ -145,8 +144,8 @@ place both of those live.
 
 ### Positive
 - `yarn install` works, in all twelve consumer repos, on a clone that is not this machine — for the first
-  time. The workspace-wide "`yarn install` cannot run anywhere" state recorded in `EPICS_STORIES.md` v1.26
-  ends, and with it the reason a hand-written lockfile rewriter had to exist.
+  time. The workspace-wide "`yarn install` cannot run anywhere" state ends, and with it the reason a
+  hand-written lockfile rewriter had to exist.
 - Nothing downstream changes shape: twelve `package.json` files already name the package and the range they
   would name against a real registry. The publish is the one operation ADR-015 designed the whole bridge to
   make into a no-op.

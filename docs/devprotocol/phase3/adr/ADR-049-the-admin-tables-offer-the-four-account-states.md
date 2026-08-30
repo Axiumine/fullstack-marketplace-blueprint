@@ -108,6 +108,13 @@ the index for the sort as well as for the match, and the sort becomes a blocking
   reached by naming its state rather than by being greyed in place — greying would mean fetching rows the
   index cannot bound.
 
+- **`E19-S06` trued up the documents this surface contradicted.** Four documents and one validator comment
+  said, correctly for the day they were written, that nothing reads `user` from the Admin tier. Each was
+  narrowed rather than deleted: `lib/schemas/user.js` now says the admin table reads no encrypted field, which
+  is why every personal field stays encrypted for exactly the reason it always was, and
+  [`phase5/CUSTOMER_ACCOUNT_ADDRESSES.md`](../../phase5/CUSTOMER_ACCOUNT_ADDRESSES.md) §6 — whose closing
+  paragraph is where the epic came from — says the lever is built and names the mutation.
+
 ---
 
 ## Compliance

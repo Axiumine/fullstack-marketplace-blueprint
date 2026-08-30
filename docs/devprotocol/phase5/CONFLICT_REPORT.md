@@ -5,9 +5,9 @@
 **Version:** 1.4
 **Date:** 2026-08-07
 **Author:** conflict-checker-agent
-**Changelog:** v1.4 — 2026-08-27: the 2026-08-13 Path note (§2) extended for `epics/E11.md`'s deletion that
+**Changelog:** v1.4 — 2026-08-27: the 2026-08-13 Path note (§2) extended for `E11`'s deletion that
 day. Unlike every prior relocation, E11's record has no single successor file — it is distributed across
-the ADR and `EPICS_STORIES.md` §6.1, plus five other corpus files — and the note now says so explicitly,
+the ADR and the corpus files the Path note update below lists — and the note now says so explicitly,
 first of the eleven original epics handled that way. §2's table row, §5's "E11's whole body", §6a's "E11
 (1/1)", §6b's "E11 S01" (which predates E11-S02, not an omission) and §6c's "All 11 files present" are all
 annotated from within that same note rather than edited at their own lines, matching this document's own
@@ -21,16 +21,15 @@ v1.0 — initial Phase 5 conflict sweep
 ## 1. Verdict
 
 > ⚠️ **This is a snapshot of 2026-08-07, and Phase 5 has moved under it. Read the counts as dated, not current.**
-> Phase 5 held eleven epics, all under `epics/`, when this sweep ran. Since then eight of those files have left
-> `epics/` for domain-named records in `phase5/` as their stories completed (E01 → `IDENTITY_ACCESS.md`, E02 →
+> Phase 5 held eleven epics when this sweep ran. Since then eight of those files have moved to domain-named
+> records in `phase5/` as their stories completed (E01 → `IDENTITY_ACCESS.md`, E02 →
 > `SESSION_TERMINATION.md`, E03 → `SHOPOWNER_ONBOARDING_APPROVAL.md`, E04 → `COMPANY_LEGAL_ENTITY.md`, E05 →
 > `CATALOGUE.md`, E06 → `CATEGORY_TAXONOMY.md`, E07 → `CUSTOMER_ACCOUNT_ADDRESSES.md`, E08 →
 > `PUBLIC_DISCOVERY_STOREFRONT.md`), eight further epics E12–E19 have been written, and the eleven original epics
 > now hold 90 unique story ids rather than 77 — E01 runs to S15, E03 and E04 to S08, E05 to S09, E07 to S11, E08
 > to S10. **The verdict below is not withdrawn**: nothing here was found to be wrong when it was written, and the
 > three findings it records were fixed at source. What is out of date is the arithmetic, not the conclusion. A
-> current sweep would be a new report, not an edit to this one — [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2 is
-> the live index.
+> current sweep would be a new report, not an edit to this one.
 
 Pass. No blocking conflict found. Two warning-level nits and one traceability gap were found and all three are **fixed at source** — see §3 and §6d. Phase 5 gate closes with no outstanding findings under RULES.md §4.
 
@@ -40,26 +39,26 @@ Pass. No blocking conflict found. Two warning-level nits and one traceability ga
 |---|---|---|
 | CONSTRAINTS.md | 120 | full read |
 | SEQUENCE_DIAGRAMS.md | 566 | headers + targeted read (purpose, out-of-scope §10, tier-assert/logout samples) |
-| EPICS_STORIES.md | 115 | full read |
+| the epic/story index | 115 | full read |
 | RISK_REGISTER.md | 141 | full read |
 | DEFINITION_OF_DONE.md | 250 | targeted read (§3 epic DoD, §4 phase gate, §5 sprint, §6 exclusions) |
-| epics/E01.md..E11.md | 193/124/167/141/142/145/121/155/171/162/91 | grep for story headers + full read of E07, E08 (partial), E11; targeted reads elsewhere |
+| E01..E11 | 193/124/167/141/142/145/121/155/171/162/91 | grep for story headers + full read of E07, E08 (partial), E11; targeted reads elsewhere |
 | phase1/NFR.md | (sampled) | grep for 🔴 Critical rows + SE03 definition |
 | phase2/BOUNDED_CONTEXT.md | (sampled) | grep for BC-01..BC-11 relation table |
 | phase3/adr/ADR-INDEX.md | (sampled) | grep count of ADR rows |
 
-⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `epics/E01.md` and `epics/E02.md` were both deleted that day and their records moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) beside this file. Every `epics/E01.md`, `epics/E02.md` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present under `epics/`" was true on the day and reads nine today. The `E01-SNN` and `E02-SNN` ids are unchanged.
+⚠️ **Path note, 2026-08-13 — the sweep below is not restated, only relocated.** `E01` and `E02` were both deleted that day and their records moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) and [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) beside this file. Every `E01`, `E02` and `E01..E11` reference in this report describes the tree as it stood on 2026-08-07 and is left as written; §5c's "All 11 files present" was true on the day and reads nine today. The `E01-SNN` and `E02-SNN` ids are unchanged.
 
-⚠️ **Path note update, 2026-08-27 — `epics/E11.md` deleted too, and this time differently from E01/E02 above.** E01.md and E02.md were each relocated wholesale to one domain-named successor file; `epics/E11.md` is **deleted with no single successor** — its record is instead **distributed** across [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 (the decision that closed the gap), [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 (both recording stories, E11-S01 and E11-S02, in full), `phase2/BOUNDED_CONTEXT.md`, `phase5/SHARED_KERNEL.md`, `phase2/UBIQUITOUS_LANGUAGE.md` and `phase4/API_CONTRACTS.md`. **This is the first of the eleven original epic records this platform has handled that way** — every prior relocation (E01 above, E02 above, and E03-E10 since, on dates this report was never updated to track) moved a file to exactly one successor; E11 moves to none, because there is no single successor deliverable left to hold it — only the ADR and the index. Every claim below dated 2026-08-07 that describes an `epics/E11.md` on disk is stale on that account too, same treatment as E01/E02 above, not falsified: §2's table row lists `epics/E01.md..E11.md` with an 11-entry line-count list — the file measured for the eleventh entry (91 lines) no longer exists, and the count is left as measured. §5's "E11's whole body" and §6a's "E11 (1/1)" describe a story sample read from that file — the story (E11-S01) is unchanged, only its file moved. §6b's "E11 S01" in the extracted `ENN-SNN` list **predates E11-S02**, which did not exist on 2026-08-07 — not an omission, a fact about the date this sweep ran. §6c's "All E01..E11 exist and index agrees. All 11 files present under `epics/`" was true on 2026-08-07 and is now false on two counts rather than one: none of the original eleven remain under `epics/` as of today (E01-E10 relocated on the dates noted above, E11 deleted with no relocation). The `E11-S01` id, like `E11-S02`, is unchanged.
+⚠️ **Path note update, 2026-08-27 — `E11` deleted too, and this time differently from E01/E02 above.** E01.md and E02.md were each relocated wholesale to one domain-named successor file; `E11` is **deleted with no single successor** — its record is instead **distributed** across [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 (the decision that closed the gap, naming both recording stories, E11-S01 and E11-S02), `phase2/BOUNDED_CONTEXT.md`, `phase5/SHARED_KERNEL.md`, `phase2/UBIQUITOUS_LANGUAGE.md` and `phase4/API_CONTRACTS.md`. **This is the first of the eleven original epic records this platform has handled that way** — every prior relocation (E01 above, E02 above, and E03-E10 since, on dates this report was never updated to track) moved a file to exactly one successor; E11 moves to none, because there is no single successor deliverable left to hold it — only the ADR. Every claim below dated 2026-08-07 that describes an `E11` on disk is stale on that account too, same treatment as E01/E02 above, not falsified: §2's table row lists `E01..E11` with an 11-entry line-count list — the file measured for the eleventh entry (91 lines) no longer exists, and the count is left as measured. §5's "E11's whole body" and §6a's "E11 (1/1)" describe a story sample read from that file — the story (E11-S01) is unchanged, only its file moved. §6b's "E11 S01" in the extracted `ENN-SNN` list **predates E11-S02**, which did not exist on 2026-08-07 — not an omission, a fact about the date this sweep ran. §6c's "All E01..E11 exist and index agrees. All 11 files present" was true on 2026-08-07 and is now false on two counts rather than one: none of the original eleven remain as of today (E01-E10 relocated on the dates noted above, E11 deleted with no relocation). The `E11-S01` id, like `E11-S02`, is unchanged.
 
-Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only §1/§2/§5/§9-10 and tier-assert/logout lines sampled), most of epics/E01-E06,E09,E10 bodies beyond story-header + traces-line greps, all of phase1-4 baseline beyond the NFR/BC/ADR tables grepped. This is a grep-first sweep, not a cover-to-cover read.
+Not read in full: SEQUENCE_DIAGRAMS.md §3-§9 (5 full sequence diagrams, only §1/§2/§5/§9-10 and tier-assert/logout lines sampled), most of E01-E06,E09,E10 bodies beyond story-header + traces-line greps, all of phase1-4 baseline beyond the NFR/BC/ADR tables grepped. This is a grep-first sweep, not a cover-to-cover read.
 
 ## 3. Conflicts
 
 | ID | Severity | Status | Documents | Contradiction | Resolution |
 |---|---|---|---|---|---|
 | C01 | warning | **fixed** | SEQUENCE_DIAGRAMS.md (internal) | §1 Purpose says the commerce out-of-scope table is "(§9)"; the actual out-of-scope section is numbered §10 (§9 is "Sequence diagram 7 — item publish/unpublish"). Applied: [`SEQUENCE_DIAGRAMS.md:22`](./SEQUENCE_DIAGRAMS.md#L22) now reads "(§10)". |
-| C02 | warning | **fixed** | CONSTRAINTS.md §5 vs EPICS_STORIES.md §3 / actual story IDs | CONSTRAINTS.md §5 documents the story-id format as `BC-0N-01`, `BC-0N-02`; every actual story everywhere uses `ENN-SNN` (`E01-S01` etc, confirmed sequential, no gaps, no dupes in all 11 epics). CONSTRAINTS.md itself is never violated in practice — only its own stated naming convention disagrees with what the other 7 agents actually wrote. Applied: `CONSTRAINTS.md:78` now states `ENN-SNN` (`E01-S01`, `E01-S02`, …) and says explicitly that the prefix is the **epic** id, not the bounded-context id it maps to — which is where the wrong spelling came from. No story was renamed; none was wrong. |
+| C02 | warning | **fixed** | CONSTRAINTS.md §5 vs actual story IDs | CONSTRAINTS.md §5 documents the story-id format as `BC-0N-01`, `BC-0N-02`; every actual story everywhere uses `ENN-SNN` (`E01-S01` etc, confirmed sequential, no gaps, no dupes in all 11 epics). CONSTRAINTS.md itself is never violated in practice — only its own stated naming convention disagrees with what the other 7 agents actually wrote. Applied: `CONSTRAINTS.md:78` now states `ENN-SNN` (`E01-S01`, `E01-S02`, …) and says explicitly that the prefix is the **epic** id, not the bounded-context id it maps to — which is where the wrong spelling came from. No story was renamed; none was wrong. |
 
 No blocking conflict found: no incompatible fact pair, no contradicted baseline decision, no missing epic, no orphaned Critical NFR (see §6d).
 
@@ -77,9 +76,9 @@ None. Grepped `price`, `cart`, `order`, `delivery`, `payment` across all 17 file
 
 **b. Story IDs sequential per epic.** Extracted every `ENN-SNN` from all 11 epic files: E01 S01-S09, E02 S01-S05, E03 S01-S07, E04 S01-S07, E05 S01-S07, E06 S01-S07, E07 S01-S09, E08 S01-S09, E09 S01-S09, E10 S01-S07, E11 S01. All sequential, zero gaps, zero restarts mid-epic, zero duplicates. (Format itself disagrees with CONSTRAINTS.md §5's stated convention — see C02.)
 
-**c. All E01..E11 exist and index agrees.** All 11 files present under `epics/`. EPICS_STORIES.md §2 index table's Build-state column matches each file's own header/§3: E05 "Built - no `price` field" ↔ E05.md §3; E07 "Built - identity/account only, no commerce" ↔ E07.md §1; E11 "Not built - no collection, no resolver, no design" ↔ E11.md title "[PLANNED - NOT BUILT]" and §3. No contradiction found between index and file.
+**c. All E01..E11 exist and index agrees.** All 11 files present. The index's §2 table's Build-state column matches each file's own header/§3: E05 "Built - no `price` field" ↔ E05.md §3; E07 "Built - identity/account only, no commerce" ↔ E07.md §1; E11 "Not built - no collection, no resolver, no design" ↔ E11.md title "[PLANNED - NOT BUILT]" and §3. No contradiction found between index and file.
 
-**d. Critical NFR coverage — the important part.** Critical set per `phase1/NFR.md` §3: NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01 (17 IDs). Grepped `NFR-<id>` across all `epics/*.md`:
+**d. Critical NFR coverage — the important part.** Critical set per `phase1/NFR.md` §3: NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01 (17 IDs). Grepped `NFR-<id>` across all epic records:
 
 | NFR | Landed on |
 |---|---|
@@ -103,11 +102,11 @@ None. Grepped `price`, `cart`, `order`, `delivery`, `payment` across all 17 file
 
 **NFR-SE03 ("Access token must be validated as `Authorization: Bearer access:<token>` against Redis on every resource-service call") appeared as an acceptance criterion in zero stories** — the one orphan of the 17 Critical NFRs, and the one CONSTRAINTS.md §5 explicitly warned to cross-check for. It was never a functional gap: E01-S04 and every `assertTier` call site assume the Bearer lookup already happened, and SE01/SE02/SE05/SE06 cover the behaviour end to end. It was an uncited traceability line.
 
-**Fixed.** [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §E01-S04 — `epics/E01.md` when this was written — gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
+**Fixed.** [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §E01-S04 — `E01` when this was written — gained a third acceptance criterion naming the mechanism the NFR names — the literal `'Bearer access:'` prefix check that refuses the request *before* any Redis call (`authorizationAuthenticatedResourceHandler.mts:42`), and the per-call `hGetAll(\`${process.env.REDIS_KEY}${accessToken}\`)` lookup, never decoded and never cached across requests (`:49,51`). `Traces:` now reads `NFR-SE03, NFR-SE05, NFR-SE06; ADR-003, ADR-004`, and `Evidence:` cites the handler. Placing it on S04 rather than a story of its own is deliberate: SE03 and SE05/SE06 describe two halves of one middleware — resolve the session, then assert its tier — and splitting them across two stories would let one ship without the other, which is exactly the hole ADR-004 closed.
 
 **All 17 Critical NFRs now land on at least one story.**
 
-**e. BC-01..BC-11 ↔ epic 1:1.** EPICS_STORIES.md §4 table and phase2/BOUNDED_CONTEXT.md's BC names cross-checked (grepped the relation table) — every BC name matches its epic's own header exactly (e.g. E07 header "Bounded context: BC-07 — Customer Account & Addresses"). No BC split across two epics, no epic spanning two BCs found in the sample. ⚠️ **This check is superseded and is not re-run.** [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5 stopped requiring any epic-to-context relationship on 2026-08-11 and is the record of that decision; the alignment recorded above is a true observation about E01-E11 as written, not a rule anything must satisfy.
+**e. BC-01..BC-11 ↔ epic 1:1.** The index's §4 table and phase2/BOUNDED_CONTEXT.md's BC names cross-checked (grepped the relation table) — every BC name matches its epic's own header exactly (e.g. E07 header "Bounded context: BC-07 — Customer Account & Addresses"). No BC split across two epics, no epic spanning two BCs found in the sample. ⚠️ **This check is superseded and is not re-run.** [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5 stopped requiring any epic-to-context relationship on 2026-08-11 and is the record of that decision; the alignment recorded above is a true observation about E01-E11 as written, not a rule anything must satisfy.
 
 ## 7. Citation spot-check
 

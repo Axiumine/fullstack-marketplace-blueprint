@@ -4,11 +4,8 @@
 
 **Status:** investigation finding — closes E14-S09. Not baselined, not a requirement document
 **Version:** 1.1
-**Date:** 2026-08-10 (v1.1, 2026-08-28, repoints the "Reads against" E14 citation below —
-`docs/devprotocol/phase5/epics/E14.md` is deleted today and its record distributed, not moved — to
-`../devprotocol/phase5/EPICS_STORIES.md` §2's E14 row, which now carries E14-S02, E14-S04 and E14-S08's
-build state; the two defects below in §4, §5 and §9 are unchanged, still open, and still not in E14's
-design)
+**Date:** 2026-08-10 (the two defects recorded below in §4, §5 and §9 are still open, and were never part
+of E14's design)
 **Scope:** what the three SPAs and the three `*-authenticated-authorization` services actually do when two
 tabs of the same app refresh at the same moment. It answers three questions and nothing else: can two
 refresh calls race at all, how far apart are they in practice, and is `GRACE_SECONDS = 10` the right number.
@@ -20,8 +17,7 @@ ShopOwner tier was stood up whole — `marketplace-dev-public-authorization` (40
 wrapped in each tab to timestamp every call to the rotation endpoint. Static reading was used only to
 explain results already observed.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
-[`../devprotocol/phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E14 row —
-E14-S02, E14-S04, E14-S08 (⚠️ **Repointed 2026-08-28**: `epics/E14.md` is deleted, record distributed) ·
+E14-S02, E14-S04, E14-S08 ·
 `BEs/marketplace-common/src/others/{resolveAuthorizationSession,refreshSessionTokens,sessionLifetime,throwRefreshRaceRetry}.mts` ·
 `marketplace-{admin,shopowner,user}/src/api/{client.ts,errors.ts}`
 

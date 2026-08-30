@@ -19,10 +19,6 @@ files. No `.env`, no file under `marketplace-docker-DBs/secrets/`, and no stored
 Redis observation is file sizes and modification times, and the MongoDB observation is the presence of
 option names in `mongod --help`.
 **Reads against:** [`ADR-029`](../devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) ·
-[`../devprotocol/phase5/EPICS_STORIES.md`](../devprotocol/phase5/EPICS_STORIES.md) §2's E18 row, E18-S05
-(⚠️ **Repointed 2026-08-28.** `epics/E18.md` is deleted and its record distributed, not moved; E18-S05's
-outcome — the 30 encrypted field paths, the four DEKs and the storage-layer measurement this report
-extends — is restated in that row) ·
 [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
 `BEs/marketplace-common/src/encryption/{encryptedFields,setupFieldEncryption,fieldEncryption}.mts` ·
 `BEs/marketplace-common/src/others/sessionKeys.mts` ·

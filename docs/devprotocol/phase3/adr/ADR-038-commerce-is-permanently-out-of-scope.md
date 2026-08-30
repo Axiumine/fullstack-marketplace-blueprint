@@ -4,9 +4,8 @@
 **Status:** accepted
 **Date:** 2026-08-27
 **Deciders:** platform owner, stating directly an intent that had never been written down. Asked what to do
-with epic E11's §6 question 1 — at the time recorded in `phase5/epics/E11.md`, deleted 2026-08-27 and
-absorbed into the note at the foot of this file — who signs off the first commerce schema — the answer was
-that no first schema is coming.
+with epic E11's §6 question 1 — absorbed into the note at the foot of this file — who signs off the first
+commerce schema — the answer was that no first schema is coming.
 **Supersedes:** —
 **Superseded by:** — (**not** superseded; the note at the foot of this file is a citation fix, dated 2026-08-27)
 
@@ -17,9 +16,8 @@ that no first schema is coming.
 Four concepts have been carried as **planned** since the retrofit: Cart, Order, Delivery, Payment. They are
 BC-11 "Ordering & Fulfilment" in [`phase2/BOUNDED_CONTEXT.md`](../../phase2/BOUNDED_CONTEXT.md), §18 of
 [`phase2/UBIQUITOUS_LANGUAGE.md`](../../phase2/UBIQUITOUS_LANGUAGE.md), §2.9 of
-[`phase2/EVENT_STORMING.md`](../../phase2/EVENT_STORMING.md), and epic E11 — at the time recorded in
-`phase5/epics/E11.md`, since deleted (see the note at the foot of this file) — an epic whose single story
-ships a record and nothing else, because
+[`phase2/EVENT_STORMING.md`](../../phase2/EVENT_STORMING.md), and epic E11 — see the note at the foot of
+this file — an epic whose single story ships a record and nothing else, because
 [`phase5/CONSTRAINTS.md`](../../phase5/CONSTRAINTS.md) §6 forbids any story that designs them.
 
 **Nothing about that absence is in doubt, and no claim anywhere in the corpus is wrong.** Zero collection in
@@ -32,16 +30,14 @@ What was wrong is the one thing a document can get wrong while every sentence in
 **Planned** said these four were pending, and they were not pending — nobody intended to build them. The
 cost of that word is measurable, and it compounded:
 
-- **Six live open-question rows, none with a real owner.** Epic E11 §6 questions 1–5 (then held in
-  `phase5/epics/E11.md`, since deleted), `BOUNDED_CONTEXT.md`
+- **Six live open-question rows, none with a real owner.** Epic E11 §6 questions 1–5, `BOUNDED_CONTEXT.md`
   §7 q4, `EVENT_STORMING.md` §6 open question 4, [`phase1/PDR.md`](../../phase1/PDR.md) §open question 3,
   and [`phase5/RISK_REGISTER.md`](../../phase5/RISK_REGISTER.md) R31. Most are owned by "Product + platform
   dev" — a product function this platform does not have.
-- **Three passes that narrowed questions rather than answering them.** Epic E11's own record — held in
-  `phase5/epics/E11.md` through v1.2, v1.3 and v1.4, before the file's deletion — each re-derived that an
-  upstream closure did not reach the BC-11 half, and each re-verified the same absence
-  against the working tree. That is an audit loop with no exit, because the exit was a design decision
-  nobody was going to take.
+- **Three passes that narrowed questions rather than answering them.** Epic E11's own record — revised
+  across v1.2, v1.3 and v1.4 — each re-derived that an upstream closure did not reach the BC-11 half, and
+  each re-verified the same absence against the working tree. That is an audit loop with no exit, because
+  the exit was a design decision nobody was going to take.
 - **`ADR-INDEX.md` §5 recorded the gap as owed**: "Ordering. Cart, order state machine, delivery, payment —
   no collection, no resolver, no design. … **Needs its own ADR when the design starts.**" This is that ADR,
   arriving from the other direction.
@@ -79,8 +75,7 @@ Three consequences follow directly and are part of the decision, not inferences 
    what changes is that its title's condition — *until ordering is designed* — never arrives. That ADR stays
    `accepted` and gains a pointer here. `price` stays a banned term in `UBIQUITOUS_LANGUAGE.md` §19, with
    the replacement column now reading *none, permanently*.
-2. **Every open question waiting on a commerce design closes as moot.** Epic E11 §6 q1–q5 (then held in
-   `phase5/epics/E11.md`, since deleted),
+2. **Every open question waiting on a commerce design closes as moot.** Epic E11 §6 q1–q5,
    `BOUNDED_CONTEXT.md` §7 q4, `EVENT_STORMING.md` §6 open question 4, `PDR.md` §open question 3. None was
    answered; each asked what to do when design work starts, and design work does not start. They are struck
    through in place with this ADR cited, in the same form as every other closure in those tables.
@@ -105,7 +100,7 @@ one field.
 - The catalogue's most conspicuous omission becomes a stated property. `item` has no price **because this
   platform does not sell**, which is a complete answer; *because ordering is not designed yet* never was.
 - Six question rows collapse into one decision with a named decider. The audit loop that produced three
-  narrowed-not-answered passes on epic E11's record (`phase5/epics/E11.md`, since deleted) has an exit.
+  narrowed-not-answered passes on epic E11's record has an exit.
 - Agents get an unambiguous refusal. "Ask before inventing them" became "do not invent them"; the ask is
   answered in advance, and `phase5/CONSTRAINTS.md` §6's ban on designing them is now backed by intent rather
   than by the absence of a decision.
@@ -119,11 +114,8 @@ one field.
 - The four are still named in five phase-2 documents, an event-storming board, an epic and a glossary
   section — a reader may still read *presence* as *plan* on a fast skim. The `WILL NOT BUILD` marker is
   doing a lot of work, and it has to survive every future edit to those files.
-- E11 is now an epic that exists to record a closed decision. It stays in the epic numbering and in
-  `EPICS_STORIES.md`, which means the epic index permanently contains one entry that ships nothing. As of
-  2026-08-27 that entry has no file of its own: `phase5/epics/E11.md` was deleted the same day, and its
-  record was distributed rather than replaced — see the note at the foot of this file and
-  `phase5/EPICS_STORIES.md` §6.1.
+- E11 is now an epic that exists to record a closed decision — an epic that permanently ships nothing.
+  Its record was distributed rather than replaced; see the note at the foot of this file.
 
 ### Risks
 - **The absence re-reads as an oversight to anyone who skips the ADR.** Someone adding "just a price field"
@@ -178,7 +170,7 @@ a re-opened question row asking who signs off the first commerce schema.
 §Context and §Consequences both cited `EVENT_STORMING.md` **§5** open question 4. That question is in
 **§6**; §5 is the hotspot table, and that document's hotspot 6 is cited correctly elsewhere in this ADR.
 Both pointers now read §6. The same wrong number was corrected in `BOUNDED_CONTEXT.md` §7 q4 in the same
-pass, and — while it still existed — in `phase5/epics/E11.md` as well.
+pass, and, while it still existed, in E11's own record as well.
 
 **Nothing decided here changed.** This is the pointer, not the decision: the row it names is the same row,
 already struck through and already citing this ADR. Nothing else in the body above is amended — a wrong
@@ -187,13 +179,12 @@ reader to the wrong table.
 
 ---
 
-## Note — 2026-08-27: `phase5/epics/E11.md` deleted, its record absorbed here
+## Note — 2026-08-27: E11's epic record deleted, its content absorbed here
 
-`phase5/epics/E11.md` was deleted on 2026-08-27. **The epic id E11 survives** — it stays in the epic
-numbering and in `EPICS_STORIES.md`, exactly as §Consequences above already said it would — and its record
-now lives in two places: the remainder of this note, and [`phase5/EPICS_STORIES.md`](../../phase5/EPICS_STORIES.md)
-§6.1, "The two recording stories (absorbed from `epics/E11.md`, deleted 2026-08-27)". A reader who goes
-looking for the file and finds it gone should find this paragraph, not silence.
+Epic E11's own record was deleted on 2026-08-27. **The epic id E11 survives** — exactly as §Consequences
+above already said it would — and its record now lives here: the remainder of this note is what that
+record held. A reader who goes looking for the file and finds it gone should find this paragraph, not
+silence.
 
 **This is not the "Delete" option §Options above rejected.** That option would have erased BC-11,
 `UBIQUITOUS_LANGUAGE.md` §18, `EVENT_STORMING.md` §2.9 and E11 itself, on the reasoning that a reader
@@ -240,10 +231,9 @@ amends any of them. What only E11.md held, and what would otherwise have left wi
   shape* half never had a decider waiting on it at all. ⚠️ **This bullet is the exception to the
   paragraph above it.** The finding is not E11.md's alone any more: the twins were closed on 2026-08-27
   with the owner-cell tell written into them — `BOUNDED_CONTEXT.md` §7 q4 and `EVENT_STORMING.md` §6
-  open question 4 both carry it — and [`phase5/EPICS_STORIES.md`](../../phase5/EPICS_STORIES.md) §6.1
-  states it once more in E11-S02's voice, as the story's finding rather than a question's closure reason.
-  It is the one fact this note and §6.1 deliberately share, and the repetition is the point: an owner
-  cell naming a function this platform does not have should be met wherever a reader enters.
+  open question 4 both carry it, in E11-S02's voice, as the story's finding rather than a question's
+  closure reason: an owner cell naming a function this platform does not have should be met wherever a
+  reader enters.
 - **Question 3 survived the publish split.** When `itemUpdatePublished` was split out on both tiers
   (2026-08-14), a dedicated writer made the flip **deliberate, not slower** — an order holding a live
   reference would still see whatever the last deliberate publisher left. That is recorded here so the split

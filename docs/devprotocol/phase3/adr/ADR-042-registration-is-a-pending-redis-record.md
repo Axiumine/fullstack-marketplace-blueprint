@@ -204,6 +204,13 @@ stops meaning two things and means only *this account was closed*.
   record's key, orphaning in-flight registrations. They expire on their own, so the blast radius is one
   confirmation window, but a rotation should not be run alongside a mail outage.
 
+### Build record
+
+- **Built as `E20-S07`.** A submitted registration writes Redis and nothing else: a three-day TTL record
+  carrying the pre-minted `_id` and the bcrypt hash, replay-safe across a lost commit acknowledgement, and
+  every outcome — free, taken, pending or closed — answering the same check-your-mail page, so the form is no
+  enumeration oracle.
+
 ---
 
 ## Compliance

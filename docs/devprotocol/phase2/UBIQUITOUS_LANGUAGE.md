@@ -23,9 +23,9 @@ changed; one term lost an alias it should never have had.
 v1.9 - 2026-08-27, later the same day: the v1.6 entry pinned the correct install result to `^1.0.1`, which
 moved when `marketplace-common` `2.0.0` shipped hours later. It now names the released range and both versions,
 so the rule does not go stale at the next major. No term changed.
-v1.8 - 2026-08-27, later still: `phase5/epics/E11.md` is deleted — its knowledge distributed across the
+v1.8 - 2026-08-27, later still: the epic file that recorded E11 is deleted — its knowledge distributed across the
 corpus rather than left in a dedicated epic file, per [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)
-§Note and [`EPICS_STORIES.md`](../phase5/EPICS_STORIES.md) §6.1. §18's **Used in:** list named that file
+§Note. §18's **Used in:** list named that file
 last; the line now ends at ADR-038 instead, since there is nothing left on disk for it to point to. The
 verbatim heading §18 carried before v1.7 rewrote it — the epic file was the only place that string still
 survived, and the file it survived in is now gone — is recorded here rather than lost:

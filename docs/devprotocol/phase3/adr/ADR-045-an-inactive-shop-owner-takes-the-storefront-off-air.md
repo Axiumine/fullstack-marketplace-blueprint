@@ -370,3 +370,15 @@ hands the *same* document back, so the shops — which point at that `_id` — c
 it, the address has already moved to `deleted-<id>@invalid.local` and there is nothing to restore: the click
 mints a new `_id`, which owns nothing and never will. **Re-registering is the way back in, and it is the only
 one**; there is no restore login, because a closed account cannot obtain a session to ask from.
+
+### Build record
+
+- **Built as `E20-S05`, `E20-S06` and `E20-S10`.** `E20-S05` is `shopOwnerDel`, which takes no argument —
+  the account is the one the session authenticated as, so no id from the wire can name another owner — stamps
+  `deleted` with no `deletedBy`, leaves `disabled` untouched in either direction, and takes every company and
+  item dark in the same transaction. `E20-S06` is `itemsUpdatePublished`: one intent, one call, bounded at
+  500 ids, de-duplicated before the bound and before the ownership guard, and all-or-nothing, because a
+  partial application is unreportable behind a `Boolean!` and skipping the ids that did not match would make
+  the mutation an existence oracle. `E20-S10` is the owner's side of both — the catalogue's select-all bar,
+  chunked at 500, which is how an owner puts the shop back up, and the close-account card that states the four
+  consequences in plain words, since a refused login is deliberately generic on every tier.

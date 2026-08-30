@@ -206,6 +206,15 @@ and it is being deleted, so the last live example of the idiom goes with it).
   ciphertext supports equality but not `$lte`. Encrypting either silently stops the scrub — no error, and
   the validator would still accept every write.
 
+- **Built as `E20-S01` and `E20-S03`.** `E20-S01` is the migration pair —
+  `20260829000000-account-lifecycle-fields.js`, which puts `deletedBy`, `disabledBy`, `disabledReason` and
+  `scrubbedAt` on `user` and `shopOwner`, and `20260829000100-user-retire-deleted-ttl.js`, which drops
+  `deleted_ttl` — and it **counts and stops** where a suspended document carries no reason rather than
+  backfilling a sentence no admin wrote. `E20-S03` is the sweeper: an hourly interval inside
+  `marketplace-dev-admin-authenticated-resource`, holding a single-key Redis `SET NX PX` lock, both filter
+  clauses `trusted()`-wrapped, overwriting `disabledReason` rather than unsetting it so a scrubbed suspension
+  stays writable.
+
 ---
 
 ## Compliance

@@ -125,6 +125,14 @@ the rule was written about a collection and now travels with the value.
   storage; it makes no claim about the mail leg, which carries the address in the clear by necessity and is
   covered by whatever the adopter's SMTP transport does (`docs/PRODUCTION_HARDENING.md`).
 
+### Build record
+
+- **Built as `E20-S07`.** The pending record carries the address as the same deterministic ciphertext the
+  collection indexes, so the confirmation click copies it rather than re-encrypting it, and the uniqueness
+  check before the click is the index's own answer. `E20-S08` later moved the replay discriminator off the
+  pre-minted `_id` for a reason that starts here: a restore mints no id, so an `_id` check would answer *no*
+  over a registration that committed.
+
 ---
 
 ## Compliance

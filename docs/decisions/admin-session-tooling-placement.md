@@ -89,12 +89,7 @@ reason nobody can point at later.
 
 ## Traceability
 
-`docs/devprotocol/phase5/EPICS_STORIES.md` §2's E17 row, E17-S09 · `docs/devprotocol/phase5/RISK_REGISTER.md`
-R02, R03, R04 · `docs/architecture.md` service table.
-
-⚠️ **Repointed 2026-08-28.** This section cited `docs/devprotocol/phase5/epics/E17.md`, which was deleted
-that day and its record distributed rather than moved. E17-S09 is still a citable story id; the row in
-`EPICS_STORIES.md` §2 is what carries its build state, and this note remains the argument itself.
+`docs/devprotocol/phase5/RISK_REGISTER.md` R02, R03, R04 · `docs/architecture.md` service table.
 
 ⚠️ Deliberately **not** cited: `ADR-006` and `NFR-AV01`. Neither forbids a tenth service, and citing either
 would make this decision look mandatory when it is a cost judgement that the conditions above can overturn.

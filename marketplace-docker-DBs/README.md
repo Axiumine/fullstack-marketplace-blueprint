@@ -186,12 +186,12 @@ and a pin is one edit away from being lowered.
 
 **What needs 7.4 specifically: hash-field TTLs.** `HEXPIRE` / `HPEXPIRE` / `HTTL` / `HPERSIST` — a
 TTL on an individual field of a hash rather than on the whole key — were added in Redis 7.4.0 and
-exist in no earlier release. The account→sessions index
-(story E15-S03, recorded in `docs/devprotocol/phase5/EPICS_STORIES.md` §2's E15 row and
-`docs/data-model.md` §The account index — `epics/E15.md` was deleted and distributed 2026-08-28) is one hash per account whose fields are that
-account's live sessions, and fields whose sessions expire without passing through logout or rotation
-have to age out on their own. Without per-field TTLs the index keeps naming sessions that no longer
-exist, which is both a slow memory leak and a lie told to the admin screen that reads it.
+exist in no earlier release. The account→sessions index — documented in
+[`docs/data-model.md`](../docs/data-model.md) §The account index, and built as story E15-S03 — is one
+hash per account whose fields are that account's live sessions, and fields whose sessions expire
+without passing through logout or rotation have to age out on their own. Without per-field TTLs the
+index keeps naming sessions that no longer exist, which is both a slow memory leak and a lie told to
+the admin screen that reads it.
 
 **Those commands are called on every login and every token rotation** (E15-S03, built 2026-08-13).
 Each field's TTL is what remains of the session it names — `originalLogin + sessionCapDays`, not the
@@ -265,9 +265,7 @@ Two consequences worth knowing before you go looking for either:
   session key *was* the token** — so an append-only file written before that cutover is a list of
   credentials in plain text, which is why E13 hashed the key namespace and why its cutover carried an
   explicit `BGREWRITEAOF` step of its own. A rewrite is the only thing that removes what is already
-  written; hashing new writes does not touch a byte of it. The landing order and both rewrite passes
-  are recorded in `docs/devprotocol/phase5/EPICS_STORIES.md` §2's E13 row — `epics/E13.md` was deleted
-  on 2026-08-28 and its record distributed.
+  written; hashing new writes does not touch a byte of it.
 - ⚠️ **The rate-limiter keys already written are a list of email addresses, and E12-S11 does not
   remove them.** Until that story the per-email counter was `rl:<bucket>:email:<the address itself>`,
   so `rl:userRegister:email:mario@example.com` is in the append-only file of every environment that

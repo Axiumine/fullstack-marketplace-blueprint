@@ -2,47 +2,56 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.12
-**Date:** 2026-08-28
+**Version:** 1.13
+**Date:** 2026-08-30
 **Author:** epics-agent
 **Bounded context:** BC-07 — Customer Account & Addresses
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.13 - 2026-08-30: §0 loses its range entirely — the `E19` and `E20` epic records were the last two, both
+deleted and **distributed, not moved**, and the running *Epics + Stories* index went with them. Both §6s were
+closed first: E20's question 6 by [`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its
+question 7 by [`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), and the one half
+still undecided — whether an admin may be suspended — moved to
+[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided rather than
+dying with the file. No twelfth record was written, so the count stays eleven, and every `E19-Snn` and
+`E20-Snn` id survives in ADR-041..ADR-046 and ADR-049. Nothing about this record's own content or build state
+changed.
 v1.12 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
-`phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their records **distributed, not
+the `E17` and `E18` epic records were **both** deleted and their content **distributed, not
 moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
-questions and E18's three are all closed. What the audit found held nowhere else went to `EPICS_STORIES.md`
-§2's E17 and E18 rows and §2.1's E17 row, `docs/testing.md`, and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
+questions and E18's three are all closed. What the audit found held nowhere else went to `docs/testing.md`
+and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
 The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this
 record's own content or build state changed.
 v1.11 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
-`phase5/epics/E15.md` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
-and not E12's: all ten of its stories are `built`, so no twelfth record joined the eleven beside the index.
+the `E15` epic record was deleted and its content **distributed rather than moved**, the E11 / E13 / E14 way
+and not E12's: all ten of its stories are `built`, so no twelfth record was written.
 ⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
 flow should exist — moved to `IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the
-file. The other nine facts went to `EPICS_STORIES.md` §2 and §2.1, `ADR-INDEX.md` §4 (three refused
+file. The other nine facts went to `ADR-INDEX.md` §4 (three refused
 designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
 E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
 keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
-v1.10 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — `phase5/epics/E14.md`
-was deleted and its record distributed rather than moved, the E11 / E13 way and not E12's: all nine of its
+v1.10 - 2026-08-28, later still: §0's range narrows from "E14..E19" to **E15..E19** — the `E14` epic record
+was deleted and its content distributed rather than moved, the E11 / E13 way and not E12's: all nine of its
 stories are `built`, its §6 read "None open.", and only nine facts survived an audit as held nowhere else.
-They went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row and §2.1,
+They went to
 [`../phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (twice), [`../../architecture.md`](../../architecture.md),
 [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md),
-`epics/E17.md` §5 and
+E17 §5 and
 [`../../report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. No
-twelfth record joins the index — the count in §0 stays eleven. E14 keeps every story id. Nothing about
+twelfth record was written — the count in §0 stays eleven. E14 keeps every story id. Nothing about
 BC-07 changes.
-v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `phase5/epics/E12.md` was deleted and its record moved beside the index to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now sit beside the index, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
-v1.9 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `phase5/epics/E13.md` was deleted
-and its record distributed rather than moved, the E11 way and not E12's: all eleven of its stories are
+v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — the `E12` epic record was deleted and its content moved into [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now exist, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
+v1.9 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — the `E13` epic record was deleted
+and its content distributed rather than moved, the E11 way and not E12's: all eleven of its stories are
 `built`, its §6 read "None open.", and only seven facts survived an audit as held nowhere else. They went to
-[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row, [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md)
+[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md)
 §3.6 and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. No
-twelfth record joins the index — the count in §0 stays eleven. E13 keeps every story id. Nothing about
+twelfth record was written — the count in §0 stays eleven. E13 keeps every story id. Nothing about
 BC-07 changes.
 v1.6 - 2026-08-27: "No order/cart relationship exists yet" set an expectation ADR-038 (2026-08-27) removes: cart, order, delivery and payment are permanently out of scope, so an address points at the customer's own document permanently and the out-of-scope row says refused rather than unbuilt.
-v1.7 - 2026-08-27, later the same day: §0's range narrows from "E11..E19" to **E12..E19** — `phase5/epics/E11.md` was deleted with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and [`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1 instead. Nothing about BC-07 changes.
+v1.7 - 2026-08-27, later the same day: §0's range narrows from "E11..E19" to **E12..E19** — the `E11` epic record was deleted with no replacement record of its own, unlike the ten epics named beside it here. Its knowledge was distributed to [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 instead. Nothing about BC-07 changes.
 v1.4 - 2026-08-26, later the same day: **§6's second open question closes, and it closes by being built.**
 `addresses[].position` had no story saying who writes it; it now has E07-S11 — the account form carries a
 MapLibre island with a draggable pin, so a picked geocoder suggestion places the address and the customer
@@ -58,15 +67,15 @@ v1.1 - 2026-08-25: §6's first open question closes on the platform owner's deci
 says so in three places, and what was missing was whether it was a starting point or the answer. It is the
 answer. Recorded in `phase3/adr/ADR-INDEX.md` §4. Closing it surfaced one thing the question had not
 asked: `user.disabled` is read by every gate and written by nothing.
-v1.2 - 2026-08-25, later the same day: that finding became an epic. [`E19.md`](./epics/E19.md) — Customer
-Administration — owns the missing lever and the admin surface to reach it from, so §6's note names the
+v1.2 - 2026-08-25, later the same day: that finding became an epic, Customer Administration (E19) —
+owns the missing lever and the admin surface to reach it from, so §6's note names the
 epic rather than leaving a finding with nobody holding it. The decision closed above is untouched and E19
 does not reopen it: it adds no gate before a customer's first login, and its customers table queries no
 encrypted field, so the sentence about a moderation table reversing ADR-029 is narrowed to the *searchable*
 kind it was always about.
-v1.5 - 2026-08-26, last that day: **the file left `epics/` and became this record**, for the reason §0
+v1.5 - 2026-08-26, last that day: **the epic file was deleted and this record took its place**, for the reason §0
 gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
-resolve from `phase5/` rather than from `phase5/epics/`. Four things this file held alone were copied out
+resolve from `phase5/` directly rather than a level deeper. Four things this file held alone were copied out
 first, to where a reader looks for them without knowing it exists: the address form's single `"lon,lat"`
 field and its three writers, the viewport exemption that stops the map chasing a dragged pin, and the
 `[longitude, latitude]` order with its six-decimal rounding are in
@@ -78,9 +87,9 @@ same glossary (§17) and in [`phase2/EVENT_STORMING.md`](../phase2/EVENT_STORMIN
 "login/verify state", and it does not — the `select` is a positive list of six fields and `GraphQLUserMe`
 has no field for `emailVerify` at all, which is E07-S01's whole point.
 
-## 0. Why this record is not under `epics/`
+## 0. Why this record is not an epic file
 
-It was `phase5/epics/E07.md` until 2026-08-26. The file was deleted and its record moved here in one pass,
+It was the epic file `E07` until 2026-08-26. The file was deleted and its record moved here in one pass,
 the seventh to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
 [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
@@ -89,20 +98,19 @@ the seventh to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
 eleven stories are `built` and §6 has no open question left — the absent approval gate closed on
 2026-08-25 by a decision, and `position`'s writer on 2026-08-26 by an implementation, which is also where
 the two newest stories came from. So the file had become the *record* of a shipped surface rather than a
-backlog entry. `EPICS_STORIES.md` §1 still says stories live in `epics/ENN.md`, and that stays true for
-E14..E19; E01..E10 and E12 are the eleven whose records sit beside the index instead of under it — E08's is
+backlog entry. The remaining epics still lived as epic files of their own at the time, true for
+E14..E19; E01..E10 and E12 are the eleven whose records are documents of their own in `phase5/` instead of staying epic files — E08's is
 [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and E09's is
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), both moved later the
 same day. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's is beside neither list:
 its file was deleted on 2026-08-27 with no record of its own to move, its knowledge distributed instead
-into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 and
-[`EPICS_STORIES.md`](./EPICS_STORIES.md) §6.1.
+into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27.
 
 **The story IDs did not change.** `E07-S01` … `E07-S11` keep their names. They are cited by
 [`docs/data-model.md`](../../data-model.md) (E07-S11), [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md)
-§4 (E07-S11, twice), [`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) (E07-S03, E07-S05) and
-[`EPICS_STORIES.md`](./EPICS_STORIES.md) §5, which uses `E07-S01` as the example of the ID format itself.
-Every one of those resolves to a section of this file, and renumbering was refused for the reason E01
+§4 (E07-S11, twice) and [`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) (E07-S03, E07-S05) — `E07-S01` doubles
+as the worked example of the `ENN-SNN` ID format itself elsewhere in this corpus.
+Every one of those citations resolves to a section of this file, and renumbering was refused for the reason E01
 gives — an ID cited across files is a name, and moving a file is not a reason to change a name.
 
 ⚠️ **This is the first record to move while two of its stories are days old.** E07-S10 and E07-S11 both
@@ -125,17 +133,17 @@ address a geocoder cannot find is saved without a point rather than refused. Bot
 surface was reasoned about, which is what a record is for and what an ADR deliberately is not.
 
 ⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
-`phase5/epics/E12.md` was deleted and its record moved beside this one to
+the `E12` epic record was deleted and its content moved beside this one to
 [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
 the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
 epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
 all fifteen sub-repos and resolve to sections of that record.
 
-⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `phase5/epics/E13.md` was
-deleted and its record **distributed rather than moved** — the E11 way, not E12's. All eleven of E13's
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because the `E13` epic record was
+deleted and its content **distributed rather than moved** — the E11 way, not E12's. All eleven of E13's
 stories were `built`, its §6 read "None open.", and an audit of the 592-line file found only seven facts
 held nowhere else: the landing order with its two `BGREWRITEAOF` passes and the rule that step four is the
-clock, not step one, went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E13 row; the six
+clock, not step one; the six
 `INTROSPECTION_CODE` comparison sites, named by file and line, went to
 [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6; and the seventh comparison site, upstream in
 `@axiumine/koa-utils` and unfixable from this workspace, went to
@@ -144,20 +152,19 @@ record joins the eleven named above — the count in §0 stays **eleven**, not t
 `SESSION_STORE_HARDENING.md`. E13 lost its file, not its id or any story's: `E13-S01` … `E13-S11` and every
 build state are untouched.
 
-⚠️ **Narrowed again 2026-08-28.** The range above reads **E15..E19** because `phase5/epics/E14.md` was
-deleted and its record **distributed rather than moved** — the E11 / E13 way, not E12's. All nine of
+⚠️ **Narrowed again 2026-08-28.** The range above reads **E15..E19** because the `E14` epic record was
+deleted and its content **distributed rather than moved** — the E11 / E13 way, not E12's. All nine of
 E14's stories were `built`, its §6 read "None open. Every decision this epic made is carried by the
 story that implements it, with its reasoning — this section holds only what is still undecided.", and
 an audit of the file found only nine facts held nowhere else: the seven-step landing order and the rule
-to land E13-S01 **and** E13-S02 first went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E14 row and
-§2.1; the rejected tier-keyed privilege gradient for the session cap and the rejected cached-successor-pair
+to land E13-S01 **and** E13-S02 first; the rejected tier-keyed privilege gradient for the session cap and the rejected cached-successor-pair
 grace design went to [`../phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4; the abandoned
 `// if remember me, generate ?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07
 explicitly does not revive, went to [`../../architecture.md`](../../architecture.md); "two windows, not
 one" went to [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52; the Cloudflare rate-limiting-rules alternative
 to `limit_req_zone` went to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md); why E17
 depends on E14 for `familyId` — and can never key a session by a token value — went to
-`epics/E17.md` §5; and E14-S06's accepted cross-service-harness residual went to
+E17 §5; and E14-S06's accepted cross-service-harness residual went to
 [`../../report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. No
 twelfth record joins the eleven named above — the count in §0 stays **eleven**, not twelve. E14 lost its
 file, not its id or any story's: `E14-S01` … `E14-S09` and every build state are untouched. The two
@@ -165,14 +172,14 @@ defects E14-S09 found, both outside E14's own scope, stay open and stay recorded
 [`../../report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9.
 
 ⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
-`phase5/epics/E15.md` was deleted and its record **distributed, not moved** — the E11 / E13 / E14 way and
-not E12's: all ten of its stories are `built`, and no twelfth record joined the index, so the count above
+the `E15` epic record was deleted and its content **distributed, not moved** — the E11 / E13 / E14 way and
+not E12's: all ten of its stories are `built`, and no twelfth record was written, so the count above
 stays **eleven** (E01..E10 and E12). ⚠️ **One thing differs from the last three deletions: E15's §6 was not
 empty.** One row survived — a **Product** question, whether a confirm-first email-change flow should exist
 at all — and it was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open,
-rather than deleted with the file. E15's other nine facts went to
-[`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E15 row and §2.1 (the seven-step landing order, and why the
-E13-S01 dependency is hard), [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
+rather than deleted with the file. E15's other nine facts include the seven-step landing order and why the
+E13-S01 dependency is hard, and went to
+[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
 lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
 [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
 §3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
@@ -181,22 +188,36 @@ lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
 its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
 
 ⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
-longer a range — because `phase5/epics/E17.md` and `phase5/epics/E18.md` were **both** deleted and their
-records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
+longer a range — because the `E17` and `E18` epic records were **both** deleted and their
+content **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
 *what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
 fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
 record before the code. An audit of the two files, 1 255 lines together, found almost everything already
 verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
-What survived went to [`EPICS_STORIES.md`](./EPICS_STORIES.md) §2's E17 and E18 rows and §2.1's E17 row (the
-story ids written one by one, E17's five-step landing order, its two permanent scope refusals, and the reason
-it keys a session by `familyId` and can never key one by a token value), to
-[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
+What survived is the story ids written one by one, E17's five-step landing order, its two permanent scope
+refusals, and the reason it keys a session by `familyId` and can never key one by a token value — plus what
+went to [`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
 line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
 [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
 under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
-line. **No twelfth record joined the eleven beside the index — that count stays eleven** (E01..E10 and E12).
+line. **No twelfth record was written — that count stays eleven** (E01..E10 and E12).
 E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
 two files are gone.
+
+⚠️ **Narrowed a last time 2026-08-30, and there is no range left.** The `E19` and `E20` epic records were
+the last two, and both were deleted and **distributed, not moved** — the E11 / E13 / E14 / E15 / E16 / E17 /
+E18 way — with the running *Epics + Stories* index deleted beside them, an index over nothing having nothing
+to index. Both qualified on the usual test, *what a record still has to do*: E19's five stories and E20's
+thirteen are `built`, the sixth and the fourteenth are anti-stories that are deliberately not built, and both
+§6s were closed before the pass — E20's question 6 by
+[`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its question 7 by
+[`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), both on 2026-08-30. ⚠️ **One
+thing was still undecided and moved rather than died**: whether an admin may be **suspended**, the half of
+E20's question 2 that the *an admin account cannot be closed* ruling did not touch, is now
+[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided. **No twelfth
+record was written, so the count stays eleven** (E01..E10 and E12). Both epics kept every id: `E19-S01` …
+`E19-S06` and `E20-S01` … `E20-S14` resolve to ADR-041..ADR-046 and ADR-049, each of which records what the
+stories under it built, and to the sources those stories touched.
 
 ## 1. Epic goal
 
@@ -340,8 +361,8 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
   customer's own document. `waitApprov` is also only half a feature — the other half is the admin queue
   behind it (`shopOwnerUpdateStatus`, `shopOwnersActiveTblDb`), and `user` is the one collection encrypted
   whole *because* nothing sorts, searches or paginates it (ADR-029). A *searchable* moderation table over
-  customers would reverse that decision rather than extend this one — which is why the one
-  `phase5/epics/E19.md` opened the same day is not searchable: it orders and filters on `registeredAt` and
+  customers would reverse that decision rather than extend this one — which is why the customers table
+  opened the same day is not searchable: it orders and filters on `registeredAt` and
   the three status flags, every one of them clear, and never queries a field CSFLE touches.
   ⚠️ **Closing it surfaced something the question did not ask, and it is not refused — it is unbuilt.**
   `user.disabled` exists in the validator (`account.js` `DISABLED`) and every gate reads it —
@@ -350,7 +371,7 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
   before registration *and* no lever after it, and suspending a customer meant a write made straight
   against MongoDB. That was a missing Admin-tier mutation, not a second reading of this decision.
   Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, and **closed the same day by
-  [`E19.md`](./epics/E19.md)** — all six stories built 2026-08-25, `userUpdateStatus` the lever among them. The
+  E19** — all six stories built 2026-08-25, `userUpdateStatus` the lever among them. The
   gate before registration stays absent, permanently; only the lever after it was the hole.
 - `addresses[].position` is optional — no story here defines when/how it gets populated (client
   geocode vs manual pin). Out of this epic's built scope; flagging because BC-08's map feature
