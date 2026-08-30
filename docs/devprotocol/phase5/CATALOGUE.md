@@ -37,7 +37,7 @@ their names across a file move is the reason the epic id `E11` keeps its own acr
 `item.published` or the race this file's §6 already closed changes.
 v1.6 - 2026-08-27: The out-of-scope column said BC-11 was "unbuilt, no model to copy", which reads as pending. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so price/cart-membership/order-lines are refused rather than deferred, and §1 says the deliberate absence of a price is permanent.
 v1.1 - 2026-08-14: §6's `item.published` race closes on the platform owner's decision — last writer wins,
-no lock field, an owner republishing after an operator's unpublish is accepted. Taken with the same
+no lock field, an owner republishing after an admin's unpublish is accepted. Taken with the same
 decision for `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6). The bullet now also records the asymmetry the finding never
 named: the owner writes the whole card and the Admin writes one flag, so an ordinary save undoes a takedown
 without touching it. The image-upload question above it is untouched and still open.
@@ -58,7 +58,7 @@ resolve from `phase5/` rather than from `phase5/epics/`. Two things E05-S09 put 
 to where a reader looks for them without knowing this file exists: the `image` field is now in
 [`docs/data-model.md`](../../data-model.md) §`item`, and the choice of a field over an `itemImage`
 collection is a row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
-v1.5 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
+v1.5 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the admin's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
 ## 0. Why this record is not under `epics/`
 
@@ -313,7 +313,7 @@ none. The new-item card drops itself on success instead of relying on the refetc
 ### E05-S08 — Publishing is a separate operation, on both tiers `built`
 The platform owner's call, taken on 2026-08-14: saving an item must not publish it. `published` was a
 `Boolean!` inside `GraphQLInputItem` and both update paths `$set` the whole object, so every save wrote the
-flag — an owner who reopened a card after the operator took it down republished it on Save, without asking
+flag — an owner who reopened a card after the admin took it down republished it on Save, without asking
 to and without a control on screen saying so.
 **domains:** backend, frontend, testing
 **Acceptance criteria:**
@@ -361,7 +361,7 @@ db-setup `test/migrations.test.mjs`. All three repos green at 100% on all four c
 ⚠️ **A failed move after a successful insert is not repaired.** The client gets a 500 and the item exists
 all the same, so a retry collides with its own slug and comes back 409. No compensating delete was
 written: a rollback is a second write that can fail in turn, and the state it would clean up is one an
-operator can see. Recorded here rather than left to be discovered.
+admin can see. Recorded here rather than left to be discovered.
 ⚠️ **There is no way to change or remove a picture yet**, and no screen sends one. `itemAdd` is the only
 writer of the field, `GraphQLItemFrag` does not carry it, and the two other tiers cannot read it.
 
@@ -387,11 +387,11 @@ writer of the field, `GraphQLItemFrag` does not carry it, and the two other tier
 - ~~Two independent writers of `item.published` (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`)
   with no version/lock field in `item.js` — the same race class as E04's open question, unexamined
   (`EVENT_STORMING.md` §5 hotspot 4).~~ ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
-  lock field.** An operator unpublishes, the owner publishes it again, and that is an accepted outcome —
+  lock field.** An admin unpublishes, the owner publishes it again, and that is an accepted outcome —
   decided together with the same race on `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6) and recorded in
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. ⚠️ ~~Worth knowing when writing any story here: the owner
   need not republish deliberately. `funItemUpdatePublished` sets that one flag, `funItemUpdate` `$set`s the
   whole card and `IItemUpdate` keeps `published`, so **an ordinary save of any other field restores the
   owner's value of the flag**.~~ **Struck later the same day**: publishing was split out of `itemUpdate` on
-  both tiers, so a republish is now always deliberate. The operator action that survives it is `itemDel` —
+  both tiers, so a republish is now always deliberate. The admin action that survives it is `itemDel` —
   `deleted` is outside every input.

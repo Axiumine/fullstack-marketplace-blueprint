@@ -59,7 +59,7 @@ says so in three places, and what was missing was whether it was a starting poin
 answer. Recorded in `phase3/adr/ADR-INDEX.md` §4. Closing it surfaced one thing the question had not
 asked: `user.disabled` is read by every gate and written by nothing.
 v1.2 - 2026-08-25, later the same day: that finding became an epic. [`E19.md`](./epics/E19.md) — Customer
-Administration — owns the missing lever and the operator surface to reach it from, so §6's note names the
+Administration — owns the missing lever and the admin surface to reach it from, so §6's note names the
 epic rather than leaving a finding with nobody holding it. The decision closed above is untouched and E19
 does not reopen it: it adds no gate before a customer's first login, and its customers table queries no
 encrypted field, so the sentence about a moderation table reversing ADR-029 is narrowed to the *searchable*
@@ -337,7 +337,7 @@ Technical story: `additionalProperties: false` on `user` closes the gap a resolv
   decision, not a gap in it.
   The asymmetry with `shopOwner` is what each account gets, not how much either is trusted: approving a
   shop owner creates a public shop on this platform's own domain, and a customer's account reads that
-  customer's own document. `waitApprov` is also only half a feature — the other half is the operator queue
+  customer's own document. `waitApprov` is also only half a feature — the other half is the admin queue
   behind it (`shopOwnerUpdateStatus`, `shopOwnersActiveTblDb`), and `user` is the one collection encrypted
   whole *because* nothing sorts, searches or paginates it (ADR-029). A *searchable* moderation table over
   customers would reverse that decision rather than extend this one — which is why the one

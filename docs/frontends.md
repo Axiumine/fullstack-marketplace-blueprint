@@ -39,7 +39,7 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 `@urql/exchange-auth` · graphql-codegen `client-preset`, one project per access level · TanStack Table
 · react-hook-form + zod · Tailwind 4 · Sentry.
 
-`marketplace-admin` is the operator app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
+`marketplace-admin` is the admin app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
 *customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
 one with `userUpdateStatus`, both on 4024 (E19). Since 2026-08-29 it opens with a counter and a
 registrations chart above that table — `usersStats` and `usersPerPeriod`, the counterparts of the pair
@@ -54,11 +54,11 @@ behind it is. `marketplace-dev-authenticated-resource` exposes `shopOwnerCompani
 `itemDel`). ⚠️ **Two of the eight are publish-only** — `companyUpdatePublished` and `itemUpdatePublished`,
 split out on 2026-08-14 because the flag used to sit inside the update inputs and every save wrote it. The
 items screen calls its one; nothing on either frontend calls the company one, which is a missing control
-rather than a missing resolver. The operator
+rather than a missing resolver. The admin
 app's profile, password-change, personal-data, statistics and paginated-table screens have no
 counterpart there and were pruned rather than stubbed.
 
-⚠️ **The operator app's `/categories` screen is the taxonomy's only UI, and it adds two behaviours no
+⚠️ **The admin app's `/categories` screen is the taxonomy's only UI, and it adds two behaviours no
 other layer has.** `position` is capped at 999999999 in the form
 (`marketplace-admin/src/features/categories/Categories.tsx:55`, `MAX_POSITION`) while the resolver checks
 whole and non-negative only — so without that bound a wider value reaches the collection and fails the
@@ -70,7 +70,7 @@ refused a missing parent since the three resolvers first shipped — so what the
 write made straight against MongoDB, and
 `marketplace-admin/test/features/categories/Categories.test.tsx:174` holds it in place.
 
-⚠️ **Three shopowner-side differences are deliberate and must not be "corrected" back to the operator
+⚠️ **Three shopowner-side differences are deliberate and must not be "corrected" back to the admin
 app's shape:**
 
 - `companyAdd` answers `OnlyIdType`, not `Boolean`.
@@ -95,6 +95,18 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
   the footer offers both. The seller's page deliberately has **no** sign-in link: `/login` here
   authenticates against `user` and would refuse a shop owner with a wrong-password error, so their way
   in is the link in the activation mail, to an app on another origin.
+
+- **The private area is four screens, and the fourth ends the account** — `/account` (profile),
+  `/account/addresses`, `/account/password` and `/account/close`, plus sign-out. The last one sends
+  `userDel` with an **empty variable set** (the session names the account; an id from a browser would make
+  it "close any customer's account") and then signs out, and it states in words what a refused login
+  deliberately will not: every session ends, the undo is *registering again* at the same address within
+  thirty days and never *logging in*, a suspension survives the round trip, and day 30 overwrites the
+  personal fields rather than removing the document. ⚠️ **That copy has to agree with `/privacy`**, which
+  makes the same three statements publicly — they are one pair of pages over ADR-041 and ADR-046, and
+  drifting apart is how one of them becomes false. It is the one write on this tier sent **without**
+  invalidating `GraphQLUserMe`: there is no account left to re-read, and the invalidation would only race
+  the sign-out for a 401. The shop owner's counterpart is the `/account` card in `marketplace-shopowner`.
 
 - ⚠️ **Public routes are SSR, `/account/*` is `ssr: false`, and that pairing is a security boundary**
   (ADR-018). Rendering authenticated HTML on a server behind a shared `proxy_cache` is how one
@@ -160,10 +172,11 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 |---|---|---|---|
 | `marketplace-admin` | 71 | 1071 | 2053 / 7 / 0 |
 | `marketplace-shopowner` | 49 | 677 | 1083 / 5 / 0 |
-| `marketplace-user` | 73 | 1312 | 2171 / 7 / 0 |
+| `marketplace-user` | 76 | 1433 | 2171 / 7 / 0 |
 | `marketplace-services-status` | 7 | 379 | 1102 / 1 / 0 |
 
-File and test counts are a `yarn test` run of 2026-08-25. ⚠️ **The mutant columns are older than that** —
+File and test counts are a `yarn test` run of 2026-08-25, except `marketplace-user`'s, recounted
+2026-08-29 with the close-account screen. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
 E19 added. The gate is hook-only in all four repos, so the next push is what re-measures them; do not
 start a run to refresh this table.

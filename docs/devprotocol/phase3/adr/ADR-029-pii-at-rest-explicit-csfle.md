@@ -11,13 +11,13 @@
 
 ## Context
 
-Four of the six collections hold personal data. `admin` and `shopOwner` hold the operator's and the shop
+Four of the six collections hold personal data. `admin` and `shopOwner` hold the admin's and the shop
 owner's names, home address, birth date and phone numbers; `user` holds the customer's; `company` holds two
 named natural persons (`contactPerson`, `administrator`) inside what is otherwise a registry record.
 `item` and `itemCategory` hold none.
 
 Left in the clear, all of it is readable by anyone who reaches the storage: a `mongodump`, a stolen disk
-image, a backup dropped in the wrong bucket, an operator with read access to the cluster. The
+image, a backup dropped in the wrong bucket, an admin with read access to the cluster. The
 application-level protections this platform has — per-tier sessions (ADR-004), the ShopOwner tier never
 loading the `shopOwner` model at all — sit *above* the database, and none of them survives direct access
 to it. So the question has to be answered before the collections are created, because it decides the
@@ -41,7 +41,7 @@ path has to encrypt and decrypt by hand.** There is no interception layer that d
 Two further facts constrain which fields can be touched at all, and both were verified against the code
 rather than assumed:
 
-1. **The operator table sorts and searches on three PII fields.** `shopOwnersActiveTblDb.mts` exposes
+1. **The admin table sorts and searches on three PII fields.** `shopOwnersActiveTblDb.mts` exposes
    `sortBy` ∈ {`REGISTERED_AT`, `FIRST_NAME`, `LAST_NAME`, `CITY`}, backed by the four dedicated compound
    `tbl_active_*` indexes created with the collection, and a `search` argument that builds
    `new RegExp('^' + escaped, 'i')` over `SEARCHABLE_PATHS = ['personalData.firstName',
@@ -61,9 +61,9 @@ so it cannot even be matched.
 
 | Option | Pros | Cons |
 |---|---|---|
-| Explicit CSFLE — deterministic on the 5 fields queried by equality, random on every other PII field, non-PII untouched (chosen) | Works on Community; `login.email` keeps its unique index and every login path; the sensitive bulk (addresses, birth dates, phone numbers, operator notes, the two named persons on `company`) becomes unreadable in a dump; blast radius scoped by one DEK per collection | Every read and write path changes; encrypted fields become `binData` so `$jsonSchema` loses `maxLength`/`pattern` on them; three operator-table sort options and its search cannot cover encrypted fields; deterministic ciphertext leaks equality |
-| Encrypt every PII field including the three the operator table sorts and searches on | Strictly the most data protected; no field-by-field argument to defend later | Deletes a built, tested, indexed feature: `sortBy: FIRST_NAME / LAST_NAME / CITY` would order by ciphertext (i.e. arbitrarily) and `search` would match nothing. Three of the four `tbl_active_*` indexes become dead weight. The failure is silent — the table still renders, in a meaningless order |
-| Encrypt nothing; rely on disk encryption (LUKS/dm-crypt) and cluster ACLs | Zero application change; no query-shape loss at all | Protects only against a stolen disk. A `mongodump`, a compromised application credential, a backup copied off the host and any read-capable operator all still see plaintext — which is most of the threat model this ADR exists for |
+| Explicit CSFLE — deterministic on the 5 fields queried by equality, random on every other PII field, non-PII untouched (chosen) | Works on Community; `login.email` keeps its unique index and every login path; the sensitive bulk (addresses, birth dates, phone numbers, admin notes, the two named persons on `company`) becomes unreadable in a dump; blast radius scoped by one DEK per collection | Every read and write path changes; encrypted fields become `binData` so `$jsonSchema` loses `maxLength`/`pattern` on them; three admin-table sort options and its search cannot cover encrypted fields; deterministic ciphertext leaks equality |
+| Encrypt every PII field including the three the admin table sorts and searches on | Strictly the most data protected; no field-by-field argument to defend later | Deletes a built, tested, indexed feature: `sortBy: FIRST_NAME / LAST_NAME / CITY` would order by ciphertext (i.e. arbitrarily) and `search` would match nothing. Three of the four `tbl_active_*` indexes become dead weight. The failure is silent — the table still renders, in a meaningless order |
+| Encrypt nothing; rely on disk encryption (LUKS/dm-crypt) and cluster ACLs | Zero application change; no query-shape loss at all | Protects only against a stolen disk. A `mongodump`, a compromised application credential, a backup copied off the host and any read-capable admin all still see plaintext — which is most of the threat model this ADR exists for |
 | Encrypt in the application with a hand-rolled AES layer instead of CSFLE | No native addon, no key vault collection, full freedom over the wire format | Reinvents key rotation, key versioning, the AEAD construction and the envelope format, all of which CSFLE already ships and none of which is interesting to get wrong. Also gives up the driver's `binData` subtype 6 convention, so nothing downstream can tell an encrypted value from a blob |
 | Queryable Encryption (range-capable) | Would keep sort and range on encrypted fields | Not available on Community. Non-option, recorded so it is not re-proposed |
 
@@ -136,21 +136,21 @@ would otherwise be random-encrypted along with the rest of `personalData`.
 They are the three keys `shopOwnersActiveTblDb.mts` sorts and prefix-searches on, backed by
 `tbl_active_lastName_firstName`, `tbl_active_firstName` and `tbl_active_city`. Encrypting them does not
 degrade those paths, it silently falsifies them: the sort orders by ciphertext, which is arbitrary and
-stable, so the operator table keeps rendering a page of shop owners in an order that means nothing, and
+stable, so the admin table keeps rendering a page of shop owners in an order that means nothing, and
 `search` returns empty for every term. There is no client-side rescue at pagination — the whole point of
 those indexes, argued in the header of `20260301000100-create-shopOwner.js`, is that a non-indexed sort is
 a blocking in-memory sort capped at 32 MB, i.e. a latent outage rather than a slow page.
 
 What is bought by leaving them clear: a dump exposes a shop owner's name and city. What is kept private:
 their street, postcode, province, home coordinates, date of birth, both phone numbers, their private
-contact address and everything an operator ever wrote about them. A shop owner's name and town are also
+contact address and everything an admin ever wrote about them. A shop owner's name and town are also
 the business-facing identity of a shop that the storefront publishes under `company.publicName` and
 `company.address.city` anyway, which is why this is the field group where the trade is least bad.
 
 **The corresponding fields on `user` and `admin` are encrypted**, because nothing sorts or searches them:
-the customer reads their own document by `_id` (`me.mts`), and there is no operator table over `admin`.
+the customer reads their own document by `_id` (`me.mts`), and there is no admin table over `admin`.
 
-This is the one line in this ADR to revisit if the operator table's sort and search can be given up, or
+This is the one line in this ADR to revisit if the admin table's sort and search can be given up, or
 if the collection ever moves behind a search engine that holds its own index.
 
 ### Keys
@@ -181,8 +181,8 @@ once and every call site reads it from there rather than restating it.
 
 ### Positive
 
-- A `mongodump`, a stolen backup or a read-capable operator sees `binData` for every customer address,
-  every date of birth, every phone number, every private contact address, the operator's notes on a shop
+- A `mongodump`, a stolen backup or a read-capable admin sees `binData` for every customer address,
+  every date of birth, every phone number, every private contact address, the admin's notes on a shop
   owner, and the two named persons on a company record.
 - Every login, every password reset, every email verification and every email change keeps working
   unchanged, including the unique index and its soft-delete behaviour, because the five fields those paths
@@ -208,7 +208,7 @@ once and every call site reads it from there rather than restating it.
 - **Deterministic ciphertext leaks equality.** Two accounts with the same address produce the same
   ciphertext. For `login.email` this leaks nothing new — the unique index already asserts distinctness —
   but it is a real property of the algorithm and the reason it is used on five fields and not on twenty.
-- **Three sort options and one search on the operator table cover unencrypted fields only**, as argued
+- **Three sort options and one search on the admin table cover unencrypted fields only**, as argued
   above.
 - A native addon (`mongodb-client-encryption`) joins the dependency set, and with it a build requirement
   on every machine and container that runs a service.

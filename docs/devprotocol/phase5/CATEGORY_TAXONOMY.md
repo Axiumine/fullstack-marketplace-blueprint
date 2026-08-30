@@ -71,7 +71,7 @@ collection" of `marketplace-dev-authenticated-resource` — the flat opposite of
 answered hours earlier, and the sharpest of twelve files under `docs/` where the
 pre-`holdItemCategory` absolute survived. Both now say what holds: every *mutation* is Admin-tier, one field is not. No story
 changed state; E06-S06 stays `built`, since the read-only surface it was written to protect is intact.
-v1.8 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the operator's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
+v1.8 - 2026-08-25: the `epics/` range this record's §0 names is **E07..E19**, not E07..E18 — `epics/E19.md` opened that day (Customer Administration: the admin's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 v1.10 - 2026-08-27: §0's range narrows for the opposite reason it last grew — `phase5/epics/E11.md` was
 deleted, not moved, so the range this record cites shrinks to **E12..E19** and E11 is named separately, as
 distributed into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note
@@ -337,13 +337,13 @@ all four metrics, mutation score 100.
   needs one has not been asked of the user.~~ ⚠️ **Closed 2026-08-14 by the platform owner: no intermediate
   draft state.** Present or soft-deleted stays the whole state space of a category — no `published` field
   on `itemCategory`, no disable mutation, and no third value between the two. The other two flags exist
-  because a shop drafts its *own* public surface; the taxonomy is operator-written on the Admin tier alone
-  (E06-S02, DCON-05), so the only person who could see a half-built category is the operator building it,
+  because a shop drafts its *own* public surface; the taxonomy is admin-written on the Admin tier alone
+  (E06-S02, DCON-05), so the only person who could see a half-built category is the admin building it,
   and not creating it yet does what a draft flag would. `itemCategories` already reads this way — it
   filters `deleted` and nothing else, and says why in its own docblock
   (`BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/itemCategories.mts`).
   ⚠️ **The accepted cost:** a category created ahead of the items that will fill it is public the moment
-  it is created, and shows an empty listing until they arrive. The operator's lever is ordering — create
+  it is created, and shows an empty listing until they arrive. The admin's lever is ordering — create
   it when it is wanted — or `itemCategoryDel`, which soft-deletes and leaves the items that already point
   at it resolvable. Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
 - ~~Until E06-S07 the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
@@ -399,7 +399,7 @@ all four metrics, mutation score 100.
   `throwIfHasChildren(C)` guards an update that writes `C`, and the racing `itemCategoryAdd({ idParent: C })`
   writes `C` too.
   **The accepted cost is contention** — two subcategories filed under one parent at the same instant now
-  serialise on it, one of them retried. On a taxonomy one operator tier writes, that is a retry nobody sees.
+  serialise on it, one of them retried. On a taxonomy one admin tier writes, that is a retry nobody sees.
 
   ⚠️ **The other half was on another tier, and closed there the same day** — branch `fix/item-category-hold`
   in `marketplace-dev-authenticated-resource`. `funItemCategoryDelete`'s refusal over live *items* raced
@@ -412,7 +412,7 @@ all four metrics, mutation score 100.
   upload stays outside the transaction, because `withTransaction` re-runs its callback and a ClamAV scan and
   a `rename` are not undone by an abort; `itemAdd` keeps its cheap `throwIfItemCategoryMissing` count ahead
   of that upload and the holding write does the enforcing. **The cost here is real contention** rather than
-  the operator tier's theoretical kind — every item write on the platform now touches its category, and two
+  the admin tier's theoretical kind — every item write on the platform now touches its category, and two
   owners stocking the same one serialise on it. ⚠️ **The two sides are one rule in two repos**, stated in
   both docblocks, and changing either alone reopens the window with nothing failing to say so.
 

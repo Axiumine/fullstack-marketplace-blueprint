@@ -35,7 +35,7 @@ mechanism was never observed to miss.
 
 **No in-flight refresh can be straddled by a rotation.** Not at 37 ms and not at the five-minute ceiling
 either — §5 shows this is structural, not lucky. A **retirement** does invalidate cookies, which is its
-entire purpose; §6 sizes the one case where it invalidates more than the operator intended and concludes
+entire purpose; §6 sizes the one case where it invalidates more than the admin intended and concludes
 that it does **not** warrant a story before E16 is called done.
 
 One defect was found, and it has nothing to do with keys — it was found because the missing
@@ -44,7 +44,7 @@ One defect was found, and it has nothing to do with keys — it was found becaus
 - **🔴 A service that fails its required-env check exits `0`, silently.** No console output, no non-zero
   status, nothing in the log. `checkRequiredEnv()` throws outside the `try` in `start()`, and the
   bottom-of-file `.catch` hands the error to `Sentry.captureException(e)` — which, with no `DSN`
-  configured, discards it. An operator running a service with a missing variable sees a process that
+  configured, discards it. An admin running a service with a missing variable sees a process that
   started and stopped, and cannot tell it from a clean shutdown. This belongs to **E18-S03**, which is
   already the story about `REQUIRED_ENV_VARS` and failing to start; it is recorded here because this is
   where it was observed.
@@ -131,11 +131,11 @@ purpose: it is the response to a suspected compromise, and the sessions it logs 
 attacker holding that key could have used.
 
 Beyond that intended blast radius there is exactly one case where a retirement logs out a session the
-operator did not mean to reach. It requires **both** of:
+admin did not mean to reach. It requires **both** of:
 
 - a holder that has not yet adopted the rotation which demoted the target key — meaning its pub/sub
   delivery failed, since delivery was measured at ≤2 ms — **and**
-- the operator retiring that key inside that holder's remaining poll window.
+- the admin retiring that key inside that holder's remaining poll window.
 
 Cookies that lagging holder signs in the gap are signed with a key that no longer exists anywhere, so its
 owners are logged out on their next request.
@@ -145,7 +145,7 @@ owners are logged out on their next request.
 - `keygripRetire` already refuses to retire the key at index 0 — 409, `KEYGRIP_RETIRE_CURRENT`, tested over
   HTTP — so the ordinary path cannot strand a signer at all. The edge needs a *second* key still in active
   use by a lagging process, which needs a delivery failure first.
-- The holders hash makes the precondition **visible before the operator acts**: a lagging service is a row
+- The holders hash makes the precondition **visible before the admin acts**: a lagging service is a row
   whose fingerprint disagrees with the record's, and E01-S14 already surfaces exactly that table.
 - The blast radius is bounded by the same five minutes as everything else, and the population is the
   sessions one lagging service happened to sign inside it.
@@ -153,7 +153,7 @@ owners are logged out on their next request.
 **What it does earn is a console affordance in E17-S08**, not a domain change: the retire control should
 warn — or refuse — while any holders row disagrees with the current fingerprint. The mutation deliberately
 does not consult the holders hash, and should not start: a break-glass response to a compromised key must
-not be blockable by a service that is merely unreachable. The judgement belongs to the operator, with the
+not be blockable by a service that is merely unreachable. The judgement belongs to the admin, with the
 disagreement shown.
 
 ## 7. Residual: a retired key is honoured until every holder adopts
@@ -174,7 +174,7 @@ defines `KEYGRIP_KEK`, and all of them still define `KEYGRIP_KEY_1`.** The code 
 before serving until the run supplied a KEK of its own.
 
 These files are developer-owned and untracked; nothing in this investigation modified them. The remedy is
-the seeding step in `SETUP.md`, not a code change, but an operator following the current documents on this
+the seeding step in `SETUP.md`, not a code change, but an admin following the current documents on this
 machine would hit §1's silent exit and have nothing to read.
 
 ## 9. What this replaces

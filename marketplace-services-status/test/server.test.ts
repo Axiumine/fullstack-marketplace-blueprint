@@ -365,8 +365,8 @@ describe('assertTrustedHost', () => {
     expect(assertTrustedHost('status.example:2901', hosts)).toEqual({ allowed: true, reason: 'host is trusted' });
   });
 
-  // The reason names the host and the way to fix it: this is the message an operator meets when
-  // they first put the page behind a name of their own.
+  // The reason names the host and the way to fix it: this is the message you meet when you first
+  // put the page behind a name of your own.
   it('refuses a host that is not in the set, naming it', () => {
     expect(assertTrustedHost('evil.example', hosts)).toEqual({
       allowed: false,
@@ -1412,7 +1412,7 @@ describe('printBanner', () => {
 
     printBanner(configOf({ authToken }));
 
-    // Every line, in order. The banner is what an operator reads out of `systemctl status` when
+    // Every line, in order. The banner is what you read out of `systemctl status` when
     // the page will not load, so a line that silently stopped being printed is a real loss.
     expect(log.mock.calls.map((call) => String(call[0]))).toEqual([
       'marketplace-services-status monitor listening',

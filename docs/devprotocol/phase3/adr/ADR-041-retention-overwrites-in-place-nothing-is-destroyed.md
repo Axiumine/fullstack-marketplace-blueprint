@@ -35,7 +35,7 @@ Three things follow from that sentence, and all three are constraints rather tha
 
 **The document is the record that the person existed.** A removed `user` leaves the platform unable to
 answer *was there ever an account on this address, and what became of it* — which is the question an
-operator asks first, and the question an audit of a closure asks. ADR-011's Amendment treated the document
+admin asks first, and the question an audit of a closure asks. ADR-011's Amendment treated the document
 as nothing but a container for personal data; the owner treats it as two things, a container and a record,
 and only the first is erasable.
 
@@ -83,7 +83,7 @@ deleted.**
 The lifecycle is three states and one clock.
 
 1. **Closure stamps `deleted`** — `funUserDel` for a customer closing their own account, `funShopOwnerDelete`
-   for an operator closing a shop owner's. Sessions are revoked in the same operation. ⚠️ `shopOwnerDel.mts`
+   for an admin closing a shop owner's. Sessions are revoked in the same operation. ⚠️ `shopOwnerDel.mts`
    does not revoke today — `shopOwnerUpdateStatus.mts:49` does it for a mere suspension and the closure
    mutation does not do it at all — and that asymmetry is fixed here, because a closure is now a durable,
    audited decision rather than a stamp that a re-registration would shortly erase.
@@ -134,7 +134,7 @@ the reversal and it is stated plainly: ADR-011's Amendment could say *"the stamp
 the index is the erasure — there is no job, no scheduler and no application code involved, which is also why
 nothing can forget to run it."* That sentence stops being true here. A TTL index can only delete a whole
 document; it cannot modify a field, so no index can carry out an overwrite. The sweeper runs on an interval
-inside `marketplace-dev-admin-authenticated-resource` — the operator surface, which already writes both
+inside `marketplace-dev-admin-authenticated-resource` — the admin surface, which already writes both
 collections and is not the internet-facing unauthenticated service — under a single-key Redis lock
 (`SET NX PX`) so that a multi-instance deployment scrubs once.
 
@@ -161,7 +161,7 @@ and it is being deleted, so the last live example of the idiom goes with it).
   `login.email_unique` on either collection. ADR-011's Option C refusal is honoured rather than routed
   around, and the three liveness-blind call sites keep working because there is never more than one
   document per address.
-- **Closure becomes auditable.** A closed account leaves a permanent row an operator can find, with a date
+- **Closure becomes auditable.** A closed account leaves a permanent row an admin can find, with a date
   and an actor ([ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md)), rather than a hole where a
   record used to be.
 

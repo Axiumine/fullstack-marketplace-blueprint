@@ -39,7 +39,7 @@ open risks are all about per-machine environment files being wrong**:
   verifies it. `Mitigated` since ADR-034, not closed: `KEYGRIP_KEK` is still a per-machine value provisioned
   by hand, and a tenth service that reads the keygrip record is a tenth KEK to provision. The failure is loud
   now — `KEYGRIP_KEK_MISMATCH` and `process.exit(1)` rather than a port — but a service that will not start is
-  still an incident, and this one would be the console an operator reaches for *during* an incident.
+  still an incident, and this one would be the console an admin reaches for *during* an incident.
 - **R03** — `INTROSPECTION_CODE` disagreement across the nine backend `env` files, which breaks the
   service-to-service bypass in both directions. Detection is a manual sweep. Nine copies is the number that
   makes the sweep worth writing down; ten is not better.
@@ -78,7 +78,7 @@ Revisit if **either** of these becomes true:
    populated value is refused at boot the way a wrong `KEYGRIP_KEK` already is, for every shared key rather
    than for that one. At that point a tenth deployable costs a port and a systemd unit, and the argument
    above evaporates. E18's environment work is where that would come from.
-2. **Session administration stops being operator tooling** — if any of these operations is ever needed by an
+2. **Session administration stops being admin tooling** — if any of these operations is ever needed by an
    automated caller, on a schedule, or at a request rate that makes it worth isolating from the Admin panel's
    ordinary traffic. Today all seven are driven by one human on one screen during an incident, which is the
    traffic profile that makes a shared process obviously right.

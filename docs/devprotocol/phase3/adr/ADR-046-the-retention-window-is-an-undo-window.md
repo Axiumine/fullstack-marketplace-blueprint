@@ -30,7 +30,7 @@ The platform owner asked the question that undoes both:
 It is the right question and it had no good answer. With commerce permanently out of scope
 ([ADR-038](./ADR-038-commerce-is-permanently-out-of-scope.md)) there are no disputes, chargebacks or
 refunds to retain for, and closure was irreversible, so the window's only remaining consumer was an
-operator wanting to recognise a closed account for thirty days. Against that, the early scrub made
+admin wanting to recognise a closed account for thirty days. Against that, the early scrub made
 *close, then re-register an hour later* an instant self-erasure — the one thing the window was still for,
 defeated by the flow that ran inside it.
 
@@ -90,7 +90,7 @@ something that races with it. `buildAccountScrub` loses its second caller and ke
 | `company`, `item` | **untouched — still `published: false`** | ADR-045 unchanged: the owner republishes by hand. Now it is one rule for both ways back, suspension-lift and closure-undo |
 
 **`waitApprov` is the human checkpoint and the only one.** A closure is the platform's last look at an
-account, so coming back is re-entry through the door a first registration uses. An operator who closed a
+account, so coming back is re-entry through the door a first registration uses. An admin who closed a
 seller for cause simply never approves them again, and the restored account sits inert. **The customer tier
 has no equivalent, because it has no approval gate** — a restored `user` is usable immediately.
 
@@ -116,7 +116,7 @@ There is no scrubbed-account branch in the confirm flow and there must not be on
 ### Positive
 - **The retention window finally means something to the person it is about.** Closing an account by mistake
   — or on a bad day — is recoverable for thirty days by doing the obvious thing, with no support ticket and
-  no operator involved.
+  no admin involved.
 - **Closure stops being a laundering tool.** Under ADR-042 as built, close-then-re-register erased the
   record the same hour. Now the record is handed back instead, and the only thing that erases it is thirty
   days of not coming back.
@@ -136,7 +136,7 @@ There is no scrubbed-account branch in the confirm flow and there must not be on
 - **Closure is no longer a clean promise.** "Your data is gone when you close" became "your data is gone
   thirty days after you close, and you can have it back until then" — which is honest, and is a privacy
   statement `marketplace-user`'s `privacy.tsx` now has to make.
-- **An operator cannot prevent a customer from returning.** For sellers, withholding approval is the answer;
+- **An admin cannot prevent a customer from returning.** For sellers, withholding approval is the answer;
   for customers, the answer is to suspend the restored account afterwards, which requires noticing it.
 
 ### Risks

@@ -98,7 +98,7 @@ export function hostnameOnly(hostHeader: string): string {
 // route runs — see assertTrustedHost() for why this exists at all.
 //
 // Loopback names are unconditional: the default bind is 127.0.0.1 and that is how the page is
-// normally reached. DOMAIN and HOST are added because they are the names the operator configured.
+// normally reached. DOMAIN and HOST are added because they are the names whoever deployed it set.
 // ALLOWED_HOSTS extends it for the cases this process cannot derive (a LAN IP under BIND_ALL, a
 // second vhost). '0.0.0.0' and '::' are wildcards, not names a browser ever sends, so they are
 // never added — otherwise BIND_ALL=true would trust a literal Host: 0.0.0.0.

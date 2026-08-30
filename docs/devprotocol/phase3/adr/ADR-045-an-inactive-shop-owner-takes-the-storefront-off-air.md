@@ -14,13 +14,13 @@
 Suspending a shop owner does nothing to their shop. `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts:32-34`
 — `livePublic()` — filters public reads on `company`'s **own** fields, `{ published: true, deleted: { $exists: false } }`,
 and reads nothing at all on `shopOwner`. `companies.mts:59` and `companyBySlug.mts:35` both go through it, so
-an owner an operator has suspended (`disabled: true`) or closed (`deleted` stamped) keeps a fully live,
+an owner an admin has suspended (`disabled: true`) or closed (`deleted` stamped) keeps a fully live,
 browsable storefront, and every `item` beneath it, to anonymous visitors.
 
 That was tolerable while suspension was one of several levers. It stopped being tolerable on 2026-08-29:
 [ADR-041](./ADR-041-retention-overwrites-in-place-nothing-is-destroyed.md) removed deletion as an
 alternative — nothing on this platform is destroyed — and
-[ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md) made suspension the operator's answer to a
+[ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md) made suspension the admin's answer to a
 misbehaving tenant. A lever that stops at the login is not an answer when the complaint is about the shop.
 
 The question was opened as a §5 gap the same morning, because nobody had ever decided it either way, and
@@ -37,17 +37,17 @@ answered by the platform owner within the day, in three rulings that have to be 
 `company.published = false` is that it is not reversible: un-suspending could not tell a shop the owner had
 *deliberately* taken down from one the platform hid, and would republish the first. That objection only bites
 if un-suspending is supposed to restore anything. The platform owner ruled that it is not. **Coming back is
-an act the owner performs, not a side effect of an operator clearing a flag** — so there is nothing to
+an act the owner performs, not a side effect of an admin clearing a flag** — so there is nothing to
 restore, nothing to remember, and no second copy of the truth to keep in sync.
 
 Two things already in the codebase say this is the grain of the design rather than a shortcut:
 
-- **An operator can already unpublish a single shop.** `marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyUpdatePublished.mts:26-27`
+- **An admin can already unpublish a single shop.** `marketplace-dev-admin-authenticated-resource/src/lib/company/funCompanyUpdatePublished.mts:26-27`
   writes `{ $set: { published } }` with no ownership filter, and its own comment says *"unpublishing here
-  hides the shop's whole catalogue in one write."* The cascade is the bulk form of an operation the operator
+  hides the shop's whole catalogue in one write."* The cascade is the bulk form of an operation the admin
   has had all along.
 - **Republishing after somebody else unpublished is an established flow.** `GraphQLInputItem.mts:32-35`
-  keeps `published` out of the update input precisely so a form save cannot *"republish an item an operator
+  keeps `published` out of the update input precisely so a form save cannot *"republish an item an admin
   had just taken down, without ever asking to."* The owner's route back is `companyUpdatePublished`, which
   exists, is gated by `idShopOwner`, and is the only way `published: true` is ever written.
 
@@ -121,7 +121,7 @@ was created in the first place. It is noted here so that whoever asks it finds i
 ## Consequences
 
 ### Positive
-- **Suspension becomes a real lever.** The operator's only remaining sanction now reaches the thing people
+- **Suspension becomes a real lever.** The admin's only remaining sanction now reaches the thing people
   complain about, which is what ADR-044 assumed it did.
 - **Reads do not change at all.** No new clause, no new index, no aggregation on the anonymous hot path. The
   cheapest possible reading of *"cheap read"*: the filter already excludes what has to be excluded.
@@ -129,7 +129,7 @@ was created in the first place. It is noted here so that whoever asks it finds i
   anybody has to check. Nothing can drift from anything, so no reconciliation, no invariant query, no
   self-healing sweep — none of it has to exist.
 - **Coming back is an explicit, audited act by the owner**, through a mutation with an ownership filter and a
-  validator, rather than a bulk write performed on their behalf by an operator clearing an unrelated flag.
+  validator, rather than a bulk write performed on their behalf by an admin clearing an unrelated flag.
 - ~~**The catalogue survives intact.** Item-level publish state is untouched, so one call per shop restores
   what could otherwise be hundreds of items of hand work.~~ Withdrawn by the Amendment: the catalogue does
   not survive, and the hand work is answered with a bulk control instead.
@@ -141,7 +141,7 @@ was created in the first place. It is noted here so that whoever asks it finds i
 - **A shop the owner had already unpublished is indistinguishable** from one the platform took down, so the
   owner may republish something they had deliberately taken offline.
 - **A silently dark shop.** An owner who never logs back in leaves a storefront down permanently with no
-  operator action having explicitly taken it down. That is the intended reading of *"by hands"*, but it means
+  admin action having explicitly taken it down. That is the intended reading of *"by hands"*, but it means
   un-suspension alone does not restore the platform to its prior state and never will.
 - ~~**Items are hidden transitively, not directly.** An `item` has no relationship to `shopOwner`; it
   disappears because its `company` does. Any future public read that reaches `item` without the company
@@ -244,11 +244,11 @@ A second ruling the same day settles both ends:
 > shopowner, restore only his account"*
 
 **The cascade hangs off the state, not off the tier that changed it.** The Decision's writer table names the
-operator-side functions because they are the ones that exist; the obligation is on *any* path that makes an
+admin-side functions because they are the ones that exist; the obligation is on *any* path that makes an
 owner inactive. A shop owner disabling or closing their own account — the ShopOwner-tier self-service
 counterpart of `funUserDel`, which this platform does not have yet — carries exactly the same two
 `updateMany` calls in exactly the same transaction. Whoever builds it inherits this paragraph, and a
-self-closure that skips the cascade is the same defect as an operator closure that skips it.
+self-closure that skips the cascade is the same defect as an admin closure that skips it.
 
 ⚠️ **Restoring a shop owner restores the account and nothing else.** Whatever lifts `disabled` — and
 whatever, if anything, is ever built to lift a `deleted` stamp — writes to the `shopOwner` document alone.
@@ -315,7 +315,7 @@ account rather than minting a new one.
 owner keeps their `_id`, so they still own every company and item they owned before — all of them
 `published: false`, and all of them theirs to republish by hand. The rule this page exists for is
 unchanged and now covers both ways back: **restoring an owner writes to the `shopOwner` document alone.**
-A restore additionally re-raises `waitApprov`, so an operator who closed a seller for cause can decline to
+A restore additionally re-raises `waitApprov`, so an admin who closed a seller for cause can decline to
 approve them a second time.
 
 ### The whole lifecycle on one page
@@ -328,18 +328,18 @@ register again within the deletion window and after that window"*. Nothing here 
 [ADR-044](./ADR-044-suspension-names-an-actor-and-a-reason.md) and this page read together, in the order the
 events happen.
 
-**What each act writes.** The cascade hangs off the state, not off who changed it, so the operator column and
+**What each act writes.** The cascade hangs off the state, not off who changed it, so the admin column and
 the owner column are identical wherever both exist:
 
 | Act | `shopOwner` | `company` | `item` | Sessions | Reversible |
 |---|---|---|---|---|---|
-| Operator suspends | `disabled: true`, `disabledReason`, `disabledBy` = the `admin` `_id`, `disabledAt` | every one → `published: false` | every one under those companies → `published: false` | all of that owner's are ended | yes — by an operator clearing `disabled` |
+| Admin suspends | `disabled: true`, `disabledReason`, `disabledBy` = the `admin` `_id`, `disabledAt` | every one → `published: false` | every one under those companies → `published: false` | all of that owner's are ended | yes — by an admin clearing `disabled` |
 | Owner closes their own account | `deleted` stamped | every one → `published: false` | every one → `published: false` | all ended | **yes, for 30 days** — ADR-046 |
-| Operator closes an account | `deleted` stamped, `deletedBy` = the `admin` `_id` | every one → `published: false` | every one → `published: false` | all ended | **yes, for 30 days** — ADR-046 |
-| Operator lifts a suspension | `disabled` cleared | **untouched — still `published: false`** | **untouched — still `published: false`** | none restored | — |
+| Admin closes an account | `deleted` stamped, `deletedBy` = the `admin` `_id` | every one → `published: false` | every one → `published: false` | all ended | **yes, for 30 days** — ADR-046 |
+| Admin lifts a suspension | `disabled` cleared | **untouched — still `published: false`** | **untouched — still `published: false`** | none restored | — |
 | Retention sweep, day 30 after `deleted` | identity overwritten in place, `scrubbedAt` stamped | untouched — already dark | untouched — already dark | — | **no** |
 
-There is no row for *"operator lifts a closure"* because there is no such act. A `deleted` stamp is never
+There is no row for *"admin lifts a closure"* because there is no such act. A `deleted` stamp is never
 cleared, by anybody, on any tier.
 
 ⚠️ **A suspension is lifted by the tier that imposed it, and by nothing else.** A suspended owner cannot log
@@ -350,9 +350,9 @@ re-runs the same guard on **every refresh**, so raising the flag on somebody alr
 session within one access-token lifetime rather than one refresh-token lifetime. `disabled` is written in
 exactly one place on the platform — `funShopOwnerUpdateStatus`, Admin tier — and self-closure writes
 `deleted` and never `disabled`, exactly as `funUserDel` does on the customer tier. **A suspended owner
-therefore has no way out of a suspension except an operator, and no way to close their account either.**
+therefore has no way out of a suspension except an admin, and no way to close their account either.**
 
-**What the owner has to do to come back from a suspension:** wait for an operator to clear `disabled` —
+**What the owner has to do to come back from a suspension:** wait for an admin to clear `disabled` —
 nothing they do brings the account back — then log in, then republish each shop with
 `companyUpdatePublished`, then republish the items in each with `itemsUpdatePublished` — select-all, one
 click, per shop. The platform never does either on their behalf, and there is no deadline on doing it.

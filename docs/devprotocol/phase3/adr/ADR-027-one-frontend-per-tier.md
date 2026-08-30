@@ -11,7 +11,7 @@
 
 ## Context
 
-Platform has 3 auth tiers, each own collection, own service pair, own port pair. `Admin` (operator,
+Platform has 3 auth tiers, each own collection, own service pair, own port pair. `Admin` (admin,
 `admin` collection, 4024/4025), `ShopOwner` (shop owner, `shopOwner` collection, 4026/4029), `User`
 (customer, `user` collection, 4031/4032). ADR-002 (`ADR-002-role-is-authentication-collection.md`) already
 decided backend has no `role` field, no permission enum — role IS which collection session auth against,
@@ -20,7 +20,7 @@ Redis session hash.
 
 Frontend needed a decision independent of that one: ship it as 1 codebase or N. 1 bundle serving all 3
 tiers would need a client-side role switch to decide which screens/queries/mutations to expose — the exact
-concept the backend refuses. It would also mean every customer browser downloads the operator SPA's code
+concept the backend refuses. It would also mean every customer browser downloads the admin SPA's code
 (shopOwner approval queue, `itemCategory` moderation, admin stats) even though it never runs it — Content
 delivered ≠ content authorized is a leak surface (bundle inspection, source maps, unminified strings) even
 if UI hides it.
@@ -43,9 +43,9 @@ in `marketplace-admin` or `marketplace-shopowner`, which are pure SPA.
 
 | Option | Pros | Cons |
 |---|---|---|
-| One frontend app, role switch at runtime (read tier from session, branch UI/router/queries) | Single codebase, single build, single deploy artifact, shared components trivially reused | Ships operator+shopOwner+customer code to every browser regardless of tier; reintroduces `role`-shaped branching backend explicitly rejected (ADR-002); one urql client config must reconcile 3 different endpoint sets and 3 different codegen outputs; a bug in the switch is a cross-tier data leak, not a build error; SSR-vs-CSR split (`marketplace-user` only) would infect the other 2 tiers' routing for no reason |
-| One frontend app, 3 separate build entry points (multi-page build, shared `src/`) | Some code sharing without runtime role switch; still 1 repo, 1 `package.json`, 1 `node_modules` | Still 1 dependency tree — a `marketplace-user`-only package (MapLibre GL, PMTiles) ships to operator/shopOwner installs too; 1 `.githooks/pre-push` gate (100% coverage + mutation, `README.md` §Test quality gates) now spans 3 apps' worth of code, so an operator-only test failure blocks a shopOwner-only change from shipping; 1 Qodana project/token for 3 surfaces corrupts the per-tier baseline the way a misrouted token does elsewhere on this platform (`docs/frontends.md` warns against exactly this for `marketplace-services-status`); still needs a build-time (not runtime) role split, which is a smaller version of the same coupling |
-| Three separate repos/apps, one per tier — `marketplace-admin` (3043), `marketplace-shopowner` (3044), `marketplace-user` (3045) | No tier's code ever reaches another tier's browser; each app talks only to its own tier's endpoints (CON_ports above), so an operator bug cannot touch customer traffic; each gets its own coverage/mutation/Qodana gate and project token, matching the backend's per-service gating pattern already established; `marketplace-user` free to be the one SSR app without dragging SSR concerns into the 2 pure-SPA tiers; mirrors the backend split 1:1 (tier × concern), so the pattern engineers already learned reading [`docs/architecture.md`](../../../architecture.md) §Services applies again here | 3 codegen setups, 3 dependency trees, 3 things to keep in sync when a shared concept (e.g. `Company` shape) changes on all 3 — no shared package like `marketplace-common` exists for frontend code; genuinely divergent behaviour between `marketplace-admin` and `marketplace-shopowner` (see Decision) must be tracked per-repo, nothing enforces they stay consistent where they should be |
+| One frontend app, role switch at runtime (read tier from session, branch UI/router/queries) | Single codebase, single build, single deploy artifact, shared components trivially reused | Ships admin+shopOwner+customer code to every browser regardless of tier; reintroduces `role`-shaped branching backend explicitly rejected (ADR-002); one urql client config must reconcile 3 different endpoint sets and 3 different codegen outputs; a bug in the switch is a cross-tier data leak, not a build error; SSR-vs-CSR split (`marketplace-user` only) would infect the other 2 tiers' routing for no reason |
+| One frontend app, 3 separate build entry points (multi-page build, shared `src/`) | Some code sharing without runtime role switch; still 1 repo, 1 `package.json`, 1 `node_modules` | Still 1 dependency tree — a `marketplace-user`-only package (MapLibre GL, PMTiles) ships to admin/shopOwner installs too; 1 `.githooks/pre-push` gate (100% coverage + mutation, `README.md` §Test quality gates) now spans 3 apps' worth of code, so an admin-only test failure blocks a shopOwner-only change from shipping; 1 Qodana project/token for 3 surfaces corrupts the per-tier baseline the way a misrouted token does elsewhere on this platform (`docs/frontends.md` warns against exactly this for `marketplace-services-status`); still needs a build-time (not runtime) role split, which is a smaller version of the same coupling |
+| Three separate repos/apps, one per tier — `marketplace-admin` (3043), `marketplace-shopowner` (3044), `marketplace-user` (3045) | No tier's code ever reaches another tier's browser; each app talks only to its own tier's endpoints (CON_ports above), so an admin bug cannot touch customer traffic; each gets its own coverage/mutation/Qodana gate and project token, matching the backend's per-service gating pattern already established; `marketplace-user` free to be the one SSR app without dragging SSR concerns into the 2 pure-SPA tiers; mirrors the backend split 1:1 (tier × concern), so the pattern engineers already learned reading [`docs/architecture.md`](../../../architecture.md) §Services applies again here | 3 codegen setups, 3 dependency trees, 3 things to keep in sync when a shared concept (e.g. `Company` shape) changes on all 3 — no shared package like `marketplace-common` exists for frontend code; genuinely divergent behaviour between `marketplace-admin` and `marketplace-shopowner` (see Decision) must be tracked per-repo, nothing enforces they stay consistent where they should be |
 
 ---
 
@@ -54,7 +54,7 @@ in `marketplace-admin` or `marketplace-shopowner`, which are pure SPA.
 Chosen: three separate repos, one per tier — row 3. Reasoning stated in [`CLAUDE.md`](../../../../CLAUDE.md) §Build state
 and §Frontends table: `marketplace-admin` (Admin, 3043, SPA), `marketplace-shopowner` (ShopOwner, 3044,
 SPA), `marketplace-user` (User + anonymous, 3045, SSR public / CSR account). This is the frontend
-consequence of ADR-002 — a role switch inside one bundle would (a) ship the operator surface to every
+consequence of ADR-002 — a role switch inside one bundle would (a) ship the admin surface to every
 customer browser, a leak surface no minifier removes, and (b) reintroduce the role-as-branching-condition
 concept the backend refuses at `assertTier` (`BEs/marketplace-common/src/others/assertTier.mts`). Row 2
 (shared repo, split entry points) was rejected for the same underlying reason at smaller scale, plus it
@@ -63,7 +63,7 @@ one Qodana project cover 3 tiers' worth of surface — the platform's stated pos
 `marketplace-services-status` misrouted-token risk) is that a shared token/project across unrelated surfaces corrupts
 the baseline.
 
-`marketplace-shopowner` is explicitly built as "a mirror of the operator app: same stack, same
+`marketplace-shopowner` is explicitly built as "a mirror of the admin app: same stack, same
 conventions, same hooks" (`docs/frontends.md` §marketplace-admin and marketplace-shopowner) — same TanStack
 Router, urql + `cacheExchange` + `@urql/exchange-auth`, graphql-codegen `client-preset`, Tailwind 4,
 Sentry — but that mirroring is convention only, not code sharing. Consequence recorded here because a
@@ -110,7 +110,7 @@ GraphQL contracts and needs its own ADR, not a silent PR.
   states they are intentional.
 
 ### Risks
-- **Risk:** a future engineer, seeing `marketplace-shopowner` described as "a mirror of the operator app,"
+- **Risk:** a future engineer, seeing `marketplace-shopowner` described as "a mirror of the admin app,"
   merges the 2 apps into 1 repo to cut duplication. Revisit condition: only if a formal ADR reopens this
   decision with the same rigor CON-06 required for the authorization-service merge question
   (`docs/decisions/authorization-service-consolidation.md`) — not as an opportunistic refactor.

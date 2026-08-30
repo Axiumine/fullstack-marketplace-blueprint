@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-27
+**Version:** 1.10
+**Date:** 2026-08-29
 **Author:** ubiquitous-language-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.10 - 2026-08-29: **"operator" is banned platform-wide.** The platform owner ruled that there are three
+human roles and their names are admin, shop owner and customer; a fourth word for the `Admin` tier only made
+readers ask which of the three it meant. Every prose use of it across the sixteen repos is now "admin", the
+`Admin` entry says so, and §19 carries the ban. Two senses are untouched and stay legal: a MongoDB *update
+operator* (`$set`, `$pull`) and a language operator (`&&`) - neither names a person. No term definition
+changed; one term lost an alias it should never have had.
 v1.9 - 2026-08-27, later the same day: the v1.6 entry pinned the correct install result to `^1.0.1`, which
 moved when `marketplace-common` `2.0.0` shipped hours later. It now names the released range and both versions,
 so the rule does not go stale at the next major. No term changed.
@@ -30,10 +36,10 @@ v1.5 - 2026-08-27: the `deploy-local.sh` definition said it bridges *"consumed a
 `1.0.1` on 2026-08-26. The term survives with a narrower definition — it bridges an edit and the released build — and
 gains the half that was never written down: re-run it after every install in a consumer, not only after every edit to
 common. No other term changed.
-v1.4 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
+v1.4 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform admin, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 v1.3 - 2026-08-25: §12's `itemCategory` and `idParent` entries said writes to the collection exist ONLY in the Admin resource service. That is true of the three mutations and no longer true of the collection: `holdItemCategory` in `marketplace-dev-authenticated-resource` `$inc`s `__v` on one category inside every `itemAdd`/`itemUpdate` transaction, deliberately, to make the read a write and close a write-skew window against `itemCategoryDel`. The entry now says which claim holds. Its citation and code example were also two versions stale — both predated the transaction the guard now runs in.
-v1.2 - 2026-08-13: E03-S04. §6's `onboardingStep`/`onboardingDone` entry said the fields are written by no mutation on the platform. They are written by `shopOwnerUpdatePreferences` and always were — the entry now names the file and says the shop owner cannot write their own progress. The hotspot closes as a decision (the operator's hand stays the writer until a shop-owner onboarding flow is designed), residual as `RISK_REGISTER.md` R53.
+v1.2 - 2026-08-13: E03-S04. §6's `onboardingStep`/`onboardingDone` entry said the fields are written by no mutation on the platform. They are written by `shopOwnerUpdatePreferences` and always were — the entry now names the file and says the shop owner cannot write their own progress. The hotspot closes as a decision (the admin's hand stays the writer until a shop-owner onboarding flow is designed), residual as `RISK_REGISTER.md` R53.
 v1.1 - E03-S08. `shopOwner` gained a second creation route: §6's definition, the new `personalData` (whole block) row, the `waitApprov` rows and the `user` definition all follow from it, and the hotspot §6 carried is closed rather than restated. §14 gained `shopOwnerRegister` and the shop owner's REST verification route, §15 the events they produce, §16 the policy that writes the flag and the order the two login gates run in.
 **Depends on:** PDR.md ✅ · EVENT_STORMING.md ✅
 **Mutability:** living document — every new term used in code, config, or docs must be defined here first
@@ -58,7 +64,7 @@ The single most important mapping on the platform. Get this wrong and every down
 
 | Business role | Code name | Collection | Service pair prefix |
 |---|---|---|---|
-| Platform vendor / operator | `Admin` | `admin` | `admin-authenticated-*` |
+| Platform vendor / admin | `Admin` | `admin` | `admin-authenticated-*` |
 | Shop owner | `ShopOwner` | `shopOwner` | `authenticated-*` |
 | End customer | `User` | `user` | `user-authenticated-*` |
 | Legal entity a shop owner registers, ALSO the shop itself | `Company` | `company` | not an auth tier |
@@ -67,13 +73,13 @@ The single most important mapping on the platform. Get this wrong and every down
 ### ShopOwner
 **Definition:** Business owner who runs one or more shops on the platform. Authenticates against the `shopOwner` collection. Each `ShopOwner` document owns N `company` documents via `company.idShopOwner`.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-authenticated-resource`, `BEs/dev/marketplace-dev-authenticated-authorization`, `BEs/dev/marketplace-dev-public-resource` (registration only), `marketplace-shopowner`, `marketplace-user` (`/register/seller` only).
-**Not to be confused with:** `Admin` (platform operator, different collection, different service pair). Old business talk called this role "the admin" — that phrase is banned, see §19.
-**Example:** ~~No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd`.~~ **Since 2026-08-12 there are two creation routes and they differ in one field.** `shopOwnerRegister` on the public service writes `waitApprov: true`, so a stranger may ask to become a shop owner; `shopOwnerAdd` on the Admin service writes nothing there, because an operator creating the account by hand has approved it by doing so. The seller's own panel `marketplace-shopowner` has no registration screen — the public form lives on `marketplace-user`, beside the customer's.
+**Not to be confused with:** `Admin` (platform admin, different collection, different service pair). Old business talk called this role "the admin" — that phrase is banned, see §19.
+**Example:** ~~No self-service registration exists — every `ShopOwner` account is Admin-provisioned via `shopOwnerAdd`.~~ **Since 2026-08-12 there are two creation routes and they differ in one field.** `shopOwnerRegister` on the public service writes `waitApprov: true`, so a stranger may ask to become a shop owner; `shopOwnerAdd` on the Admin service writes nothing there, because an admin creating the account by hand has approved it by doing so. The seller's own panel `marketplace-shopowner` has no registration screen — the public form lives on `marketplace-user`, beside the customer's.
 
 ### Admin
-**Definition:** Platform operator, the vendor's own staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
+**Definition:** Platform admin, the vendor's own staff. Authenticates against the `admin` collection. Owns nothing, is owned by nothing. Sole writer of the `itemCategory` taxonomy; can moderate any `company`/`item`/`shopOwner` document regardless of ownership.
 **Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource`, `BEs/dev/marketplace-dev-admin-authenticated-authorization`, `marketplace-admin`.
-**Not to be confused with:** "superadmin" — never used in code. `ShopOwner` owns companies; `Admin` owns nothing.
+**Not to be confused with:** "superadmin" or "operator" — neither is used anywhere, in code or in prose. This role has exactly one name and it is on this line (§19). `ShopOwner` owns companies; `Admin` owns nothing.
 
 ### User
 **Definition:** End customer. Authenticates against the `user` collection. Self-service registration + email verify + optional personal data + addresses. Cannot place orders, permanently — no cart/order model exists on the platform and none is coming (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`). The customer tier is identity, personal data and addresses; that is its whole scope by decision, not by sequencing.
@@ -170,7 +176,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ## 5. Collection: `admin`
 
-**Definition:** Platform operator account. No approval gate, no email verify (created by hand), no `registeredAt`. Owns nothing, owned by nothing.
+**Definition:** Platform admin account. No approval gate, no email verify (created by hand), no `registeredAt`. Owns nothing, owned by nothing.
 **Used in:** `BEs/marketplace-db-setup/migrations/20260301000000-create-admin.js`.
 
 | Field | Type | Required | Notes |
@@ -200,7 +206,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ## 6. Collection: `shopOwner`
 
-**Definition:** Business owner account. Mirrors `admin`'s login shape, adds `personalData` (name, birth, address, contacts — **optional at creation since 2026-08-12**, complete once written), `waitApprov` (manual approval gate), `onboardingStep`/`onboardingDone`, operator-only `notes`. Created two ways: `shopOwnerAdd` (Admin, every field up front, ungated) and `shopOwnerRegister` (public self-service, address + password, `waitApprov: true`).
+**Definition:** Business owner account. Mirrors `admin`'s login shape, adds `personalData` (name, birth, address, contacts — **optional at creation since 2026-08-12**, complete once written), `waitApprov` (manual approval gate), `onboardingStep`/`onboardingDone`, admin-only `notes`. Created two ways: `shopOwnerAdd` (Admin, every field up front, ungated) and `shopOwnerRegister` (public self-service, address + password, `waitApprov: true`).
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`.
 
 | Field | Type | Required | Notes |
@@ -216,13 +222,13 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 | `deleted` | date | no | |
 | `disabled` | bool | no | |
 | `waitApprov` | bool | no | see below |
-| `notes` | string ≤2000 | no | operator-only, never loaded by ShopOwner tier |
+| `notes` | string ≤2000 | no | admin-only, never loaded by ShopOwner tier |
 | `resetPwd.*` | shared | yes if present | |
 | `emailVerify.*` | shared | no | |
 | `__v` | int | no | |
 
 ### waitApprov
-**Definition:** Manual approval gate. Present blocks login **and blocks the refresh of a session already open** — since 2026-08-12 that is enforced rather than merely described (`BOUNDED_CONTEXT.md` §7 q8). Present, not `true`: the field is written by `$set` when raised and removed by `$unset` when cleared, so `false` never reaches the collection and every reader tests existence. **Two mutations write it, and which one ran is the whole meaning of the flag:** `shopOwnerRegister` (public) sets it `true` at creation, because nobody has vetted the stranger who typed the form in; `shopOwnerAdd` (Admin) sets nothing, because the operator typing it in *is* the approval. `shopOwnerUpdateStatus` is the only one that ever *changes* it afterwards, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
+**Definition:** Manual approval gate. Present blocks login **and blocks the refresh of a session already open** — since 2026-08-12 that is enforced rather than merely described (`BOUNDED_CONTEXT.md` §7 q8). Present, not `true`: the field is written by `$set` when raised and removed by `$unset` when cleared, so `false` never reaches the collection and every reader tests existence. **Two mutations write it, and which one ran is the whole meaning of the flag:** `shopOwnerRegister` (public) sets it `true` at creation, because nobody has vetted the stranger who typed the form in; `shopOwnerAdd` (Admin) sets nothing, because the admin typing it in *is* the approval. `shopOwnerUpdateStatus` is the only one that ever *changes* it afterwards, always sending both `disabled` and `waitApprov` together as non-null booleans — full-state save, not a partial patch.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/shopOwner.js`, `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdateStatus.mts:6-10,29-30` and `BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44` (the writes); `BEs/marketplace-common/src/others/checkShopOwnerApproval.mts`, called from `tryLoginShopOwner` on 4028 and `tokenInfoShopOwner` on 4029 (the two reads).
 **Not to be confused with:** `disabled` — independent flag, also written by `shopOwnerUpdateStatus` in the same call, never alone.
 **Example:**
@@ -232,10 +238,10 @@ interface IArgs { _id: Types.ObjectId; disabled: boolean; waitApprov: boolean }
 args: { disabled: { type: new GraphQLNonNull(GraphQLBoolean) },
          waitApprov: { type: new GraphQLNonNull(GraphQLBoolean) } }
 ```
-~~Hotspot~~ **closed 2026-08-12** (`EVENT_STORMING.md` §5 hotspot 1, `BOUNDED_CONTEXT.md` §7 q3): a freshly created ShopOwner starts gated when they registered themselves and ungated when an operator created them, and the schema comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. No migration for the rows already on disk — all of them predate the public form, so all of them are Admin-created.
+~~Hotspot~~ **closed 2026-08-12** (`EVENT_STORMING.md` §5 hotspot 1, `BOUNDED_CONTEXT.md` §7 q3): a freshly created ShopOwner starts gated when they registered themselves and ungated when an admin created them, and the schema comment that conflated "awaiting approval" with "deleted" was rewritten to say what the field holds and who writes it. No migration for the rows already on disk — all of them predate the public form, so all of them are Admin-created.
 
 ### onboardingStep / onboardingDone
-**Definition:** Onboarding-wizard progress on a `ShopOwner` — a step label of at most 4 characters and the boolean that says the wizard finished. Read at 3 auth-middleware sites, **written by exactly one mutation: `shopOwnerUpdatePreferences`, on the Admin tier.** The shop owner cannot write their own onboarding progress; an operator sets it for them.
+**Definition:** Onboarding-wizard progress on a `ShopOwner` — a step label of at most 4 characters and the boolean that says the wizard finished. Read at 3 auth-middleware sites, **written by exactly one mutation: `shopOwnerUpdatePreferences`, on the Admin tier.** The shop owner cannot write their own onboarding progress; an admin sets it for them.
 **Used in:** read at `BEs/dev/marketplace-dev-authenticated-authorization/src/lib/auth/tokenInfoShopOwner.mts`, `.../src/lib/auth/authenticatedAuthorizationHandler.mts`, `BEs/dev/marketplace-dev-authenticated-resource/src/lib/auth/makeAuthCtx.mts`; written at `BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/shopOwnerUpdatePreferences.mts:25,26-31` → `src/lib/shopOwner/funShopOwnerUpdatePreferences.mts`.
 ~~Hotspot, unresolved: no confirmed write path exists on disk.~~ **Corrected 2026-08-13 by E03-S04.** The write path was always there — this entry (and four other documents) said "no mutation writes them" where the true statement is "no *other* mutation writes them". What is genuinely absent is a **shop-owner-side** flow that would advance the step as the owner works through it, and that absence is now a decision rather than an oversight: deferred to future work, residual tracked as [`../phase5/RISK_REGISTER.md`](../phase5/RISK_REGISTER.md) R53 (🟢 Low — no frontend reads either field today). Do not assume derivation logic: nothing derives these, a human types them.
 
@@ -435,7 +441,7 @@ export async function funItemCategoryAdd(data: IItemCategoryValidated) {
 The three mutations that create, re-parent or retire a category — `itemCategoryAdd`/`Update`/`Del` — exist ONLY in `marketplace-dev-admin-authenticated-resource`, and no such file exists under `marketplace-dev-authenticated-resource` or `marketplace-dev-public-resource`. ⚠️ **"Admin-only writes" carries exactly one exception, and it is one field.** `holdItemCategory` (`BEs/dev/marketplace-dev-authenticated-resource/src/lib/item/holdItemCategory.mts:41-53`) `$inc`s `__v` on the named category inside every `itemAdd`/`itemUpdate` transaction. It writes no domain field and changes nothing a reader sees; the `$inc` exists so the ShopOwner tier's read of the category is a *write* on the same document `itemCategoryDel` stamps, which turns a write-skew window into a `WriteConflict` that `withTransaction` retries. The depth cap is untouched by it — `idParent` is not among the fields it can reach. See `docs/data-model.md` and ADR-012.
 
 ### position (sort ordinal, on `itemCategory`)
-**Definition:** Integer sort order within a level, operator-set.
+**Definition:** Integer sort order within a level, admin-set.
 **Used in:** `BEs/marketplace-db-setup/lib/schemas/itemCategory.js`.
 **Not to be confused with:** GeoJSON `position` on `company.address` / `user.addresses[]` — same field name, unrelated shape, no coordinates stored here at all.
 
@@ -605,7 +611,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | When this happens | This policy fires | Source |
 |---|---|---|
 | Customer Registration Requested | Verification email sent via SocketLabs, wrong-hash attempts counted toward disposing of the registration | `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts:18-24` |
-| Shop Owner Registration Requested | Activation mail sent, and `waitApprov: true` written in the same transaction — the account exists from that moment and nobody may log into it until an operator clears the flag | `BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44` |
+| Shop Owner Registration Requested | Activation mail sent, and `waitApprov: true` written in the same transaction — the account exists from that moment and nobody may log into it until an admin clears the flag | `BEs/dev/marketplace-dev-public-resource/src/lib/db/registerNewShopOwner.mts:44` |
 | Foreign-Tier Access Token Presented | `assertTier` throws 403, never 401 | `BEs/marketplace-common/src/others/assertTier.mts` |
 | Session hash carries no `tier` field | Treated as invalid, never a wildcard — fail closed | same |
 | Address Deleted, and it was the default | `defaultAddress` `$unset` in the SAME update as the address removal | `funUserAddressDel.mts`, `updatePipeline: true` |
@@ -668,6 +674,7 @@ Every term below is forbidden platform-wide. Reintroducing one — even as a com
 | `price` on `item` | Deliberately absent, **permanently** — there is no order/cart/payment to attach it to and there never will be (ADR-009 + ADR-038). A *display-only* price was ADR-009's one named revisit trigger and was offered and refused on 2026-08-27 (ADR-009 §Note). | none, permanently — the only route is an ADR superseding ADR-038 |
 | `JWT` (as a real mechanism) | Stale type name in some `schema.graphql` slices only. Auth is opaque token + Redis session, not JWT. | "access token" / "refresh token" |
 | any identifier, comment, UI string or route that is not English | The platform is English-only, everywhere, with no exception (§1). A second language in one file is a second language in the database the day that file is read. | the English name — this document is the list |
+| "operator" as a name for the `Admin` tier | Three human roles, three names — admin, shop owner, customer (platform owner, 2026-08-29). A fourth word for a role that already has a name only makes a reader ask which of the three it was. It is swept out of all sixteen repos. Untouched: a MongoDB *update operator* (`$set`, `$pull`) and a language operator (`&&`) — neither names a person. | "admin" in prose, `Admin` in code |
 | "customer" / "admin" / "superadmin" as code identifiers | Business-role words never appear in code — see §2. | `User` / `ShopOwner` / `Admin` |
 
 **Used in:** [`CLAUDE.md`](../../../CLAUDE.md) §Two naming rules and [`docs/data-model.md`](../../data-model.md).

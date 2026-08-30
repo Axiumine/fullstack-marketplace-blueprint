@@ -25,7 +25,7 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 │   ├── marketplace-common/          # shared npm lib — own CLAUDE.md, read before editing
 │   ├── marketplace-db-setup/        # MongoDB migrations — own CLAUDE.md, read before editing
 │   └── dev/                         # 9 backend services, one git repo each
-├── marketplace-admin/               # React + Vite operator SPA (Admin)
+├── marketplace-admin/               # React + Vite admin SPA (Admin)
 ├── marketplace-nginx/               # the edge — nginx config + its test container, no package.json
 ├── marketplace-shopowner/           # React + Vite shop-owner SPA (ShopOwner)
 ├── marketplace-user/                # TanStack Start SSR app (User + anonymous)
@@ -295,7 +295,7 @@ yarn migrate:status | migrate:up | migrate:down | migrate:create <name>
 yarn test  test:cov  test:mutation   # gated at 100 / 100 — 5 suites, real Mongo
 yarn test:seed      # same suites with SEED_DEMO=true (2 tests are skipped without it)
 
-# marketplace-admin (operator app; shopowner is identical on 3044)
+# marketplace-admin (admin app; shopowner is identical on 3044)
 yarn dev            # vite on http://127.0.0.1:3043, GraphQL paths proxied to 4024/4025/4028/4030
 yarn codegen        # regenerate src/gql/ from schema/*.graphql
 yarn build          # codegen && tsc --noEmit && vite build

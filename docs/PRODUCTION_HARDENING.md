@@ -209,7 +209,7 @@ Everything below is genuinely open. This page documents swap points; it builds n
   MongoDB replica set.** All of it is **R39**, all of it is still open, and `ADR-039` explicitly did not
   answer any of it.
 - **No secret rotation runbook.** The platform has one rotation mechanism, and it is for the *signing keys*
-  inside the wrapped record — an operator mutation in `admin-authenticated-resource` that running services
+  inside the wrapped record — an admin mutation in `admin-authenticated-resource` that running services
   adopt without restarting. The four values on this page have no equivalent.
 
 ---

@@ -40,7 +40,7 @@ Four surfaces, all present, at very different depths.
 | Public pages | anonymous | backend + the SSR half of `marketplace-user` |
 | Customer area | end customer | **identity only** — `user` collection, service pair, private area |
 | Shop-owner area | `ShopOwner` | backend + `marketplace-shopowner` |
-| Operator area | `Admin` | backend + `marketplace-admin` |
+| Admin area | `Admin` | backend + `marketplace-admin` |
 
 ⚠️ **"Customer area built" means identity, not commerce, permanently.** A customer can register, confirm
 their email, log in, fill in personal data, keep several addresses and name one the default. They cannot
@@ -76,12 +76,16 @@ is sold. **Do not reintroduce vocabulary that presumes a product type** when add
 
 ## Terminology — read this first
 
-The code does NOT use the words customer / admin / superadmin.
+⚠️ **Three human roles, and their names are `admin`, shop owner and customer** — platform owner's ruling
+of 2026-08-29. **The word *operator* is not one of them and appears nowhere**: it used to mean the `Admin`
+tier, and a fourth word for a role that already has a name is how a reader ends up asking which of the
+three it was. The two other words this page once used are gone with it — a shop owner is never "the admin",
+and there is no "superadmin".
 
 | Business role | Code name | Where |
 |---|---|---|
-| Shop owner ("the admin") | `ShopOwner` | `shopOwner` collection, `authenticated-*` services |
-| Platform operator ("the super admin") | `Admin` | `admin` collection, `admin-authenticated-*` services |
+| Shop owner | `ShopOwner` | `shopOwner` collection, `authenticated-*` services |
+| Admin — runs the platform | `Admin` | `admin` collection, `admin-authenticated-*` services |
 | End customer | `User` | `user` collection, `user-authenticated-*` services |
 | Company — **also the shop** | `Company` | `company` collection, FK `idShopOwner` |
 | Catalogue entry | `Item` | `item` collection, FK `idCompany` |

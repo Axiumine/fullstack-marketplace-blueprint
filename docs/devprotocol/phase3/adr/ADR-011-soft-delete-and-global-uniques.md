@@ -75,9 +75,9 @@ is an *ownership* guard — `Company.countDocuments({ _id, idShopOwner, deleted:
 false }) })` — and it filters `deleted` because an already-retired company is gone from
 `shopOwnerCompanies`, so the only way a client still names one is a stale id it kept from before; a
 second `companyDel` on it answers 403. Admin tier's `companyDel.mts` calls `funCompanyDelete` with no
-ownership or liveness guard in front of it at all — an operator's job is to be able to act on any
+ownership or liveness guard in front of it at all — an admin's job is to be able to act on any
 company, retired or not, for moderation, and gating that on `deleted` would block exactly the companies an
-operator most needs to reach. Both answers are correct for what each guard checks; neither tier was
+admin most needs to reach. Both answers are correct for what each guard checks; neither tier was
 "fixed" to match the other.
 
 ---
@@ -232,7 +232,7 @@ gives `shopOwner` the same thirty-day retention and the same reclaimable address
 precisely because it stops removing documents: the objection in this paragraph — `company.idShopOwner`
 points at it — is an objection to *deletion*, and an overwrite strands no reference. The self-service
 Art. 17 path this paragraph also notes as missing is still missing; a shop owner is closed by an
-operator, and the retention clock starts from that stamp either way.
+admin, and the retention clock starts from that stamp either way.
 
 ### Consequences
 

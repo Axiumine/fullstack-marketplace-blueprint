@@ -18,7 +18,7 @@ and `item` carries no price for that reason. When the storefront shows no "buy" 
 broken. Full state of each surface: [`CLAUDE.md`](./CLAUDE.md) §Build state.
 
 At the end of this you have a three-node MongoDB replica set, a Redis, six collections with their
-validators and indexes, one demo operator, one demo shop owner, one demo company, nine backend services
+validators and indexes, one demo admin, one demo shop owner, one demo company, nine backend services
 and three frontends.
 
 ---
@@ -403,7 +403,7 @@ indexes, and — because `SEED_DEMO=true` is in `.env` — the demo dataset:
 
 | Seeded | Value |
 |---|---|
-| operator (`admin`) | `info@example.com` |
+| admin (`admin`) | `info@example.com` |
 | shop owner (`shopOwner`) | `shopOwner@example.com` |
 | password for both | `1234567890` |
 | company (the shop) | Northwind Trading Ltd |
@@ -431,7 +431,7 @@ empty Redis would re-key the whole fleet on every restart, which is the split-br
 - **Run it once**, on a machine whose Redis has no such record. A second run reports what is already
   there and writes nothing.
 - **`--force` replaces the record wholesale**, and every session cookie signed under the old keys stops
-  verifying. Rotating a *live* key set is `keygripRotate` in the operator panel, not this script.
+  verifying. Rotating a *live* key set is `keygripRotate` in the admin panel, not this script.
 - **Upgrading a machine that already ran the old `KEYGRIP_KEY_1`/`_2` pair:** copy the two values into
   `marketplace-db-setup/.env`, run the seed once — it adopts them in order, so nobody is logged out —
   then delete them from that file and from all five service `.env` files. Nothing reads them afterwards.
@@ -482,7 +482,7 @@ cd marketplace-admin && yarn install && yarn dev
 | `marketplace-user` | 3045 | anonymous + customer | 4027, 4028, 4030, 4031, 4032 |
 
 **You do not need all nine.** The public site is 4027 + 4028; the customer account area adds 4031 +
-4032; the shop-owner app is 4026 + 4028 + 4029; the operator app is 4024 + 4025 + 4028. `4030` is shared
+4032; the shop-owner app is 4026 + 4028 + 4029; the admin app is 4024 + 4025 + 4028. `4030` is shared
 and every authenticated surface needs it.
 
 `marketplace-user` is SSR: `yarn dev` runs vite, and `yarn build && yarn start` runs `serve.mjs`, which
@@ -547,7 +547,7 @@ sudo certbot certonly --webroot -w /var/www/acme -d admin.marketplace-domain.com
 |---|---|---|
 | `marketplace-domain.com` | public site + customer area | `/srv/marketplace-user/dist/client` + SSR on 3045 |
 | `shopowner.marketplace-domain.com` | shop-owner panel | `/srv/marketplace-shopowner/dist` |
-| `admin.marketplace-domain.com` | operator panel | `/srv/marketplace-admin/dist` |
+| `admin.marketplace-domain.com` | admin panel | `/srv/marketplace-admin/dist` |
 
 Three hosts and not one, because the session cookie has no `Domain` attribute and is therefore
 host-only — one host for all three tiers would put every tier's cookie in one jar. The full path →
@@ -580,7 +580,7 @@ requirement of its design, not a default you can flip.
 
 ## 12. Smoke test
 
-1. **Operator** — <http://127.0.0.1:3043>, `info@example.com` / `1234567890`. You should see the
+1. **Admin** — <http://127.0.0.1:3043>, `info@example.com` / `1234567890`. You should see the
    seeded shop owner and be able to open Northwind Trading Ltd. Create a category here: category writes
    are Admin-only and the shop-owner app can only read them.
 2. **Shop owner** — <http://127.0.0.1:3044>, `shopOwner@example.com` / `1234567890`. The company is
@@ -615,7 +615,7 @@ cd marketplace-docker-DBs && ./shell.sh dev
 # db.user.updateOne({'login.email':'you@example.com'},{$set:{'emailVerify.valid':true}})
 ```
 
-A shop owner awaiting approval, by contrast, **can** log in — `waitApprov` is set by an operator but no
+A shop owner awaiting approval, by contrast, **can** log in — `waitApprov` is set by an admin but no
 login path reads it, and the integration suite asserts that. It is not a lockout.
 
 ---

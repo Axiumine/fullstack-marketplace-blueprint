@@ -25,7 +25,7 @@ v1.4 - 2026-08-25: the seven operations v1.3 named as E16's and E17's gap are do
 v1.3 - 2026-08-25: §6.2 gains the two operations E19 built — `usersActiveTbl` and `userUpdateStatus`, the first `user*` pair on the Admin tier. The "All seventeen answer `Boolean!`" line was counting the table, not the directory, and is recounted from the working tree to twenty-two; the four mutations and three queries it was missing — E17's session console and E16's key custody surface — are named as those epics' gap rather than filled in here. Both `mutations.mts` and `queries.mts` citations were stale by a version and now name the field blocks.
 v1.1 - 2026-08-12: E03-S08 added `shopOwnerRegister` to the public service — the first unauthenticated
 write to `shopOwner`. Its row, the ShopOwner-tier note under it, and the §3 line describing what 4027
-serves follow from it; the operator's read of `personalData` is now nullable.
+serves follow from it; the admin's read of `personalData` is now nullable.
 v1.2 - 2026-08-14: publishing became a separate operation on both authenticated tiers. `published` left
 `GraphQLInputItem` and both `GraphQLInputCompany`s; §5 gains `itemUpdatePublished` and
 `companyUpdatePublished` on the ShopOwner tier, §6 gains `companyUpdatePublished` beside the
@@ -109,7 +109,7 @@ which are deliberately not GraphQL (ADR-021; `phase4/CONSTRAINTS.md` §5).
   toward `Boolean` elsewhere without the same cache-invalidation justification (`phase4/CONSTRAINTS.md`
   DCON-08):
   - `companyAdd` answers `OnlyIdType` (the new `_id`) — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/companyAdd.mts:27`.
-  - `itemAdd` **also** answers `OnlyIdType`, not `Boolean` — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:34`. ⚠️ This is a correction to how the exception is framed elsewhere on this platform: [`docs/frontends.md`](../../frontends.md) names only `companyAdd` as the `OnlyIdType` exception. Reading the resolver directly (per the §1 rule) shows `itemAdd` follows the identical pattern — "answers the new `_id`, like `companyAdd`, unlike the operator tier's `Boolean`" per the comment at the cited line. Both are the owner-tier's own creation flow needing the new id to continue (e.g. attach an image next); the exception is genuinely two mutations, not one.
+  - `itemAdd` **also** answers `OnlyIdType`, not `Boolean` — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:34`. ⚠️ This is a correction to how the exception is framed elsewhere on this platform: [`docs/frontends.md`](../../frontends.md) names only `companyAdd` as the `OnlyIdType` exception. Reading the resolver directly (per the §1 rule) shows `itemAdd` follows the identical pattern — "answers the new `_id`, like `companyAdd`, unlike the admin tier's `Boolean`" per the comment at the cited line. Both are the owner-tier's own creation flow needing the new id to continue (e.g. attach an image next); the exception is genuinely two mutations, not one.
   - `GraphQLInputCompanyPosition` requires `type: String!` on the ShopOwner tier and forbids it on the Admin tier, which stamps `'Point'` server-side. Declared inline inside `GraphQLInputCompany.mts:46-51` (`GraphQLInputCompanyPosition`, built from `GraphQLPositionFrag`) — there is no separate `GraphQLInputCompanyPosition.mts` file, despite the type name suggesting one.
 
 **Error shape.** Not duplicated here — see `phase4/ERROR_HANDLING.md` for the taxonomy and payload shape
@@ -354,7 +354,7 @@ category tree, plus uploads.
 | `companyDel` | `_id: ID!` | `Boolean!` | Soft-deletes an owned company (`deleted` date stamp, never a hard remove — `phase4/CONSTRAINTS.md` DCON-03); answers **403** on an already-deleted company, because the ownership guard here filters `deleted` (Admin tier's equivalent does not and answers 200 — `docs/data-model.md`) | `mutations/companyDel.mts:20-25` |
 | `itemAdd` | `item: GraphQLInputItem!` | `OnlyIdType!` | Creates a catalogue item; **also** answers the new `_id`, not `Boolean` — see the §2 correction | `mutations/itemAdd.mts:29,34-39` |
 | `itemUpdate` | `_id: ID!`, `item: GraphQLInputItem!` | `Boolean!` | Updates an item — ⚠️ does **not** touch `published`, see below | `mutations/itemUpdate.mts:27-33` |
-| `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Publishes an owned item or takes it off the public site — the owner's half of the same lever the operator holds on the Admin tier | `mutations/itemUpdatePublished.mts:27,31-32` |
+| `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Publishes an owned item or takes it off the public site — the owner's half of the same lever the admin holds on the Admin tier | `mutations/itemUpdatePublished.mts:27,31-32` |
 | `itemDel` | `_id: ID!` | `Boolean!` | Soft-deletes an item (`deleted` date stamp) | `mutations/itemDel.mts:21-26` |
 
 All eight run through `IContextShopOwnerAuthenticatedResource` — the tier assertion described in §2 gates
@@ -363,7 +363,7 @@ every one of them; there is no per-operation auth check beyond it.
 ⚠️ **Publishing is a separate operation on this tier, since 2026-08-14.** `published` is a field of
 neither `GraphQLInputItem` nor `GraphQLInputCompany`, and `itemAdd`/`companyAdd` stamp `false`. Both
 update paths `$set` the whole enumerated object, so while the flag was in those inputs every save wrote
-it: an owner who reopened a card the operator had just taken down republished it on Save, without asking
+it: an owner who reopened a card the admin had just taken down republished it on Save, without asking
 to and without seeing the flag. Each collection now has exactly one writer of it per tier.
 
 **Uploads.** `graphql-upload` is mounted as global Koa middleware in front of Apollo, 30 MB / file, 10
@@ -404,7 +404,7 @@ Root wiring: `BEs/dev/marketplace-dev-admin-authenticated-authorization/src/grap
 
 ### 6.2 `marketplace-dev-admin-authenticated-resource` — port 4024
 
-Domain data for the platform operator: shopOwner moderation, `company` CRUD on any shop owner's behalf,
+Domain data for the platform admin: shopOwner moderation, `company` CRUD on any shop owner's behalf,
 and `itemCategory` CRUD. ⚠️ **This is the only tier with an `itemCategory` mutation.** The ShopOwner and public
 tiers read the collection (`docs/data-model.md`). ⚠️ **One deliberate exception, one field:** `holdItemCategory` on the ShopOwner tier `$inc`s `__v` on a category inside every `itemAdd`/`itemUpdate` transaction, so an item write and a concurrent `itemCategoryDel` collide instead of skewing past each other. It reaches no domain field and no `idParent`, so the depth cap keeps exactly one enforcement point (ADR-012). The two-level depth cap — a
 category whose parent already has a parent is rejected — lives in the resolver, not the `$jsonSchema`
@@ -418,7 +418,7 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
-| `infoAdminAfterLogin` | none — identity from the session | `GraphQLAdminInfoAfterLogin!` | Post-login bootstrap for the operator SPA | `schema/queries/infoAdminAfterLogin.mts:7` |
+| `infoAdminAfterLogin` | none — identity from the session | `GraphQLAdminInfoAfterLogin!` | Post-login bootstrap for the admin SPA | `schema/queries/infoAdminAfterLogin.mts:7` |
 | `shopOwnersActiveTbl` | `offset: Int! = 0`, `limit: Int! = SHOP_OWNERS_TBL_DEFAULT_LIMIT`, `search: String`, `sortBy: ShopOwnersTblSortField! = REGISTERED_AT`, `sortDir: SortDirection! = DESC` | `GraphQLShopOwnersActiveTblPage!` | Paginated, searchable, sortable shopOwner table | `schema/queries/shopOwnersActiveTbl.mts:10,15-22` |
 | `shopOwnersStats` | none | `Int!` | Aggregate shopOwner count | `schema/queries/shopOwnersStats.mts:6` |
 | `shopOwnersPerPeriod` | `period: ShopOwnersPeriod! = ALL` | `GraphQLShopOwnersPerPeriod!` | Time-bucketed signup stats | `schema/queries/shopOwnersPerPeriod.mts:8,18-19` |
@@ -431,18 +431,18 @@ Queries (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/sc
 | `itemCategories` | none | `[GraphQLItemCategory!]!` | Full two-level category tree | `schema/queries/itemCategories.mts:18` |
 | `keygripStatus` | none | `GraphQLKeygripStatus!` | The live cookie-signing key set and which services hold it (E16). ⚠️ **No `version` argument, and no older record to name with one** — a rotation replaces all three fields at once, so there is nothing earlier to unwrap. Renders ids and a fingerprint, never key material | `schema/queries/keygripStatus.mts:8,15` |
 | `sessions` | `tier: Tier!`, `accountId: String!` | `[GraphQLSession!]!` | The live sessions one account holds (E17). ⚠️ **Both arguments name the account and neither is a filter:** ids come from three collections and two of them may mint the same `ObjectId` string, so the tier is a segment of the index key. ⚠️ **No pagination and no all-accounts form** — E17's question 3 was answered "per account only": a platform-wide list needs a second index and puts the console back on a keyspace scan (BCON-08) | `schema/queries/sessions.mts:10,22-23` |
-| `reuseEvents` | `tier: Tier!`, `accountId: String!` | `[GraphQLReuseEvent!]!` | The trail of lineages this account has had revoked, newest first (E17). Same two arguments as `sessions` and for the same reason — the trail is filed per account. ⚠️ **No `limit`:** the trail is trimmed to fifty on every append, so an operator reads the whole of it or none | `schema/queries/reuseEvents.mts:10,20-21` |
+| `reuseEvents` | `tier: Tier!`, `accountId: String!` | `[GraphQLReuseEvent!]!` | The trail of lineages this account has had revoked, newest first (E17). Same two arguments as `sessions` and for the same reason — the trail is filed per account. ⚠️ **No `limit`:** the trail is trimmed to fifty on every append, so an admin reads the whole of it or none | `schema/queries/reuseEvents.mts:10,20-21` |
 
 Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations.mts:28-51`).
 **Twenty-one of the twenty-two answer `Boolean!`, and `revokeAllSessions` answers `Int!`** — counted in the working tree, not incremented: `schema/mutations/` holds twenty-two files, twenty-one declare `type: new GraphQLNonNull(GraphQLBoolean)` (this tier's `companyAdd` included) and `revokeAllSessions.mts:9` declares `GraphQLInt`, because the count of sessions it ended is what the console reports back. ⚠️ **The line said "all seventeen" until 2026-08-25 — the size of the table rather than of the directory — and then "all twenty-two", which took the recount and kept the wrong verb.** The table lists all twenty-two as of the same day: `revokeSession` and `revokeAllSessions`, with the `sessions` and `reuseEvents` queries above, are **E17**'s session console, and `keygripRotate` and `keygripRetire`, with the `keygripStatus` query, are **E16**'s key custody surface. Neither set had rows here before. E15 built the library routine `revokeAllSessionsForAccount` that two of them call, not the operations themselves.
 
 | Op | Args | Answer | Effect | Source |
 |---|---|---|---|---|
-| `adminUpdatePwd` | `passwordOld: String!`, `passwordNew: String!` | `Boolean!` | Operator changes their own password — id from the session, never from the client | `schema/mutations/adminUpdatePwd.mts:12,13-16` |
-| `shopOwnerAdd` | `login: GraphQLInputLogin!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Operator provisions a shop owner; input validated *and normalised* before the write. **Writes no `waitApprov`** — creating the account by hand is the approval, and routing these through the queue would leave it permanently full of accounts nobody is waiting on. `personalData` stays `NonNull` here even though the collection no longer requires it: an operator filling in a form has the details in front of them | `schema/mutations/shopOwnerAdd.mts:17,18-21` |
+| `adminUpdatePwd` | `passwordOld: String!`, `passwordNew: String!` | `Boolean!` | Admin changes their own password — id from the session, never from the client | `schema/mutations/adminUpdatePwd.mts:12,13-16` |
+| `shopOwnerAdd` | `login: GraphQLInputLogin!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Admin provisions a shop owner; input validated *and normalised* before the write. **Writes no `waitApprov`** — creating the account by hand is the approval, and routing these through the queue would leave it permanently full of accounts nobody is waiting on. `personalData` stays `NonNull` here even though the collection no longer requires it: an admin filling in a form has the details in front of them | `schema/mutations/shopOwnerAdd.mts:17,18-21` |
 | `shopOwnerUpdate` | `_id: ID!`, `personalData: GraphQLInputShopOwnerPersonalData!` | `Boolean!` | Replaces one shopOwner's registry data | `schema/mutations/shopOwnerUpdate.mts:14,15-18` |
 | `shopOwnerUpdateEmail` | `_id: ID!`, `email: String!` | `Boolean!` | Changes the login email — the unique-index key | `schema/mutations/shopOwnerUpdateEmail.mts:20,21-24` |
-| `shopOwnerUpdateNote` | `_id: ID!`, `notes: String!` | `Boolean!` | Operator-private annotation on a shop owner | `schema/mutations/shopOwnerUpdateNote.mts:24,25-28` |
+| `shopOwnerUpdateNote` | `_id: ID!`, `notes: String!` | `Boolean!` | Admin-private annotation on a shop owner | `schema/mutations/shopOwnerUpdateNote.mts:24,25-28` |
 | `shopOwnerUpdatePreferences` | `_id: ID!`, `rememberMe: Boolean!`, `onboardingDone: Boolean!`, `onboardingStep: String` | `Boolean!` | Sets session and onboarding preferences; `onboardingStep` is the one optional arg | `schema/mutations/shopOwnerUpdatePreferences.mts:25,26-31` |
 | `shopOwnerUpdateStatus` | `_id: ID!`, `disabled: Boolean!`, `waitApprov: Boolean!` | `Boolean!` | The approval lever — `waitApprov` exists on `shopOwner` only, never on `user` | `schema/mutations/shopOwnerUpdateStatus.mts:25,28-30` |
 | `shopOwnerDel` | `_id: ID!` | `Boolean!` | Soft-delete — stamps `deleted`, never removes the document | `schema/mutations/shopOwnerDel.mts:11,12-14` |
@@ -471,12 +471,12 @@ answers 403 for the same company.** The Admin guard does not filter `deleted`, `
 on the ShopOwner tier does. Liveness filtering belongs on read paths and ownership guards, never on the
 delete write itself — both answers are correct for their tier (`docs/data-model.md`).
 
-`itemUpdatePublished` and `companyUpdatePublished` are the two moderation levers: an operator can take
+`itemUpdatePublished` and `companyUpdatePublished` are the two moderation levers: an admin can take
 down any shop's item, or the shop itself, regardless of who owns it, while the ShopOwner tier's own
 copies of both are scoped to the caller's companies. ⚠️ Since 2026-08-14 the flag is **all** either tier's
 `*UpdatePublished` writes and **none** of what `companyUpdate`/`itemUpdate` write, so the two tiers race
 only on the operation whose entire subject is publication: a save of a description cannot undo a
-takedown, and an owner republishing after an operator's takedown is a deliberate act, accepted as
+takedown, and an owner republishing after an admin's takedown is a deliberate act, accepted as
 last-writer-wins (`phase5/COMPANY_LEGAL_ENTITY.md` §6, `phase5/RISK_REGISTER.md` §5).
 
 ## 7. User tier (the customer)

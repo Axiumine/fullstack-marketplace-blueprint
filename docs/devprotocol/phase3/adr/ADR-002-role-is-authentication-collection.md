@@ -11,7 +11,7 @@
 
 ## Context
 
-Platform serves 3 actor kinds needing auth: platform operator (Admin), shop owner (ShopOwner), end customer (User). Standard multi-tenant design puts them in one `account` collection plus `role` field or permission enum, checked per-resolver. This platform does the opposite: there is no shared account collection and no `role` field anywhere.
+Platform serves 3 actor kinds needing auth: platform admin (Admin), shop owner (ShopOwner), end customer (User). Standard multi-tenant design puts them in one `account` collection plus `role` field or permission enum, checked per-resolver. This platform does the opposite: there is no shared account collection and no `role` field anywhere.
 
 3 separate tenant collections exist: `admin`, `shopOwner`, `user`. Confirmed no shared account table — `admin`, `shopOwner`, `company`, `user`, `item`, `itemCategory` is the full 6-collection set, no 7th. Each auth collection has its own service pair under `BEs/dev/`: `marketplace-dev-admin-authenticated-authorization`+`-resource`, `marketplace-dev-authenticated-authorization`+`-resource` (ShopOwner), `marketplace-dev-user-authenticated-authorization`+`-resource`. One shared exception: `marketplace-dev-authenticated-logout` (port 4030) serves all 3, deleting Redis session by token content — never asks which collection minted it.
 
@@ -25,7 +25,7 @@ Forcing factor: all 9 services share one Redis prefix `REDIS_KEY=marketplaceDev:
 
 | Option | Pros | Cons |
 |---|---|---|
-| Single `account` collection + `role: enum` field | 1 collection, 1 schema, 1 service pair, less duplication | `role` string forgeable/mutable at write time if any resolver skips the check; every query needs a `role` filter or leaks cross-tier; one collection means one downtime domain for all 3 actor kinds — operator outage takes customers down too |
+| Single `account` collection + `role: enum` field | 1 collection, 1 schema, 1 service pair, less duplication | `role` string forgeable/mutable at write time if any resolver skips the check; every query needs a `role` filter or leaks cross-tier; one collection means one downtime domain for all 3 actor kinds — admin outage takes customers down too |
 | 3 collections, shared service, `role` check per-resolver | Less service duplication than full split | Still a mutable field — same forgery surface as above, just spread across resolvers instead of centralized; a missed check in one resolver is a silent privilege cross |
 | 3 collections, 3 service pairs, role = which collection you logged into, `tier` stamped in session + `assertTier` per service (chosen) | Role is structural, not data — nothing to forge because there is no field holding it; blast radius of one tier's outage stops at that tier; adding a role means adding a collection+pair, an explicit act, not a flag flip | 3x service processes to deploy/monitor; duplication across the 3 `*-authenticated-authorization` bodies (mitigated separately, see [`docs/decisions/authorization-service-consolidation.md`](../../../decisions/authorization-service-consolidation.md) — shared logic factored into `marketplace-common`, deployables stay 3) |
 
@@ -46,7 +46,7 @@ Row-3 win over row 2 turns on forgeability: a `role` field, even correctly check
 ### Positive
 - Adding a role is an explicit, reviewable act — new collection + new migration + new service pair — not a one-line enum addition that silently touches every existing resolver's permission surface.
 - No permission-check code path to audit for missing branches; the check is "which collection did this session come from," answered once per service at the auth-middleware layer (`assertTier` call site inside each `*-authenticated-resource`'s handler).
-- 3 independent deployables mean an operator-tier incident cannot take down customer auth, and vice versa.
+- 3 independent deployables mean an admin-tier incident cannot take down customer auth, and vice versa.
 
 ### Negative
 - 3x the service processes vs a single account+role design — 3 `*-authenticated-authorization` + 3 `*-authenticated-resource` (6 total) instead of 2.

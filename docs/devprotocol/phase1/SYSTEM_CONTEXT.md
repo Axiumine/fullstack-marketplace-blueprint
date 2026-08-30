@@ -19,7 +19,7 @@ the git-hooks wiring and `scripts/lockfile-registry-filter.sh`, and that nothing
 carrying an edit no release has shipped. Restated on that condition. No boundary, actor or flow changed.
 v1.3 - 2026-08-27: §5.12 and §5.13 both described a world that had moved. §5.12 replaces a three-repo sample and a *"4 repos still block on a missing token"* claim with all **fifteen** Cloud projects enumerated from each repo's scan artefact — ⚠️ including `marketplace-admin` = `VOZEg`, where this document and three others cite `1rylx` — and open question 4 closes on it: nothing stands on `SKIP_QODANA=1`. §5.13 rewritten after `ADR-037`: the package is published at `1.0.1`, so `deploy-local.sh` bridges *edited → released*, not *unpublished → published*, and a plain `yarn install` now silently undoes it. Open question 5 closes with it. Boundaries, actors and flows unchanged — only claims about them.
 v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a citation of `marketplace-nginx/test/suite.sh` itself. The number was stale by 67 — the suite ran 235 assertions before 2026-08-26 and 242 after — and a count written into prose goes stale silently every time an assertion is added. Nothing measured or decided changed.
-v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform operator, platform owner — say everything the name said. Nothing described, decided or scored changed.
+v1.2 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform admin, platform owner — say everything the name said. Nothing described, decided or scored changed.
 
 ---
 
@@ -62,7 +62,7 @@ in this doc's authoring). Outside the box above = external actor or system.
 |Anonymous visitor|no session|hits SSR public routes on `marketplace-user` — `/`, `/shops`, `/shop/:slug`, `/category/:slug` (`marketplace-user/CLAUDE.md` §Public is server-rendered) — GraphQL over `/public-resource`, no auth token|
 |End customer|`User`, `user` collection|registers, confirms email via `GET /check/verify-email-user/:email/:hash`, logs in (`loginUser`), fills `personalData`, manages `addresses[]` + `defaultAddress` on `marketplace-user` `/account/*`. Cannot buy anything, ever — `item.js` has no price field and never gets one (ADR-009, ADR-038)|
 |Shop owner|`ShopOwner`, `shopOwner` collection|registers via `marketplace-shopowner`, awaits `waitApprov` from an `Admin`, manages own `company` document(s) and `item` catalogue under `Admin`-curated `itemCategory` values|
-|Platform operator|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
+|Platform admin|`Admin`, `admin` collection|uses `marketplace-admin` — onboards/approves shop owners, exclusive write access to `itemCategory` (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemCategoryAdd.mts:14-17`)|
 |Platform developer|no session — operates the repos, not the app|runs migrations (`yarn migrate:up`), runs `BEs/marketplace-common/deploy-local.sh` to sync built common into 9 services' `node_modules/`, commits/pushes 16 independent repos, provisions Qodana Cloud tokens and Mongo/Redis credentials outside this tree|
 
 No `role` field, no permission enum. Actor identity = which MongoDB collection the session authenticated
@@ -94,7 +94,7 @@ graph TB
         Anon[Anonymous visitor]
         Cust[User / customer]
         Owner[ShopOwner]
-        Op[Admin / operator]
+        Op[Admin / admin]
         Dev[Platform developer]
     end
 
@@ -311,7 +311,7 @@ location /geocode/ {
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search'
 ```
 
-Justification is traffic scale, not oversight: two internal panels, a handful of operators, fit inside
+Justification is traffic scale, not oversight: two internal panels, a handful of admins, fit inside
 OSM's 1 req/s policy; the public customer surface does not (same comment block above).
 
 ### 5.9 Marketplace ↔ Protomaps PMTiles archive
@@ -496,7 +496,7 @@ project at all.** Fifteen code-shipping repos, fifteen distinct Cloud projects, 
 |`marketplace-dev-user-authenticated-resource`|MP User Authenticated Resources|`eobk1`|
 
 `marketplace-admin` is `VOZEg`, not the `1rylx` this section and three other documents cite. No repo
-stands on `SKIP_QODANA=1`; it is the one-shot operator bypass `README.md` describes, and the four repos
+stands on `SKIP_QODANA=1`; it is the one-shot admin bypass `README.md` describes, and the four repos
 named here as blocked on a missing token are not (`PDR.md` §8 item 8, closed 2026-08-27). ⚠️ The
 artefact records where the *last* scan uploaded, not live account state — a project deleted in the Cloud
 UI would still read as present on disk.
