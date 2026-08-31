@@ -13,9 +13,10 @@
 
 Since ADR-044 an admin could **suspend** a customer and could not **close** one. The Admin tier carried
 `shopOwnerDel` for a seller and had no counterpart for `user`, so an account that had to go took a
-hand-made write against the one collection encrypted whole. Three documents recorded the absence and none
+hand-made write against the one collection encrypted whole. Four documents recorded the absence and none
 of them defended it — [`ADR-036`](./ADR-036-erasure-is-not-something-the-platform-suspends.md) §Consequences,
-E19 and E20 as an open question each, and `docs/data-model.md`, which
+[`ADR-049`](./ADR-049-the-admin-tables-offer-the-four-account-states.md) and
+[`ADR-044`](./ADR-044-suspension-names-an-actor-and-a-reason.md) as an open question each, and `docs/data-model.md`, which
 described `deletedBy` as a field only the seller tier could ever write.
 
 ⚠️ **ADR-036 left a warning with it, and it is the reason this ADR exists rather than a one-line

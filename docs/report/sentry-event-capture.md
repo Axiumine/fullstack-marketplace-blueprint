@@ -2,20 +2,21 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E12-S13 and E12-S24. Not baselined, not a requirement document
+**Status:** investigation finding — closes *Investigation: capture one real Sentry event and read it* and *What a frontend actually sends is measured, and scrubbed*. Not baselined, not a requirement document
 **Version:** 1.2
 **Date:** 2026-08-11
 **Changelog:** v1.0 — the capture. v1.1 — §6.1 added after reading the three frontends: they set
 `tracesSampleRate: 0.1` and configure no scrubber, so §6's finding is latent on the backend only. Nothing
 measured changed; a scope claim that was too narrow is now stated, and the browser payload is named as
-unmeasured (E12-S24). v1.2 — **§9, the browser capture** (E12-S24): nine envelopes from two apps, both event
+unmeasured, ahead of *What a frontend actually sends is measured, and scrubbed*. v1.2 — **§9, the browser
+capture** — closing that story: nine envelopes from two apps, both event
 kinds. `httpBodies: []` holds and `urlQueryParams: false` does not; the address bar ships in five places on
 both kinds. Corrects §6.1 — with no `browserTracingIntegration` registered, the three apps ship **no**
 transaction at all, so `tracesSampleRate: 0.1` is a rate applied to nothing.
 **Scope:** what a Sentry event built by one of these nine services actually contains when the request that
 produced it carried an `authorization` header, a cookie, forwarding headers and a body — and, since v1.2,
 what one built by the three browser apps contains when the page carries a credential in its URL. It settles
-the one thing E12-S02 could not: every claim in that story rests on reading `node_modules`, and this one
+the one thing *The scrubber walks where the headers actually are* could not: every claim in that story rests on reading `node_modules`, and this one
 reads an event.
 **Method:** measurement, not reading. `marketplace-dev-public-resource` was restarted on port 4098 with its
 own `src/instrument.mts` and a `DSN` pointing at a **local collector on 127.0.0.1:9911** that writes every
@@ -24,10 +25,9 @@ left this host. A throwaway `addEventProcessor` teed each event **before** `befo
 compares what the scrubber was handed with what actually went out. Every credential-shaped value carried a
 unique `MKTS13…` sentinel. Both throwaway files lived under `node_modules/` and were deleted; nothing in any
 repo was modified.
-**Reads against:** [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) E12-S02,
-E12-S03, E12-S06 · `BEs/marketplace-common/src/others/sentryBeforeSend.mts` ·
+**Reads against:** *The scrubber walks where the headers actually are*, *`sendDefaultPii` is off in all nine services* and *No network-derived value reaches telemetry* in [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) · `BEs/marketplace-common/src/others/sentryBeforeSend.mts` ·
 `BEs/dev/*/src/instrument.mts` · `@sentry/node` / `@sentry/core` / `@sentry/node-core` **10.69.0** ·
-[`log-sink-inventory.md`](./log-sink-inventory.md) (E12-S12, every other sink)
+[`log-sink-inventory.md`](./log-sink-inventory.md) (*Investigation: what do the application and access logs actually contain*, every other sink)
 
 ---
 
@@ -39,7 +39,7 @@ E12-S03, E12-S06 · `BEs/marketplace-common/src/others/sentryBeforeSend.mts` ·
 `event.sdkProcessingMetadata.normalizedRequest.headers`, a bag `sentryBeforeSend` does not walk, and the SDK
 drops `sdkProcessingMetadata` before serialisation. The protection that held is
 `dataCollection.httpHeaders: { request: false }` at collection time, plus an internal field never being
-serialised. E12-S02's three bags were all **empty** on the event that actually shipped.
+serialised. The three bags named in *The scrubber walks where the headers actually are* were all **empty** on the event that actually shipped.
 
 **🔴 The raw request body did reach the wire, on the shipped configuration, unchanged.** `event.request.data`
 carried the complete POST body — including a plaintext `password` in the GraphQL document *and* in
@@ -56,7 +56,7 @@ With `tracesSampleRate` set — it is not, in any service, which is the only rea
 `event.contexts.trace.data` carries `http.client_ip` (the first `x-forwarded-for` hop), `http.user_agent`,
 `net.peer.ip` and `net.host.ip`, and every one of them was **present in the sent envelope**. `beforeSend`
 never ran; `beforeSendTransaction` is not configured. The scrubber's `http.client_ip` entry — the key
-E12-S02 was written around, and which `instrument.mts` says only the scrubber takes back out — is not
+that *The scrubber walks where the headers actually are* was written around, and which `instrument.mts` says only the scrubber takes back out — is not
 reached on the one event type that carries it. §6.
 
 **🟠 Console output becomes payload.** `event.breadcrumbs` carried the service's own `console` calls with
@@ -71,7 +71,7 @@ on the `Referer` header and on both `from` and `to` of the navigation breadcrumb
 `location.href` unconditionally and `urlQueryParams` gates a field the browser never fills in. `httpBodies:
 []` does hold. §9.
 
-E12-S02's key list and fixture are corrected in §8. Five stories follow in §10.
+The key list and fixture built for *The scrubber walks where the headers actually are* are corrected in §8. Five stories follow in §10.
 
 ## 2. What was run
 
@@ -150,7 +150,7 @@ event does not contain the key at all. So the correct statement is:
 > the only surviving copy is dropped by the serialiser.
 
 Zero `http.request.header.*` or `http.response.header.*` attributes appeared anywhere in any sent envelope,
-in either pass. That half of E12-S02's key list is correct and, on this configuration, never exercised.
+in either pass. That half of the key list from *The scrubber walks where the headers actually are* is correct and, on this configuration, never exercised.
 
 ## 5. 🔴 The request body
 
@@ -184,7 +184,7 @@ documented 'collect no bodies' value"; measured, it is the documented value for 
 ### What that means on this platform
 
 Every request to every one of these nine services is a GraphQL POST, so the attached body is the envelope.
-Concretely, and this is the reasoning E12-S03 already wrote down for a different key:
+Concretely, and this is the same reasoning *`sendDefaultPii` is off in all nine services* already wrote down for a different key:
 
 - `marketplace-dev-public-authorization` — `login`, `loginAdmin`, `loginUser` carry the password in
   `variables`
@@ -194,7 +194,7 @@ Concretely, and this is the reasoning E12-S03 already wrote down for a different
 The reporting gate narrows the blast radius and does not close it: `maybeCaptureSentryError` fires only in
 `development` and only for non-`GraphQLError`s, so a rejected login (a `GraphQLError`) is not reported —
 but a body-parser failure, a middleware throw or any pre-Apollo error on that same request is, and it carries
-whatever the caller sent. Probe 2 is precisely that case. → **E12-S21**.
+whatever the caller sent. Probe 2 is precisely that case. → **The request body never reaches Sentry**.
 
 ## 6. 🟠 Transactions bypass the scrubber
 
@@ -226,7 +226,7 @@ Three further observations about that shape:
 
 - **`http.client_ip` is the first `x-forwarded-for` hop, not the socket peer.** The second hop
   (`203.0.113.9`) never appears: `httpServerSpansIntegration.js:44` reads the header and `:69` takes
-  `ips.split(",")[0]`. E12-S02's citation of `:44,69` is confirmed exactly.
+  `ips.split(",")[0]`. The citation of `:44,69` in *The scrubber walks where the headers actually are* is confirmed exactly.
 - **`http.user_agent` (`:70`), `net.peer.ip` and `net.host.ip` are in the same position** — network- or
   client-derived, set outside the `dataCollection` machinery, and **absent from the scrubber's key list**.
   `net.peer.ip` is the socket peer, which in production is nginx rather than the end user; `http.client_ip`
@@ -235,7 +235,7 @@ Three further observations about that shape:
   `tdwKoaErrorHandler`, two unnamed Koa middleware, `bodyParser`, `graphql.parse`, `graphql.validate` and
   `query`. The only non-trivial attributes on them were `graphql.source` (the document, which
   `graphQL: { document: true }` intends) and `graphql.operation.type`. **No variables**, no headers, no
-  address. → **E12-S22**.
+  address. → **The scrubber runs on every event type and covers every bag that carries data**.
 
 ### 6.1 The three frontends — code-read, not measured
 
@@ -264,7 +264,7 @@ What that transaction *contains* is **not measured here**. `@sentry/react` is th
 `httpServerSpansIntegration` and have no browser equivalent, so §6's key table must not be assumed to carry
 over. The one thing §5 establishes is that a `dataCollection` category can gate write-time and not
 read-time; whether `urlQueryParams: false` and `httpBodies: []` hold on the browser transport is the same
-class of assumption, and it is unverified. → **E12-S24** measures it the way this finding measured the node
+class of assumption, and it is unverified. → **What a frontend actually sends is measured, and scrubbed** measures it the way this finding measured the node
 side.
 
 ## 7. 🟠 Breadcrumbs
@@ -276,11 +276,11 @@ walk `event.breadcrumbs`.
 This is where [`log-sink-inventory.md`](./log-sink-inventory.md) meets this finding. §4.3 there records that
 `publicHelloArgs.mts:15` echoes a caller-supplied string to stdout, and §4.1 that `login.mts:117` /
 `loginAdmin.mts:120` print `catch` plus the thrown error on the login path. Console output is not only a log
-line — on any request that then errors, it is Sentry payload. → **E12-S22**.
+line — on any request that then errors, it is Sentry payload. → **The scrubber runs on every event type and covers every bag that carries data**.
 
-## 8. E12-S02, corrected against the observation
+## 8. The scrubber walks where the headers actually are, corrected against the observation
 
-| E12-S02 said | Measured | Verdict |
+| Original claim | Measured | Verdict |
 |---|---|---|
 | `http.client_ip` is set outside `dataCollection`, `httpServerSpansIntegration.js:44,69` | exactly so; first `x-forwarded-for` hop | **confirmed** |
 | the scrubber must strip `http.request.header.*` / `http.response.header.*` | those attributes never appear once `httpHeaders.request` is `false` | **confirmed, unexercised** |
@@ -291,7 +291,7 @@ line — on any request that then errors, it is Sentry payload. → **E12-S22**.
 | — | `event.request.data` carries the raw body and is not walked | **new, 🔴** |
 | — | `event.breadcrumbs` carries console arguments and is not walked | **new** |
 
-**The fixture is rebuilt from the observation** as part of E12-S22: the key list in §6 above, taken from a
+**The fixture is rebuilt from the observation** as part of *The scrubber runs on every event type and covers every bag that carries data*: the key list in §6 above, taken from a
 captured transaction, replaces the hand-built span-attribute object. The existing error-event tests stay —
 they assert the scrubber is harmless on the shape that ships today, which the capture confirms is a shape
 with none of these keys in it.
@@ -299,9 +299,9 @@ with none of these keys in it.
 One smaller correction, unrelated to scrubbing: the sent event reads `"environment": "production"` while the
 service logged *"Serving http://\*:4098/public-resource for development."* `Sentry.init` receives no
 `environment`, so it defaults to `production` regardless of `NODE_ENV`. Every Dev event would land in the
-production bucket of whatever project the DSN names. → **E12-S23**.
+production bucket of whatever project the DSN names. → **Sentry's environment matches the deployment**.
 
-## 9. 🔴 The browser, measured — closes E12-S24
+## 9. 🔴 The browser, measured — closes *What a frontend actually sends is measured, and scrubbed*
 
 §6.1 recorded what reading three `instrument.ts` files establishes and refused to say more. This section is
 the capture that replaces it. Same method as §2, browser side: `marketplace-user` and `marketplace-admin`
@@ -339,7 +339,7 @@ looks like a broken harness. Each probe error carries a distinct message for tha
 
 ### 9.2 The two acceptance questions, answered from the envelope
 
-| E12-S02 / §6.1 assumption | Measured on the browser transport | Verdict |
+| Assumption from §4 / §6.1 | Measured on the browser transport | Verdict |
 |---|---|---|
 | `httpBodies: []` holds | the `fetch` breadcrumb carried `method`, `url`, `__span` and `status_code` — **no body**, on a POST whose body held a password sentinel | **holds** |
 | `urlQueryParams: false` holds | the full address bar, query string **and** fragment, shipped in **five** distinct places | **does not hold** 🔴 |
@@ -403,7 +403,7 @@ rather than of one app's router.
 
 ### 9.4 What the browser adds that the node key list does not name
 
-E12-S02's key list was built from `@sentry/node-core`'s `httpServerSpansIntegration`. None of
+The node key list, from *The scrubber walks where the headers actually are*, was built from `@sentry/node-core`'s `httpServerSpansIntegration`. None of
 `http.client_ip`, `net.peer.ip`, `net.host.ip` or `http.request.header.*` appeared in any browser envelope —
 they have no browser equivalent, exactly as §6.1 warned. What appeared instead:
 
@@ -413,11 +413,12 @@ they have no browser equivalent, exactly as §6.1 warned. What appeared instead:
 | `referer` / `referrer` | the previous page's whole URL, written by the same unconditional `httpContextIntegration` call as the agent string — so `httpHeaders: { request: false }` does not stop it either | **added**, sanitised to the path |
 | `breadcrumbs[].data.from` / `.to` | a URL on a `navigation` breadcrumb and free text anywhere else | **added**, at that one site only |
 | `spans[].description` | free text; the address bar on eight spans, `first-contentful-paint` or a CSS selector on others | sanitised **only when the value starts like a URL** |
-| `User-Agent` header | the browser's own | already removed — `user-agent` was in the key list from E12-S22 |
+| `User-Agent` header | the browser's own | already removed — `user-agent` was added to the key list under *The scrubber runs on every event type and covers every bag that carries data* (§6 found it absent beforehand) |
 | `deviceMemory`, `hardwareConcurrency`, `effectiveConnectionType`, `contexts.culture.*` | fingerprinting entropy: 32 GB / 32 cores / `4g` / `locale: it`, `timezone: Europe/Rome` | **kept, deliberately** — see the residual below |
 
 The truncation removes everything from the first `?` **or** `#`. Both, not the fragment alone: a fragment is
-what a reset link carries since E12-S26, a query string is what one built before it carries, and the SDK
+what a reset link carries since the fix that moved the credential off the URL (*The customer's reset
+credential leaves the URL*), a query string is what one built before that carries, and the SDK
 copies `location.href` whole either way.
 
 ### 9.5 One implementation, not three
@@ -437,12 +438,12 @@ sees.
 
 ### 9.6 Residuals, stated rather than fixed
 
-- **The path itself is not redacted.** A reset link built *before* E12-S26 carries its credential in the path,
-  and truncating at `?` keeps the path. Nothing on this platform mints that shape any more — E12-S26 moved the
-  credential into the fragment, where the truncation removes it — and the old links die with their 60-minute
-  window. Adding route knowledge to a shared scrubber to cover a transitional shape was rejected as the worse
-  trade: no verify-email route exists in any frontend, so this is the only path-carried credential there has
-  ever been.
+- **The path itself is not redacted.** A reset link built before the credential moved off the URL carries its
+  credential in the path, and truncating at `?` keeps the path. Nothing on this platform mints that shape any
+  more — the fix that moved the credential into the fragment (*The customer's reset credential leaves the
+  URL*) is why the truncation removes it — and the old links die with their 60-minute window. Adding route
+  knowledge to a shared scrubber to cover a transitional shape was rejected as the worse trade: no
+  verify-email route exists in any frontend, so this is the only path-carried credential there has ever been.
 - **Device and culture entropy is kept.** `deviceMemory`, `hardwareConcurrency`, `effectiveConnectionType` and
   `contexts.culture` are fingerprinting inputs, and they are also the entire payload of the performance
   product the transaction exists to feed. They are not credentials and they are not the client address. The
@@ -456,14 +457,14 @@ sees.
 
 | Finding | Story | Severity |
 |---|---|---|
-| `event.request.data` ships the raw GraphQL body, §5 | **E12-S21** | 🔴 |
-| Transactions bypass `beforeSend`; three keys and two bags missing from the scrubber, §6 / §7 | **E12-S22** | 🟠 |
-| `environment` is `production` on a development service, §8 | **E12-S23** | 🟡 |
-| Three frontends sample transactions at `0.1` with no scrubber of any kind, §6.1 | **E12-S24** | 🟠 |
-| The browser ships the whole address bar in five places and no option stops it, §9 | **E12-S24** | 🔴 |
+| `event.request.data` ships the raw GraphQL body, §5 | **The request body never reaches Sentry** | 🔴 |
+| Transactions bypass `beforeSend`; three keys and two bags missing from the scrubber, §6 / §7 | **The scrubber runs on every event type and covers every bag that carries data** | 🟠 |
+| `environment` is `production` on a development service, §8 | **Sentry's environment matches the deployment** | 🟡 |
+| Three frontends sample transactions at `0.1` with no scrubber of any kind, §6.1 | **What a frontend actually sends is measured, and scrubbed** | 🟠 |
+| The browser ships the whole address bar in five places and no option stops it, §9 | **What a frontend actually sends is measured, and scrubbed** | 🔴 |
 
 Written into [`TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 as part of closing this story. The first four
-were not fixed here; the fifth was measured and fixed under E12-S24 in the same piece of work, which is why
+were not fixed here; the fifth was measured and fixed under that same story in the same piece of work, which is why
 §9 carries its own residual table.
 
 ## 11. What this finding does not cover

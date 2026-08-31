@@ -12,15 +12,9 @@ sync script ([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-publis
 cross-repo item now asks for a published version *and* a moved range in every consumer, which is the half
 the old wording never checked. The ADR-015 line in the build/gate item is repointed at ADR-047, since the
 half of ADR-015 it cited is the half that was superseded. No other item added, removed or weakened.
-v1.5 - 2026-08-27, later the same day: epic E11's record is deleted, its content distributed rather
-than moved to one successor. §3's `E11` epic-level checkbox cites `ADR-038` as where the refusal is
-recorded, and notes plainly that the epic id survives the record's deletion. `NFR-SE11` at §2.5 is
-untouched — that id names a different NFR and was never the epic.
-v1.4 - 2026-08-27: The three commerce checkboxes said "not designed here", which a reader could satisfy by designing it elsewhere later. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so each now cites it, the `E11` checkbox drops `[PLANNED - NOT BUILT]` for `[WILL NOT BUILD]` and notes its questions are moot rather than pending, and §8's do-not-re-open list gains commerce design alongside the `price` field.
-v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or an epic to map onto a bounded context — that
-rule was removed from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which records the decision. The same edit
-corrects the story-id spelling from `BC-0N-0X` to the `ENN-SNN` every story has always used, which
-[`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) C02 fixed in `CONSTRAINTS.md` and missed here.
+v1.4 - 2026-08-27: The three commerce checkboxes said "not designed here", which a reader could satisfy by designing it elsewhere later. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so each now cites it, the ordering & fulfilment checkbox drops `[PLANNED - NOT BUILT]` for `[WILL NOT BUILD]` and notes its questions are moot rather than pending, and §8's do-not-re-open list gains commerce design alongside the `price` field.
+v1.1 - 2026-08-11: §2.1 and §3 no longer require a story or a record to map onto a bounded context — that
+rule was removed from [`CONSTRAINTS.md`](./CONSTRAINTS.md) §5, which records the decision.
 v1.2 - 2026-08-11: Mutability no longer requires a team vote — single developer.
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase4/ERROR_HANDLING.md` ✅ · `phase5/CONSTRAINTS.md` ✅
 **Mutability:** the platform owner decides — no vote exists, there is one developer. Record the reason in the
@@ -32,7 +26,7 @@ v1.3 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a ci
 ## 1. Purpose
 
 Gate already exist. Live, running, in every repo hook, today — not a proposal. This doc writes the gate
-down; it does not invent one. "Done" at story, epic, phase-gate or sprint level means: pass every
+down; it does not invent one. "Done" at story, record, phase-gate or sprint level means: pass every
 mechanical check below, cite the path that proves it, never a feeling. "Works well" / "performs well"
 with no gate named is banned as an acceptance criterion (BCON-01, `phase5/CONSTRAINTS.md` §3). Machine
 verdict beats judgment call every time — that is standing doctrine here (`CLAUDE.md` §Rules that apply to every task, "Never lower a coverage or mutation threshold, and never remove a gate") — and this
@@ -43,9 +37,8 @@ document is that doctrine in checklist form.
 ## 2. Story-level DoD
 
 ### 2.1 Functionality
-- [ ] Story carries id `ENN-SNN` (`E01-S01`, `E01-S02`, …) numbered sequentially inside its epic — never a
-  global counter, and never the bounded-context id (`phase5/CONSTRAINTS.md` §5). A story is **not** required
-  to map onto a bounded context, and naming one is never a criterion.
+- [ ] Story is identified by its title, never a bounded-context id (`phase5/CONSTRAINTS.md` §5). A story is
+  **not** required to map onto a bounded context, and naming one is never a criterion.
 - [ ] Story for already-running code is marked BUILT and cites the path proving it — never phrased as
   still-to-build. Built-vs-planned split follows [`CLAUDE.md`](../../../CLAUDE.md)'s §Build state table exactly
   (`phase5/CONSTRAINTS.md` §5).
@@ -173,19 +166,19 @@ document is that doctrine in checklist form.
 
 ---
 
-## 3. Epic-level DoD
-- [ ] Every story inside the epic individually meets §2 in full — no epic closes on a partial story.
-- [ ] Every 🔴 Critical NFR the epic touches lands on ≥1 story inside it — cross-checked against the risk
-  register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5). Scope is what the epic changes, not a
-  bounded context it is assigned to; no epic is assigned one.
-- [ ] If the epic is `E11` (Ordering & Fulfilment [WILL NOT BUILD]) — it closes with exactly the refusal
-  recorded at [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), plus the now-moot
+## 3. Record-level DoD
+- [ ] Every story inside the record individually meets §2 in full — no record closes on a partial story.
+- [ ] Every 🔴 Critical NFR the record touches lands on ≥1 story inside it — cross-checked against the risk
+  register; no orphaned Critical NFR (`phase5/CONSTRAINTS.md` §5). Scope is what the record changes, not a
+  bounded context it is assigned to; no record is assigned one.
+- [ ] Ordering & fulfilment (`[WILL NOT BUILD]`) closes with exactly the refusal recorded at
+  [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md), plus the now-moot
   questions from `phase2/BOUNDED_CONTEXT.md` BC-11 + §7, never a schema, resolver, field, or sequence
   diagram that presumes order/cart/delivery/payment exists (`phase5/CONSTRAINTS.md` §6). ⚠️ Since
   2026-08-27 those questions are closed as moot, so a story that "answers" one of them is out of scope in
-  the same way a schema would be. The epic id `E11` has no record file of its own — its record lives at
-  the citation above — and this checkbox applies to it exactly as before.
-- [ ] Every ADR under the epic's area (`phase3/adr/ADR-INDEX.md` §3 "By area") re-verified compliant across
+  the same way a schema would be. Ordering & fulfilment has no record file of its own — its content lives
+  at the citation above — and this checkbox applies to it exactly as before.
+- [ ] Every ADR under the record's area (`phase3/adr/ADR-INDEX.md` §3 "By area") re-verified compliant across
   ALL its stories combined, not just per-story.
 
 ---

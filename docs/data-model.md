@@ -60,7 +60,8 @@ The three divergences are intentional and none of them is an accident to "fix":
    share no library — here, `funUserAddressAdd.mts` on 4032 (a 400 naming the limit instead of a validator
    failure surfacing as a 500), and `AddressList.tsx` (which stops offering the button). Only the first is
    the rule.
-   `position` **stays optional and is written by the client only** (E07-S11, 2026-08-26): `AddressForm` in
+   `position` **stays optional and is written by the client only**, 2026-08-26 (*Place an address on a
+   map*, `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §4): `AddressForm` in
    `marketplace-user` places it from the geocoder suggestion the customer picks and lets them drag a
    MapLibre pin to correct it, or place one the geocoder never found. No resolver geocodes — a lookup
    inside the write would add a round trip to every save and would still have no answer for the address
@@ -73,7 +74,7 @@ The three divergences are intentional and none of them is an accident to "fix":
    `phase5/CUSTOMER_ACCOUNT_ADDRESSES.md` §6). ⚠️ **`disabled` is the field to know about here:** it is on `user` like on
    the other two, `tryLoginUser`, `tokenInfoUser` and `funUserUpdatePwd` all refuse an account carrying it
    — and until 2026-08-25 **nothing wrote it**, because the Admin tier had no `user*` mutation at all.
-   `userUpdateStatus` on `marketplace-dev-admin-authenticated-resource` is the writer (E19-S03), and
+   `userUpdateStatus` on `marketplace-dev-admin-authenticated-resource` is the writer, and
    disabling ends every session that customer holds in the same call; re-enabling ends none, because
    nobody's credentials changed. The admin reaches it from `usersActiveTbl` and the `/customers` screen
    in `marketplace-admin`, and **no field became queryable that was not already**: the table sorts and
@@ -136,7 +137,7 @@ leaves the extension at 3-4 characters instead of pinning it to `webp`: a second
 resolver change and not a rebuild of every database. Read-side exposure is that
 tier alone: the shared `GraphQLItemFrag` does not carry the field, so the Admin and public tiers cannot
 read it and no frontend renders one
-(`docs/devprotocol/phase5/CATALOGUE.md` E05-S09).
+(*A ShopOwner gives an item a picture while adding it*, `docs/devprotocol/phase5/CATALOGUE.md` §4).
 
 ⚠️ **No `price` field, deliberately** (ADR-009). Orders, cart, delivery and payment are out of scope
 and have no model to copy.
@@ -343,24 +344,24 @@ that package and `./scripts/audit-check.sh` greps the other fifteen repos, since
 
 ⚠️ **This table is the whole keyspace, and both checks above compare against it.** A shape added to the
 code and not to this table fails `audit-check.sh` §2 by name — which is how the six rows below the rate
-limiter were found, live and documented nowhere, on the day E18-S08 first ran it.
+limiter were found, live and documented nowhere, on the day the audit script first ran.
 
 | Shape | Holds | Written by | Status |
 |---|---|---|---|
-| `<prefix><sha256('access:'+token)>` | the access session hash — `_id`, `email`, `tier`, never the refresh token | login, rotation | live (E13-S01) |
-| `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier`, the lineage, and `accessKey`: the *key* of the access session minted beside it, never a token | login, rotation | live (E13-S01; `accessKey` 2026-08-13) |
-| `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing, and now read by nothing either | **gone — E13-S10, 2026-08-14**; a key of this shape resolves to nothing |
-| `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | **gone — E13-S10, 2026-08-14**; never non-zero, the cutover was never deployed |
+| `<prefix><sha256('access:'+token)>` | the access session hash — `_id`, `email`, `tier`, never the refresh token | login, rotation | live since the digest cutover |
+| `<prefix><sha256('refresh:'+token)>` | the refresh session hash — `_id`, `tier`, the lineage, and `accessKey`: the *key* of the access session minted beside it, never a token | login, rotation | live since the digest cutover (`accessKey` 2026-08-13) |
+| `<prefix>access:<token>` / `<prefix>refresh:<token>` | the same two hashes, pre-cutover | nothing, and now read by nothing either | **gone since 2026-08-14**; a key of this shape resolves to nothing |
+| `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | **gone since 2026-08-14**; never non-zero, the cutover was never deployed |
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
-| `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | live (E14-S02) |
-| `<prefix>family:<familyId>` | a set of that family's session keys | rotation | live (E14-S03) |
-| `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }`, each field `HEXPIRE`d at its own session's cap | login, rotation | live (E15-S02, S03) |
-| `<prefix>grace-hits` | an integer — how often a refresh lost a race and was told to retry | the grace-window branch of rotation | live (E14-S04), read by E14-S09 |
-| `<prefix>reuse:<tier>:<accountId>` | that account's reuse trail, a list trimmed to 50 on every append — `{ familyId, tier, accountId, action, at }`, no token and nothing network-derived | rotation, on a replay | live (E17-S05) |
+| `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | live |
+| `<prefix>family:<familyId>` | a set of that family's session keys | rotation | live |
+| `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }`, each field `HEXPIRE`d at its own session's cap | login, rotation | live |
+| `<prefix>grace-hits` | an integer — how often a refresh lost a race and was told to retry | the grace-window branch of rotation | live; the count backed the multi-tab measurement that shaped the grace window |
+| `<prefix>reuse:<tier>:<accountId>` | that account's reuse trail, a list trimmed to 50 on every append — `{ familyId, tier, accountId, action, at }`, no token and nothing network-derived | rotation, on a replay | live, exposed to the admin tier through `reuseEvents` |
 | `<prefix>keygrip` | the cookie-signing keys: `version`, `wrapped` (AES-256-GCM under `KEYGRIP_KEK`), `fp` | `marketplace-db-setup`, rotation | live (ADR-034) |
-| `<prefix>keygrip:holders` | one field per service — `<fingerprint>@<ISO-8601>`, the detection that five `.env` copies never had | every service at boot, and on each live swap | live (E01-S14) |
+| `<prefix>keygrip:holders` | one field per service — `<fingerprint>@<ISO-8601>`, the detection that five `.env` copies never had | every service at boot, and on each live swap | live — *the admin can see which service holds which key* (`phase5/IDENTITY_ACCESS.md` §4) |
 | `<prefix>keygrip:rotated` | **a pub/sub channel, not a key** — the payload is the new version number, a nudge to re-read | a rotation | live (ADR-034) |
-| `<prefix>hash-field-ttl-probe` | nothing — it is never written; `hTTL` on a missing key answers instead of throwing | nobody, by design | live (E15-S03) |
+| `<prefix>hash-field-ttl-probe` | nothing — it is never written; `hTTL` on a missing key answers instead of throwing | nobody, by design | live |
 
 ⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
 login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
@@ -386,7 +387,7 @@ each is a silent failure on its own:
 - **The key's TTL is always 30 days** — `SESSION_CAP_DAYS_REMEMBERED`, the *longer* cap — reissued on
   every write whatever cap the session carries. The shorter one would let a single 1-day login pull the
   whole key down and orphan a remembered session: live, listed nowhere, missed by any revocation.
-- **Each field carries a TTL of its own, and it is a different number from the key's** (E15-S03). Every
+- **Each field carries a TTL of its own, and it is a different number from the key's.** Every
   `hSet` into the index is followed by an `HEXPIRE` on that one field for what remains of
   `originalLogin + sessionCapDays` — not the refresh session key's own expiry, which is shorter and
   would delist a live session, and not the key's 30 days, which would outlive a 1-day login by 29.
@@ -395,7 +396,7 @@ each is a silent failure on its own:
 refreshes every fifteen minutes does not read as fifteen minutes old. It carries no token material, and
 nothing else may be added to it without a decision — the refused additions and the reason are the
 `familyId`/cap row in [`ADR-INDEX.md`](./devprotocol/phase3/adr/ADR-INDEX.md) §4 (platform owner,
-2026-08-13, from E15-S02; that row also records that one of `tier`'s two original reasons turned out wrong
+2026-08-13; that row also records that one of `tier`'s two original reasons turned out wrong
 once built — the key a revocation rebuilds needs no tier, since the tier is in the index key's own name).
 
 ### How a field leaves the index
@@ -411,11 +412,11 @@ than "small" — there is no sweeper, no lazy prune on read, and nothing a reade
 - **Anything else** — the field's `HEXPIRE` above. A crashed client, a dropped browser, a session that
   simply ran out its cap: nobody has to come back and tidy up.
 
-`revokeAllSessionsForAccount` (E15-S04) takes the whole key instead: `hKeys`, one single-key `del` per
+`revokeAllSessionsForAccount` takes the whole key instead: `hKeys`, one single-key `del` per
 session it names, and **the index key last** — the index is the only record of what is left to delete, so
 an interrupted revocation that removed it first would leave live refresh tokens nothing can name. Reversed,
-a retry finishes the job. An account with nothing open issues no command at all, unlike the family set of
-E14-S03, which is always deleted: that one has no per-field TTL to fall back on.
+a retry finishes the job. An account with nothing open issues no command at all, unlike the family set,
+which is always deleted: that one has no per-field TTL to fall back on.
 
 ⚠️ **This is what puts a floor of Redis 7.4.0 under the whole platform** — `HEXPIRE`/`HTTL` do not exist
 before it, and Redis refuses an unknown command at the first call rather than at startup. `up.sh
@@ -433,11 +434,12 @@ each is cited on its own — one is not evidence for the other:
   file is not in this workspace and cannot be verified from it.
 
 The consequence belongs next to the fact. **The AOF is a command log of the session keyspace**: every
-`hSet` that ever wrote a session is in it, with its key, in the order it happened. Before E13-S01 those
-keys were the tokens themselves, so the file was a list of live credentials in plain text. After E13-S01
-new writes carry digests — but **the existing file still holds the old commands until it is rewritten**
-(`BGREWRITEAOF`, or the automatic rewrite when the file grows past its threshold). The rewrite is a step
-of the E13-S02 cutover deploy and again of E13-S10, not something E13-S01 achieves by itself.
+`hSet` that ever wrote a session is in it, with its key, in the order it happened. Before the digest
+cutover those keys were the tokens themselves, so the file was a list of live credentials in plain text.
+After the cutover new writes carry digests — but **the existing file still holds the old commands until
+it is rewritten** (`BGREWRITEAOF`, or the automatic rewrite when the file grows past its threshold). The
+rewrite is a step of the cutover deploy and again of the cleanup that later retired the pre-cutover keys,
+not something the cutover achieves by itself.
 
 ⚠️ **Three things are still unknown, and a backup outlives every rewrite.** Each needs an answer from the
 platform owner before this section can claim the keyspace is clean:
@@ -446,7 +448,7 @@ platform owner before this section can claim the keyspace is clean:
 |---|---|---|
 | Is RDB snapshotting also on in production? | a `.rdb` written before the cutover holds the raw keys, and no AOF rewrite touches it | platform owner |
 | Where do the AOF and any `.rdb` live on disk? | they cannot be rewritten, moved or destroyed until they are located | platform owner |
-| Is either backed up off-host? | **a backup copy survives every rewrite this epic performs** — it is the one place raw tokens can outlive the whole of E13 | platform owner |
+| Is either backed up off-host? | **a backup copy survives every rewrite the cutover performs** — it is the one place raw tokens can outlive the whole of the digest cutover | platform owner |
 
 ## Migrations (ADR-014)
 

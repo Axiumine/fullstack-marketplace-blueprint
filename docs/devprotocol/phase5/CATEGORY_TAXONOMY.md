@@ -1,44 +1,12 @@
-# E06 — Category Taxonomy
+# Category Taxonomy
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.16
-**Date:** 2026-08-30
-**Author:** epics-agent
+**Version:** 1.9
+**Date:** 2026-08-27
+**Author:** records-agent
 **Bounded context:** BC-06 — Category Taxonomy
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.16 - 2026-08-30: §0 loses its range entirely — the `E19` and `E20` epic records were the last two, both
-deleted and **distributed, not moved**, and the running *Epics + Stories* index went with them. Both §6s were
-closed first: E20's question 6 by [`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its
-question 7 by [`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), and the one half
-still undecided — whether an admin may be suspended — moved to
-[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided rather than
-dying with the file. No twelfth record was written, so the count stays eleven, and every `E19-Snn` and
-`E20-Snn` id survives in ADR-041..ADR-046 and ADR-049. Nothing about this record's own content or build state
-changed.
-v1.15 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
-the `E17` and `E18` epic records were **both** deleted and their content **distributed, not
-moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
-questions and E18's three are all closed. What the audit found held nowhere else went to `docs/testing.md`
-and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
-The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this
-record's own content or build state changed.
-v1.14 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
-the `E15` epic record was deleted and its content **distributed rather than moved**, the E11 / E13 / E14 way
-and not E12's: all ten of its stories are `built`, so no twelfth record was written.
-⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
-flow should exist — moved to `IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the
-file. The other nine facts went to `ADR-INDEX.md` §4 (three refused
-designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
-E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
-keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
-v1.13 - 2026-08-28, later the same day: §0's range narrows from "E14..E19" to **E15..E19** —
-the `E14` epic record was deleted, its content distributed rather than moved, the E11 / E13 way and not
-E12's: all nine of its stories are `built`, §6 read "None open.", and an audit found only nine facts held
-nowhere else. No twelfth record was written — the count stays eleven, not twelve. E14 keeps its epic
-id and all nine story ids. Nothing about this record's own content or build state changed.
-v1.12 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — the `E13` epic record was deleted, its content distributed rather than moved, the E11 way and not E12's: all eleven of its stories are `built`. No twelfth record was written — the count stays eleven, not twelve. E13 keeps every story id. Nothing about this record's own content or build state changed.
-v1.11 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — the `E12` epic record was deleted and moved into [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now exist as documents of their own in `phase5/`, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
 v1.9 - 2026-08-27: The out-of-scope row said BC-11 was merely unbuilt. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope.
 v1.1 - 2026-08-14: §6's first open question closes on the platform owner's decision — **the taxonomy needs
 no intermediate draft state**, so no `published` flag and no `itemCategoryDisable` are coming. Nothing was
@@ -50,7 +18,7 @@ wrong — a direct GraphQL call against port 4024 meets the same three guards th
 since the resolvers first shipped, so a subcategory with a missing parent identifies no era of the API and
 the collection's provenance cannot be read off its shape. One window that *can* produce that document is
 newly recorded and left open: the three write paths read and then write with no transaction. DCON-05's
-citation on E06-S02 corrected — the constraint is `phase4/CONSTRAINTS.md` §3, not `CONSTRAINTS.md` §2.
+citation on the *Admin creates a category or subcategory, depth capped at two* story corrected — the constraint is `phase4/CONSTRAINTS.md` §3, not `CONSTRAINTS.md` §2.
 v1.3 - 2026-08-25: that window closes by implementation on the platform owner's call — the three write paths
 are one transaction each, and the parent check reads with a write so the two racing transactions collide on
 one document instead of committing past each other. The item half of `itemCategoryDel`'s refusal stays open
@@ -65,155 +33,13 @@ file — its Decision quotes the guard with the `$inc` and the session, Negative
 Risks carries the write-skew reasoning and the cross-repo coupling, Positive records the one exception to
 "Admin-only writes", and Compliance gained two checks that catch either side of the collision being removed
 alone.
-v1.6 - 2026-08-25, last that day: **the file stopped being an epic file and became this record**, for the reason §0
-gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
-resolve from `phase5/` after the move, and three line citations into
-`marketplace-dev-admin-authenticated-resource` that the transaction work under v1.3 had left pointing at
-docblock prose. Four things this file held alone were copied out to where a reader looks for them without
-knowing it exists: the `/categories` screen's own `position` bound and its orphan bucket are in
-[`docs/frontends.md`](../../frontends.md), the reason `itemAdd`'s upload stays outside the transaction is
-in [`ADR-012`](../phase3/adr/ADR-012-category-depth-cap-in-resolver.md), and `itemCategory`'s global
-`slug` uniqueness, its sort ordinal, the absence of a cascade on delete and the fact that no migration
-seeds a category are in [`docs/data-model.md`](../../data-model.md).
-v1.7 - 2026-08-25, after the move: §1 and E06-S06 still read "no write path exists in this service for the
+v1.7 - 2026-08-25, after the move: §1 and the *Anonymous visitor and customer browse the category tree* story still read "no write path exists in this service for the
 collection" of `marketplace-dev-authenticated-resource` — the flat opposite of what §6's third question had
 answered hours earlier, and the sharpest of twelve files under `docs/` where the
 pre-`holdItemCategory` absolute survived. Both now say what holds: every *mutation* is Admin-tier, one field is not. No story
-changed state; E06-S06 stays `built`, since the read-only surface it was written to protect is intact.
-v1.8 - 2026-08-25: the epic id range this record's §0 names is **E07..E19**, not E07..E18 — `E19` opened that day (Customer Administration: the admin's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
-v1.10 - 2026-08-27: §0's range narrows for the opposite reason it last grew — the `E11` epic record was
-deleted, not moved, so the range this record cites shrinks to **E12..E19** and E11 is named separately, as
-distributed into [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note
-2026-08-27 rather than moved into a document of its own. Nothing
-about BC-06 changes.
+changed state; that story stays `built`, since the read-only surface it was written to protect is intact.
 
-## 0. Why this record is not an epic file
-
-It was the epic file `E06` until 2026-08-25. The file was deleted and its record moved here in one pass,
-the sixth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
-[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
-[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) and [`CATALOGUE.md`](./CATALOGUE.md) moved before
-it: nothing in it is work still ahead. All seven stories are `built` and §6 has no open question left —
-the draft state closed on 2026-08-14, and the collection's provenance and the read-then-write window both
-on 2026-08-25, the last of them by an implementation in two repos that landed the same day. So the file
-had become the *record* of a shipped surface rather than a backlog entry. E01..E10 and E12 are the eleven whose records
-are documents of their own in `phase5/` — E07's, E08's and E09's are
-[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
-[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's record sits at neither
-address: its file was deleted on 2026-08-27 with no replacement of its own, distributed instead into
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27.
-
-**The story IDs did not change.** `E06-S01` … `E06-S07` keep their names. ⚠️ **This is the first of the six
-records to move with no citation in any other document at all** — `E06-S01`..`E06-S07` appear nowhere else
-under `docs/`, and the only two references that exist anywhere are in code, both naming E06-S07: a comment
-in `marketplace-admin/schema/admin-authenticated-resource.graphql:12` and one in
-`marketplace-admin/test/features/categories/Categories.test.tsx:419`. Renumbering was refused all the same,
-for the reason E01 gives — an ID cited across files is a name, and moving a file is not a reason to change
-a name — and here the citations are in another repo, where nothing in this workspace fails if they stop
-resolving.
-
-⚠️ **What this record holds that no other file does, after the move.** Not the decisions: each of §6's
-three answers was written out where a reader looks for it as it closed. The refusal of a draft state is a
-row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 and a paragraph in
-[`docs/data-model.md`](../../data-model.md); the transaction, the `$inc` that supplies the collision, the
-contention it costs and the one exception to "Admin-only writes" are in
-[`ADR-012`](../phase3/adr/ADR-012-category-depth-cap-in-resolver.md), which was amended on the platform
-owner's instruction rather than left pointing here. What stays here alone is the reasoning *under* those
-answers: the inspection that killed the provenance question by finding no era of this API that ever
-accepted a subcategory with a missing parent, and the two interleavings written as sequences of calls
-rather than as a rule. Both describe how a shipped surface was reasoned about, which is what a record is
-for and what an ADR deliberately is not.
-
-⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
-the `E12` epic record was deleted and moved beside this one to
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
-the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
-epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
-all fifteen sub-repos and resolve to sections of that record.
-
-⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because the `E13` epic record was
-deleted and its content **distributed rather than moved** — the E11 way, not E12's. No twelfth record
-was written: the count stays the same eleven it became with E12's move, not twelve, since a
-distributed record leaves no new document in `phase5/` for anything to count. All eleven of
-E13's stories were `built` and its §6 read "None open.", so what the file held was not a backlog entry but
-seven facts held nowhere else, and each went to the document that already owned its subject: the six
-`INTROSPECTION_CODE` comparison sites, named by file and line, are in
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6, and the seventh
-site, upstream in `@axiumine/koa-utils`, is in
-[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1. E13 lost its
-file, not its id, the same way E12 did: `E13-S01` … `E13-S11` keep every story id and every build state.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above reads **E15..E19** because
-the `E14` epic record was deleted this same day too and its content **distributed rather than moved** — the
-**E11 / E13** way, not E12's: all nine of E14's stories were `built`, its §6 read "None open. Every
-decision this epic made is carried by the story that implements it, with its reasoning — this section
-holds only what is still undecided.", and an audit of the file found only **nine** facts held nowhere
-else. No twelfth record was written: the count stays the same eleven it has been since E12's move —
-E01..E10 and E12 — unchanged by this pass. The nine facts went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected
-alternatives — the tier-keyed privilege gradient for the session cap, and the cached-successor-pair grace
-design); [`architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate ?`
-cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 does not revive);
-[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 (two rate-limit windows, not one);
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`); the `E17` epic record §5 (why E17 depends on E14 for
-`familyId`); and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4
-(E14-S06's accepted cross-service-harness residual). E14 lost its file, not its id: `E14-S01`..`E14-S09`
-are cited from source files across the workspace and now resolve to the destinations above, every one
-still `built`. The two defects E14-S09 found stay open and stay recorded in
-[`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 — that
-report is not deleted.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
-the `E15` epic record was deleted and its content **distributed, not moved** — the E11 / E13 / E14 way and
-not E12's: all ten of its stories are `built`, and no twelfth record was written, so the count above
-stays **eleven** (E01..E10 and E12). ⚠️ **One thing differs from the last three deletions: E15's §6 was not
-empty.** One row survived — a **Product** question, whether a confirm-first email-change flow should exist
-at all — and it was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open,
-rather than deleted with the file. E15's other nine facts went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
-lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
-§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
-its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
-longer a range — because the `E17` and `E18` epic records were **both** deleted and their
-content **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
-*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
-fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
-record before the code. An audit of the two files, 1 255 lines together, found almost everything already
-verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
-What survived went to
-[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
-line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
-under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
-line. **No twelfth record was written — that count stays eleven** (E01..E10 and E12).
-E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
-two files are gone.
-
-⚠️ **Narrowed a last time 2026-08-30, and there is no range left.** The `E19` and `E20` epic records were
-the last two, and both were deleted and **distributed, not moved** — the E11 / E13 / E14 / E15 / E16 / E17 /
-E18 way — with the running *Epics + Stories* index deleted beside them, an index over nothing having nothing
-to index. Both qualified on the usual test, *what a record still has to do*: E19's five stories and E20's
-thirteen are `built`, the sixth and the fourteenth are anti-stories that are deliberately not built, and both
-§6s were closed before the pass — E20's question 6 by
-[`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its question 7 by
-[`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), both on 2026-08-30. ⚠️ **One
-thing was still undecided and moved rather than died**: whether an admin may be **suspended**, the half of
-E20's question 2 that the *an admin account cannot be closed* ruling did not touch, is now
-[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided. **No twelfth
-record was written, so the count stays eleven** (E01..E10 and E12). Both epics kept every id: `E19-S01` …
-`E19-S06` and `E20-S01` … `E20-S14` resolve to ADR-041..ADR-046 and ADR-049, each of which records what the
-stories under it built, and to the sources those stories touched.
-
-## 1. Epic goal
+## 1. Goal
 
 Curate the two-level `itemCategory` tree every `item` files under. Every mutation on it is Admin-tier;
 ShopOwner and public tiers read it — with the one field-level exception §6 records and ADR-012 carries. The depth cap lives in the resolver, not the validator, because a
@@ -232,7 +58,7 @@ ShopOwner and public tiers read it — with the one field-level exception §6 re
 ## 3. Build state
 
 **Backend fully built, admin-only write, verified. The Admin frontend gap is closed — `/categories`
-shipped with E06-S07 on 2026-08-13.**
+shipped with the *Build the Admin category-management screens* story on 2026-08-13.**
 
 - Schema builder: `BEs/marketplace-db-setup/lib/schemas/itemCategory.js` (83 lines), migration
   `BEs/marketplace-db-setup/migrations/20260301000400-create-itemCategory.js`.
@@ -248,7 +74,7 @@ shipped with E06-S07 on 2026-08-13.**
 - Customer-facing category browse: `marketplace-user/src/routes/category.$slug.index.tsx`,
   `category.$slug.$childSlug.tsx`; query wired at
   `marketplace-user/src/api/operations/publicResource/queries.ts:143` (`itemCategories`).
-- Admin frontend, since E06-S07: `marketplace-admin/src/features/categories/Categories.tsx` (the screen),
+- Admin frontend, since the *Build the Admin category-management screens* story: `marketplace-admin/src/features/categories/Categories.tsx` (the screen),
   `refusals.ts` (the service's eight refusals rewritten as sentences naming a box), `src/pages/CategoriesPage.tsx`,
   route `/categories` in `src/router.tsx`, fifth section in `src/components/layout/SideMenu.tsx`. Operations:
   `ItemCategoriesDocument` in `src/api/operations/adminResource/queries.ts`, `ItemCategoryAdd`/`Update`/`Del`
@@ -261,7 +87,7 @@ shipped with E06-S07 on 2026-08-13.**
 
 ## 4. Stories
 
-### E06-S01 — `itemCategory` `$jsonSchema` validator, two-level shape `built`
+### `itemCategory` `$jsonSchema` validator, two-level shape `built`
 Technical story. `idParent` optional (absent = top-level), `position` a required sort ordinal, `slug`
 globally unique across both levels.
 **domains:** database
@@ -271,7 +97,7 @@ globally unique across both levels.
 **Traces:** NFR-SE11.
 **Evidence:** `BEs/marketplace-db-setup/migrations/20260301000400-create-itemCategory.js`.
 
-### E06-S02 — Admin creates a category or subcategory, depth capped at two `built`
+### Admin creates a category or subcategory, depth capped at two `built`
 **As an** Admin, **when** I create a category, **I want** `itemCategoryAdd` to reject a parent that is
 itself a subcategory **so that** the taxonomy never grows a third level.
 **domains:** database, backend, testing
@@ -281,7 +107,7 @@ itself a subcategory **so that** the taxonomy never grows a third level.
 **Traces:** DCON-05 (itemCategory depth cap in resolver, admin-only writes) per [`phase4/CONSTRAINTS.md`](../phase4/CONSTRAINTS.md) §3; ADR-012.
 **Evidence:** `src/lib/itemCategory/funItemCategoryAdd.mts:43-46`, `src/lib/itemCategory/throwIfParentNotTopLevel.mts:52-58`.
 
-### E06-S03 — Admin updates a category, same depth cap re-checked `built`
+### Admin updates a category, same depth cap re-checked `built`
 **As an** Admin, **when** I re-parent an existing category, **I want** `itemCategoryUpdate` to re-run the
 same depth check **so that** an update cannot smuggle in a third level an add would have blocked.
 **domains:** database, backend, testing
@@ -291,7 +117,7 @@ same depth check **so that** an update cannot smuggle in a third level an add wo
 **Traces:** DCON-05.
 **Evidence:** `mutations/itemCategoryUpdate.mts:26,27-30`.
 
-### E06-S04 — Admin deletes a category, items filed under it stay resolvable `built`
+### Admin deletes a category, items filed under it stay resolvable `built`
 **As an** Admin, **when** I remove a category, **I want** `itemCategoryDel` to leave any `item` documents still
 pointing at it resolvable **so that** deleting taxonomy metadata never breaks a live catalogue entry.
 **domains:** database, backend, testing
@@ -301,7 +127,7 @@ pointing at it resolvable **so that** deleting taxonomy metadata never breaks a 
 **Traces:** DCON-03 (soft-delete convention — `deleted` date, not a hard remove).
 **Evidence:** `mutations/itemCategoryDel.mts:18,19-21`.
 
-### E06-S05 — ShopOwner reads the category tree, read-only `built`
+### ShopOwner reads the category tree, read-only `built`
 **As a** ShopOwner, **when** I fill in an item's category, **I want** `itemCategories` to return the full
 admin-curated tree **so that** I can file my catalogue correctly without being able to alter the taxonomy.
 **domains:** database, backend, testing
@@ -311,7 +137,7 @@ admin-curated tree **so that** I can file my catalogue correctly without being a
 **Traces:** NFR-SE05/SE06; DCON-05 (restated 2026-08-25: every `itemCategory` mutation is Admin-tier, one field is not).
 **Evidence:** `queries/itemCategories.mts:9,23-24`.
 
-### E06-S06 — Anonymous visitor and customer browse the category tree `built`
+### Anonymous visitor and customer browse the category tree `built`
 **As an** Anonymous Visitor, **when** I open a category page, **I want** `itemCategories` to return the
 whole flat tree unauthenticated **so that** I can navigate category → subcategory without an account.
 **domains:** database, backend, frontend, testing
@@ -321,7 +147,7 @@ whole flat tree unauthenticated **so that** I can navigate category → subcateg
 **Traces:** NFR-PF06 (`slug_unique` + `idParent_position` index-backed reads).
 **Evidence:** `queries/itemCategories.mts:37-38`; `marketplace-user/src/api/operations/publicResource/queries.ts:143`.
 
-### E06-S07 — Build the Admin category-management screens `built`
+### Build the Admin category-management screens `built`
 Technical story that closed the gap — the more severe of the two in this workspace, since the Admin tier
 is the ONLY tier ever allowed to write this collection and had no UI to do so.
 **domains:** frontend
@@ -340,11 +166,11 @@ all four metrics, mutation score 100.
 
 ## 5. Dependencies
 
-- No upstream dependency inside this epic — `idParent` is a self-FK, `itemCategory` consumes nothing from
+- No upstream dependency here — `idParent` is a self-FK, `itemCategory` consumes nothing from
   another bounded context (`phase2/BOUNDED_CONTEXT.md` BC-06 "Consumes: nothing from another context").
-- BC-05 (Catalogue) depends on this epic landing first in practice — `itemAdd`/`itemUpdate` check
+- BC-05 (Catalogue) depends on the category taxonomy landing first in practice — `itemAdd`/`itemUpdate` check
   `idCategory` existence via `throwIfItemCategoryMissing`, so an empty taxonomy fails every item write.
-- E06-S07 depends on nothing else in this epic — the three resolvers it wires already exist and are
+- The *Build the Admin category-management screens* story depends on nothing else here — the three resolvers it wires already exist and are
   already gated at 100/100.
 
 ## 6. Open questions
@@ -355,7 +181,7 @@ all four metrics, mutation score 100.
   draft state.** Present or soft-deleted stays the whole state space of a category — no `published` field
   on `itemCategory`, no disable mutation, and no third value between the two. The other two flags exist
   because a shop drafts its *own* public surface; the taxonomy is admin-written on the Admin tier alone
-  (E06-S02, DCON-05), so the only person who could see a half-built category is the admin building it,
+  (the *Admin creates a category or subcategory, depth capped at two* story, DCON-05), so the only person who could see a half-built category is the admin building it,
   and not creating it yet does what a draft flag would. `itemCategories` already reads this way — it
   filters `deleted` and nothing else, and says why in its own docblock
   (`BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/itemCategories.mts`).
@@ -363,7 +189,7 @@ all four metrics, mutation score 100.
   it is created, and shows an empty listing until they arrive. The admin's lever is ordering — create
   it when it is wanted — or `itemCategoryDel`, which soft-deletes and leaves the items that already point
   at it resolvable. Recorded in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
-- Until E06-S07 the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
+- Until the *Build the Admin category-management screens* story shipped, the taxonomy could be shaped only through a direct GraphQL call against port 4024, so
   whether any category documents already exist in `dbMarketplaceDev` from such a call is still unanswered.
   The screen no longer depends on the answer — it renders whatever is there, including a subcategory whose
   parent is missing, which is a document only a call of that kind could have produced. ⚠️ **Closed

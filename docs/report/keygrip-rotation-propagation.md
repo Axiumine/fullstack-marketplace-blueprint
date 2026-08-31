@@ -2,7 +2,8 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E16-S09. Not baselined, not a requirement document
+**Status:** investigation finding that closes the propagation-measurement question `ADR-034` raised. Not
+baselined, not a requirement document
 **Version:** 1.0
 **Date:** 2026-08-13
 **Scope:** what a full rotate-and-retire cycle does to the five cookie-touching services while they are
@@ -18,7 +19,7 @@ material. One process held the clock: it took `t0`, issued the mutation over HTT
 hash every 25 ms until every row carried the new fingerprint. The namespace was deleted afterwards. Static
 reading was used only to explain results already observed.
 **Reads against:** [`ADR-034`](../devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) ·
-E16-S02, E16-S04, E16-S08 ·
+its propagation-delay, retirement-window and residual-risk figures (§9) ·
 `BEs/marketplace-common/src/others/{watchKeygrip,loadKeygrip,recordKeygripHolder,sessionKeys}.mts` ·
 `BEs/dev/marketplace-dev-public-authorization/src/index.mts:134-160,248-300` ·
 `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/keygrip/{funKeygripRotate,funKeygripRetire}.mts`
@@ -36,7 +37,7 @@ mechanism was never observed to miss.
 **No in-flight refresh can be straddled by a rotation.** Not at 37 ms and not at the five-minute ceiling
 either — §5 shows this is structural, not lucky. A **retirement** does invalidate cookies, which is its
 entire purpose; §6 sizes the one case where it invalidates more than the admin intended and concludes
-that it does **not** warrant a story before E16 is called done.
+that it does **not** warrant a story before `ADR-034`'s keygrip-custody work is finished.
 
 One defect was found, and it has nothing to do with keys — it was found because the missing
 `KEYGRIP_KEK` triggered it:
@@ -45,10 +46,10 @@ One defect was found, and it has nothing to do with keys — it was found becaus
   status, nothing in the log. `checkRequiredEnv()` throws outside the `try` in `start()`, and the
   bottom-of-file `.catch` hands the error to `Sentry.captureException(e)` — which, with no `DSN`
   configured, discards it. An admin running a service with a missing variable sees a process that
-  started and stopped, and cannot tell it from a clean shutdown. This belongs to **E18-S03**, which is
-  already the story about `REQUIRED_ENV_VARS` and failing to start; it is recorded here because this is
-  where it was observed.
-  **Fixed 2026-08-13 by E18-S03**, in all nine services: the entrypoint's `.catch` now writes the failure
+  started and stopped, and cannot tell it from a clean shutdown. This is already the story about
+  `REQUIRED_ENV_VARS` and failing to start, tracked in `docs/testing.md`; it is recorded here because this
+  is where it was observed.
+  **Fixed 2026-08-13**, in all nine services: the entrypoint's `.catch` now writes the failure
   to stderr and calls `process.exit(1)`, so a boot that never bound its port stops reporting a clean
   shutdown to Docker, to systemd and to anything else reading the exit code. Sentry still gets the event,
   and still discards it while no DSN is configured — which is why the exit code, not the report, is what
@@ -140,17 +141,19 @@ admin did not mean to reach. It requires **both** of:
 Cookies that lagging holder signs in the gap are signed with a key that no longer exists anywhere, so its
 owners are logged out on their next request.
 
-**This does not become a story before E16 is called done**, for three reasons:
+**This does not become a story before `ADR-034`'s keygrip-custody work is finished**, for three reasons:
 
 - `keygripRetire` already refuses to retire the key at index 0 — 409, `KEYGRIP_RETIRE_CURRENT`, tested over
   HTTP — so the ordinary path cannot strand a signer at all. The edge needs a *second* key still in active
   use by a lagging process, which needs a delivery failure first.
 - The holders hash makes the precondition **visible before the admin acts**: a lagging service is a row
-  whose fingerprint disagrees with the record's, and E01-S14 already surfaces exactly that table.
+  whose fingerprint disagrees with the record's, and *the admin can see which service holds which key*
+  already surfaces exactly that table.
 - The blast radius is bounded by the same five minutes as everything else, and the population is the
   sessions one lagging service happened to sign inside it.
 
-**What it does earn is a console affordance in E17-S08**, not a domain change: the retire control should
+**What it does earn is a console affordance** — see `docs/testing.md` and
+`decisions/admin-session-tooling-placement.md` — not a domain change: the retire control should
 warn — or refuse — while any holders row disagrees with the current fingerprint. The mutation deliberately
 does not consult the holders hash, and should not start: a break-glass response to a compromised key must
 not be blockable by a service that is merely unreachable. The judgement belongs to the admin, with the
@@ -161,7 +164,7 @@ disagreement shown.
 The fail-**open** direction is the one worth recording. Between a retirement landing and a lagging holder
 adopting it, that holder still *verifies* the retired key. Measured at 8 ms; bounded at `KEYGRIP_POLL_MS`
 = 5 minutes if the nudge is lost. This is the residual the ADR names and it is opened as **R47** in
-`RISK_REGISTER` by E16-S08.
+`RISK_REGISTER`.
 
 It is not removable by tuning: shortening the poll shortens the tail of a delivery failure and does
 nothing to the normal path, which is already inside one poll interval end to end.
@@ -170,7 +173,8 @@ nothing to the normal path, which is already inside one poll interval end to end
 
 Checked in-process, as booleans, with no value read or printed: **none of the six local `.env` files
 defines `KEYGRIP_KEK`, and all of them still define `KEYGRIP_KEY_1`.** The code no longer reads the second
-— E01-S15 removed it and added the eslint ban — and requires the first, which is why every service exited
+— removed, along with an eslint ban against reintroducing it (*`KEYGRIP_KEY_1`/`_2` are gone, and the
+documents stop describing five files*) — and requires the first, which is why every service exited
 before serving until the run supplied a KEK of its own.
 
 These files are developer-owned and untracked; nothing in this investigation modified them. The remedy is
@@ -181,9 +185,10 @@ machine would hit §1's silent exit and have nothing to read.
 
 The measured figures replace the estimates in:
 
-- **E16-S02** — worst-case propagation delay: **≤5 minutes** is the bound on a lost nudge; **37 ms** is the
-  observed figure for the mechanism.
-- **E16-S04** — worst-case window between retiring a key and the last process dropping it: same two
-  numbers, **8 ms** observed.
-- **E16-S08** — the residual row, opened at **R47** rather than the R42 the epic named. R42 through R46
-  were all taken between the epic being written and this measurement.
+- **Worst-case propagation delay** (`ADR-034`) — **≤5 minutes** is the bound on a lost nudge; **37 ms** is
+  the observed figure for the mechanism.
+- **Worst-case retirement window** (`ADR-034`) — between retiring a key and the last process dropping it:
+  same two numbers, **8 ms** observed.
+- **The residual row** (`ADR-034`) — opened at **R47** rather than the R42 first reserved for it. R42
+  through R46 were all taken between that reservation and this measurement, per `RISK_REGISTER`'s own
+  changelog.

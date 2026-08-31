@@ -34,17 +34,15 @@ That is the trigger, and it has fired. **This ADR exists because the platform ow
 
 Two questions have been conflated and are worth separating before either is answered:
 
-- **Who owns the publish.** Epic E09 §6 carried this one — that record was retired in this
-  same piece of work and is now
-  [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md): *"No story here names who owns
+- **Who owns the publish.** [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md)
+  §6 carried this one: *"No story here names who owns
   publishing `marketplace-common` past `deploy-local.sh` to a real npm registry."* It is now answered —
   the platform owner, alone, personally. There is no maintainer committee, no CI credential, no delegation.
-  This was the last live question in E09, which is why that record is retired in the same piece of work.
-- ⚠️ **E09 cited the wrong gap for it.** It pointed at [`ADR-INDEX.md`](./ADR-INDEX.md) §5, *"Where the
+- ⚠️ **That record cited the wrong gap for it.** It pointed at [`ADR-INDEX.md`](./ADR-INDEX.md) §5, *"Where the
   sixteen repos get published, and under which org"* — but that bullet is about **git hosting**: which forge
   the sixteen repositories live on, ADR-031's territory. It is not about the npm registry, and it is not
   closed by this ADR. The npm question was always ADR-015's, in the risk quoted above. The misattribution is
-  corrected in E09's record, not here.
+  corrected in [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md), not here.
 
 ### What changed since ADR-015
 
@@ -76,7 +74,8 @@ the dependency string was always the real one. That was ADR-015's whole point an
 
 ### The cost of *not* publishing, measured
 
-Not publishing is not free, and the price is already on record: during E18-S10 (2026-08-13),
+Not publishing is not free, and the price is already on record, in
+[`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) §6 (2026-08-13):
 
 > **`yarn install` cannot run anywhere in this workspace** — `@axiumine/marketplace-common` answers 404 on
 > both registries and yarn 1 aborts the whole resolution over it — so the lockfiles were pruned by a
@@ -95,7 +94,7 @@ read yet. An eight-hundred-line hand-written lockfile rewriter existed because o
 | **Publish to `registry.npmjs.org` under `@axiumine`, owner publishes by hand (chosen)** | `yarn install` resolves in all twelve consumers with no prior step; zero consumer edits, the pins were always real; the scope and the publish workflow are already proven by `@axiumine/koa-utils`; the library is independently usable, which is what "blueprint for the community" means past the workspace clone | A published version is a one-way door — npm's unpublish window is 72 hours and the name is held permanently afterwards; the owner's real name and address, already in `package.json:5`, gain a registry page; version discipline becomes permanent rather than local |
 | Never publish; declare `deploy-local.sh` the permanent contract | No registry to maintain, no irreversible act, no second distribution surface to keep honest; the unit of distribution stays the whole workspace clone, which `git clone --recurse-submodules` already rebuilds | Freezes the 404 and the `yarn install` trap above as permanent properties of a *published blueprint*; contradicts the prepared state ADR-015 deliberately committed (`private: false`, `publishConfig`, an `upload` script), which would then all have to be reversed to mean anything |
 | GitHub Packages, alongside the repositories | One host for source and artifact; org-scoped by construction | Needs an authenticated `.npmrc` to *install*, not only to publish — every clone of the blueprint would need a token before `yarn install` works, which is strictly worse than the trap it replaces. Nothing on disk points at it: every `publishConfig` and every `npmrc` template names `registry.npmjs.org` only |
-| Keep it unpublished but record the ownership answer alone | Closes E09 §6 literally, with no irreversible act | Restates ADR-015's deferral under a new number and leaves the trap. Answers *who decides* while refusing to record *what they decided*, which is the half that changes anything |
+| Keep it unpublished but record the ownership answer alone | Closes `phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md` §6 literally, with no irreversible act | Restates ADR-015's deferral under a new number and leaves the trap. Answers *who decides* while refusing to record *what they decided*, which is the half that changes anything |
 | The LAN Verdaccio mirror (`yarnproxy.gio.lan:4873`) as the publish target | Already running; no public exposure | Resolves on one LAN. `scripts/lockfile-registry-filter.sh` exists precisely to keep that hostname *out* of committed lockfiles because *"a committed lockfile naming a host that only resolves on one LAN breaks `yarn install` for every clone that is not on it"* — publishing there would write the same defect into the dependency itself |
 
 ---

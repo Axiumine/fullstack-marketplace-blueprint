@@ -16,28 +16,22 @@ to `3.0.0` / `^3.0.0`. No constraint added, removed or weakened.
 v1.7 - 2026-08-27, later the same day: BCON-07's version strings follow `marketplace-common` `2.0.0` — the
 correct install result is now `^2.0.0`, and the restatement keeps `1.0.1` as the version published that
 morning. The constraint, its score and its trigger are unchanged.
-v1.6 - 2026-08-27, later the same day: the `E11` epic record is deleted, its content distributed rather
-than relocated to a single successor. §6's E11 paragraph no longer points at that record — it now
-names `ADR-038` §Note 2026-08-27 as where the gap and both recording stories
-(E11-S01, E11-S02) are held. §5's `E01`..`E11` ↔ `BC-01`..`BC-11` coincidence row and its own line 11 are
-unchanged: that is a live id-range rule, not a file reference, and this deletion does not touch it. No
-rule in §6 changed; only where its record lives did.
-v1.5 - 2026-08-27: §6 renamed and rewritten on one word. The four commerce concepts are not "unbuilt", they are **permanently out of scope** — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`, the platform owner's decision. **Every rule in §6 is unchanged and every one of them still binds**: no story designs a state machine, a schema, a delivery-cost model or a gateway, and E11 still gets exactly one epic. What changed is why — the ban used to hold because no design existed, and now holds because none is coming. E11 gained a second recording story (E11-S02) under the same rule, since a story recording a decision *not* to build is not a story designing the fix.
-v1.1 - 2026-08-11: the epic-to-bounded-context rule removed from §5 and its inherited-input row in §2. An
-epic no longer requires, owns or maps to a bounded context; the `E01`..`E11` ↔ `BC-01`..`BC-11` alignment is
-recorded as coincidence. Decided by the platform owner on the grounds that the two are unrelated — an epic is
-one coherent deliverable, a bounded context is a piece of the domain map, and nothing was ever enforcing the
-correspondence in the first place. ⚠️ **§5 is the record of that decision.** `DEFINITION_OF_DONE.md`,
-`CONFLICT_REPORT.md` and the seven E12-E18 epics cite it rather than restating it, so
-re-opening the rule means editing §5 and then those nine.
+v1.5 - 2026-08-27: §6 renamed and rewritten on one word. The four commerce concepts are not "unbuilt", they are **permanently out of scope** — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`, the platform owner's decision. **Every rule in §6 is unchanged and every one of them still binds**: no story designs a state machine, a schema, a delivery-cost model or a gateway, and the ordering & fulfilment gap is still recorded in exactly one place. What changed is why — the ban used to hold because no design existed, and now holds because none is coming. The gap gained a second recorded account of its closure, under the same rule, since recording a decision *not* to build is not a story designing the fix.
 v1.4 - 2026-08-27, later the same day: v1.3 left BCON-07 reading as though installing and deploying were coupled in both directions. They are not — no install path in any of the 16 repos invokes `deploy-local.sh`, and none may. The row now says so, and scopes the collision to the window where it is real: while `marketplace-common` carries an edit no release has shipped. No constraint added, removed or weakened.
 v1.3 - 2026-08-27: **BCON-07 restated after `ADR-037`.** It rested on `marketplace-common` being unpublished; it is published at `1.0.1`, so the constraint keeps its teeth for a different reason — the registry serves the last release, `deploy-local.sh` serves the edit, and a `yarn install` silently swaps one for the other. Its `docs/conventions.md` citation followed the sentence that was rewritten there. No constraint added or removed.
 v1.2 - 2026-08-26: the inherited "GDPR call" out-of-scope row annotated — the call was made by the platform owner on 2026-08-26 (in scope), out of phase exactly as `phase3/CONSTRAINTS.md` §5 required. The constraint is unchanged; only a reader grepping "GDPR call" and stopping at this row would have been misled.
+v1.1 - 2026-08-11: the record-to-bounded-context rule removed from §5 and its inherited-input row in §2. A
+record no longer requires, owns or maps to a bounded context; the alignment with `BC-01`..`BC-11` is
+recorded as coincidence. Decided by the platform owner on the grounds that the two are unrelated — a record is
+one coherent deliverable, a bounded context is a piece of the domain map, and nothing was ever enforcing the
+correspondence in the first place. ⚠️ **§5 is the record of that decision.** `DEFINITION_OF_DONE.md` and
+`CONFLICT_REPORT.md` cite it rather than restating it, so re-opening the rule means editing §5 and both of
+those.
 
 ## 1. Purpose
 
-Doc feed every Phase 5 agent same rules. 8 agent this phase: sequence diagrams, epic index, 4
-epic-file writers, risk register, definition of done. Stop agent A flow contradict agent B story. Stop
+Doc feed every Phase 5 agent same rules. 8 agent this phase: sequence diagrams, records index, 4
+record writers, risk register, definition of done. Stop agent A flow contradict agent B story. Stop
 Phase 5 contradict Phase 1-4.
 
 RULES.md §11 mandate inject this file into all 8. Phase 3 built architecture (28 ADR), Phase 4 built
@@ -57,7 +51,7 @@ Already settled. Do NOT restate body, point at source.
 | DCON-01..DCON-09 (validator authoritative, additionalProperties false, soft-delete-not-hard-remove, 7 global unique index list, itemCategory depth cap in resolver admin-only, ObjectId coercion into pipeline, updatePipeline per-call, bare Boolean return + 2 named exceptions, no role field anywhere) | `phase4/CONSTRAINTS.md` §3 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3/4 could not redesign | `phase3/CONSTRAINTS.md` §4, `phase4/CONSTRAINTS.md` §4-5 |
-| Bounded contexts — the domain map, no epic rule attaches to it | `phase2/BOUNDED_CONTEXT.md` §2, BC-01..BC-11 |
+| Bounded contexts — the domain map | `phase2/BOUNDED_CONTEXT.md` §2, BC-01..BC-11 |
 | NFR catalogue + priority matrix, story acceptance criteria must trace here | `phase1/NFR.md` §2-3 |
 | ADR-001..ADR-028, one row each, by area | `phase3/adr/ADR-INDEX.md` §2-3 |
 | Decisions deliberately NOT re-opened (merge 3 authz, per-tier REDIS_KEY, role field, shop collection, price field, lower threshold, ignoreStatic, domain-specific catalogue vocab) | `phase3/adr/ADR-INDEX.md` §4 |
@@ -101,10 +95,8 @@ How a sequence diagram on this platform must be drawn:
 
 | Rule | Detail |
 |---|---|
-| Epic = one coherent deliverable, **not** one bounded context | **An epic does not require a bounded context and never owns one.** `E01`..`E11` each happen to describe one of `BC-01`..`BC-11`, and the matching count is an artefact of how the retrofit index was written — it is a coincidence, not a rule. Nothing enforces it: an epic may span several contexts or none, and no epic is ever split, merged, renumbered or blocked to preserve the alignment. An epic's header states what it changes; naming a context there is a reading aid with no rule behind it. |
-| Story id sequential inside its epic | `ENN-SNN` — `E01-S01`, `E01-S02`, ... Story number restarts per epic, never a global counter; the epic prefix is the epic id (`E01`..`E18`), never a bounded-context id — an epic maps to none. |
 | Every story ≥2 testable acceptance criteria | Each criterion mechanically checkable per BCON-01 — a gate name, a test file, an explain output, not a feeling. |
-| Every 🔴 Critical NFR appears as acceptance criterion somewhere | Critical set (`phase1/NFR.md` §3): NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01. Each must land on ≥1 story somewhere across the epics — risk register + DoD writer cross-check this, do not leave one orphaned. |
+| Every 🔴 Critical NFR appears as acceptance criterion somewhere | Critical set (`phase1/NFR.md` §3): NFR-SE01–SE09, SE11, SE12, AV01, AV02, MA01, MA02, MA05, CO01. Each must land on ≥1 story somewhere across the records — risk register + DoD writer cross-check this, do not leave one orphaned. |
 | Story for already-built work marked BUILT, cites path proving it | E.g. "customer can register" cites `BEs/dev/marketplace-dev-public-resource` registration resolver + `marketplace-user` account route, not left as if still to design. Built vs planned split follows [`CLAUDE.md`](../../../CLAUDE.md) §Build state table exactly — do not upgrade a planned piece to built by writing a nice story about it. |
 
 ## 6. Out of scope for Phase 5
@@ -117,13 +109,14 @@ Same 4 commerce concepts as Phase 3/4, and as of 2026-08-27 **permanently out of
 - **Delivery** — no story defines a delivery-cost model or any successor concept; nothing was replaced.
 - **Payment** — no gateway story, no integration story, no error-taxonomy story.
 
-BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" gets exactly ONE epic, and that epic's record — retired
-on 2026-08-27 — is the gap and the decision that closed it, held at
+BC-11 "Ordering & Fulfilment [WILL NOT BUILD]" is recorded in exactly one place — the gap and the
+decision that closed it are held at
 [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27.
 It never gets a schema, a resolver, a field, a sequence diagram of a checkout
 flow, or a "story" with acceptance criteria that presume the thing exists. A risk-register row naming the
-gap is fine; a story designing the fix is not. ⚠️ **A recording story is still allowed and E11 has two** —
-E11-S01 recorded the gap, E11-S02 recorded its closure; both are recorded in full at the ADR, not in a file of their own. The line between them and a design story is unmoved: neither
+gap is fine; a story designing the fix is not. ⚠️ **A recording story is still allowed, and this decision
+has two** — one recorded the gap, the other recorded its closure; both are held in full at the ADR, not
+in a file of their own. The line between a recording story and a design story is unmoved: neither
 ships a shape.
 
 ## 7. Conflict resolution order
@@ -147,6 +140,6 @@ goes back through `RULES.md` change-control, not silently overridden here.
 
 Within Phase 5 itself: this CONSTRAINTS.md wins over any single one of the 8 agents' output — that is
 the whole reason it exists (RULES.md §11). Between the 8 agents' own outputs (e.g. a sequence diagram
-naming a flow the epic index doesn't list, or a risk register row an epic-file contradicts): whichever
+naming a flow the records index doesn't list, or a risk register row a record contradicts): whichever
 one matches §3/§4/§5 of THIS file wins; if neither matches, escalate rather than let one silently
 override the other.

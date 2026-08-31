@@ -60,7 +60,8 @@ construction." All three frontends' `CTX_LOGOUT` point at the identical `env.log
 verified `marketplace-admin/src/api/endpoints.ts:26`, `marketplace-shopowner/src/api/endpoints.ts:31`,
 `marketplace-user/src/api/endpoints.ts:29`, each `Object.freeze({ url: ENDPOINT.logout })`.
 
-**Amended 2026-08-12 by E15-S01 — the decision stands, one line of its evidence did not.** The refresh
+**Amended 2026-08-12, per the refresh-session identity-field fix in `phase5/SESSION_TERMINATION.md` §3.1 —
+the decision stands, one line of its evidence did not.** The refresh
 lookup quoted above read the field `id`, and no writer on this platform has ever written one: the refresh
 hash is `IRefreshData`, whose identity is `_id`. The lookup therefore returned `null` for every real
 session, the handler answered `throwAlreadyDone`, and **logout deleted nothing for as long as this service

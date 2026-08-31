@@ -7,7 +7,7 @@
 **Author:** error-handling-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-27: ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope. §1 and §11 stop saying those tiers are merely unbuilt; §12 question 3 keeps its gap but loses its deadline — it had scheduled itself for "before those tiers are designed", and they are not being designed — and its owner cell moves from "whoever owns the ordering tier next" to the platform owner, because that person will never exist.
-v1.2 - 2026-08-28: §3's lead ("never `extensions.code`") is superseded, not edited away — `throwRefreshRaceRetry` (`BEs/marketplace-common/src/others/throwRefreshRaceRetry.mts`) does set `extensions.code = REFRESH_RACE_RETRY_CODE`, matched on by all three SPAs for E14-S04's silent retry, and the annotation records the sharper point: it is thrown from Koa middleware registered before Apollo (`authenticatedAuthorizationHandler.mts`), so `tdwKoaErrorHandler` serialises `{message, description}` with no `errors[]`/`extensions` and the code never reaches the client on that path — a still-open defect, cross-referenced to `../../report/multi-tab-refresh-behaviour.md` §5 and §9 item 2. Layer 9's repetition of the absolute claim (~line 336) gets a short pointer to the same annotation rather than its own copy.
+v1.2 - 2026-08-28: §3's lead ("never `extensions.code`") is superseded, not edited away — `throwRefreshRaceRetry` (`BEs/marketplace-common/src/others/throwRefreshRaceRetry.mts`) does set `extensions.code = REFRESH_RACE_RETRY_CODE`, matched on by all three SPAs to drive the grace-window signal's silent retry, and the annotation records the sharper point: it is thrown from Koa middleware registered before Apollo (`authenticatedAuthorizationHandler.mts`), so `tdwKoaErrorHandler` serialises `{message, description}` with no `errors[]`/`extensions` and the code never reaches the client on that path — a still-open defect, cross-referenced to `../../report/multi-tab-refresh-behaviour.md` §5 and §9 item 2. Layer 9's repetition of the absolute claim (~line 336) gets a short pointer to the same annotation rather than its own copy.
 
 **Depends on:** `phase1/PDR.md` ✅ · `phase1/NFR.md` ✅ · `phase2/EVENT_STORMING.md` ✅ · `phase3/adr/ADR-INDEX.md` ✅ · `phase4/CONSTRAINTS.md` ✅
 **Mutability:** low risk — additive. New error codes/layers don't break existing behaviour. Changing an existing status code or message pattern is breaking wherever a frontend branches on it — check `marketplace-user/src/api/errors.ts` and the equivalent files in the other two frontends first.
@@ -55,7 +55,7 @@ platform carry `extensions: { http: { status }, description }` — never `extens
 > description: 'This refresh token was just rotated by another request. Retry with the current cookie.' }`
 > — raised by `resolveAuthorizationSession`
 > (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts:87`) when a refresh token was just
-> consumed by another tab of the same client, the E14-S04 grace-window signal. All three SPAs'
+> consumed by another tab of the same client — the grace-window signal. All three SPAs'
 > `isRefreshRaceRetry` (`src/api/errors.ts:87`, identical in `marketplace-admin`, `marketplace-shopowner`,
 > `marketplace-user`) match on `error.graphQLErrors[0]?.extensions.code === REFRESH_RACE_RETRY_CODE` to
 > drive a silent retry instead of a logout.
@@ -69,7 +69,8 @@ platform carry `extensions: { http: { status }, description }` — never `extens
 > (`koa/tdwKoaErrorHandler.mjs`), which serialises only `{message, description}`: no `errors[]` array, no
 > `extensions` at all. The code is real and correctly built, but on this exact path it never reaches the
 > wire — `isRefreshRaceRetry` reads an empty `graphQLErrors[0]`, and the client falls through to
-> `clearAccessToken()`/`onSessionLost()`, a logout where E14-S04 specifies a silent retry.
+> `clearAccessToken()`/`onSessionLost()`, a logout where the grace-window design specifies a silent retry
+> instead.
 >
 > **This is a live, still-open defect, not a fixed one** — measured and recorded in
 > [`../../report/multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §5 (the
@@ -103,7 +104,8 @@ tripped `checkRequiredEnv`, because every var was non-empty. No test on this pla
 is a fingerprint sweep, not a stronger boot check.
 
 ⚠️ **The Keygrip third of that incident is the one case since closed, and it was closed by a stronger boot
-check after all** (ADR-034, E01-S12): the keys left the environment for a wrapped Redis record, so a
+check after all** (ADR-034; *The Keygrip pair leaves five `.env` files for one wrapped record in Redis*,
+[`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md) §4): the keys left the environment for a wrapped Redis record, so a
 service holding the wrong `KEYGRIP_KEK` fails to unwrap and `process.exit(1)`s instead of running. That
 generalises only where a value can be *proved* wrong at boot — `INTROSPECTION_CODE` and `MONGODB_URI`
 still cannot be, and for them the paragraph above stands unchanged.

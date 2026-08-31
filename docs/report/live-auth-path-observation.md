@@ -2,11 +2,12 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E18-S09. Not baselined, not a requirement document
+**Status:** investigation finding — the live, dynamic check of a running platform that no static audit
+performs on its own ([`docs/testing.md`](../testing.md)). Not baselined, not a requirement document
 **Version:** 1.4
 **Date:** 2026-08-13 (v1.2 — F1 and F2 both fixed the same day; §5 and §6 say how, and what each fix
 leaves alone)
-**Scope:** what the running Dev stack does, per tier, for the four calls the seven phase-5 epics are
+**Scope:** what the running Dev stack does, per tier, for the four calls the seven phase-5 records are
 written about: a login, an authenticated call, that same call against a service of another tier, a
 refresh and a logout. For each: the response, the cookies, and the Redis keyspace before and after.
 **Method:** measurement first, reading second. All nine services were started on this machine — the first
@@ -20,7 +21,8 @@ file-and-line citation so the two halves stay distinguishable.
 [`../devprotocol/phase5/RISK_REGISTER.md`](../devprotocol/phase5/RISK_REGISTER.md) R54 ·
 [`SETUP.md`](../../SETUP.md) §5, §8
 
-⚠️ **No token, token prefix, key or key prefix appears in this document**, per E17 §2. Token values are
+⚠️ **No token, token prefix, key or key prefix appears in this document** — the same no-leak discipline the
+admin console itself is held to ([`docs/testing.md`](../testing.md) MC-08). Token values are
 given as lengths, Redis key names as shapes: `<hex>` stands for a digest, `<uuid>` for a lineage id. The
 harness that produced these numbers scrubbed both on the way to the terminal, because a transcript is a
 display like any other.
@@ -29,12 +31,12 @@ display like any other.
 
 ## 1. Verdict
 
-**The session machinery behaves as the epics describe it, and the one live defect those epics named is
-genuinely fixed.** Logout is not a no-op: it deletes both session hashes and the account's index row, and
+**The session machinery behaves as the phase-5 records describe it, and the one live defect those records
+named is genuinely fixed.** Logout is not a no-op: it deletes both session hashes and the account's index row, and
 expires both cookies. Tier isolation holds in all six wrong-tier combinations. Refresh rotates, tombstones
 and re-files the index row. A replayed refresh token inside the grace window is answered 409 and touches
 nothing; the same token replayed after it kills the whole lineage and files a reuse event. That is four
-epics' worth of design, working, on the first run.
+records' worth of design, working, on the first run.
 
 **Two things were found that reading had not.**
 
@@ -43,7 +45,8 @@ epics' worth of design, working, on the first run.
 | F1 | A first registration stores the password hashed **twice**, so the account can never log in. Both public tiers. | **High — registration was broken in production. Fixed 2026-08-13, see §5** |
 | F2 | An access token minted by a refresh that carried no `Authorization` header is reachable by no revocation path — not logout, not family revocation, not the admin console — and lives out its 30–91 minutes. Five such tokens accumulated over this session's own probing. | **Medium — the orphan and the accumulation are fixed, 2026-08-13, see §6. One residual left open by decision** |
 
-Three smaller divergences (F3–F5) are recorded in §6. F1 is not an E18 finding in origin: it is a
+Three smaller divergences (F3–F5) are recorded in §6. F1 is not a quality-gate finding in origin
+([`docs/testing.md`](../testing.md)): it is a
 production defect in a story nobody had written, and it is stated here because this is the document that
 found it. It was fixed the same day, outside any story, on the user's decision — §5 records what was
 changed and what the fix deliberately leaves alone. **F2 was fixed the same day and on the same
@@ -115,7 +118,7 @@ The four access TTLs are not four different bugs: `accessTokenExpiry()` returns 
 physical 90 days; the *policy* lifetime is `originalLogin + sessionCapDays`, checked at refresh time.
 
 ⚠️ **`sessionCapDays` is 1 for `rememberMe: false` and 30 for `true` — and the cookie says 90 days in both
-cases.** That is the design (E14: the cap is enforced server-side at rotation, `sessionCapDeadline`), but
+cases.** That is the design ([`architecture.md`](../architecture.md): the cap is enforced server-side at rotation, `sessionCapDeadline`), but
 it means a browser holds a 90-day cookie for what is a one-day session, and a client reading its own
 cookie expiry would be wrong by 89 days. **The cap firing was not observed** — doing so takes a day of
 wall clock — so this document confirms the fields and not the enforcement.
@@ -136,7 +139,8 @@ two cases must not be confusable by a caller probing for which tier a token belo
   `tier`; TTL 90 d), `family:<uuid>` (a set), `rl:refresh:family:<hex>` and `rl:refresh:token:<hex>`;
 - deleted: the previous refresh hash;
 - **kept**: `idx:<tier>:<accountId>`, whose single field is rewritten to the new digest carrying the
-  **original** `mintedAt` — one row per session, not one per rotation (E15-S03), confirmed.
+  **original** `mintedAt` — one row per session, not one per rotation
+  ([`SESSION_TERMINATION.md`](../devprotocol/phase5/SESSION_TERMINATION.md) §3.1), confirmed.
 
 ⚠️ **`family:<uuid>` is created by the first rotation, not by the login.** `newSessionLineage` stamps the
 three lineage fields and files nothing; the `sAdd` is in `refreshSessionTokens.mts:222`. A session that has
@@ -155,7 +159,8 @@ tombstones survive — deliberately: they are the replay-detection record, not t
 | within `GRACE_SECONDS = 10` | **409** | `Refresh In Progress` — "This refresh token was just rotated by another request. Retry with the current cookie." | nothing created, nothing deleted |
 | after it (measured at 205 s and at 12 s) | **498** | `Refresh Token is expired or deleted by Admin.` | family set **and both current session hashes** deleted; `reuse:<tier>:<accountId>` list appended — `{familyId, tier, accountId, action:"refreshTokenReplayed", at}`, TTL 30 d |
 
-Both halves of E14's reuse design, working, including the deliberate refusal to revoke a family for what
+Both halves of the reuse-detection design
+([`token-handling-security-audit.md`](./token-handling-security-audit.md) §3.1), working, including the deliberate refusal to revoke a family for what
 is probably a second browser tab.
 
 ## 5. F1 — a registered account cannot log in
@@ -193,7 +198,8 @@ document middleware, so a registration restarted before verification stores a si
 The two password-change functions do the same and say so in a comment that names this exact hook
 (`funUserUpdatePwd.mts:62-64`, `funAdminUpdatePwd.mts:57-59`) — the trap was known on the update side and
 missed on the create side. Unit tests mock the model; no test registers and then logs in, because those
-are two services and the boundary suites stop at the service edge (E18-S02).
+are two services and the boundary suites stop at the service edge
+([`docs/testing.md`](../testing.md) — *The auth-boundary contract*).
 
 **The fix is one word in two files** — pass the plaintext and let the hook hash it, or keep the explicit
 hash and drop the hook — plus the end-to-end test that would have caught it.
@@ -226,14 +232,17 @@ touch `restartUserRegistration` or `restartShopOwnerRegistration`, which were co
 | after `logout` presenting AT3 | **200** | **200** | 498 |
 | after a replay-triggered family revocation | **200** | 498 | — |
 
-E14-S06 retires the previous access token at rotation, but only `if (presentedAccessToken)`
+Rotation retires the previous access token, per
+[`token-handling-security-audit.md`](./token-handling-security-audit.md) §3.4, but only `if (presentedAccessToken)`
 (`refreshSessionTokens.mts:253`, the line this finding was read at — the guard is still there and is no
 longer alone, see the fix below) — the client has to send it. The frontends do send it when they have one,
 and structurally cannot on the path that matters most: a page reload wipes the in-memory token and the
 first operation after it refreshes with nothing to present (`marketplace-user/src/api/client.ts:82-92`).
 Every reload therefore orphans one access token, which is in no family (§4), listed in no index row — the
 index names refresh sessions only — and so reachable by neither `revokeSessionFamily` nor
-`revokeAllSessionsForAccount` nor the E17 admin console. **This session's own probing left five of
+`revokeAllSessionsForAccount` nor the admin console
+([`decisions/admin-session-tooling-placement.md`](../decisions/admin-session-tooling-placement.md)).
+**This session's own probing left five of
 them**, found by scanning for the account's `email` field and deleted by hand.
 
 That access tokens outlive a revocation is already stated where it matters
@@ -257,7 +266,8 @@ the access session minted beside it, in an `accessKey` field on its own hash, so
   so the ordinary two-delete logout stays two deletes (`marketplace-dev-authenticated-logout`).
 
 A stored key is a *key*, not a token: it is the digest already used as the Redis address, it grants nothing
-to whoever reads it, and it is never projected into a session the resolvers return, so E17 §2 holds.
+to whoever reads it, and it is never projected into a session the resolvers return, so the admin console's
+own no-leak rule ([`docs/testing.md`](../testing.md) MC-08) holds.
 
 What this closes, exactly: no access token is unreachable any more, and none accumulates — at most one
 access token per session is live at any moment, and logout ends it. The measured table above no longer
@@ -270,7 +280,8 @@ nothing. A password change, a disable and an admin's revoke all end the access t
 
 ⚠️ **The residual named three paths and only two were in it.** `revokeSessionFamily` was never part of this
 window: the family set holds the *pair* every rotation files (`refreshSessionTokens.mts:222`), so a family
-revocation has deleted access halves since E14-S02. This document said otherwise for a few hours, and the
+revocation has deleted access halves since the reuse-detection fix paired them in the family set
+([`token-handling-security-audit.md`](./token-handling-security-audit.md) §3.1). This document said otherwise for a few hours, and the
 correction is worth more than the tidy sentence — the claim was written from the index's shape rather than
 from the set's contents. What is left is the session hash written before `accessKey` existed: it names no
 access half, so revoking it leaves that one token for the rest of its own 30–91 minutes, and none can be
@@ -280,7 +291,9 @@ written any more.
 set and never touches `idx:<tier>:<accountId>` (`revokeSessionFamily.mts:64-66`). Observed: after the
 replay revocation the row remained, still naming the digest of a session that no longer exists, for the
 remaining 30 days of its own TTL. Nothing is granted by it — the digest resolves to nothing — but the
-E17 console's session list and count read that row, so an account shows a session it does not have.
+admin console's session list and count
+([`decisions/admin-session-tooling-placement.md`](../decisions/admin-session-tooling-placement.md)) read
+that row, so an account shows a session it does not have.
 `revokeAllSessionsForAccount` cleans up whatever it finds, so the row self-corrects at the next
 account-wide revocation.
 
@@ -289,10 +302,14 @@ account-wide revocation.
 `marketplace-db-setup` — 5 of 9", and line 173 says "The four `*-resource` services sign no cookie and
 **must not** carry `KEYGRIP_KEK`". Six services require it:
 `marketplace-dev-admin-authenticated-resource` requires it too, and says why at `src/index.mts:65-71` —
-it hosts the E17 rotation mutations, which mint and reseal the record. Following SETUP.md on a fresh
+it hosts the rotation mutations that mint and reseal the record
+(placement decided in [`decisions/admin-session-tooling-placement.md`](../decisions/admin-session-tooling-placement.md)).
+Following SETUP.md on a fresh
 machine leaves that service refusing to boot. Corrected in the same change as this document.
 
-The holders table is a separate count and is **still five**, as E16 §3 says: `admin-authenticated-resource`
+The holders table is a separate count and is **still five**, as
+[`ADR-034`](../devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) — *The record* —
+says: `admin-authenticated-resource`
 opens the record but signs no cookie, so it files no `keygrip:holders` row. Live: six services required the
 KEK at boot, five rows present, all at one fingerprint. Both numbers are right; they are answers to
 different questions, and SETUP.md conflates them.
@@ -301,12 +318,13 @@ different questions, and SETUP.md conflates them.
 defect: the cap is enforced at rotation and the cookie expiry is not a control. It is noted because a
 reader of the cookie jar would draw the wrong conclusion, and because nothing else says so.
 
-## 7. E15-S01 — confirmed fixed
+## 7. Logout ending both tokens — confirmed fixed
 
-E15 §3 records `logout` as having "returned success and left both tokens live until natural expiry" until
-E15-S01 landed on 2026-08-12. **Observed on all three tiers: it does not.** A logout deletes the refresh
+[`SESSION_TERMINATION.md`](../devprotocol/phase5/SESSION_TERMINATION.md) §3.1 records `logout` as having
+"returned success and left both tokens live until natural expiry" until the fix landed on 2026-08-12.
+**Observed on all three tiers: it does not.** A logout deletes the refresh
 session named by the cookie, the access session named by the header and the account's index row; both
-tokens answer 498 afterwards and the emptied jar answers 412. The claim in E15 §3 is a historical
+tokens answer 498 afterwards and the emptied jar answers 412. The claim in that record is a historical
 statement about the pre-fix code and needs no correction — it is already written in the past tense, with
 the fix attributed.
 

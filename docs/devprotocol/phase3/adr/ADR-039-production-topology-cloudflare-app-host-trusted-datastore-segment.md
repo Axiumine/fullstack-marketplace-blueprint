@@ -124,12 +124,13 @@ The trust is a **decision, not a measurement**, and three consequences follow fr
 ADR-032 forbade closing any control by appeal to a network boundary. That prohibition is **narrowed, not
 lifted**:
 
-- **Every mitigation written to hold with the port open stays exactly as it is.** Specifically:
-  **E13-S11**'s `NODE_ENV` allowlist on the introspection bypass
+- **Every mitigation written to hold with the port open stays exactly as it is.** Specifically, the
+  `NODE_ENV` allowlist on the introspection bypass
   (`BEs/marketplace-common/src/others/isIntrospectionBypassAllowed.mts`, a re-export of the koa-utils
-  implementation since `marketplace-common@2.0.0`) and **E14-S08**'s pre-lookup limiter
-  (`BEs/marketplace-common/src/others/refreshRateLimit.mts`) are not weakened, relaxed or made
-  configurable by this ADR. Hashed session keys (E13-S01) likewise.
+  implementation since `marketplace-common@2.0.0`, and described in `phase3/SECURITY_AUTH.md` §3.6) and
+  the pre-lookup limiter on `refresh` (`BEs/marketplace-common/src/others/refreshRateLimit.mts`, scored as
+  `phase5/RISK_REGISTER.md` R52) are not weakened, relaxed or made configurable by this ADR. The hashed
+  session keys likewise.
 - **A boundary may now be cited — as a second layer, for the legs described above, and never alone.** A
   control whose entire argument is "the port is closed" is still not a control. What changed is that a
   residual score may now account for the boundary, because the boundary is written down and attributable.
@@ -142,8 +143,8 @@ lifted**:
 |---|---|
 | **R46** — production topology undescribed (3 × 4 = 12, 🟠 High) | **Closed.** This is the document it was waiting for |
 | **R45** — Redis traffic unencrypted (2 × 4 = 8, 🟡 Medium) | **Open, re-scored to 1 × 4 = 4 (🟢 Low).** Impact is unchanged — session material in the clear is session material in the clear. Likelihood drops because reaching that leg now requires a foothold inside a trusted segment or a mis-scoped security group, rather than any position on a network nobody had described. It closes only when the leg is encrypted: a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster. ⚠️ **The first arrived on 2026-08-28** — `7.1.0`, hours after this table was written — **and the row still does not close**, because the second did not: no listener, no certificates, and `REDIS_TLS` set nowhere |
-| **E13-S11** — introspection bypass refused outside development | `built`, unchanged. The gate is the control; the boundary bounds its blast radius and does not replace it |
-| **E14-S08** — `refresh` floodable with distinct garbage tokens | `built`, unchanged. The limiter is the control; Cloudflare in front bounds arrival volume and does not replace it |
+| **The introspection bypass** — refused outside development | `built`, unchanged. The gate is the control; the boundary bounds its blast radius and does not replace it |
+| **R52** — `refresh` floodable with distinct garbage tokens | `built`, unchanged. The limiter is the control; Cloudflare in front bounds arrival volume and does not replace it |
 
 ### 7. What this ADR does **not** answer
 
@@ -193,8 +194,8 @@ Still open, and still owned by the platform owner — `INFRA.md` §14 keeps the 
 - **Risk:** "trusted segment" is quoted later as though it were verified. Revisit condition: any risk row,
   ADR or story that cites the trust without also citing the security group that implements it.
 - **Risk:** a koa-utils release adds `rediss://` and nobody notices, leaving R45 open when it could close.
-  Revisit condition: any `@axiumine/koa-utils` major or minor bump — the E13-S05 assertion on the connection
-  scheme is the tripwire that already exists for this. ⚠️ **Fired 2026-08-28 on the `7.0.0` → `7.1.0`
+  Revisit condition: any `@axiumine/koa-utils` major or minor bump — the dependency-bump assertion on the
+  connection scheme is the tripwire that already exists for this. ⚠️ **Fired 2026-08-28 on the `7.0.0` → `7.1.0`
   minor bump**, which is the condition written here, and the revisit happened: R45 rewritten (register
   v1.37), `docs/architecture.md` corrected, the assertion retargeted. R45 could not close on it — the
   release supplies the client half only.

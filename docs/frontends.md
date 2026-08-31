@@ -55,9 +55,9 @@ Stack: TanStack Router (route tree in code, not generated) · urql + `cacheExcha
 
 `marketplace-admin` is the admin app: `loginAdmin`, then manage *shopOwners* — and, since 2026-08-25,
 *customers* as well: `/customers` pages `user` accounts through `usersActiveTbl` and suspends or restores
-one with `userUpdateStatus`, both on 4024 (E19). Since 2026-08-29 it opens with a counter and a
+one with `userUpdateStatus`, both on 4024. Since 2026-08-29 it opens with a counter and a
 registrations chart above that table — `usersStats` and `usersPerPeriod`, the counterparts of the pair
-`/shopOwners` has always had (E19 §6 question 2). ⚠️ **Since 2026-08-30 both admin tables filter by account
+`/shopOwners` has always had. ⚠️ **Since 2026-08-30 both admin tables filter by account
 state, and both offer four of them** — Active, Suspended, Closed and Closed & suspended, carried in the URL
 as `?status=` and sent to the service as the `disabled` / `deleted` pair both table queries take as
 required booleans (ADR-049). Four rather than three because the two flags are independent: an account
@@ -199,5 +199,5 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 File and test counts are a `yarn test` run of 2026-08-30 for the three apps, and of 2026-08-25 for
 `marketplace-services-status`. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
-E19 added. The gate is hook-only in all four repos, so the next push is what re-measures them; do not
-start a run to refresh this table.
+the admin active-user tables and retention work added (ADR-049). The gate is hook-only in all four repos,
+so the next push is what re-measures them; do not start a run to refresh this table.

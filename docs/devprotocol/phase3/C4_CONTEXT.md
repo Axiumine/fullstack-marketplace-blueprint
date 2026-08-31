@@ -21,8 +21,9 @@ relationships table, which still read *"every package except `marketplace-common
 actor, system or relationship changed.
 v1.2 - 2026-08-27: the npm-registry row said the registry resolves every dependency *except* `@axiumine/marketplace-common`, *"which 404s there"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, so the exception is gone and `deploy-local.sh` bridges *edited → released* instead. No container, actor or relationship changed.
 v1.1 - 2026-08-12: the ShopOwner actor row said they register through `marketplace-shopowner`, which has no
-registration screen and never had one. E03-S08 built the flow on the public SSR app instead — corrected to
-the two real creation paths.
+registration screen and never had one — the public SSR app built the flow instead, per *A seller registers
+themselves and waits for an admin* ([`phase5/SHOPOWNER_ONBOARDING_APPROVAL.md`](../phase5/SHOPOWNER_ONBOARDING_APPROVAL.md)
+§4) — corrected to the two real creation paths.
 **Depends on:** [`docs/devprotocol/phase1/PDR.md`](../phase1/PDR.md) ✅ · [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) ✅ · [`docs/devprotocol/phase2/BOUNDED_CONTEXT.md`](../phase2/BOUNDED_CONTEXT.md) ✅
 **Mutability:** keep in sync — update on each architectural change
 

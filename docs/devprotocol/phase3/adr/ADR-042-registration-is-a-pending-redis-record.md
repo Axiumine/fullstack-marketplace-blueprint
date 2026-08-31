@@ -206,7 +206,7 @@ stops meaning two things and means only *this account was closed*.
 
 ### Build record
 
-- **Built as `E20-S07`.** A submitted registration writes Redis and nothing else: a three-day TTL record
+- **Built, as part of the account-state model (ADR-044).** A submitted registration writes Redis and nothing else: a three-day TTL record
   carrying the pre-minted `_id` and the bcrypt hash, replay-safe across a lost commit acknowledgement, and
   every outcome — free, taken, pending or closed — answering the same check-your-mail page, so the form is no
   enumeration oracle.

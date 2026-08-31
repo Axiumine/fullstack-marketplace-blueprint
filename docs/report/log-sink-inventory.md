@@ -2,32 +2,40 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E12-S12. Not baselined, not a requirement document
+**Status:** investigation finding, completing the investigation into what the application and access logs
+actually contain. Not baselined, not a requirement document
 **Version:** 1.11
 **Date:** 2026-08-28
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
-(E12-S16); §10 gains the two corrections that fixing it produced — §5's two link shapes are four, and the
+(the mailed links stop writing a live credential to the access log); §10 gains the two corrections that fixing
+it produced — §5's two link shapes are four, and the
 `Referer` field carried the same pair the request line did. v1.3 — the residual v1.2 recorded is now
-**E12-S26** rather than a note: §10 says per flow whether the credential can leave the URL path, and adds a
+**the customer's reset credential leaves the URL** rather than a note: §10 says per flow whether the credential
+can leave the URL path, and adds a
 sink nothing here had enumerated — the SSR page dehydrates the address and the hash into an inline `<script>`,
 so the cache holds them as body content, not only as a key. That one is source-level and flagged as such.
-v1.4 — the cache sink is closed the same day (E12-S26's first landed criterion) and §10 records what
+v1.4 — the cache sink is closed the same day (the first landed criterion of the customer-reset-credential
+story) and §10 records what
 reverting it shows: the second request to a reset link answered `HIT`, so the credential URL was genuinely
 stored rather than merely storable. Nothing else measured changed. v1.5 — §10 stops calling the two questions
 it routed "open": both were answered on 2026-08-11, `TELEMETRY_EGRESS_HARDENING.md` §6 no longer houses them, and this document now
-points at the story each answer landed on. v1.6 — §7.1 and §7.2 are closed (E12-S17, E12-S18) and both were
+points at the story each answer landed on. v1.6 — §7.1 and §7.2 are closed (the Redis password no longer rides
+in the container's argv, and every container log is bounded) and both were
 re-measured while closing. §7.1 **corrects one of its own rows**: host `ps aux` never showed the Redis
 password, because Redis overwrites its `argv` at startup, so the before-state was two surfaces and not three.
 §7.2's line count had moved from 380,144 to 458,129, and that rate is what sized the rotation pair.
-v1.7 — §6.4 is closed (E12-S19): the edge pins its own retention at 14 daily rotations with `shred`, and
+v1.7 — §6.4 is closed (the edge's log retention is now pinned by the repo): the edge pins its own retention at
+14 daily rotations with `shred`, and
 the fix added two measurements the finding had no reason to look for — `shred` degrades to `unlink` on a
 busybox host while still exiting 0, and two `logrotate.d` files matching one glob make logrotate skip the
 whole later-named file. §6.1's answer is unchanged: the address stays and the lifetime is the control.
-v1.8 — the public half of that answer landed too (E12-S25): `/privacy` in `marketplace-user` states the
+v1.8 — the public half of that answer landed too (the log retention now stated where a data subject can read
+it): `/privacy` in `marketplace-user` states the
 retention where a data subject can read it, and §6.4 and §10 record the one thing writing it corrected —
 `rotate 14` daily lets an entry live into the **fifteenth** day, so "14 days" alone would have been a
-statement this configuration overruns. v1.9 — E12-S26 is closed for the customer flow and §10 gains the
+statement this configuration overruns. v1.9 — the story about the customer's reset credential leaving the URL
+is closed for the customer flow and §10 gains the
 before/after measurement its first criterion asked for. The dehydrated body is confirmed as read at source,
 and the response carrying it was also labelled `public, s-maxage=60, stale-while-revalidate=600` — the origin
 inviting every shared cache in the path, Cloudflare included, to keep a live one-time credential for ten
@@ -49,8 +57,9 @@ rather than a judgement. nginx was run from its own configuration inside a throw
 `nginx:stable-alpine` container, at the shipped level and then one level lower. Static reading was used only
 to explain a result already observed, and every such line is cited.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
-[`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) E12-S06, E12-S07, E12-S09,
-E12-S11, E12-S14 · [`sentry-event-capture.md`](./sentry-event-capture.md) (E12-S13, the sink this finding
+[`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 — no network-derived value reaches telemetry, the edge access logs record no client address, nginx
+learns the real client address and nothing downstream does, the rate-limit key carries no plaintext email, and
+the observability documentation matches the code · [`sentry-event-capture.md`](./sentry-event-capture.md) (the investigation that captured one real Sentry event and read it, the sink this finding
 does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence. v1.11 — 2026-08-28: §8's *Production topology* bullet gains a dated note. The topology it named as owed is written (`ADR-039`, superseding `ADR-032`), and the bullet's own claim is untouched: where processes run is not what they log. What the note adds is the two facts a future re-measurement will meet — a datastore host with its own filesystem, and Cloudflare in front of nginx, which stops the edge's access log being a request's first record. Nothing measured, nothing re-measured.
 
 ---
@@ -63,7 +72,8 @@ where the credentials themselves were poisoned with sentinels to see whether a d
 them back. It does not. The audit assumed nothing here; the measurement says the assumption would have been
 right.
 
-**Four sinks are not clean, and none of the four is the one the epic was watching.**
+**Four sinks are not clean, and none of the four is one `TELEMETRY_EGRESS_HARDENING.md` was already watching
+for.**
 
 - 🔴 **The nginx access log records the account email address and the one-time verification / reset hash,
   verbatim, in `"$request"`.** Both mailed links are GETs that carry `:email/:hash` in the URL path, so the
@@ -115,9 +125,10 @@ false clean result that looks exactly like a real one.
 | nginx error log (http-level, `notice`) | no | no | no | **no**, §6.2 | — |
 | `docker logs` — Mongo ×3 | no | no | no | **no** — backend socket addresses only, §7.3 | — |
 | `docker logs` — Redis | no | no | **no**, §7.1 | no | — |
-| Container argv (`inspect` / `ps`) | no | no | **was yes** — the Redis password; ✅ fixed by E12-S17, §7.1 | no | — |
+| Container argv (`inspect` / `ps`) | no | no | **was yes** — the Redis password; ✅ fixed — the Redis password stops riding in the container's argv, §7.1 | no | — |
 
-Sentry is a sink too, and it is not in this table: it is E12-S13's subject and has its own finding,
+Sentry is a sink too, and it is not in this table: it is the subject of the investigation that captured one
+real Sentry event and read it, and has its own finding,
 [`sentry-event-capture.md`](./sentry-event-capture.md). That finding is where the request-body result lives,
 and it is the more severe of the two.
 
@@ -168,7 +179,8 @@ publicHelloArgs: name:  MKTS12ARGdddd4444
 `console.debug` of a caller-supplied argument. The query is a public smoke-test resolver and the argument is
 a display name, so nothing the platform *routes* there is sensitive. What the line writes to disk is,
 however, entirely the caller's choice, on an unauthenticated endpoint, with no bound on length. It is the
-only place in nine services where request-supplied content reaches a log verbatim. → **E12-S20**.
+only place in nine services where request-supplied content reaches a log verbatim. → **no resolver echoes its
+argument to a log**.
 
 ### 4.4 The failure paths do not print the credential they failed with
 
@@ -187,7 +199,8 @@ that makes the "no" in the table a no rather than an absence of evidence.
 
 ## 5. The nginx access logs — the format is right and it is not enough
 
-> ✅ **Fixed 2026-08-11 by E12-S16, after this was written.** Everything below is the measured before-state
+> ✅ **Fixed 2026-08-11 — the mailed links stop writing a live credential to the access log, after this was
+> written.** Everything below is the measured before-state
 > and is kept as such. The format quoted here no longer exists in that shape, and the correction §10 records
 > matters when reading the rest of the section: there are **four** link shapes, not the two driven here, and
 > the `"$http_referer"` field carried the same values as `"$request"` for any request a browser made from
@@ -203,7 +216,8 @@ log_format mkt_access
 ```
 
 No `$remote_addr`, no `$http_x_forwarded_for`, no `$realip_remote_addr`, in any position. Measured: **zero**
-occurrences of `127.0.0.1` across every access log produced by the probe. E12-S07 holds, live.
+occurrences of `127.0.0.1` across every access log produced by the probe: the edge access logs record no
+client address, confirmed live.
 
 `"$request"` is the problem. Both links this platform mails are GETs that carry the address and the one-time
 hash in the path:
@@ -284,7 +298,8 @@ entries — which is to say that every line in them is a line with an address in
 
 Re-run at `info`, everything else identical: 169 distinct entries, **7** with `client: `. The two new ones
 are `client sent plain HTTP request to HTTPS port` and `client sent no required SSL certificate` — the
-origin-pull refusal E12-S15 introduces. Both are connection-scoped and both name the address.
+origin-pull refusal that lets only Cloudflare open a connection to the origin introduces. Both are
+connection-scoped and both name the address.
 
 `ssl_reject_handshake` rejections are silent at **both** levels: the SNI probe against a host no vhost serves
 produced no entry at all.
@@ -299,9 +314,10 @@ produced no entry at all.
 
 So the honest answer to the second delegated question is: **the retention on those files is whatever the host
 happens to do, and this workspace neither states nor enforces it.** With §5 and §6.1 both writing
-credential-grade content into those files, that is a gap rather than a detail. → **E12-S19**.
+credential-grade content into those files, that is a gap rather than a detail. → **the edge's log retention is
+pinned by the repo**.
 
-> ✅ **Fixed 2026-08-11 by E12-S19.** `marketplace-nginx/logrotate.d/nginx` — `daily`, `rotate 14`, `shred`,
+> ✅ **Fixed 2026-08-11 — the edge's log retention is pinned by the repo.** `marketplace-nginx/logrotate.d/nginx` — `daily`, `rotate 14`, `shred`,
 > `compress`/`delaycompress`, `create 0640 www-data adm`, `su root adm`, `USR1` under `sharedscripts` — over
 > `/var/log/nginx/*.log`, which covers the seven destinations this repo names and nginx's own `error.log`
 > besides. The retention is now a property of the repository: `find /src -name '*logrotate*'` returns it, and
@@ -324,7 +340,8 @@ credential-grade content into those files, that is a gap rather than a detail. �
 > `data=journal` or SSD wear levelling can keep an earlier copy out of its reach. The lifetime is the
 > control; `shred` raises the cost of the residue.
 >
-> ✅ **And stated in public the same day, by E12-S25** — `/privacy` in `marketplace-user`, linked from the
+> ✅ **And stated in public the same day — the log retention is stated where a data subject can read it** —
+> `/privacy` in `marketplace-user`, linked from the
 > footer of every page. ⚠️ **Writing it found the period needs a sentence the configuration does not:**
 > `daily` + `rotate 14` keeps fourteen closed files beside the one being written, so an entry written just
 > after a rotation is destroyed on the **fifteenth** day. "14 days" on its own is a promise this
@@ -351,9 +368,11 @@ command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:-u
 | host `ps aux` | **yes** |
 
 Any unprivileged local process can read it. Not a log sink in the narrow sense — which is precisely why an
-inventory that only looked at log files would have missed it. → **E12-S17**.
+inventory that only looked at log files would have missed it. → **the Redis password stops riding in the
+container's argv**.
 
-> ✅ **Fixed 2026-08-11 by E12-S17**, and the fix re-measured the table above. The password now reaches the
+> ✅ **Fixed 2026-08-11 — the Redis password stops riding in the container's argv**, and the fix re-measured
+> the table above. The password now reaches the
 > container in `secrets/redis.conf`, generated by `up.sh` from `.env` and mounted read-only, so argv is
 > `redis-server /usr/local/etc/redis/redis.conf` and the token `requirepass` appears nowhere in
 > `docker inspect` at all. `docker ps --no-trunc` and `docker logs` are clean on the same check.
@@ -379,9 +398,10 @@ inventory that only looked at log files would have missed it. → **E12-S17**.
 | `backend-backend-1` | `json-file` | none | 2,350 |
 | `marketplace-redis` | `json-file` | none | 56 |
 
-`json-file` with an empty options object grows without limit until the filesystem stops it. → **E12-S18**.
+`json-file` with an empty options object grows without limit until the filesystem stops it. → **every container
+log is bounded**.
 
-> ✅ **Fixed 2026-08-11 by E12-S18.** All four services in `marketplace-docker-DBs/docker-compose.yml` share one
+> ✅ **Fixed 2026-08-11 — every container log is bounded.** All four services in `marketplace-docker-DBs/docker-compose.yml` share one
 > `x-logging` anchor — `max-size: 20m`, `max-file: '5'` — and
 > `docker inspect -f '{{json .HostConfig.LogConfig}}'` returns that pair for each of them.
 > `backend-backend-1` is not in this compose file and is not covered; it belongs to another project on the
@@ -393,9 +413,10 @@ inventory that only looked at log files would have missed it. → **E12-S17**.
 > at mdb1's rate keeps roughly the last 22 hours. The pair is sized for the loud container; for the other
 > three it means "never rotates".
 >
-> ⚠️ **Rotation is not retention**, and E12-S18 deliberately does not pretend otherwise: this bounds how big
+> ⚠️ **Rotation is not retention**, and this fix deliberately does not pretend otherwise: this bounds how big
 > a container log gets and decides nothing about how long its content may be kept. The 14-day answer of
-> 2026-08-11 is the edge's (§6.4, E12-S19). No period has been decided for these files.
+> 2026-08-11 is the edge's (§6.4, the story that pinned the edge's log retention). No period has been decided
+> for these files.
 
 ### 7.3 Mongo's `remote` field is not a client address
 
@@ -406,7 +427,8 @@ this row a "no" rather than an unchecked box.
 
 ## 8. What this finding does not cover
 
-- **Sentry.** E12-S13, [`sentry-event-capture.md`](./sentry-event-capture.md). It is a sink, it is measured,
+- **Sentry.** [`sentry-event-capture.md`](./sentry-event-capture.md) — the investigation that captured one real
+  Sentry event and read it. It is a sink, it is measured,
   and it is worse than anything here.
 - **Production topology.** Everything above was measured on a single-host Dev stack. ADR-032 recorded that the
   production topology was owed; a hosted log aggregator, a different nginx level or a different Docker driver
@@ -422,19 +444,19 @@ this row a "no" rather than an unchecked box.
 
 | Finding | Story | Severity |
 |---|---|---|
-| The mailed links put the address and the one-time hash in the access log, §5 | **E12-S16** — ✅ fixed 2026-08-11 | 🔴 |
-| …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **E12-S26** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
-| The Redis password is in the container argv, §7.1 | **E12-S17** — ✅ fixed 2026-08-11, and one row of §7.1 corrected with it | 🔴 |
-| No Docker log driver is bounded, §7.2 | **E12-S18** — ✅ fixed 2026-08-11 | 🟠 |
-| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **E12-S19** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it · **E12-S25** — ✅ the same period stated in public, `/privacy`, 2026-08-11 | 🟠 |
-| `publicHelloArgs` echoes its argument, §4.3 | **E12-S20** — ✅ fixed 2026-08-11 | 🟡 |
+| The mailed links put the address and the one-time hash in the access log, §5 | **The mailed links stop writing a live credential to the access log** — ✅ fixed 2026-08-11 | 🔴 |
+| …and still travel in the URL, so Cloudflare, the SSR cache and the browser history keep them, §10 | **The customer's reset credential leaves the URL** — opened 2026-08-11 by the owner, not by this finding | 🟠 |
+| The Redis password is in the container argv, §7.1 | **The Redis password stops riding in the container's argv** — ✅ fixed 2026-08-11, and one row of §7.1 corrected with it | 🔴 |
+| No Docker log driver is bounded, §7.2 | **Every container log is bounded** — ✅ fixed 2026-08-11 | 🟠 |
+| nginx log retention is unpinned while the error log carries client addresses, §6.1 / §6.4 | **The edge's log retention is pinned by the repo** — ✅ fixed 2026-08-11, and §6.4 gained two measurements taken while fixing it · **The log retention is stated where a data subject can read it** — ✅ the same period stated in public, `/privacy`, 2026-08-11 | 🟠 |
+| `publicHelloArgs` echoes its argument, §4.3 | **No resolver echoes its argument to a log** — ✅ fixed 2026-08-11 | 🟡 |
 
 All five are written into [`TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 as part of closing this story, as
 its acceptance criteria require. None is fixed here — this story produces a finding and nothing else.
 
 ## 10. What routes to the GDPR decision rather than being fixed here
 
-E12-S12's fourth criterion routes full client IPs in nginx access logs to the standing GDPR decision. The
+This investigation's fourth criterion routes full client IPs in nginx access logs to the standing GDPR decision. The
 access logs record none. **Two neighbouring facts do belong there, and neither was in the criterion's
 sights:**
 
@@ -449,8 +471,10 @@ sights:**
 Both were routed to the platform owner as open questions rather than fixed here, alongside
 `RISK_REGISTER` R25 and `phase1/NFR.md` open question 1 (NFR-CO02), which is where GDPR applicability was
 logged as undecided at the time of this finding. Both came back answered the same day — see below — and `TELEMETRY_EGRESS_HARDENING.md` §6 now holds no
-open question at all: each answer lives on the story that carries it out, item 1 on **E12-S19** (with its
-privacy-notice clause on **E12-S25**) and item 2 on **E12-S16**. NFR open question 1 stayed open — it was
+open question at all: each answer lives on the story that carries it out, item 1 on the story that pinned the
+edge's log retention (with its privacy-notice clause on the story that stated the log retention where a data
+subject can read it) and item 2 on the story that stopped the mailed links writing a live credential to the
+access log. NFR open question 1 stayed open — it was
 closed on 2026-08-26 by a separate decision, see the note at the end of §10.
 
 ### The answer, 2026-08-11
@@ -461,9 +485,9 @@ defensible."*
 
 | Item | Outcome |
 |---|---|
-| 1 — full client address in the error log | **Kept.** The control is lifetime, not content: rotation at 14 days (`shred` on removal), which is what E12-S19 now configures. The level stays `warn` |
-| 2 — account email in the access log | **Decided and fixed the same day.** *"Anonymize access_log"* — measured, that log holds no address to anonymize (§5), so read against what it does hold the instruction says no personal data in it. Mechanism given next: *"rewrite the logged path — map the two location blocks to a redacted `$request` variable"*. **E12-S16 built it**, at http level rather than per location, because §5's two shapes are four and only two have a `location` block. See below |
-| the public half | Two lines in a privacy policy → **E12-S25**, ✅ written 2026-08-11: `/privacy` in `marketplace-user`, the platform's first, footer-linked and indexable. It names which log holds the address and which holds the URL, since neither line is true of both files, and it states the fifteenth-day bound `rotate 14` really produces |
+| 1 — full client address in the error log | **Kept.** The control is lifetime, not content: rotation at 14 days (`shred` on removal), which is what the story that pinned the edge's log retention now configures. The level stays `warn` |
+| 2 — account email in the access log | **Decided and fixed the same day.** *"Anonymize access_log"* — measured, that log holds no address to anonymize (§5), so read against what it does hold the instruction says no personal data in it. Mechanism given next: *"rewrite the logged path — map the two location blocks to a redacted `$request` variable"*. **the story that stopped the mailed links writing a live credential to the access log built it**, at http level rather than per location, because §5's two shapes are four and only two have a `location` block. See below |
+| the public half | Two lines in a privacy policy — ✅ written 2026-08-11, the day the log retention was stated where a data subject can read it: `/privacy` in `marketplace-user`, the platform's first, footer-linked and indexable. It names which log holds the address and which holds the URL, since neither line is true of both files, and it states the fifteenth-day bound `rotate 14` really produces |
 
 This closes the routing this finding opened. It does **not** close `phase1/NFR.md` open question 1: whether
 GDPR is formally in scope is a wider question than log retention, and one concrete decision inside it is not
@@ -481,7 +505,8 @@ an answer to it.
 
 ### What §5 got right, and the two things it missed
 
-Item 2 is fixed in `marketplace-nginx/conf.d/05-logging.conf` (E12-S16). Re-driving §5's probe against the
+Item 2 is fixed in `marketplace-nginx/conf.d/05-logging.conf` (the story that stopped the mailed links writing
+a live credential to the access log). Re-driving §5's probe against the
 new format produces `"GET /check/verify-email-user/[redacted] HTTP/2.0"` — the flow name, no address, no
 hash — and the suite in `test/suite.sh` asserts it. Two corrections to §5, both found while fixing it:
 
@@ -505,15 +530,16 @@ enumerated: `sites-available/marketplace-domain.com.conf` caches the SSR reset p
 `/var/cache/nginx/marketplace-user/` — for up to `inactive=24h` (`conf.d/30-cache.conf:8-13`), which is the
 number that matters rather than the 60s of freshness.
 
-✅ **That sink is closed, 2026-08-11** (E12-S26's cache criterion). `map $request_uri $mkt_credential_uri`
+✅ **That sink is closed, 2026-08-11** (the cache criterion of the story that took the customer's reset
+credential out of the URL). `map $request_uri $mkt_credential_uri`
 joins the session-cookie variable on `proxy_cache_bypass` and `proxy_no_cache`, matching the same four
 prefixes the logging maps redact. ⚠️ **It was live, not theoretical**: with the change reverted, the second
 request to `/reset-password/<address>/<hash>` answers `X-Cache-Status: HIT` — the credential URL was being
 stored as a key and served back from it. The session-cookie map could never have caught this: the route has
 no `location` block of its own and whoever follows a reset link is anonymous, so that map read 0 for exactly
-the request that must not be stored. The credential is still **in the URL**, which is the rest of E12-S26.
+the request that must not be stored. The credential is still **in the URL**, which the next story takes on.
 
-### Both of those are now a story — E12-S26, opened 2026-08-11
+### Both of those are now a story — the customer's reset credential leaves the URL, opened 2026-08-11
 
 The platform owner read the residual and asked whether the token can be taken out of the path rather than
 accepting that it cannot. It can, for one of the four flows, and the story is scoped to exactly that one:
@@ -524,7 +550,8 @@ accepting that it cannot. It can, for one of the four flows, and the story is sc
 | `/check/verify-email/:email/:hash` and `…-user/…` | **No, not cheaply.** Koa REST `GET`s (`middleware/router/index.mts:16,25`) — a fragment never reaches the server, so moving them means a new frontend page plus a new mutation per surface. And their hash is consumed by the same request that writes the log line, so it is spent before anything stores it. Redaction is proportionate |
 | `/x/reset/:email/:hash` — ShopOwner reset | **Nothing to move it into.** ⚠️ Measured while scoping: the link routes nowhere. No nginx `location` matches it, the panel's SPA fallback answers, and `marketplace-shopowner/src/router.tsx:52-101` has no reset route and no not-found component. An unbuilt screen, not a telemetry defect |
 
-✅ **The customer flow is closed, 2026-08-11** (E12-S26, the rest of it). `RESET_PATH_USER` gained a trailing
+✅ **The customer flow is closed, 2026-08-11** (the rest of the story that took the customer's reset credential
+out of the URL). `RESET_PATH_USER` gained a trailing
 `#`, so the mail now points at `/reset-password/confirm#/<address>/<hash>`; `marketplace-user` replaced the
 param route with a static one, reads the pair from `window.location.hash`, and marks that route `ssr: false`.
 Nothing about the credential is transmitted any more, so the sinks this finding enumerated for that flow —
@@ -541,8 +568,9 @@ match** into an inline `<script>`, keyed by a match id built from the *interpola
 (`@tanstack/router-core` `router.js:715-721`, `ssr/ssr-match-id.js:2-4`,
 `ssr/ssr-server.js:18-32,295-297,346-352`). Read at source that puts the address and the live hash in the
 **HTML body**, so the cached file holds them as content and not only as a key. **Source-level, not measured**
-— E12-S26's first criterion is to `curl` the page and settle it, for the reason §5 of the Sentry capture
-gives: an option's documented behaviour and its real behaviour differed there.
+— the first criterion of the story that took the customer's reset credential out of the URL is to `curl` the
+page and settle it, for the reason §5 of the Sentry capture gives: an option's documented behaviour and its
+real behaviour differed there.
 
 ### Measured, 2026-08-11 — and the body was only half of it
 

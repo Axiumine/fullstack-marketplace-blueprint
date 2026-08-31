@@ -132,9 +132,9 @@ do not, so an unset value there fails at the comparison rather than at boot.
 ### Invariants a swap must not break
 
 - **`isIntrospectionBypassAllowed()` is evaluated first, every time.** It gates the bypass on `NODE_ENV`, so
-  outside development and test the header admits nothing regardless of its value (E13-S11). Keep the
-  short-circuit order; moving the comparison in front of it turns a development convenience into a
-  production bypass.
+  outside development and test the header admits nothing regardless of its value — the same allowlist gate
+  [`SECURITY_AUTH.md`](./devprotocol/phase3/SECURITY_AUTH.md) §3.6 describes. Keep the short-circuit order;
+  moving the comparison in front of it turns a development convenience into a production bypass.
 - **The comparison is `constantTimeEquals`, never `===`.** String equality stops at the first differing
   byte and leaks the prefix through timing.
 - **The value is read through a template literal**, `` `${process.env.INTROSPECTION_CODE}` ``, so an

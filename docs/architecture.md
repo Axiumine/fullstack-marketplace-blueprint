@@ -119,9 +119,12 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   marketplace-common) for `shopOwner`. Both return the same generic error as every other failure, so
   neither can be used as an enumeration oracle. ⚠️ That check is `=== false`, never `!== true`: an
   **absent** `emailVerify` means the account was Admin-provisioned and never asked to confirm anything,
-  and collapsing the two would lock out every shop owner created before E03-S08.
+  and collapsing the two would lock out every shop owner created before self-registration existed — *a
+  seller registers themselves and waits for an admin*,
+  [`phase5/SHOPOWNER_ONBOARDING_APPROVAL.md`](./devprotocol/phase5/SHOPOWNER_ONBOARDING_APPROVAL.md) §4.
 - ⚠️ **A self-registered shop owner carries both flags, and they come down by different hands.** Since
-  E03-S08 the public site has a seller registration (`shopOwnerRegister`, 4027) that writes
+  *a seller registers themselves and waits for an admin* shipped, the public site has a seller registration
+  (`shopOwnerRegister`, 4027) that writes
   `waitApprov: true` alongside the unconfirmed address: the activation link clears the verification, an
   admin clears the approval, and `tryLoginShopOwner` checks them in that order — verification first,
   because it is the one the person at the keyboard can act on. `shopOwnerAdd` on the Admin service writes
@@ -144,12 +147,12 @@ and no rotation moves any of them (`marketplace-common/src/others/newSessionLine
   shorter session. The cookie's `Max-Age` is untouched by any of this: it stays `REFRESH_TOKEN_EXPIRY`,
   and the cap is a comparison in `resolveAuthorizationSession`, not a cookie attribute.
 
-  ⚠️ **Distributed 2026-08-28**, from E14.md (E14-S07), now deleted. `setLoginCookies` is not edited;
+  ⚠️ **Decided 2026-08-28.** `setLoginCookies` is not edited;
   the cookie's `Max-Age` stays at `REFRESH_TOKEN_EXPIRY`, and the cap above is enforced purely by that
   comparison — asserted by an integration test that seeds a default-cap session with an `originalLogin`
   two days old and gets a refusal while the cookie is still physically valid. The unfinished
   `// if remember me, generate ?` comment in `@axiumine/koa-utils`'s `setLoginCookies` is the abandoned
-  cookie-side approach this reasoning replaced, and is **not** what E14-S07 revives: read on its own,
+  cookie-side approach this reasoning replaced, and is **not** what this server-side-cap decision revives: read on its own,
   that comment looks like unfinished work waiting to be picked back up, which would re-introduce the cap
   as a cookie attribute. It stays as dead prose in koa-utils; the cap is, and remains, a server-side
   comparison, by design.
@@ -173,7 +176,8 @@ Three mechanisms read those facts, and each is a whole answer to one audit findi
   per live session, the field name being the refresh session's key body and the value `{ tier, mintedAt }`,
   each field `HEXPIRE`d to its own session's remaining cap. It exists because this platform may not run
   `SCAN` or `KEYS` (BCON-08), and it is what makes "end every session of this account" possible at all:
-  a password or email change (E15-S05, E15-S06), a status transition, or an admin pressing revoke.
+  a password or email change ([`phase5/SESSION_TERMINATION.md`](./devprotocol/phase5/SESSION_TERMINATION.md) §3.1),
+  a status transition, or an admin pressing revoke.
 
 ⚠️ **Only refresh sessions are indexed, and a revocation now ends both halves of each one it finds**
 (R54, closed 2026-08-13). The index files refresh sessions alone and does not need to file more: every
@@ -211,11 +215,11 @@ Three properties are load-bearing and must not be "simplified":
 Two facts about the Redis leg, stated together because each is only half the picture. The key shapes
 themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Redis.
 
-- **The key is a digest.** Since E13-S01 a session lives under `<REDIS_KEY><sha256('access:'+token)>`,
+- **The key is a digest.** A session lives under `<REDIS_KEY><sha256('access:'+token)>`,
   built by `sessionKeys.mts` in `marketplace-common` and nowhere else. Before that the key *was* the
   token, so a `MONITOR` transcript, a dump or the append-only file was a list of live credentials in
-  plain text. **Reads no longer fall back to the old shape**: E13-S10 deleted the raw-key read path, its
-  `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` on 2026-08-14, so the digest is now the only name
+  plain text. **Reads no longer fall back to the old shape**: the raw-key read path, its
+  `dual-read-hits` counter and `DUAL_READ_REMOVE_AFTER` were deleted on 2026-08-14, so the digest is now the only name
   a session has and a key that *is* a token resolves to nothing. The window the fallback existed for never
   opened — the cutover was never deployed, and the counter read zero on the only cluster there is.
 - ⚠️ **The connection is plaintext `redis://`, and since 2026-08-28 that is a deployment choice rather
@@ -269,7 +273,9 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
 - ⚠️ **Nothing in these repos configures TLS for the collector, and nothing may.** A collector behind a
   certificate this machine does not already trust is reached with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`,
   from outside the process. A `rejectUnauthorized: false` — which all nine services carried until
-  E12-S01 — travels inside a copied `.env` and downgrades a real deployment with nothing failing to say
+  *certificate verification is on, in all nine services*
+  ([`phase5/TELEMETRY_EGRESS_HARDENING.md`](./devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4) — travels
+  inside a copied `.env` and downgrades a real deployment with nothing failing to say
   so. `no-restricted-syntax` in each `eslint.config.js` refuses the shapes that bring it back.
 - **The SDK's blanket PII flag is absent, not `false`.** Decided 2026-08-10 by the platform owner, on two
   grounds. `adminUpdatePwd` takes `passwordOld` and `passwordNew` as GraphQL arguments and the flag
@@ -292,21 +298,24 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
   `src/others/sentryBeforeSend.mts`) is wired as **both** `beforeSend` and `beforeSendTransaction` in all
   nine services to remove what configuration cannot: `httpServerSpansIntegration` writes the client
   address, the user agent and both peer addresses straight onto the server span, outside the
-  `dataCollection` machinery entirely. ⚠️ **Both hooks or neither** (E12-S22): the SDK routes transaction
+  `dataCollection` machinery entirely. ⚠️ **Both hooks or neither** (*the scrubber runs on every event type
+  and covers every bag that carries data*): the SDK routes transaction
   events to the second one alone, and those attributes are on the transaction, so wiring only `beforeSend`
   means a `tracesSampleRate` switches the redaction off. The scrubber also strips both `Authorization`
   headers and cookies in both directions, in both the header spelling and the `_`-normalised span
   spelling, deletes `event.request.data` outright, and clears `message` and `data.arguments` from every
   breadcrumb. The SDK's own sensitive-key filtering is a second layer and a minor-version implementation
   detail — never a reason to shorten the scrubber's list.
-- ⚠️ **The request body is stopped at capture time, not at send time** (E12-S21). `dataCollection.httpBodies`
+- ⚠️ **The request body is stopped at capture time, not at send time** (*the request body never reaches
+  Sentry*). `dataCollection.httpBodies`
   reaches the `http.request.body.data` span attribute and nothing else; the event field is written by the
   requestdata integration, which hard-wires `include.data = true`. The gate that works is
   `httpIntegration({ maxIncomingRequestBodySize: 'none' })`, passed in every service — the option name on the
   wrapper, forwarded to `httpServerIntegration`'s `maxRequestBodySize`. **The inner spelling on the outer
   integration is a silent no-op**, since the options object is not validated, so the `"medium"` default
   simply stays.
-- **`environment` is explicit, `process.env.NODE_ENV ?? 'unknown'`** (E12-S23). Absent, the SDK labels every
+- **`environment` is explicit, `process.env.NODE_ENV ?? 'unknown'`** (*Sentry's environment matches the
+  deployment*). Absent, the SDK labels every
   event `production`, which is what a Dev stack was measured doing. The fallback is not `development`: an
   unset variable on a deployed box would then be labelled the one thing it is least likely to be.
 
@@ -314,7 +323,7 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
 
 The blanket flag was a two-value shortcut, and the SDK still maps it internally — `@sentry/core`,
 `utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0**. The middle columns are what
-the nine services resolved to before this epic, so the table is the migration path as well as the record:
+the nine services resolved to before this hardening pass, so the table is the migration path as well as the record:
 
 | Category | Flag absent or `false` | Flag `true` | Configured here |
 |---|---|---|---|
@@ -333,13 +342,14 @@ Three rows are worth reading twice. **`graphQL.variables` is on in both branches
 would have left the variables — the passwords and the personal data on this surface — arriving as before.
 **`stackFrameVariables` is on in both branches** too, and a resolver frame holds decrypted documents and
 live tokens. And `frameContextLines` is `7` here rather than the `DEFAULTS` `5`, because both legacy
-branches use 7 to match the ContextLines integration: stack context is unchanged by this epic.
+branches use 7 to match the ContextLines integration: stack context is unchanged by this hardening pass.
 
 ⚠️ **The version is pinned by a test, not by a comment.** Every claim above was read out of `node_modules`
 at 10.69.0, none of it is a documented API contract, and the flag is removed outright in v11.
 `test/sentryVersionGuard.test.mts` in each of the nine services and in `marketplace-common` asserts the
 installed `@sentry/node`, `@sentry/core` and `@sentry/node-core` against that exact version and fails on any
-bump, naming this section in its failure message (E12-S05, risk **R42**). `node-core` joins the two because
+bump, naming this section in its failure message (*the next Sentry major will not silently reopen this*,
+risk **R42**). `node-core` joins the two because
 it owns `httpServerIntegration`, where the request-body default lives and where the option the services pass
 is really read; it ships on its own version line. The exact version rather than the major, because the
 sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
@@ -349,16 +359,19 @@ sensitive-key filtering that arrives as a second layer is a minor-version implem
 Two investigations ran against the running Dev stack and produced findings. **Read them before trusting the
 rest of this section**, because they correct two of its claims.
 
-- [`report/log-sink-inventory.md`](./report/log-sink-inventory.md) (E12-S12) — every sink, and what a token,
+- [`report/log-sink-inventory.md`](./report/log-sink-inventory.md) (*investigation: what do the application
+  and access logs actually contain*) — every sink, and what a token,
   a cookie, a signing key or a client IP can do in it. The nine application logs are clean on every planted
   marker. The nginx access log carried the account email and the one-time verify/reset hash, because the
-  mailed links are GETs with `:email/:hash` in the path — ✅ **fixed 2026-08-11 by E12-S16**, which redacts
+  mailed links are GETs with `:email/:hash` in the path — ✅ **fixed 2026-08-11** (*the mailed links stop
+  writing a live credential to the access log*), which redacts
   the tail of all four link shapes, and the `Referer` beside it, in `conf.d/05-logging.conf`. Four, not the
   two the probe drove: two of them have no `location` block at all. The Redis password is in the container argv. No
   Docker log driver is bounded and no repo pins nginx's retention. **The `error_log`'s hard-coded
   `client: <address>` prefix is on five of five request-scoped entries at the shipped `warn` — level is not
   the discriminator, having a request context is.**
-- [`report/sentry-event-capture.md`](./report/sentry-event-capture.md) (E12-S13) — one real event, built and
+- [`report/sentry-event-capture.md`](./report/sentry-event-capture.md) (*investigation: capture one real
+  Sentry event and read it*) — one real event, built and
   transmitted by the real transport into a local collector.
 
 ⚠️ **Three corrections this section owed to that second finding. Two are closed, the third is open:**
@@ -367,21 +380,25 @@ rest of this section**, because they correct two of its claims.
   `http.request.body.data` *span* attribute only. `@sentry/core` 10.69.0 hard-wires `include.data = true`
   for events (`integrations/requestdata.js:27-28`) and the write-time gate is `httpIntegration`'s
   `maxIncomingRequestBodySize`, default `"medium"`. A captured event carried a plaintext password in
-  `event.request.data`. **Fixed 2026-08-11 by E12-S21**: the option is passed at `'none'` in all nine
+  `event.request.data`. **Fixed 2026-08-11** (*the request body never reaches Sentry*): the option is passed at `'none'` in all nine
   services, and the scrubber deletes the field as a second layer. The paragraph above about `adminUpdatePwd`
   describes what is now prevented.
 - ✅ **`beforeSend` is not called for transaction events**, and `beforeSendTransaction` was configured
   nowhere. The client address `httpServerSpansIntegration` writes onto the server span therefore shipped
   unredacted the moment a `tracesSampleRate` was set. No **backend** service sets one, which is the only
   thing that kept the measured shape latent there. `http.user_agent`, `net.peer.ip` and `net.host.ip` were
-  in the same position and were not in the scrubber's key list. **Fixed 2026-08-11 by E12-S22**: both hooks
+  in the same position and were not in the scrubber's key list. **Fixed 2026-08-11** (*the scrubber runs on
+  every event type and covers every bag that carries data*): both hooks
   carry the same function, the three keys joined the list along with both `user-agent` header spellings, and
   the fixture was rebuilt from the captured transaction's 28 attributes.
 - ⚠️ **The three frontends are not in that latent position.** All three set `tracesSampleRate: 0.1`
   (`src/instrument.ts:46`) and none configures `beforeSend` or `beforeSendTransaction`; `sentryBeforeSend`
   is a `marketplace-common` export and no frontend depends on that package, so **no scrubber runs on any
   frontend event**. What a browser transaction carries is unmeasured — `@sentry/react` has no
-  `httpServerSpansIntegration`, so the key list above does not transfer — E12-S24.
+  `httpServerSpansIntegration`, so the key list above does not transfer for the frontends — see *what a
+  frontend actually sends is measured, and scrubbed* in
+  [`phase5/TELEMETRY_EGRESS_HARDENING.md`](./devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4
+  (built 2026-08-11).
 
 ## Resolver layout (per resource service)
 

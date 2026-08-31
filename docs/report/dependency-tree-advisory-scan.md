@@ -1,7 +1,8 @@
 # Dependency Tree — Advisory Scan and Reachability
 # Marketplace
 
-**Status:** finding - closes E18-S04
+**Status:** finding - closes [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 —
+"No full dependency-tree audit was performed"
 **Version:** 1.2
 **Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28
 **Author:** claude
@@ -111,9 +112,10 @@ version.
 `peerDependencies` (63 reachable) and `devDependencies`, so the consumer provides them. Reading its `dependencies`
 as "what it needs at runtime" gives the wrong answer, and this is the one repo where that is true.
 
-> **This table is the tree as installed on 2026-08-13, before E18-S10 and E18-S12 landed.** Both stories moved
-> packages out of the production zone rather than out of the tree, so `Installed` is unchanged and
-> `Prod-reachable` is not: E18-S12 takes **37** off each of the eight service rows that had `tsc-alias` misplaced
+> **This table is the tree as installed on 2026-08-13, before the `@socketlabs/email` removal and the `tsc-alias`
+> move landed (§8).** Both changes moved packages out of the production zone rather than out of the tree, so
+> `Installed` is unchanged and `Prod-reachable` is not: the `tsc-alias` move takes **37** off each of the eight
+> service rows that had `tsc-alias` misplaced
 > (every row above except `authenticated-logout`, `marketplace-common`, `marketplace-db-setup` and the three
 > frontends). The re-measurement is a re-implementation of the method in §2 and its absolute counts run **6 below**
 > the ones here — the same offset in every repo, including the ones neither story touched. The delta is the number
@@ -213,12 +215,12 @@ not zero, and it is not a code path this platform can be tricked into.
 | `qs` | 6.15.0 | moderate | [GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26) | `@apollo/server > body-parser` | **no** — the crash is in `qs.stringify` with `encodeValuesOnly`; the server parses, it does not stringify |
 | `@protobufjs/utf8` | 1.1.0 | moderate | [GHSA-q6x5-8v7m-xcrf](https://github.com/advisories/GHSA-q6x5-8v7m-xcrf) | `@apollo/server > @apollo/usage-reporting-protobuf > @apollo/protobufjs` | **no** — usage reporting is Apollo Studio telemetry; no service sends it |
 | `follow-redirects` | 1.15.11 | moderate | [GHSA-r4q5-vmmm-2653](https://github.com/advisories/GHSA-r4q5-vmmm-2653) | `@socketlabs/email > axios` | bounded — see §4.1 |
-| `picomatch` | 2.3.1 | high + moderate | [GHSA-c2c7-rcm5-vvqj](https://github.com/advisories/GHSA-c2c7-rcm5-vvqj), [GHSA-3v7f-55p6-f55p](https://github.com/advisories/GHSA-3v7f-55p6-f55p) | `tsc-alias@1.9.1 > chokidar > anymatch` | **no** at runtime — **and no longer in the production zone at all: E18-S12, 2026-08-13** |
+| `picomatch` | 2.3.1 | high + moderate | [GHSA-c2c7-rcm5-vvqj](https://github.com/advisories/GHSA-c2c7-rcm5-vvqj), [GHSA-3v7f-55p6-f55p](https://github.com/advisories/GHSA-3v7f-55p6-f55p) | `tsc-alias@1.9.1 > chokidar > anymatch` | **no** at runtime — **and no longer in the production zone at all: moved out 2026-08-13** |
 
 ### 4.3 The env contract points at the wrong services
 
-Tracing which service loads the email client turned up a mismatch that E18-S03's env contracts encode as if it
-were intended. `REQUIRED_ENV_VARS` demands `SOCKETLABS_SERVER_ID` and `SOCKETLABS_SERVER_APIKEY` in:
+Tracing which service loads the email client turned up a mismatch that the required-env checks' contracts encode
+as if it were intended. `REQUIRED_ENV_VARS` demands `SOCKETLABS_SERVER_ID` and `SOCKETLABS_SERVER_APIKEY` in:
 
 | Service | Requires the SocketLabs vars | Loads the email module |
 |---|---|---|
@@ -230,7 +232,7 @@ It is exactly backwards. Two services refuse to boot without credentials for a c
 the one service that constructs it will boot happily without them — `SocketLabsLib`'s constructor reads
 `` `${process.env.SOCKETLABS_SERVER_APIKEY}` `` into a template literal, so an unset variable becomes the string
 `"undefined"` and the failure arrives at the first registration email rather than at startup. That is the precise
-failure mode E18-S03 exists to prevent, in the one place it was not applied.
+failure mode the required-env check exists to prevent, in the one place it was not applied.
 
 `marketplace-dev-user-authenticated-resource` already removed the four SocketLabs variables from its list, and
 `src/index.mts:27` records why: *"owner tier's copy came to demand `SOCKETLABS_SERVER_ID` on a service that sends
@@ -242,7 +244,7 @@ with a ReDoS advisory counts as a production dependency here.
 `marketplace-dev-authenticated-logout` declares it under `devDependencies` — which is the correct placement, and
 makes the other eight a copy-paste divergence rather than a decision.
 
-> **Closed 2026-08-13 by E18-S12.** All eight moved. Re-measured the same way — breadth-first from `dependencies`
+> **Closed 2026-08-13.** All eight moved. Re-measured the same way — breadth-first from `dependencies`
 > alone, through Node's own upward resolution — each of the eight production zones loses **37 packages** and
 > `picomatch` is in none of them. `tsc-alias`, `chokidar` and `anymatch` leave the production zone with it. Every
 > service still builds (`yarn clean && tsc && tsc-alias`) and every gate still passes, which is the whole proof
@@ -329,11 +331,11 @@ the same boundary §6's table draws.
   platform's handlers are modelled on, and any service that mounts them — here or in another product built on
   the same package — gets that comparison.
 - **At 5.9.0 it was stricter than our six in two respects and weaker in one.** It already used `timingSafeEqual`
-  over byte buffers with a length pre-check, which is what `E13-S03` went on to ask for; and it read
-  `process.env.INTROSPECTION_CODE` directly, returning `false` for an unset or empty value rather than
+  over byte buffers with a length pre-check, which is what §3.6 of `SECURITY_AUTH.md` went on to ask for; and it
+  read `process.env.INTROSPECTION_CODE` directly, returning `false` for an unset or empty value rather than
   interpolating it to the literal `'undefined'`. But it had **no environment gate of any kind**, so the bypass
-  was live under every `NODE_ENV`. Neither `E13-S03`'s nor `E13-S11`'s acceptance criteria were widened to reach
-  it: both are verified by `yarn test:cov` and `yarn test:mutation`, in repos that cannot reach another
+  was live under every `NODE_ENV`. Neither the constant-time-comparison fix's nor the environment-gate's
+  acceptance criteria were widened to reach it: both are verified by `yarn test:cov` and `yarn test:mutation`, in repos that cannot reach another
   package's internals.
 - **6.0.0, 2026-08-11, closed it upstream.** It adds `isIntrospectionBypassAllowed()` — the same allowlist,
   `development` or `test` and nothing else — exported from `lib/isIntrospectionBypassAllowed`, and evaluates it
@@ -349,8 +351,8 @@ the same boundary §6's table draws.
   middlewares*, never a direct call — which narrows the risk `marketplace-common` 2.0.0's `>=6` peer range
   closed without removing it. That range is the lever named in §6's table, and it bites the stranger installing
   the published library rather than this workspace, where yarn 1 treats a peer mismatch as a warning.
-- ⚠️ **The two `isIntrospectionBypassAllowed` implementations were never byte-equivalent**, and one revision of
-  the E13 record said they were. Upstream reads `NODE_ENV` into a local `const` and carries a different doc
+- ⚠️ **The two `isIntrospectionBypassAllowed` implementations were never byte-equivalent**, and a now-superseded
+  revision of the documentation said they were. Upstream reads `NODE_ENV` into a local `const` and carries a different doc
   comment. They were *behaviourally* identical — the property that mattered, and the reason two copies could
   only ever agree by luck, which is why `marketplace-common` 2.0.0 made the local one a re-export instead.
 
@@ -409,16 +411,16 @@ apparatus, which makes a silent inspection inside them the only line there is.
 **Closes:** the audit's §5 "No full dependency-tree audit was performed". It has now been performed, with
 reachability, across all fourteen repos that have a tree.
 
-**Answers E18 open question 3** — *"Who owns the dependency-advisory scan going forward, and does it run in CI?"*:
+**Answers question 3 from [`PLATFORM_OPERATIONS_QUALITY_GATES.md`](../devprotocol/phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) §6** — *"Who owns the dependency-advisory scan going forward, and does it run in CI?"*:
 it does not run in CI, because there is no CI. It runs in two git hooks, via Qodana, and reports nothing (§7).
 
 **Opens — actionable, as stories:**
 
 | # | What | Why it is a story and not a note |
 |---|---|---|
-| 1 | Remove `@socketlabs/email` from the seven services that never load it **Done 2026-08-13, E18-S10** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
+| 1 | Remove `@socketlabs/email` from the seven services that never load it **Done 2026-08-13** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
 | 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that reports. ⚠️ *"despite the unpublished package (§2)"* dropped 2026-08-27 — the package is published and `yarn audit` runs, so it is a candidate again. Without a reporting gate, every other dependency decision here is unverifiable next month |
-| 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` **Done 2026-08-13, E18-S12** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
+| 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` **Done 2026-08-13** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
 
 **Opens — accepted, as a risk row:** the residual `axios@0.21.4` in `marketplace-dev-public-resource` after story 1
 lands. `@socketlabs/email@1.4.4` is the latest published version and pins `^0.21.1`; the only ways out are a

@@ -57,8 +57,8 @@ Three facts bound what could be done about it:
 
 ## Decision
 
-**B.** The platform owner's ruling of 2026-08-30, answering E20 §6
-question 1 — *does the scrub reach `company.contactPerson` and `company.administrator`?* — is **no**.
+**B.** The platform owner's ruling of 2026-08-30, answering the open question — *does the scrub reach
+`company.contactPerson` and `company.administrator`?* — is **no**.
 
 1. **`retentionSweep` reads and writes `user` and `shopOwner`, and no third collection.** `ScrubbableTier`
    admits `TIER.user` and `TIER.shopOwner`; adding a member to it is adding a collection to a destructive
