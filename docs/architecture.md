@@ -39,8 +39,8 @@ frontends point at 4030.
 
 ⚠️ **The Admin resource row carries two concerns that are not domain data**, and that is a recorded
 decision rather than drift: `sessions` / `reuseEvents` / `revokeSession` / `revokeAllSessions` read and
-write another tier's Redis sessions, and `keygripStatus` / `keygripRotate` / `keygripRetire` administer the
-platform's cookie-signing keys. Both are Admin-tier admin tooling and both are answered here rather than
+write another tier's Redis sessions, and `keygripStatus` / `keygripRotate` / `keygripRetire` / `keygripResweep` administer
+the platform's cookie-signing keys and the platform-wide sign-out a retirement performs. Both are Admin-tier admin tooling and both are answered here rather than
 by a tenth deployable — see [`docs/decisions/admin-session-tooling-placement.md`](./decisions/admin-session-tooling-placement.md), which also states
 what would reopen it.
 
@@ -106,7 +106,12 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   Rotation adds a key and removes only keys that stopped signing more than `SESSION_CAP_DAYS_REMEMBERED`
   (30) days ago, so it can log nobody out — the clock runs from a key's demotion, not from its minting,
   which is ADR-034's amendment of 2026-08-28. Retirement removes one regardless of age, which is its
-  purpose, and R47 records the window in which a not-yet-adopted service still honours it.
+  purpose. ⚠️ **A retirement also ends every live session on the platform, the retiring admin's included** —
+  the three account collections walked account by account after the compare-and-set write, ADR-034's
+  amendment of 2026-08-31. That is what closed R47: a service that has not yet adopted the retirement still
+  verifies the signature, then finds no session behind it and answers 498. **Rotation is the routine lever
+  and retirement is the incident one** — they are not interchangeable, and only one of them costs every
+  customer their session ([ADR-034](./devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md)).
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
 - `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `shopOwner`
   also has `waitApprov` (manual approval gate, `checkShopOwnerApproval` in marketplace-common — refused
