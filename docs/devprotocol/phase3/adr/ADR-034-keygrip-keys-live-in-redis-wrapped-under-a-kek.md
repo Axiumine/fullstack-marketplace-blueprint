@@ -345,3 +345,68 @@ can only verify cookies that are already alive, and those expire on their own.
 - `keygripStatus` still reports `ageDays` from `createdAt`, which is what an admin asked for and is
   still true — it is simply no longer the retirement predicate. Rendering the demotion age is
   the admin session console's call, not this amendment's.
+
+---
+
+## Amendment — 2026-08-31: a retirement ends every session on the platform
+
+**Status:** accepted
+**Deciders:** platform owner
+**Scope:** what `keygripRetire` does *after* its compare-and-set write lands. The record, the wrap, the
+CAS, the propagation mechanism, the age rule and the 2026-08-28 amendment are all unchanged, and
+**rotation still logs nobody out** — that property is what separates the two mutations and this amendment
+sharpens it rather than touching it.
+
+### What this ADR left open
+
+§Risks reads *"a missed pub/sub message leaves one service signing with an older key … invisible until the
+key ages out"*. That is true of a **rotation**, which removes nothing anybody still verifies. For a
+**retirement** the same lag runs the other way and is fail-**open**: the key is gone from the record and
+the lagging holder keeps verifying cookies signed with it, because nothing on the request path re-reads
+the record. Measured at **8 ms** across all five signers on the live Dev stack, bounded at
+`KEYGRIP_POLL_MS` = 5 minutes if the nudge is never delivered
+([`report/keygrip-rotation-propagation.md`](../../../report/keygrip-rotation-propagation.md) §4). That
+residual was opened as **R47**.
+
+It was not removable at the transport. Shortening the poll shortens only the tail of a delivery failure —
+the normal path is already inside one interval end to end. Checking the key version per request reverses
+`watchKeygrip`'s deliberate fail-open stance and taxes every request the platform will ever serve, to
+close a window that only matters on the day of an incident.
+
+### The rule now
+
+**A retirement ends every live session on the platform.** After the CAS write succeeds — and only after,
+so a failed compare leaves both the key set and the sessions untouched — `funKeygripRetire` walks `admin`,
+`shopOwner` and `user`, takes the `_id` of every account, and calls the existing
+`revokeAllSessionsForAccount` on each. No `SCAN` and no `KEYS`: BCON-08 holds, because the per-account
+session index is the only enumeration path there has ever been and Mongo is what holds the account ids.
+
+The lagging holder still verifies the signature it should now refuse. It then reads the session that
+signature names, finds nothing, and answers **498**. The window is zero and the request path pays nothing
+for it.
+
+### What it costs
+
+- ⚠️ **Every session on the platform ends, the retiring admin's own included, and there is no exemption
+  worth building.** Nothing anywhere records which key signed which cookie, so "end only the sessions the
+  suspect key touched" is not a thing this platform can compute — the choice is every session or none.
+  Exempting the caller would leave the one session most likely to be the attacker's if the admin account
+  is what leaked. The admin's own browser lands on the login screen on its own: `marketplace-admin`'s
+  urql `authExchange` turns the 498 into a refresh attempt and then clears the token.
+- One Redis round trip per account, tiers walked in sequence — the retention sweep's reasoning, on a
+  mutation an admin calls during an incident rather than on a schedule.
+- A sweep that fails part way answers **500** naming the key as already gone, because it is: the key set
+  is written first on purpose. Sweeping first would log the whole platform out while leaving the suspect
+  key in the keyring, which is the worst of both. A second retirement of that id answers 404, and the
+  remaining sessions come off the admin session console.
+
+### What moves with it
+
+- **Retirement is the emergency lever and nothing else.** Rotation is what retires keys safely, on age,
+  without ending a single session; retirement is the answer to a key believed leaked. The confirm dialog
+  in `marketplace-admin` says exactly that, and says the admin goes too.
+- `keygripRetire` still answers `Boolean!`, not the session count: it answers *the key is gone*, and an
+  admin who wants the number reads the audit trail — `Sentry.captureMessage` records it alongside the key
+  id, the version, the fingerprint and the hashed admin id.
+- **R47 closes** (`RISK_REGISTER` v1.44). §Risks' missed-message bullet keeps its meaning for rotation,
+  which is the case it was written about.

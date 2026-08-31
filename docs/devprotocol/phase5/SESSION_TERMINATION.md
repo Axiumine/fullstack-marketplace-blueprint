@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-08-28, later the same day
+**Version:** 1.8
+**Date:** 2026-08-31
 **Author:** records-agent
 **Bounded context:** BC-02 — Session Termination
 
@@ -60,6 +60,16 @@ is refused**, and `marketplace-admin`, `marketplace-shopowner` and `marketplace-
 refusal as *log in again* rather than as an error. No story anywhere covers those three screens. That is
 a genuine gap, recorded here because this is the record about sessions ending; it is not a defect in the
 revoke, which is behaving exactly as designed.
+
+⚠️ **Since 2026-08-31 there is one more caller, and it has a shape none of the others has: it ends every
+session on the platform at once.** `keygripRetire` — the Admin-tier mutation that drops a cookie-signing key —
+walks `admin`, `shopOwner` and `user` and calls the same routine for every account, because a retired key would
+otherwise keep verifying cookies on any service that had not yet adopted the retirement ([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment
+2026-08-31, which closes **R47** in `RISK_REGISTER`). It is not an account operation and no account did
+anything: it is the answer to a key believed leaked. **The retiring admin is not exempt either**, for the same
+reason "revoke all but me" was refused above and one more — nothing records which key signed which cookie, so
+the sweep is every session or none. The screen gap named just above applies to it in full: every tab on the
+platform is refused on its next request, and each of the three frontends must read that as *log in again*.
 
 ## 4. Stories
 
@@ -159,4 +169,5 @@ the fact that a question existed.
 |---|---|---|
 | 1.0 | 2026-08-07 | Initial retrofit, reverse-engineered from the 15-repo working tree |
 | 1.1 | 2026-08-13 | The one historical open question was folded into a table (§6) because it was already closed. The "Merging BC-02 into BC-01 stays rejected" story's absence check was re-run against the three authorization repos and holds, and the ⚠️ under it now says plainly that the criterion is a dated listing rather than a gate. ADR-INDEX §4 gained the matching *"decisions deliberately NOT re-opened"* row, so the boundary is stated where refactor proposals are actually checked |
+| 1.8 | 2026-08-31 | **§3.1 gains the caller that ends every session on the platform at once.** `keygripRetire` sweeps all three account collections through `revokeAllSessionsForAccount` after its compare-and-set write, so a lagging holder verifies a signature over a session that no longer exists and answers 498 — the close of **R47** ([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). Nothing about `logout` changed; BC-02 is untouched, and this is recorded here only because §3.1 is where the involuntary teardowns live |
 | 1.7 | 2026-08-28, later the same day | New **§3.1** records the involuntary teardown `revokeAllSessionsForAccount` performs for four callers, which nothing else in the corpus describes next to `logout`, and names the accepted cost of the refused "revoke all but me" — a credential write signs the caller out too, and the three frontends must render that as *log in again*, a screen **no story owns**. The surviving Product question about a confirm-first email-change flow that does not exist was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) |

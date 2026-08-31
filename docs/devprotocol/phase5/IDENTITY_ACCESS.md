@@ -2,8 +2,8 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.17
-**Date:** 2026-08-28
+**Version:** 1.18
+**Date:** 2026-08-31
 **Author:** records-agent
 **Bounded context:** BC-01 — Identity & Access
 
@@ -414,6 +414,46 @@ is and never what the rotation retires on — that runs from the demotion instan
 ⚠️ The read goes through `readKeygrip` and never `loadKeygrip`, so opening the screen cannot file a holders
 row for a service that signs nothing — there is a test asserting no write happens.
 
+### A retirement ends every session on the platform   `built`
+**As a** platform admin, **when** I retire a signing key I believe has leaked, **I want** every session on
+the platform to end with it **so that** a service which has not yet adopted the retirement cannot admit a
+cookie signed with the key I just removed.
+**domains:** backend, frontend
+**Acceptance criteria:**
+- `funKeygripRetire`, **after** its compare-and-set write and never before, walks `admin`, `shopOwner` and
+  `user` and calls `revokeAllSessionsForAccount` for every account. ⚠️ Order is the story: sweeping first
+  would log the platform out while leaving the suspect key in the keyring, and a test asserts the two
+  invocation orders rather than trusting the reading
+- **No `SCAN` and no `KEYS`** (BCON-08). The account ids come from Mongo — `find({}, '_id').lean()` per
+  collection — and the sessions come from the per-account index each account already has
+- ⚠️ **No session is exempt, the retiring admin's own included.** Nothing anywhere records which key signed
+  which cookie, so the sweep is every session or none; the admin's browser answers 498 on its next request
+  and `marketplace-admin`'s `authExchange` sends it to the login screen
+- A sweep that fails part way answers 500, says the key is already gone, warns that a second retirement of
+  that id answers 404, and points at the admin session console. **R55** carries what that leaves
+- The audit line records how many sessions ended, alongside the key id, the version, the fingerprint and
+  the hashed admin id. The mutation still answers `Boolean!` — *the key is gone*, not a count
+- The confirm dialog says the platform is being signed out, says the admin goes too, and says rotation is
+  what retires keys safely on age
+- `yarn test:cov` 100/4 and `yarn test:mutation` 100 in both repos
+**Traces:** NFR-SE02; ADR-034 (§Amendment 2026-08-31); R47 — closed by this story — and R55
+**Evidence:** `marketplace-dev-admin-authenticated-resource/src/lib/keygrip/endEveryPlatformSession.mts`
+(the walk, and the docblock on why it is account-by-account) · `src/lib/keygrip/funKeygripRetire.mts` (the
+sweep after the CAS, and the half-finished-sweep error) · `test/endEveryPlatformSession.test.mts` (eight
+tests over a 1 : 2 : 3 fixture, so a wrong sum is a different number) · `test/keygripLib.test.mts` (the
+order assertion and the 500) · `test/integration/keygripRotate.itest.mts`, whose last block seeds real
+sessions on all three tiers, retires a key over HTTP and finds all three hashes empty — against mocks a
+sweep that selects nothing looks exactly like a sweep with nothing to do ·
+`marketplace-admin/src/features/security/KeygripPanel.tsx` (the warning) + `test/pages/SecurityPage.test.tsx`
+⚠️ **This is what closed R47, and it closed it from the session side.** The propagation window is exactly as
+long as it was — 8 ms measured, five minutes if the nudge is lost — and it no longer admits anybody: the
+lagging holder verifies the signature, reads the session it names, finds nothing, and answers 498. Tuning
+the poll was refused for the reason `report/keygrip-rotation-propagation.md` §7 gives, and a per-request
+version check for a better one: it reverses `watchKeygrip`'s deliberate fail-open stance and taxes every
+request forever to close a window that matters on one day.
+⚠️ **Rotation and retirement stopped being neighbours.** Rotation is the routine lever and logs nobody out;
+retirement is the incident lever and logs everybody out. Nothing about rotation changed here.
+
 ### `KEYGRIP_KEY_1`/`_2` are gone, and the documents stop describing five files   `built`
 State plainly: the old names must leave the templates and the prose in the same piece of work that makes
 them unused, or the next person provisioning a machine will populate two variables nothing reads.
@@ -486,6 +526,7 @@ no other record owns the question.
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.18 | 2026-08-31 | **New story: a retirement ends every session on the platform.** `keygripRetire` sweeps all three account collections through `revokeAllSessionsForAccount` after its compare-and-set write, so a service that has not yet adopted the retirement verifies the signature and then finds no session behind it — **R47 closes**, from the session side rather than the transport, and **R55** takes the sweep that fails part way ([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). No other story changed: rotation still logs nobody out |
 | 1.0 | — | Initial retrofit, reverse-engineered from the 15-repo working tree |
 | 1.1 | 2026-08-12 | "The two admin-only `shopOwner` fields are refused by construction" added, question 1 closed with it (no ACL, Conformist permanently, CON-12). Two claims corrected in the same pass, **both false against the code**: §2 said BC-01 read `waitApprov` to refuse a login, and §5 said BC-03 had to clear it before ShopOwner login could succeed. Nothing read the field — that became question 2 rather than a sentence three documents repeated |
 | 1.2 | 2026-08-12 | Question 2 closed, the way the two wrong sentences had assumed — the gate is real now. "A shop owner awaiting approval cannot hold a session" adds `checkShopOwnerApproval` to `tryLoginShopOwner` (4028) and `tokenInfoShopOwner` (4029). §2's scope row and the lint block from the row above change with it: `notes` keeps the four-shape ban everywhere, `waitApprov` keeps only the write ban and only in `src/**` of the two authorization repos, because a rule refusing the read is a rule refusing the gate |

@@ -4,10 +4,12 @@
 
 **Status:** investigation finding that closes the propagation-measurement question `ADR-034` raised. Not
 baselined, not a requirement document
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-08-31
 **Changelog:** v1.0 — the measurement. v1.1 — the isolated Redis namespace is named for what it isolated;
-nothing measured changed.
+nothing measured changed. v1.2 — **§7's residual is closed and §6's edge is inside the blast radius now**:
+a retirement ends every live session on the platform, so the window this report measured no longer decides
+anything. Nothing measured changed here either — what changed is what a retirement does after the write.
 **Scope:** what a full rotate-and-retire cycle does to the five cookie-touching services while they are
 serving. It answers three questions and nothing else: how long a rotation takes to reach every signer, how
 long a retirement takes to be refused by every verifier, and whether any in-flight refresh can straddle
@@ -39,7 +41,7 @@ mechanism was never observed to miss.
 **No in-flight refresh can be straddled by a rotation.** Not at 37 ms and not at the five-minute ceiling
 either — §5 shows this is structural, not lucky. A **retirement** does invalidate cookies, which is its
 entire purpose; §6 sizes the one case where it invalidates more than the admin intended and concludes
-that it does **not** warrant a story before `ADR-034`'s keygrip-custody work is finished.
+that it does **not** warrant a story before `ADR-034`'s keygrip-custody work is finished. ⚠️ **Since 2026-08-31 that case is inside the intended blast radius rather than beyond it**: a retirement ends every live session on the platform on purpose, so §6's edge costs a lagging holder's sessions nothing they were not already losing, and §7's residual — **R47** — is closed. Neither figure below moves.
 
 One defect was found, and it has nothing to do with keys — it was found because the missing
 `KEYGRIP_KEK` triggered it:
@@ -161,15 +163,35 @@ does not consult the holders hash, and should not start: a break-glass response 
 not be blockable by a service that is merely unreachable. The judgement belongs to the admin, with the
 disagreement shown.
 
-## 7. Residual: a retired key is honoured until every holder adopts
+⚠️ **Read the whole of this section as of 2026-08-31 with one fact in front of it: a retirement now ends every
+live session on the platform, deliberately** — the three account collections walked account by account after the
+compare-and-set write, the retiring admin included ([ADR-034](../devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). The edge sized above is no
+longer *beyond* the intended blast radius, because the intended blast radius is everything: the sessions a
+lagging holder signed in the gap end with all the others rather than as an unintended extra. What survives of
+this section is the console affordance and its reason — the retire control still shows a disagreeing holders
+row, because a fingerprint that will not converge is worth seeing before an admin ends every session on the
+platform, and the mutation still must not be blockable by an unreachable service.
 
-The fail-**open** direction is the one worth recording. Between a retirement landing and a lagging holder
-adopting it, that holder still *verifies* the retired key. Measured at 8 ms; bounded at `KEYGRIP_POLL_MS`
-= 5 minutes if the nudge is lost. This is the residual the ADR names and it is opened as **R47** in
-`RISK_REGISTER`.
+## 7. Residual: closed 2026-08-31 — the retirement stopped depending on adoption
 
-It is not removable by tuning: shortening the poll shortens the tail of a delivery failure and does
-nothing to the normal path, which is already inside one poll interval end to end.
+The fail-**open** direction was the one worth recording. Between a retirement landing and a lagging holder
+adopting it, that holder still *verified* the retired key. Measured at 8 ms; bounded at `KEYGRIP_POLL_MS`
+= 5 minutes if the nudge was lost. That was the residual the ADR named, and it was opened as **R47**.
+
+**It was never removable by tuning**, which is why it stood for eighteen days: shortening the poll shortens the
+tail of a delivery failure and does nothing to the normal path, which is already inside one poll interval end to
+end. Checking the key version per request would have reversed `watchKeygrip`'s deliberate fail-open stance and
+taxed every request this platform will ever serve, to close a window that only matters on the day of an incident.
+
+⚠️ **It closed from the session side instead.** `funKeygripRetire` ends every live session on the platform once
+its compare-and-set write lands — `admin`, `shopOwner` and `user`, account by account through the per-account
+session index, so no `SCAN` and no `KEYS` and BCON-08 intact. The lagging holder still verifies the signature it
+should be refusing; it then reads the session that signature names, finds nothing, and answers **498**. The
+window measured above is still exactly as long as it was, and it no longer admits anybody.
+
+The price is stated where it belongs rather than here: **every session ends, the retiring admin's included**,
+because nothing anywhere records which key signed which cookie ([ADR-034](../devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). What survives is
+a sweep that fails part way, carried as **R55** — a closed row may not hold an open residual.
 
 ## 8. Operational note — the local `.env` files are behind the code
 
@@ -191,6 +213,7 @@ The measured figures replace the estimates in:
   the observed figure for the mechanism.
 - **Worst-case retirement window** (`ADR-034`) — between retiring a key and the last process dropping it:
   same two numbers, **8 ms** observed.
-- **The residual row** (`ADR-034`) — opened at **R47** rather than the R42 first reserved for it. R42
+- **The residual row** (`ADR-034`) — opened at **R47** rather than the R42 first reserved for it, and **closed
+  2026-08-31** by §7's change of mechanism. R42
   through R46 were all taken between that reservation and this measurement, per `RISK_REGISTER`'s own
   changelog.

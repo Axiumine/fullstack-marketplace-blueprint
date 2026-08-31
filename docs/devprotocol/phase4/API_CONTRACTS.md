@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
-**Date:** 2026-08-30
+**Version:** 1.12
+**Date:** 2026-08-31
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.12 - 2026-08-31: **`keygripRetire`'s row says what the mutation now does** — it ends every live session on
+the platform, the calling admin's included, rather than "everyone whose cookie it signed". The old wording
+described an intent the platform cannot compute: no cookie carries a key id. The sweep is what closed **R47**
+([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31).
+No argument, no return type and no error changed.
 v1.11 - 2026-08-30, later the same day: `shopOwnersActiveTbl` gains `disabled: Boolean! = false` and
 `deleted: Boolean! = false`, and its row gains the `disabled` trio and `deleted`
 ([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md)). It had hard-wired both
@@ -457,7 +462,7 @@ Mutations (`BEs/dev/marketplace-dev-admin-authenticated-resource/src/graphQLApi/
 | `itemUpdatePublished` | `_id: ID!`, `published: Boolean!` | `Boolean!` | Moderation lever — unpublish any shop's item regardless of owner | `schema/mutations/itemUpdatePublished.mts:20,24-25` |
 | `itemDel` | `_id: ID!` | `Boolean!` | Soft-delete of any shop's item | `schema/mutations/itemDel.mts:17,18-20` |
 | `keygripRotate` | none | `Boolean!` | Mints a new cookie-signing key for the whole platform and retires the ones nothing can still be signed with. ⚠️ **No key material and no version argument** — a caller who could supply either could install a key of their choosing, which is the ability to mint a session cookie for any account. `Boolean!` answers "it happened"; what the key set became is `keygripStatus` | `schema/mutations/keygripRotate.mts:7,19` |
-| `keygripRetire` | `id: String!` | `Boolean!` | Drops one cookie-signing key platform-wide, logging out everyone whose cookie it signed. The `id` is public by construction — `keygripStatus` renders it — and names which key to drop, never the material. The drop applies to whichever key set the record holds at that moment, so a stale screen loses the compare rather than retiring the wrong key | `schema/mutations/keygripRetire.mts:7,18` |
+| `keygripRetire` | `id: String!` | `Boolean!` | Drops one cookie-signing key platform-wide **and ends every live session on the platform** — every customer, every shop owner, and the calling admin, whose next request answers 498 and whose browser lands on the login screen. ⚠️ **Not scoped to the cookies that key signed**: nothing records which key signed which cookie, so the sweep is every session or none, which is also what closed **R47** — a service that has not yet adopted the retirement verifies the signature and then finds no session behind it ([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). `Boolean!` answers *the key is gone*, not how many sessions ended — that count goes to the audit trail. This is the incident lever; `keygripRotate` is the routine one and logs nobody out. The `id` is public by construction — `keygripStatus` renders it — and names which key to drop, never the material. The drop applies to whichever key set the record holds at that moment, so a stale screen loses the compare rather than retiring the wrong key | `schema/mutations/keygripRetire.mts:7,18` |
 | `revokeSession` | `tier: Tier!`, `accountId: String!`, `id: String!` | `Boolean!` | Ends one session of one account and stops it being listed. ⚠️ **`id` is a session index field, never a token** — the digest `sessions` rendered, which names a Redis hash field of an account the caller already named and authenticates nothing. ⚠️ **`Boolean!` answers *whether a live session was ended*, not whether the call succeeded:** an already-expired row answers `false` and still prunes the index, and the console must read that as "already ended" rather than as an error | `schema/mutations/revokeSession.mts:9,24-26` |
 | `revokeAllSessions` | `tier: Tier!`, `accountId: String!` | **`Int!`** | Ends every session one account holds and answers how many there were — the one mutation on this tier that does not answer `Boolean!`. The count is what was actually revoked across every round: on exhaustion the routine leaves the newcomers it did not reach out of the total rather than claiming them. ⚠️ **No "every account" form and there will not be one** — it would be a single call that logs out the platform, and no incident this console exists for is answered by that | `schema/mutations/revokeAllSessions.mts:9,21-22` |
 

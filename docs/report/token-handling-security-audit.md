@@ -334,8 +334,10 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
 - **f — fixed and measured (ADR-034).** The keys are one AES-256-GCM-wrapped Redis
   record, no signing key is an environment variable, rotation and retirement reach a running process
   without a restart, and a rotate-and-retire cycle was clocked on the live Dev stack at **37 ms** and
-  **8 ms** to all five signers (`report/keygrip-rotation-propagation.md`). Residuals stay open and named:
-  R02 for the per-machine KEK, R47 for the retirement window.
+  **8 ms** to all five signers (`report/keygrip-rotation-propagation.md`). The residuals were named rather than
+  waved through: the per-machine KEK, **R50** since R02 closed, and the retirement window, **R47** — which
+  **closed 2026-08-31**, when a retirement began ending every live session on the platform instead of waiting
+  for every holder to adopt it.
 
 ---
 
@@ -545,7 +547,8 @@ dependency-tree advisory scan).
   rotation files, so it has deleted both halves since the reuse-detection fix paired them in the family set. The *orphaned* access token found live on
   2026-08-13 was fixed earlier the same day, by the field this closure reads. §3.4 has no residual left.
 - **The residuals carried as risk rows** rather than as claims of completeness: the per-machine `KEYGRIP_KEK`
-  (R02), the retirement adoption window (R47), unencrypted Redis transport (R45), storage-level encryption
+  (R02), the retirement adoption window (R47, closed 2026-08-31 — a retirement now ends every session, so a
+  lagging holder verifies a signature over a session that is gone), unencrypted Redis transport (R45), storage-level encryption
   (R48), `axios@0.21.4` in `public-resource` (R49), and the distinct-token flood against `refresh`. Each of
   them was given a row, an owner and a trigger, landed the same day: the flood is
   **R52**, the dual-read fallback's removal is **R51** (closed 2026-08-14, when the fallback was removed), and the per-machine

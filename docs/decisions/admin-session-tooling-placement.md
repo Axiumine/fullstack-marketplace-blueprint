@@ -18,7 +18,7 @@ session console add seven Admin-tier operations that are not domain data:
 | `revokeAllSessions(tier, accountId)` | all of one account's session keys, and its index |
 | `keygripStatus` | the wrapped cookie-signing record at `<REDIS_KEY>keygrip` |
 | `keygripRotate` | mints a signing key for the whole platform |
-| `keygripRetire(id)` | removes one, signing out everyone still holding a cookie it signed |
+| `keygripRetire(id)` | removes one, and signs out **every** session on the platform — since 2026-08-31, not only the cookies that key signed |
 
 None of them is `itemCategory` CRUD or moderation, which is what that service was for. So: do they belong
 in a tenth deployable — an Admin-tier *operations* service — or in the existing Admin resource service?
@@ -65,7 +65,7 @@ member, and a repo with its own coverage, mutation and Qodana gates to keep at 1
 - **Not** that these operations are domain data. They are not, which is why `docs/architecture.md`'s service
   table now names them separately in that row rather than folding them into "domain data".
 - **Not** that co-locating them is free. It puts the platform's most dangerous mutation — `keygripRetire`,
-  which signs customers out on purpose — in the same crash domain as `itemCategory` CRUD. That is accepted
+  which signs every customer, every shop owner and the calling admin out on purpose — in the same crash domain as `itemCategory` CRUD. That is accepted
   because the alternative moves the risk rather than removing it: a separate process is a separate crash
   domain *and* a separate environment file, and the second is the one that has actually broken this platform.
 

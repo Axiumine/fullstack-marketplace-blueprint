@@ -2,10 +2,21 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.28
-**Date:** 2026-08-30
+**Version:** 1.29
+**Date:** 2026-08-31
 **Author:** adr-agent
 **Changelog:**
+v1.29 - 2026-08-31: **ADR-034 amended a second time — a retirement ends every live session on the
+platform.** The fail-open half of the propagation window was the one residual ADR-034 shipped with and
+`RISK_REGISTER` carried as **R47**: between a `keygripRetire` landing and a lagging service adopting it,
+that service still verifies cookies signed with the key just retired — 8 ms measured, five minutes if the
+nudge is lost. Neither poll tuning nor a per-request version check could close it, so the close came from
+the other side: `funKeygripRetire` now sweeps every session on the platform after its compare-and-set
+write, walking the three account collections through the per-account session index (no `SCAN`, BCON-08
+intact). The lagging holder verifies a signature over a session that no longer exists and answers 498, so
+the window is zero and the request path pays nothing. ⚠️ **The retiring admin is not exempt** — §4 gains
+the row saying why, and the §2 status column now records this amendment and the 2026-08-28 one it never
+carried. R47 closes with it (`RISK_REGISTER` v1.44)
 v1.28 - 2026-08-30, after that: **ADR-052 added — a session entrance is a page load too.** ADR-051 closed
 both exits and left the entrance open, and the entrance is a real door on exactly one app: `marketplace-user`
 links to `/login` from the header and the footer of every page, so a signed-in customer reaches the sign-in
@@ -278,7 +289,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-031 | The fifteen sub-repos are tracked as submodules of the parent workspace | accepted | 2026-08-09 | — | — | Infrastructure and delivery |
 | ADR-032 | The production topology is owed, and no control may assume it | accepted | 2026-08-10 | — | ADR-039, in part | Infrastructure and delivery |
 | ADR-033 | `SameSite=Strict` on the refresh cookie, enforced twice | accepted | 2026-08-10 | — | — | Identity and access |
-| ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted | 2026-08-12 | — | — | Identity and access |
+| ADR-034 | Keygrip keys live in Redis, wrapped under a KEK, boot fails on disagreement | accepted, **amended 2026-08-28** — the retirement clock runs from a key's demotion, not from its minting; **amended 2026-08-31** — a retirement ends every live session on the platform, the retiring admin's included | 2026-08-12 | — | — | Identity and access |
 | ADR-035 | `user.addresses` capped at six, in the validator and in the write that appends | accepted | 2026-08-26 | — | — | Data model |
 | ADR-036 | Erasure is not something the platform suspends: `userDel` does not gate on `disabled` | accepted | 2026-08-26 | — | — | Identity and access |
 | ADR-037 | `@axiumine/marketplace-common` is published to npmjs; the owner publishes, `deploy-local.sh` stays | accepted, **superseded in part 2026-08-30** — §Decision property 2 only, the half that kept the script | 2026-08-26 | ADR-015, in part | ADR-047, in part | Build and quality gates |
@@ -377,6 +388,7 @@ ADR-037, ADR-047
 | Replace the index's per-field `HEXPIRE` with a lazy prune on read — "check whether each session key still exists when the index is read, and `hDel` the corpses" | platform owner, 2026-08-10 — `phase5/SESSION_TERMINATION.md` §3.1 | the two are not two implementations of one idea: **they ask different questions**. A lazy prune's liveness test is *does the session key still exist*, and since the session-cap split decided above a session key outlives the session it holds — the key carries koa-utils' sliding 90-day `REFRESH_TOKEN_EXPIRY` while the session is refused at its absolute cap of one day, or thirty when remembered. A prune built on key existence therefore keeps naming logins that cannot log in, and the admin session console renders that list to an admin. A field TTL set to the cap expires the row when the session stops working, enforced by Redis rather than by a read path remembering to run. The rest follows: lazy costs `hKeys` + one `EXISTS` per field + an `hDel` per corpse on **every** read — every revoke, every console render — against one extra single-key write per login; its stale-field bound is not zero but "logins in thirty days" for an account that never revokes and never opens the console, since nothing prunes an index nobody reads; and it is the larger test surface. What the choice costs is a Redis floor of 7.4.0, recorded operationally in `marketplace-docker-DBs/README.md` §Redis (where the refusal of **Valkey** as a target, same date, is also recorded). ⚠️ **If a deployment ever genuinely cannot offer hash-field TTLs, the lazy prune returns as a code change and not a config flag** — because of the predicate difference above, the two are not drop-in for one another |
 | Exempt the calling session from a credential-change revoke — "revoke all but me", keeping the user who just changed their password signed in on the device they are holding | platform owner, 2026-08-10 — `phase5/SESSION_TERMINATION.md` §3.1 | it defeats the one scenario the feature exists for. The user changing a password because they believe someone else is inside the account cannot tell which live session is theirs, and neither can the server: the exemption is granted to *whichever session sent the mutation*, and an attacker holding the victim's password can send it. "Revoke all but me" is not a weaker version of "revoke all" — it is a rule an attacker can aim at. **It also cannot be built honestly here**: `revokeAllSessionsForAccount` takes `{ tier, accountId }` and has four callers, so sparing the caller means a fifth parameter carrying a session identity into a routine whose whole point is that no caller can get the shape wrong, plus a branch at every call site that the admin session console's revoke must always pass as false. ⚠️ **The accepted cost, recorded so a reversal is a decision rather than a discovery**: a password change is a logout on every device, and the three frontends must treat the refusal that follows as "log in again" rather than as an error state. No story owns that screen — see `phase5/SESSION_TERMINATION.md` §3.1. Reversing this is a product decision, not a patch to the routine |
 | Add `familyId`, the session cap, or any other field to the account index's value | platform owner, 2026-08-13 — `phase5/SESSION_TERMINATION.md` §3.1 | the agreed value is `{ tier, mintedAt }` and nothing else. `familyId` and the cap are **state that token rotation already maintains on the session hash**, and duplicating them here would mean two writers keeping one truth in step across every rotation. Nothing device- or network-derived is in the set either, so the standing GDPR decision needs no exception for this key. ⚠️ **One of the two original reasons for `tier` turned out to be wrong once built**: the key a revocation rebuilds is `${REDIS_KEY}${field}` and needs no tier at all, because the tier is in the *index key's own name*. `tier` stays on the second reason alone — a row the admin session console can render without parsing a key name — and the pair was agreed as a pair, so re-litigating either half re-opens both |
+| Exempt the retiring admin's own session from `keygripRetire`'s sweep, or narrow the sweep to "only the sessions that key signed" | [ADR-034](./ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31 | neither is computable and the first is backwards. **Nothing anywhere records which key signed which cookie** — a cookie carries a signature, not a key id — so the narrow sweep has no query behind it. The exemption keeps alive the one session most likely to be the attacker's, since an admin account is a thing that leaks too, and it is the same shape as the credential-change *revoke all but me* this table already refuses. A retirement is the incident lever: it ends every session or it is not worth clicking |
 
 ## 5. Gaps
 
