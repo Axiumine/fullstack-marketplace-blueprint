@@ -155,19 +155,17 @@ Rationale: ADR-029.
 
 ## 5. Generate the shared secrets
 
-Three values are shared **across repos**, and nothing on the platform checks that they agree — no test
+Two values are shared **across repos**, and nothing on the platform checks that they agree — no test
 spans two services, so a mismatch returns 401 at runtime while every suite stays green. Generate each
 one **once**, now, and paste the same value everywhere it is needed.
 
 ```bash
 openssl rand -base64 32                # KEYGRIP_KEK   → 44 chars, one '=' of padding
-openssl rand -hex 24                   # INTROSPECTION_CODE
 ```
 
 | Value | Goes in | Why it must match |
 |---|---|---|
 | `KEYGRIP_KEK` | the four `*-authorization` services, `marketplace-dev-authenticated-logout`, `marketplace-dev-admin-authenticated-resource` and `marketplace-db-setup` — 6 of 9, plus the seed | it unwraps the one Redis record the cookie-signing keys live in (ADR-034). `public-authorization` signs the refresh cookie at login and the tier's own authorization service verifies it, so a service that cannot open the record **refuses to boot** rather than signing cookies its siblings cannot verify |
-| `INTROSPECTION_CODE` | all nine services | the header that lets schema introspection through without a session — **on a development or test machine only**, see below |
 | `REDIS_KEY` | all nine services **and `marketplace-db-setup`**, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session, and the seed writes the keygrip record where nobody looks for it |
 
 ⚠️ **Six services, not five, and the sixth is a `*-resource` one.**
@@ -185,7 +183,8 @@ two counts answer different questions and both are correct.
 
 ⚠️ **Running this somewhere that is not your workstation?** Everything in this section is a *development*
 recipe by design — generate locally, paste by hand, nine services on one machine — and it stays one. The
-swap points for all four shared values, and the invariants a swap must not break, are in
+swap points for all three values that page covers — these two plus `REDIS_PASSWORD`, which is a
+datastore credential rather than a cross-repo agreement — and the invariants a swap must not break, are in
 [`docs/PRODUCTION_HARDENING.md`](./docs/PRODUCTION_HARDENING.md). No vendor is named there, deliberately:
 [`ADR-040`](./docs/devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md).
 
@@ -207,20 +206,6 @@ grep -oE '^[A-Za-z_0-9]+' .env
 
 Also quote any value containing whitespace, with **single** quotes — dotenv expands `\n` and `\r` inside
 double quotes.
-
-⚠️ **`INTROSPECTION_CODE` does nothing in production, and that is enforced rather than assumed.** The
-`x-introspectioncode` header lets a caller reach the schema with no cookie and no `Authorization`
-header at all — a development convenience, and an allowlisted one: every comparison site
-asks `isIntrospectionBypassAllowed()` (`marketplace-common`) first, which is true only when `NODE_ENV`
-is exactly `development` or `test`. Under any other value — unset, empty, `staging`, `Production`, a
-typo — the configured code is never even read, and a request carrying the right header is answered
-exactly like one carrying nothing. So a staging box that "stopped accepting the code" is the gate
-working; the fix is to label the environment, never to restore the old behaviour.
-
-It is still **required at boot in all nine services**, and removing it from `REQUIRED_ENV_VARS` is the
-tidy-up to refuse: the comparison interpolates the variable, so an unset one stringifies to the literal
-`'undefined'` and a service mislabelled as `development` would hand the bypass to anyone sending that
-word. Two independent things have to be wrong before it opens.
 
 ---
 
@@ -377,8 +362,8 @@ NODE_EXTRA_CA_CERTS=/path/to/dev-ca.pem yarn dev
 falls back to `production`, so a Dev machine's events land in the bucket a real deployment's alerts are
 built on. Nothing in `yarn dev` or `yarn start` sets it: the value comes from the `.env` you copied, where
 the template already carries `NODE_ENV=development`. Leave that line in place, and set it deliberately on
-anything deployed. The same variable already decides whether `INTROSPECTION_CODE` is read at all (see
-above), so the two gates agree on what the box is.
+anything deployed. The same variable already decides whether a service answers an introspection query
+at all, so the two gates agree on what the box is.
 
 Either way, this is the only outbound HTTPS these repos own besides SocketLabs mail, which verifies
 certificates normally and is unaffected by both choices.

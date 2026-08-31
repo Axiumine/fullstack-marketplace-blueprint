@@ -24,7 +24,7 @@ down in that ADR's *Negative* section rather than hidden here.
 |---|---|
 | the topology this platform is designed to run in | [`ADR-039`](./devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) — Cloudflare at the edge, one application host, datastores on their own host on a private LAN segment |
 | why no vendor is named here | [`ADR-040`](./devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md) |
-| how the four values get generated and where they go in development | [`SETUP.md`](../SETUP.md) §5 |
+| how the three values get generated and where they go in development | [`SETUP.md`](../SETUP.md) §5 |
 | what is still undesigned at the operations layer | [`RISK_REGISTER.md`](./devprotocol/phase5/RISK_REGISTER.md) **R39** — sizing, supervision, CI/CD, backups. This page does not close any of them |
 | the residual you are accepting if you change nothing | `RISK_REGISTER.md` **R50** |
 
@@ -94,7 +94,7 @@ keygrip.js:91        KEYGRIP_KEK must be base64 of 32 bytes ...  (db-setup's own
   continues — a service that starts with the wrong KEK signs cookies its siblings cannot verify, which is a
   401 storm hours later instead of a service that visibly did not start.
 - **⚠️ That gate is a boot-time check, never a pre-deploy one.** Nothing compares the value across machines
-  before you ship. If you want a pre-deploy check, that is yours to build (see §5).
+  before you ship. If you want a pre-deploy check, that is yours to build (see §4).
 
 ### What this platform does not give you
 
@@ -110,43 +110,7 @@ encrypted personal field permanently (`SETUP.md` §4, ADR-029).
 
 ---
 
-## 2. `INTROSPECTION_CODE` — the schema-introspection bypass header
-
-**What it is.** The value compared against the `x-introspectioncode` request header to let GraphQL
-introspection through without a session.
-
-**Who needs it.** All **nine** services carry it in their environment template. ⚠️ Seven of the nine also
-list it in `REQUIRED_ENV_VARS` and refuse to boot without it; `public-authorization` and `public-resource`
-do not, so an unset value there fails at the comparison rather than at boot.
-
-### Swap points — six comparisons across five files
-
-| File | Line |
-|---|---|
-| `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts` | 189 |
-| `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts` | 42 |
-| `BEs/dev/marketplace-dev-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts` | 43 |
-| `BEs/dev/marketplace-dev-user-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts` | 40 |
-| `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts` | 46, 70 |
-
-### Invariants a swap must not break
-
-- **`isIntrospectionBypassAllowed()` is evaluated first, every time.** It gates the bypass on `NODE_ENV`, so
-  outside development and test the header admits nothing regardless of its value — the same allowlist gate
-  [`SECURITY_AUTH.md`](./devprotocol/phase3/SECURITY_AUTH.md) §3.6 describes. Keep the short-circuit order;
-  moving the comparison in front of it turns a development convenience into a production bypass.
-- **The comparison is `constantTimeEquals`, never `===`.** String equality stops at the first differing
-  byte and leaks the prefix through timing.
-- **The value is read through a template literal**, `` `${process.env.INTROSPECTION_CODE}` ``, so an
-  **unset** variable compares as the four-character string `"undefined"` rather than throwing. That is why
-  the variable stays in `REQUIRED_ENV_VARS` in the seven services that list it — removing it there is the
-  regression, not removing the template literal.
-- ⚠️ **This value is reachable wherever a service port is.** `ADR-039` closes those ports with a cloud
-  security group; that is the control, and it is the only one.
-
----
-
-## 3. `REDIS_PASSWORD` — the datastore credential
+## 2. `REDIS_PASSWORD` — the datastore credential
 
 **Who needs it.** All **nine** services list it in `REQUIRED_ENV_VARS`, plus `BEs/marketplace-db-setup`
 (`scripts/seedKeygrip.js:37`, alongside `REDIS_USERNAME`). Eleven files must agree and nothing compares them.
@@ -175,7 +139,7 @@ reads are the swap points; the eleventh is your Redis configuration.
 
 ---
 
-## 4. `REDIS_KEY` — the shared session keyspace prefix
+## 3. `REDIS_KEY` — the shared session keyspace prefix
 
 **Who needs it.** All nine services **and** `BEs/marketplace-db-setup`, byte-identical — ten files. Consumed
 inside `marketplace-common` by `sessionKeys.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`,
@@ -190,11 +154,11 @@ inside `marketplace-common` by `sessionKeys.mts`, `assertTier.mts`, `resolveAuth
   what separates the three roles ([`ADR-002`](./devprotocol/phase3/adr/ADR-002-role-is-authentication-collection.md)); a per-service prefix
   is not a hardening measure, it is a broken platform.
 - Treat it as configuration rather than as a secret — but provision it through the same mechanism as the
-  other three, because the failure mode of it drifting is worse than the failure mode of a wrong password.
+  other two, because the failure mode of it drifting is worse than the failure mode of a wrong password.
 
 ---
 
-## 5. What none of this gives you
+## 4. What none of this gives you
 
 Everything below is genuinely open. This page documents swap points; it builds no control.
 
@@ -204,28 +168,26 @@ Everything below is genuinely open. This page documents swap points; it builds n
   [`INFRA.md`](./devprotocol/phase3/INFRA.md) §14 q8. Until then, the recipe is
   `docs/workflow.md` §Environment files: `sha256(key + ' ' + value)`, first six hex, compared between two
   machines. **Fingerprint, never print.**
-- **No escrow, no automated rotation** for any of the four. See §1.
+- **No escrow, no automated rotation** for any of the three. See §1.
 - **No process supervision, no CI/CD, no backup or restore drill, no sizing for the Redis cluster or the
   MongoDB replica set.** All of it is **R39**, all of it is still open, and `ADR-039` explicitly did not
   answer any of it.
 - **No secret rotation runbook.** The platform has one rotation mechanism, and it is for the *signing keys*
   inside the wrapped record — an admin mutation in `admin-authenticated-resource` that running services
-  adopt without restarting. The four values on this page have no equivalent.
+  adopt without restarting. The three values on this page have no equivalent.
 
 ---
 
-## 6. Minimum checklist
+## 5. Minimum checklist
 
 Not a substitute for reading the sections above; a way to confirm you did.
 
-- [ ] All four values come from your provisioning mechanism, not from a file a human edited on each host.
+- [ ] All three values come from your provisioning mechanism, not from a file a human edited on each host.
 - [ ] `KEYGRIP_KEK` decodes to exactly 32 bytes, and is resolved **once per process** — all seven processes
       in §1 see the same value. One decode site in TypeScript does not give you this; your provisioning does.
 - [ ] Both `KEYGRIP_KEK_MISMATCH` paths still `exit 1`. No fallback, no retry, no second source.
-- [ ] `isIntrospectionBypassAllowed()` still runs before every `INTROSPECTION_CODE` comparison, and every
-      comparison is still `constantTimeEquals`.
-- [ ] Every service port is closed to everything but the edge (`ADR-039`), because §2's control is that and
-      nothing else.
+- [ ] Every service port is closed to everything but the edge (`ADR-039`). Nothing in these repos narrows
+      them — the services bind the wildcard address and the vhosts proxy to them.
 - [ ] You have decided, explicitly, whether `REDIS_TLS` is set — and written down why, if it is not.
 - [ ] You have read **R50** and **R39** and know which residuals you are carrying.
 

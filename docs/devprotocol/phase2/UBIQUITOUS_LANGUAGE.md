@@ -146,10 +146,6 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 **Definition:** Opaque token in a Koa signed httpOnly cookie (Keygrip SHA-512), used by the `refresh` mutation to rotate the access token. The signing keys are the shared Redis record of ADR-034, unwrapped with `KEYGRIP_KEK` — never an environment variable.
 **Used in:** every `*-authenticated-authorization` service.
 
-### Introspection code
-**Definition:** `x-introspectioncode` header value, checked against `INTROSPECTION_CODE` env var, bypasses the bearer-token check for service-to-service calls. Treat as secret — never logged, never exposed to a browser client.
-**Used in:** `resolveAuthorizationSession` in `BEs/marketplace-common/src/others/` — returns `null` for the introspection bypass rather than throwing or inventing a session.
-
 ### REDIS_KEY
 **Definition:** Shared Redis key prefix (`marketplaceDev:`), identical across all 9 services on purpose — the single shared `marketplace-dev-authenticated-logout` service deletes a session by token content alone and needs no per-tier prefix to find it.
 **Used in:** `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:60,74`.
@@ -624,7 +620,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | Logout, any tier's token | Same Redis keys deleted regardless of which service minted them | `authorizationLogoutHandler.mts:60,74` |
 | `itemAdd`/`itemUpdate` given a nonexistent `idCategory` | `throwIfItemCategoryMissing` rejects — the substitute for a reference nothing enforces | Admin/ShopOwner resource services |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects BEFORE the category check, so a non-owner learns nothing about real category ids | `itemAdd.mts:39-46` |
-| `x-introspectioncode` header present and matching | Bearer-token check bypassed | Introspection code, §4 |
+| Any authenticated call arriving with no `Authorization` header | Refused with 412 — no header, code or shared value substitutes for a session | `authorizationAuthenticatedResourceHandler.mts:26-32` |
 
 ---
 

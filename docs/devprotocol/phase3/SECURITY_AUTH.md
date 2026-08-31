@@ -2,41 +2,34 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.17
+**Version:** 1.16
 **Date:** 2026-08-30
 **Author:** security-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.17 - 2026-08-30: §Supply chain's two `@axiumine/*` rows drop the local sync bridge. The platform owner
+v1.16 - 2026-08-30: §Supply chain's two `@axiumine/*` rows drop the local sync bridge. The platform owner
 ruled that an edit to `marketplace-common` reaches a consumer by being published and by nothing else, and
 the script is deleted ([`adr/ADR-047-a-common-change-ships-as-a-published-release.md`](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)),
 which *narrows* the supply-chain surface rather than widening it: every consumer now runs a build that a
 version number identifies and a lockfile pins, so what a machine is executing can be verified from the
 registry. The `koa-utils` row loses a comparison to a script that no longer exists. Versions move to
 `3.0.0` / `^3.0.0`. No threat, control or mitigation changed.
-v1.16 - 2026-08-28, later the same day: §3's threat table gains one clarification —
+v1.15 - 2026-08-28, later the same day: §3's threat table gains one clarification —
 **`checkShopOwnerApproval` is called after the password check, not
 before it**, because refusing a parked account earlier answers faster for a parked address than for an
 unknown one and turns the login into an enumeration oracle. The row also records that since the
 2026-08-13 session-revocation fix ([`phase5/SESSION_TERMINATION.md`](../phase5/SESSION_TERMINATION.md) §3.1) the flag
 revokes rather than only refuses. Nothing else in this document changed, and no control's residual moved.
-v1.15 - 2026-08-28: §3.7's exclusivity claim is superseded, not corrected — an appended block records that
+v1.14 - 2026-08-28: §3.6's exclusivity claim is superseded, not corrected — an appended block records that
 `refresh` has carried two more `assertUnderRateLimit` buckets since the fix landed on 2026-08-10:
 pre-lookup (`REFRESH_ATTEMPT_BUCKET`, `REFRESH_ATTEMPTS_PER_WINDOW` = 20 per `REFRESH_ATTEMPT_WINDOW_SECONDS`
 = 60, keyed on `hashSessionToken(presentedRefreshToken)`) and post-lookup (`REFRESH_FAMILY_BUCKET`,
 `REFRESH_MINTS_PER_WINDOW` = 20 per `REFRESH_FAMILY_WINDOW_SECONDS` = 3600, keyed on `familyId`), both
 defined in `BEs/marketplace-common/src/others/refreshRateLimit.mts` and called from the three authorization
 services' middleware. The sizing rationale for the two windows lives in `phase5/RISK_REGISTER.md` R52. No control changed.
-v1.14 - 2026-08-28: §3.6 absorbs the introspection-bypass record directly into this document. Its snippet was **stale rather than merely thin** — it showed the ungated `===` at
-`:27-37`, the shape the 2026-08-10 audit found, three weeks after the allowlist and constant-time comparison fixes ([`report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.6) replaced it with a
-gated `constantTimeEquals`; corrected against the working tree, with the line range that is actually there.
-Two bullets are new: the six comparison sites enumerated with file and line, which no file anywhere held
-together, and the `NoSchemaIntrospectionCustomRule` gate named as the *different* thing it is. No control
-changed and no claim about the current code was weakened — the document now describes the code that ships.
 v1.13 - 2026-08-27, later the same day: the two `marketplace-common` version strings follow the release of
 `2.0.0` — the supply-chain row and the published-at note read `2.0.0` / `^2.0.0`, with `1.0.1` kept where it
-records what 2026-08-26 shipped. `2.0.0` makes `isIntrospectionBypassAllowed` a re-export of
-`@axiumine/koa-utils` and narrows that peer to `>=6`; the six gated `INTROSPECTION_CODE` sites this document
-describes are unchanged by it.
+records what 2026-08-26 shipped. `2.0.0` narrows the `@axiumine/koa-utils` peer to `>=6`; no control this
+document describes is changed by it.
 v1.12 - 2026-08-27: §6's "Not yet protected" heading was a schedule, not a boundary, and §1's summary said "nothing exists yet to protect". ADR-038 (2026-08-27) puts cart, order, delivery and payment permanently out of scope, so the section becomes "Never protected", each row says why no control is pending rather than late, and the PCI-DSS line in §8 stops being a today-only claim — there is no payment surface and no path to one.
 v1.7 - 2026-08-25: the `itemCategory` depth-cap row cited `funItemCategoryAdd.mts:24`, the wrong file and a line of docblock — corrected to the guard and both call sites. Its mitigation column now distinguishes "no mutation on another tier" (true) from "no write on another tier" (not true since `holdItemCategory`).
 v1.1 - 2026-08-11: §NFR-SE01–SE12 paragraph follows `phase1/NFR.md` to v1.1 — a 🔴 Critical change needs a
@@ -94,7 +87,6 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 | Redis session hashes (access + refresh token → tier + account id) | Critical | full account takeover, any tier, until token expiry |
 | bcrypt password hashes, `login.password` on `admin`/`shopOwner`/`user` | Critical | offline crack attempt if DB dumped |
 | `KEYGRIP_KEK` and the wrapped key record it opens | Critical | forged or tampered signed refresh cookies. The keys themselves are not an env value since ADR-034 — they are one AES-256-GCM record in Redis, so this row is two assets that must leak together to be useful |
-| `INTROSPECTION_CODE` | Critical | full bypass of the tier check on service-to-service calls if leaked to a browser client |
 | `REDIS_PASSWORD`, `MONGODB_URI` | Critical | direct datastore access, bypasses every application-level guard including `assertTier` |
 | `user.personalData`, `user.addresses[]` (incl. GeoJSON `position`) | High | PII + physical location of a customer |
 | `shopOwner.personalData`, `company.taxCode` / `vatNumber` / `certifiedEmail` | High | PII + legal-identity data (tax code, VAT number, certified mailbox) |
@@ -120,7 +112,6 @@ Prescriptive, not descriptive: every rule below is a requirement the codebase mu
 | Threat | Control | Where it lives | Residual risk |
 |---|---|---|---|
 | Foreign-tier access token accepted by wrong resource service | `assertTier(actual, expected)` — throws 403, missing `tier` = invalid never wildcard | `BEs/marketplace-common/src/others/assertTier.mts:21-23`; call site e.g. `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:51-61` | Closed by design as of 2026-08-05. Re-opens only if a future edit reverts to "any non-empty hash" — `impact()` on `assertTier` and `detect_changes()` are mandatory before touching this function or its call sites |
-| `x-introspectioncode` bypass reused as a general auth path | Header compared only to `INTROSPECTION_CODE`, only on the "no `Authorization` header" branch; leaves `ctx.state.user` **unset** rather than a stub session | `authorizationAuthenticatedResourceHandler.mts:27-37`; `resolveAuthorizationSession` in `BEs/marketplace-common/src/others/` | Value must agree across all 9 backend `env` files — no cross-repo test enforces this. 2026-08-07 audit found both `*-user-authenticated-*` services carried a mismatched value, silently breaking the bypass in both directions |
 | Login response distinguishes "wrong password" from "email unconfirmed" (enumeration oracle) | Same `throwUnauthorizedError()` for both branches | `BEs/dev/marketplace-dev-public-authorization/src/lib/db/login/tryLoginUser.mts:33-41` | `userVerifyEmailResend` exists precisely because login cannot hint — the frontend must offer resend unconditionally, never conditioned on a login error |
 | Credential stuffing / brute force on auth mutations | Fixed-window rate limiter, one Redis key per (bucket, identity) pair, `INCR` + `EXPIRE`, cluster-safe by construction | `BEs/marketplace-common/src/others/assertUnderRateLimit.mts` | Fixed window allows up to 2× the limit across a window boundary — accepted tradeoff ("make automation expensive, not meter a paid API") |
 | Refresh cookie forged or tampered | Keygrip SHA-512 signed cookie, httpOnly | [`docs/architecture.md`](../../architecture.md) §Auth model; ADR-034; `KEYGRIP_KEK` | Minting service (`marketplace-dev-public-authorization`, `loginUser`) and verifying service (`marketplace-dev-user-authenticated-authorization`) hold the **same** keys by construction since ADR-034: one wrapped Redis record, and a service whose KEK cannot open it exits 1 at boot rather than signing. Real historical bug, from before that: 2026-08-07 audit found the user-tier authz service's `env` was copied from an unrelated project with a different Keygrip pair — every customer refresh returned 401 while both services' own suites stayed green, because each signs and verifies with itself. That shape is now a service that does not start |
@@ -146,7 +137,7 @@ Opaque tokens + Redis sessions. **Not JWT**, despite a stale `JWT` type survivin
 
 - **Refresh token**: Koa signed cookie, Keygrip SHA-512 over the key array in the wrapped Redis record (ADR-034 — no signing key is an environment variable), httpOnly. Minted at login (`login` / `loginAdmin` / `loginUser` on `marketplace-dev-public-authorization`), rotated by the `refresh` mutation on the matching `*-authenticated-authorization` service.
 - **Access token**: opaque string sent as `Authorization: Bearer access:<token>` header, validated on every resource-service call by a Redis lookup — never decoded, never trusted on its own.
-- Both tokens are looked up, never parsed for claims. There is no signing key that proves anything about a token's *content* — only Redis membership does that. This is the reason a stolen/leaked `INTROSPECTION_CODE` or a Redis compromise is catastrophic (§2) where a leaked token alone is bounded by TTL.
+- Both tokens are looked up, never parsed for claims. There is no signing key that proves anything about a token's *content* — only Redis membership does that. This is the reason a Redis compromise is catastrophic (§2) where a leaked token alone is bounded by TTL.
 
 ```ts
 // BEs/marketplace-common/src/others/assertTier.mts:21-23
@@ -220,56 +211,7 @@ this.password = await bcrypt.hash(this.password, SALT_ROUNDS)
 
 Same call shape in `BEs/marketplace-common/src/models/MongoDB/Admin.mts:46` and `.../User.mts:174`. Stored hash is exactly 60 chars (`$2y$14$…`), enforced by the `$jsonSchema` `minLength`/`maxLength: 60` on `login.password` — a shorter or longer string fails the write, not just the app-level check.
 
-### 3.6 `x-introspectioncode` — service-to-service bypass
-
-Same handler that enforces §3.2 also honours a header bypass for internal calls carrying no user session:
-
-```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:39-43
-if (typeof authorization === 'undefined') {
-	if (
-		isIntrospectionBypassAllowed() &&
-		typeof ctx.request.header !== 'undefined' &&
-		constantTimeEquals(ctx.request.header['x-introspectioncode'], `${process.env.INTROSPECTION_CODE}`)
-	) {
-		introspection = true
-	} else { throw throwPreconditionFailedNoAuthHeader() }
-}
-```
-
-⚠️ **This snippet read `===` with no gate in front of it until v1.14.** That was the shape the 2026-08-10
-token-handling audit found, and both halves of it were closed in the same audit's follow-up, recorded in
-[`report/dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 — the allowlist and the comparison switch. The gate is evaluated **first**, so outside `development` and `test` the bypass does
-not exist at all and a caller sending the correct header gets exactly the error a caller sending nothing
-gets: a wrong code and a disabled feature are not distinguishable from the outside. `INTROSPECTION_CODE`
-stays in `REQUIRED_ENV_VARS` regardless — unset, it stringifies to the literal `'undefined'`, and that word
-would be the bypass.
-
-- **The six sites, named.** The comparison is written out at six places in five files across five repos, and
-  no other file lists them together — an earlier count recorded two, and the miscount is the reason
-  they are enumerated here rather than counted again:
-  `marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:39-43`,
-  `marketplace-dev-authenticated-resource/…/authorizationAuthenticatedResourceHandler.mts:40-44`,
-  `marketplace-dev-user-authenticated-resource/…/authorizationAuthenticatedResourceHandler.mts:37-41`,
-  `marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:43-47` **and** `:66-71` — that
-  handler checks twice, once on the branch with no refresh cookie and once on the branch with no
-  `Authorization` header, and the second is not redundant: a caller that sent a cookie is let through the
-  first block, so the second is the only place its code is read — and
-  `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts:189`, which the three
-  `*-authenticated-authorization` handlers all reach. A seventh sits outside all sixteen repos, in
-  `@axiumine/koa-utils`; what it did and what closed it is in
-  [`report/dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1.
-- ⚠️ **What is production-gated in `index.mts` is a different thing, and was the whole confusion.** Each of the
-  nine services adds `NoSchemaIntrospectionCustomRule` and `depthLimit(10)` when `NODE_ENV === 'production'`
-  (`src/index.mts:80`-`:95`, the exact line differing per service). That refuses the introspection **query**
-  while leaving the **auth bypass** untouched — before the allowlist gate went in, the header was therefore a production
-  credential, whatever it was meant to be. The two gates are unrelated and neither substitutes for the other.
-- Bypasses the bearer-token/tier check entirely for the one call that presents it — used for service-to-service calls, not for any browser-originated request.
-- Leaves `ctx.state.user` **unset** rather than a stub session — `resolveAuthorizationSession` returns `null` on this path (`docs/decisions/authorization-service-consolidation.md` §As implemented). A caller on the introspection path never gets an impersonated identity.
-- **Must never be logged, never sent to a browser client.** Treat as a secret with the same weight as `KEYGRIP_KEK`.
-- **Its value must agree across all 9 repos.** A mismatch breaks the bypass in both directions — the caller's code equals a value the callee no longer expects — and **no test on this platform spans two services** to catch a cross-repo disagreement (`docs/workflow.md` §Environment files). The 2026-08-07 audit that finally ran the user-tier's integration suites found exactly this: `INTROSPECTION_CODE` in both `*-user-authenticated-*` `env` files did not match the other seven repos', because those files were unrelated-project copies. Fixed by a manual cross-repo fingerprint sweep (`sha256(key + ' ' + value)`, first six hex, never the raw value), not by any automated check — none exists.
-
-### 3.7 Application-level rate limiting on auth paths
+### 3.6 Application-level rate limiting on auth paths
 
 Fixed-window limiter, one Redis key per `(bucket, identity)` pair — `INCR` + `EXPIRE` on a single key, cluster-safe by construction (a multi-key op would throw `CROSSSLOT`):
 
@@ -306,7 +248,7 @@ This is the platform's only application-level auth-path rate limiting. The nginx
 > `../phase5/RISK_REGISTER.md` R52. No
 > control described in the paragraph above changed — the paragraph is simply no longer the complete list.
 
-### 3.8 SSR cache boundary as a security control
+### 3.7 SSR cache boundary as a security control
 
 `marketplace-user` is the one server-rendered surface on the platform, and the SSR/CSR split is a security boundary, not a performance choice:
 
@@ -336,8 +278,8 @@ Both halves are load-bearing, and weakening either alone is enough to leak one c
 ### Rules
 
 - No secret value may be read, echoed, or committed: `.env`, `.env.*`, `.npmrc`, `.yarnrc`, `.netrc`, `*.pem`, ssh keys. Placeholder templates named `env` and `npmrc` (no leading dot) are safe and the only files this doc or any agent working here reads directly.
-- Protected values, named explicitly across the codebase: `KEYGRIP_KEK`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`, `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY`, any npm token.
-- Every credential is referenced by env var, never inlined — `process.env.KEYGRIP_KEK`, `process.env.INTROSPECTION_CODE`, etc. in each service's `src/index.mts` `REQUIRED_ENV_VARS`. ⚠️ **The list is per service, not universal.** `INTROSPECTION_CODE` is in all 9; `KEYGRIP_KEK` is in **6** — the four `*-authorization` services and `marketplace-dev-authenticated-logout`, i.e. exactly those that mint or verify the refresh cookie, plus `marketplace-dev-admin-authenticated-resource`, which signs nothing and holds the KEK only so `keygripRotate` can reseal the record. The other three `*-resource` services authenticate over a bearer header checked against Redis, sign no cookie, and carry no keygrip variable in `REQUIRED_ENV_VARS` or in their `env` template. ⚠️ **`KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` are gone** (*`KEYGRIP_KEY_1`/`_2` are gone, and the documents stop describing five files*, [`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md) §4) — an eslint rule in `src/**` of the five signing services refuses `process.env.KEYGRIP_KEY_` by name, so a service cannot quietly go back to signing with a key of its own.
+- Protected values, named explicitly across the codebase: `KEYGRIP_KEK`, `REDIS_PASSWORD`, `DSN`, `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY`, any npm token.
+- Every credential is referenced by env var, never inlined — `process.env.KEYGRIP_KEK`, `process.env.REDIS_PASSWORD`, etc. in each service's `src/index.mts` `REQUIRED_ENV_VARS`. ⚠️ **The list is per service, not universal.** `REDIS_PASSWORD` is in all 9; `KEYGRIP_KEK` is in **6** — the four `*-authorization` services and `marketplace-dev-authenticated-logout`, i.e. exactly those that mint or verify the refresh cookie, plus `marketplace-dev-admin-authenticated-resource`, which signs nothing and holds the KEK only so `keygripRotate` can reseal the record. The other three `*-resource` services authenticate over a bearer header checked against Redis, sign no cookie, and carry no keygrip variable in `REQUIRED_ENV_VARS` or in their `env` template. ⚠️ **`KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` are gone** (*`KEYGRIP_KEY_1`/`_2` are gone, and the documents stop describing five files*, [`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md) §4) — an eslint rule in `src/**` of the five signing services refuses `process.env.KEYGRIP_KEY_` by name, so a service cannot quietly go back to signing with a key of its own.
 - **Quote any value containing whitespace.** dotenv terminates a bare value at the first space or `#` and reports nothing — the mechanism behind the 89→76 char Keygrip-key truncation in §2. Use single quotes; double quotes expand `\n`/`\r` escapes, which is its own trap for a key that should be opaque bytes.
 - ⚠️ **Quoting is not enough on its own: a quoted value can still be broken across two physical lines.** dotenv stops the value at the newline and hands back the truncated prefix, and the tail — which is a bare fragment with no `KEY=` on it — is then parsed as its own garbage assignment. Found in 5 of the 9 `.env` files on 2026-08-09 (§2). A value must be exactly one line. It is visible in the one listing the guard allows — `grep -oE '^[A-Za-z_0-9]+' .env` — because the orphan tail is read as a variable and shows up as a bogus, non-`SCREAMING_SNAKE_CASE` key name. [`docs/workflow.md`](../../workflow.md) §Environment files.
 - Secret files are inspected by **key name or salted fingerprint only, never by value**: `grep -oE '^[A-Za-z_0-9]+' .env` for names, `sha256(key + ' ' + value)` first-six-hex for cross-repo agreement checks. Never `cat`, never a value in a terminal — a value printed here is sent to the model API and written unencrypted to `~/.claude/projects/<slug>/*.jsonl`, with no un-send.
@@ -348,7 +290,6 @@ Both halves are load-bearing, and weakening either alone is enough to leak one c
 # BEs/dev/marketplace-dev-public-authorization/env  (committed placeholder template — safe)
 KEYGRIP_KEK=
 REDIS_PASSWORD=
-INTROSPECTION_CODE=
 MONGODB_URI=
 ```
 
@@ -356,17 +297,17 @@ The `KEYGRIP_KEK` line belongs to this template because `public-authorization` s
 and must unwrap the key record to do it. Three of the four `*-resource` templates show the same file
 **without** it — see the Rules above for the fourth, which rotates the record.
 
-Real values live in each repo's untracked `.env`, one file per repo, never shared as a single platform-wide file — because the 9 backend `env` templates enumerate `REQUIRED_ENV_VARS` per service and several values (`INTROSPECTION_CODE`, `KEYGRIP_KEK`) must be **byte-identical across specific repo pairs** — the KEK differing is at least loud, since the service that holds a wrong one refuses to boot — while others (`MONGO_TEST_DB` family) must be **unique per repo** — see §6.
+Real values live in each repo's untracked `.env`, one file per repo, never shared as a single platform-wide file — because the 9 backend `env` templates enumerate `REQUIRED_ENV_VARS` per service and some values (`KEYGRIP_KEK`, `REDIS_KEY`) must be **byte-identical across specific repo pairs** — the KEK differing is at least loud, since the service that holds a wrong one refuses to boot — while others (`MONGO_TEST_DB` family) must be **unique per repo** — see §6.
 
 ### Bootstrap responsibility
 
-No bootstrap script generates `.env` files on this platform — each repo's untracked `.env` is populated by hand per machine, against the committed `env` template's key list. Nothing here auto-provisions a Keygrip pair or an `INTROSPECTION_CODE`; getting two related services' copies to agree is a manual, currently unverified-by-tooling step (§3.6, §2). This is a gap: **the enforcement layers below stop a secret leaving the machine, and since 2026-08-09 they stop one being silently cut in half on the way in, but nothing stops two machines' secrets from silently disagreeing.** Shape is now gated; equality is not. The only check for equality remains a manual fingerprint sweep, `sha256(key + ' ' + value)` per repo (`docs/workflow.md` §Environment files).
+No bootstrap script generates `.env` files on this platform — each repo's untracked `.env` is populated by hand per machine, against the committed `env` template's key list. Nothing here auto-provisions a KEK or a shared keyspace prefix; getting two related services' copies to agree is a manual, currently unverified-by-tooling step (§2). This is a gap: **the enforcement layers below stop a secret leaving the machine, and since 2026-08-09 they stop one being silently cut in half on the way in, but nothing stops two machines' secrets from silently disagreeing.** Shape is now gated; equality is not. The only check for equality remains a manual fingerprint sweep, `sha256(key + ' ' + value)` per repo (`docs/workflow.md` §Environment files).
 
 Four enforcement layers on the write/leak side, all in [`.claude/SECRETS.md`](../../../.claude/SECRETS.md):
 
 1. **`permissions.deny`** (`~/.claude/settings.json`) — denies the `Read` tool outright on `**/.env`, `**/.env.*`, `**/.npmrc`, `**/.yarnrc*`, `**/.netrc`, `**/*.pem`, `**/*.p12`, ssh keys. Declarative, holds even if hooks are disabled.
 2. **`no-secret-leak` PreToolUse hook** (`~/.claude/hooks/no-secret-leak.cjs`) — matches `Bash|Read|Grep|NotebookEdit`, denies content reads (`cat .env`), indirection (`echo $(cat .env)`), copy/transmit (`scp`, `curl -F`), staging (`git add .env`), shell expansion of a protected var (`echo $KEYGRIP_KEY_1`), bare env dumps (`printenv`), and inline interpreter lookups (`node -e "…process.env.X"`). Allows metadata verbs and key-name extraction. **Known limit**: inspects the command line, not a launched script's contents — `bash leak.sh` is not caught.
-3. **`pre-commit` guard**, tracked at `.githooks/pre-commit` in all 16 repos — `marketplace-nginx` was the last to get one and, having no `package.json`, carries this guard and no gate after it (ADR-030) — opens with **check 0**, the only check on the platform that reads the *working tree* rather than the staged index (the file it exists for is git-ignored and never staged): it blocks when that repo's `.env`, `.env.*` or `env` holds a non-blank, non-comment line that is not `KEY=VALUE`, or a value opening a quote the line never closes, which are the two signatures of one value broken over two physical lines (§2, R05b). It prints file, line and key name, never a value. Then the two staged-secret scans: blocks a commit whose staged path looks like a secret file, or whose staged added lines contain a high-entropy pattern (npm token, PEM header, 40+ char non-placeholder `KEYGRIP_KEY_*`, a `QODANA_TOKEN`/`SOCKETLABS_*`/`REDIS_PASSWORD`/`INTROSPECTION_CODE` literal ≥16 chars, a Mongo URI with a ≥10 char password). A self-declared placeholder line (`KEY=test-…`, `dummy`/`fake`/`sample`/`example`/`changeme`) is exempted so committed templates and vitest fixtures pass without `--no-verify`. Escape hatch is `git commit --no-verify`, which is a gap by design — nothing prevents a developer from using it.
+3. **`pre-commit` guard**, tracked at `.githooks/pre-commit` in all 16 repos — `marketplace-nginx` was the last to get one and, having no `package.json`, carries this guard and no gate after it (ADR-030) — opens with **check 0**, the only check on the platform that reads the *working tree* rather than the staged index (the file it exists for is git-ignored and never staged): it blocks when that repo's `.env`, `.env.*` or `env` holds a non-blank, non-comment line that is not `KEY=VALUE`, or a value opening a quote the line never closes, which are the two signatures of one value broken over two physical lines (§2, R05b). It prints file, line and key name, never a value. Then the two staged-secret scans: blocks a commit whose staged path looks like a secret file, or whose staged added lines contain a high-entropy pattern (npm token, PEM header, 40+ char non-placeholder `KEYGRIP_KEY_*`, a `QODANA_TOKEN`/`SOCKETLABS_*`/`REDIS_PASSWORD` literal ≥16 chars, a Mongo URI with a ≥10 char password). A self-declared placeholder line (`KEY=test-…`, `dummy`/`fake`/`sample`/`example`/`changeme`) is exempted so committed templates and vitest fixtures pass without `--no-verify`. Escape hatch is `git commit --no-verify`, which is a gap by design — nothing prevents a developer from using it.
 4. **Two-level `.gitignore`** — `~/.config/git/ignore` (machine-wide, protects a repo before anyone thinks about it) plus each repo's own `.gitignore`. Verified 2026-08-09: no `.env` path tracked in any of the 16 repos, none in their histories.
 
 ⚠️ **Not fixed as of this baseline**: `BEs/marketplace-db-setup/setup/mongodb.js` is tracked and contains live-looking database credentials in `mongodb+srv://` URIs. The pre-commit guard blocks the *next* edit to those lines, but does not retroactively purge history. Rotation and history-purge (`git filter-repo`, free before first push) is a standing action item, not yet done.
@@ -425,7 +366,7 @@ add_header Permissions-Policy "geolocation=(self), camera=(), microphone=(), pay
 
 Plus a `Content-Security-Policy` (`marketplace-nginx/snippets/security-headers-public.conf`; the panels get a strictly tighter one from `security-headers-private.conf`). Two load-bearing nginx traps recorded in the files themselves. The value must sit on **one line**: nginx does no backslash line-continuation inside a quoted string, so the readable one-directive-per-line form embeds a literal LF and the header is dropped entirely — silently, with every other header in the same block still working. And `add_header` does **not** merge — any `location` block declaring even one `add_header` of its own discards every header inherited from the `server` block, so every location that needs these headers must repeat them, not assume inheritance.
 
-**Auth-path rate-limit zones**, edge layer independent of the application-level limiter in §3.7 (`marketplace-nginx/conf.d/20-rate-limit.conf`):
+**Auth-path rate-limit zones**, edge layer independent of the application-level limiter in §3.6 (`marketplace-nginx/conf.d/20-rate-limit.conf`):
 
 ```conf
 limit_req_zone $binary_remote_addr zone=mkt_auth:10m       rate=20r/m;   # customer login / reset
@@ -440,9 +381,9 @@ limit_req_zone $binary_remote_addr zone=mkt_admin_api:10m  rate=300r/m;
 
 ⚠️ **Zone name = counter, so the three logins need three zones.** All of them reach the same process (public-authorization, 4028) and the edge is the only layer that still knows which hostname was asked for; sharing one zone would let a credential-stuffing run against admin accounts spend the customers' allowance. `marketplace-nginx/test/suite.sh` asserts each budget engages independently.
 
-⚠️ **There is deliberately no registration zone**, and this is the one place where the app-layer limiter is the stronger control rather than a redundant one. A `mkt_register` zone at 5r/m existed, attached to an `/api/register` location the application has never had, and it metered nothing. It was removed rather than repointed: registration is a GraphQL POST with no URL of its own, so at the edge it is bounded by `mkt_public` like every other public write, and the real limit is `guardPublicWrite` (§3.7) — two Redis counters per hour, one on `ctx.ip` and one on **the email address**. A zone keyed on `$binary_remote_addr` never sees the address, so no edge configuration can stop a distributed source mail-bombing a single inbox.
+⚠️ **There is deliberately no registration zone**, and this is the one place where the app-layer limiter is the stronger control rather than a redundant one. A `mkt_register` zone at 5r/m existed, attached to an `/api/register` location the application has never had, and it metered nothing. It was removed rather than repointed: registration is a GraphQL POST with no URL of its own, so at the edge it is bounded by `mkt_public` like every other public write, and the real limit is `guardPublicWrite` (§3.6) — two Redis counters per hour, one on `ctx.ip` and one on **the email address**. A zone keyed on `$binary_remote_addr` never sees the address, so no edge configuration can stop a distributed source mail-bombing a single inbox.
 
-**Cache bypass on session cookie** — the nginx half of the §3.8 mechanism, `marketplace-nginx/conf.d/30-cache.conf:32-35` (quoted there in full). PMTiles range requests and the Nominatim proxy topology are documented in `phase1/SYSTEM_CONTEXT.md` §5.8-5.9 and are out of Phase-3 auth scope.
+**Cache bypass on session cookie** — the nginx half of the §3.7 mechanism, `marketplace-nginx/conf.d/30-cache.conf:32-35` (quoted there in full). PMTiles range requests and the Nominatim proxy topology are documented in `phase1/SYSTEM_CONTEXT.md` §5.8-5.9 and are out of Phase-3 auth scope.
 
 ⚠️ **Two gaps came out of cross-checking the docs against the `marketplace-user` tree, and they closed in opposite directions.** The `/api/register` proxy was an unbuilt route rather than a stale doc, and the block was deleted rather than the route built — registration is client → GraphQL `userRegister` (or, since 2026-08-12, `shopOwnerRegister`) straight to `/public-resource`, and the guard that matters (`guardPublicWrite`, per IP and per email) is one nginx cannot replicate. The missing admin-facing vhost was also real: nothing under `marketplace-user/docs/nginx/` described ports 4024/4025, because only the customer surface had ever been written. All three vhosts now live in `marketplace-nginx/sites-available/` at the workspace root and the duplicate directory in `marketplace-user` is gone.
 
@@ -506,7 +447,7 @@ When any of these get built, this document requires a new version — per its ow
 
 ## 8. Compliance
 
-- **NFR-SE01–SE12** (`phase1/NFR.md` §2.4) are the security requirement set this document exists to satisfy — opaque-token sessions, Keygrip-signed cookies, bearer-token validation, bcrypt cost 14, tier assertion with fail-closed missing-tier and 403-not-401, anti-enumeration on `loginUser`, the introspection bypass contract, the SSR/cache boundary, response headers, `$jsonSchema` validation, and the four-layer secret-handling regime. All 12 are 🔴 Critical, non-negotiable per `phase1/NFR.md` §3 priority matrix, requiring a written owner decision + a new `PDR.md` version to change (§4 NFR change control).
+- **NFR-SE01–SE12** (`phase1/NFR.md` §2.4) are the security requirement set this document exists to satisfy — opaque-token sessions, Keygrip-signed cookies, bearer-token validation, bcrypt cost 14, tier assertion with fail-closed missing-tier and 403-not-401, anti-enumeration on `loginUser`, the no-substitute-for-a-session boundary, the SSR/cache boundary, response headers, `$jsonSchema` validation, and the four-layer secret-handling regime. All 12 are 🔴 Critical, non-negotiable per `phase1/NFR.md` §3 priority matrix, requiring a written owner decision + a new `PDR.md` version to change (§4 NFR change control).
 - **NFR-CO01** (secrets) — 🔴 Critical, satisfied by the §4 credential-management layers.
 - **NFR-CO02** (GDPR) — 🟡 Medium, and **no longer an open question**: the platform owner decided on 2026-08-26 that GDPR is in scope (`phase1/NFR.md` §2.7, open question 1 closed). Deciding it was out of Phase 3 scope (`phase3/CONSTRAINTS.md` §5) and it was decided elsewhere, as that constraint intended. ⚠️ **This document still does not claim GDPR compliance, and in scope is not compliant.** `user.personalData` and `user.addresses[]` are PII by any reasonable reading and are encrypted whole (ADR-029); what §4's controls satisfy is the technical measures limb (Art. 32), not lawful basis, erasure, portability, retention or processor agreements — six obligations that have no implementation and are carried by `phase1/NFR.md` open question 6.
 - **NFR-AV01/AV02** (three-authorization-service topology) — 🔴 Critical, load-bearing for availability under the crash-domain argument in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md): one `process.exit(1)` taking down all three tiers' token lifecycle was ranked worse than the deduplication a merge would buy. Security and availability intersect here — do not re-propose the merge as a security simplification; it was evaluated as one and rejected.

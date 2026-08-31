@@ -73,7 +73,6 @@ pattern, identical across the other 7 GraphQL-only services). The one exception 
 |---|---|---|
 | `*-authorization` (token lifecycle) | Refresh token | Koa **signed cookie**, Keygrip SHA-512 over the Redis key record unwrapped with `KEYGRIP_KEK` (ADR-034), httpOnly |
 | `*-resource` (domain data) | Access token | `Authorization: Bearer access:<token>` header, checked against Redis on every call |
-| Any service, internal caller | `x-introspectioncode` header, value = `INTROSPECTION_CODE` | Bypasses the bearer-token/tier check entirely — service-to-service only, never a browser client. Treat as a secret with the same weight as `KEYGRIP_KEK` (`phase3/SECURITY_AUTH.md` §3.6; `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37`) |
 
 Tokens are **opaque** — looked up in Redis, never decoded, never trusted for content (`phase3/SECURITY_AUTH.md`
 §3.1). Every session hash carries a `tier` (`'admin' | 'shopOwner' | 'user'`) and every resource/authorization

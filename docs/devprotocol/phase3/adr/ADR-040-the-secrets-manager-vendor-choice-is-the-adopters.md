@@ -32,7 +32,7 @@ AES-256-GCM-wrapped Redis record and left exactly one secret in `env` to open it
 listed five options and rejected the fifth, in these words:
 
 > | **E** — a secrets manager (Vault, SOPS, cloud KMS) distributes the pair | the industry answer; solves
-> this and `INTROSPECTION_CODE` and `REDIS_PASSWORD` in one move | needs the production topology ADR-032
+> this and `REDIS_PASSWORD` and `MONGODB_URI` in one move | needs the production topology ADR-032
 > says is owed, an admin story nobody has, and a vendor decision that has not been made. Not available
 > to take today |
 
@@ -199,13 +199,13 @@ this ADR and the hardening page now lie about where it is:
 grep -rn "process\.env\.KEYGRIP_KEK ??" --include='*.mts' BEs/*/src BEs/dev/*/src
 ```
 
-The hardening page exists and still names all four shared values:
+The hardening page exists and still names all three shared values:
 
 ```bash
-# Four, one per value. A missing one means the page drifted from what SETUP.md §5 provisions.
+# Three, one per value. A missing one means the page drifted from what SETUP.md §5 provisions.
 # ⚠️ `grep -c` counts LINES, not values, and returns a number in the teens that looks like a failure and is
 # not — this form was `-c` when the ADR was accepted, and that was a defect in the check, corrected in place.
-grep -oE 'KEYGRIP_KEK|INTROSPECTION_CODE|REDIS_PASSWORD|REDIS_KEY' docs/PRODUCTION_HARDENING.md | sort -u | wc -l
+grep -oE 'KEYGRIP_KEK|REDIS_PASSWORD|REDIS_KEY' docs/PRODUCTION_HARDENING.md | sort -u | wc -l
 ```
 
 The framing must stay *declined*, never *pending*:

@@ -426,7 +426,7 @@ Verified absence, not assumed: PDR.md's scope section lists all 6 collections th
 | Logout mutation called, any tier's token | Same Redis keys (`REDIS_KEY` + token) deleted regardless of which service minted them — token-content lookup, not tier-scoped (`authorizationLogoutHandler.mts:60,74`) |
 | `itemAdd`/`itemUpdate` given an `idCategory` that does not exist | `throwIfItemCategoryMissing` rejects — nothing else enforces the reference |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects, checked **before** the category-existence check so a non-owner learns nothing about real category ids |
-| `x-introspectioncode` header present and matching `INTROSPECTION_CODE` | Bearer-token check bypassed — service-to-service call, never a browser client (`docs/architecture.md` §Auth model) |
+| Any authenticated call arriving with no `Authorization` header | Refused with 412 before any lookup — nothing substitutes for a session, in any tier or environment (`docs/architecture.md` §Auth model) |
 
 ---
 

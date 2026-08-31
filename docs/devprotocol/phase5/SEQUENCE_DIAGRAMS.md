@@ -253,14 +253,11 @@ sequenceDiagram
     participant Redis
 
     C->>Authz: refresh() — refresh_token cookie sent automatically
-    Authz->>Common: resolveAuthorizationSession({store, refreshToken, tier, introspectionCode, readSessionData})
+    Authz->>Common: resolveAuthorizationSession({store, refreshToken, tier, readSessionData})
     Common->>Redis: hGetAll(REDIS_KEY + refreshToken)
     alt hash empty
-        alt introspectionCode !== INTROSPECTION_CODE
-            Common-->>Authz: throw throwRefreshTokenExpiredOrDeleted()
-        else introspection bypass
-            Common-->>Authz: return null (service-to-service call)
-        end
+        Common->>Redis: assertNotReplayed(store, refreshToken) — tombstone check
+        Common-->>Authz: throw throwRefreshTokenExpiredOrDeleted()
     else hash found
         Common->>Common: assertTier(redData.tier, tier)
         Common->>Redis: readSessionData(_id) — re-read account

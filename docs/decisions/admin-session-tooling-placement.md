@@ -34,27 +34,24 @@ accommodate one, `ADR-002`'s rule about roles is untouched by it — this is not
 concern for an existing one — and the four surfaces the platform already has each got their own service pair
 without argument. If the reason were doctrinal it would be short, and this note would be one line.
 
-The reason is that **a deployable is a per-machine environment file, and this platform's three highest-scoring
-open risks are all about per-machine environment files being wrong**:
+The reason is that **a deployable is a per-machine environment file, and this platform's two highest-scoring
+open risks are both about per-machine environment files being wrong**:
 
 - **R02** — cookie-signing key mismatch between the service that signs a refresh cookie and the one that
   verifies it. `Mitigated` since ADR-034, not closed: `KEYGRIP_KEK` is still a per-machine value provisioned
   by hand, and a tenth service that reads the keygrip record is a tenth KEK to provision. The failure is loud
   now — `KEYGRIP_KEK_MISMATCH` and `process.exit(1)` rather than a port — but a service that will not start is
   still an incident, and this one would be the console an admin reaches for *during* an incident.
-- **R03** — `INTROSPECTION_CODE` disagreement across the nine backend `env` files, which breaks the
-  service-to-service bypass in both directions. Detection is a manual sweep. Nine copies is the number that
-  makes the sweep worth writing down; ten is not better.
-- **R04** — the enabling condition under both: a per-machine `env` that is **wrong but populated**, which
+- **R04** — the enabling condition under it: a per-machine `env` that is **wrong but populated**, which
   `checkRequiredEnv` cannot see, because `if (!env[envVar])` only catches empty and absent. It has already
   fired for real — both user-tier services were provisioned from an unrelated project's file, and one of the
-  three keys that were wrong rather than missing was exactly the Keygrip pair from R02. Every new deployable
+  two keys that were wrong rather than missing was exactly the Keygrip pair from R02. Every new deployable
   is another draw from that same deck, on every machine, forever.
 
 `marketplace-dev-admin-authenticated-resource` already holds every value these resolvers need — the Redis
-connection, `REDIS_KEY`, `KEYGRIP_KEK`, `INTROSPECTION_CODE` — because it already authenticates Admin sessions
+connection, `REDIS_KEY`, `KEYGRIP_KEK` — because it already authenticates Admin sessions
 against the same Redis. A tenth service would duplicate that set to gain nothing but a process boundary, and
-would pay for the boundary in exactly the currency R02, R03 and R04 are denominated in.
+would pay for the boundary in exactly the currency R02 and R04 are denominated in.
 
 The secondary costs are the ordinary ones and are listed only so nobody has to rediscover them: a port, an
 nginx upstream and location block on the admin vhost, a `marketplace-services-status` entry, a systemd unit, a
@@ -92,7 +89,7 @@ reason nobody can point at later.
 
 ## Traceability
 
-`docs/devprotocol/phase5/RISK_REGISTER.md` R02, R03, R04 · `docs/architecture.md` service table.
+`docs/devprotocol/phase5/RISK_REGISTER.md` R02, R04 · `docs/architecture.md` service table.
 
 ⚠️ Deliberately **not** cited: `ADR-006` and `NFR-AV01`. Neither forbids a tenth service, and citing either
 would make this decision look mandatory when it is a cost judgement that the conditions above can overturn.

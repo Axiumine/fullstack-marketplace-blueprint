@@ -297,7 +297,7 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
 |---|---|---|---|
 | a | Redis keys are the **raw** token, not `sha256(token)` | `setRedisLoginSession.mts:15-16`; `authorizationAuthenticatedResourceHandler.mts:51` | An RDB/AOF dump, a misconfigured replica or an over-privileged `SCAN` hands over directly replayable credentials rather than dead hashes. Docs call a Redis compromise "catastrophic" (`SECURITY_AUTH.md` §2, §3.1) yet no ADR discusses key-hashing. Refresh half is partly mitigated — the Keygrip cookie is a second factor whose keys never reach Redis — so realistic exposure is the access token's 30–90 min window |
 | b | No account→sessions index exists | `setRedisLoginSession.mts:15-16`; ADR-005 | Sessions are addressable only by token value, so "revoke every session for account X" is structurally impossible. The working lever is `disabled: true` (checked every refresh) — but that nukes the whole account, and there is no self-serve version. An unexamined side effect of the content-addressed design; worth a real ADR decision, accept-or-fix |
-| c | `INTROSPECTION_CODE` is reachable wherever the port is | `SECURITY_AUTH.md:263` (wildcard bind, intentional), `:278` (nginx written and tested, installed on no host); plain `===` at `authorizationAuthenticatedResourceHandler.mts:30` and `resolveAuthorizationSession.mts:73` | "Service-to-service only" is enforced by no *running* network control. One static, unrotated string is the whole gate, and it has already drifted across repos once (2026-08-07). `ctx.state.user` does stay unset on that path — the bypass grants no identity — but any resolver not itself requiring a session becomes reachable unauthenticated. The edge config does not close this: it fronts the ports, it does not firewall them. Blocked on the production-topology ADR that `ADR-INDEX.md` §5 *Gaps* still records as owed — which host runs the edge and how the service ports are closed to everything but it |
+| c | Every service port is reachable wherever the machine is | `SECURITY_AUTH.md:263` (wildcard bind, intentional), `:278` (nginx written and tested, installed on no host) | Nothing in these repos narrows the ports: the nine bind the wildcard address and the edge config fronts them rather than firewalling them. Every authenticated call still resolves a session or is refused, so what a bare connection reaches is the public surface and the refusals — but that surface is exposed to whoever can route to the host. Blocked on the production-topology ADR that `ADR-INDEX.md` §5 *Gaps* still records as owed — which host runs the edge and how the service ports are closed to everything but it |
 | d | `assertTier`'s **reject** path is untested in 2 of 3 resource services | admin + shopOwner `test/authorizationAuthenticatedResourceHandler.test.mts:21-26` seed only the accepting tier; reference implementation exists at `marketplace-dev-user-authenticated-resource/test/authorizationAuthenticatedResourceHandler.test.mts:52-89` | The code is correct in all three today. But ADR-004 §Risks:104-108 names this exact regression class as its own unmitigated risk, and 100% coverage plus mutation score 100 would **not** catch a dropped `assertTier` in two of three services, because no assertion exercises the rejecting branch. Port the user-tier tests across; no gate needs lowering |
 | e | `waitApprov` is enforced nowhere — and `SECURITY_AUTH.md` says it is | `checkUserAuthorizationDisDel.mts:4-17` (only `disabled`/`deleted`); `tokenInfoShopOwner.mts:19-25` (not in projection) | `SECURITY_AUTH.md:63` lists "`waitApprov` read at login" as the control. The code disagrees, in a comment at `resetPwdFlow.mts:43`: *"`waitApprov` is deliberately absent. Nothing gates on it anywhere — login neither projects nor reads it."* An Admin calling `shopOwnerUpdateStatus(waitApprov: true)` has no effect on live or future sessions. Already open as `SECURITY_AUTH.md` Q2 / BC-03 hotspot 1 — but the doc's own threat table currently overstates it as mitigated |
 | f | Keygrip's rotation capability is unused | `node_modules/keygrip/index.js` (`sign` uses `keys[0]`, `verify` loops all keys) | The two-key array exists precisely to allow rotate-without-logout; here it is one permanent pair, manually synced across repos, no cadence. Already `RISK_REGISTER.md` R02 (🟠 High) and `SECURITY_AUTH.md` open question #7. One cross-service integration test — mint a cookie on the minting service, verify it on the consuming one — would close the specific gap that let the 2026-08-07 incident through with every suite green |
@@ -317,19 +317,14 @@ if it exists to tolerate a local proxy's certificate, scope it to that case rath
   live session, each `HEXPIRE`d to its own session's cap (`sessionKeys.mts:104`). It is what the
   credential-write revocation and the admin session console are both built on. No `SCAN` was introduced —
   BCON-08 still forbids it.
-- **c — comparison fixed, exposure routed (ADR-032).** Six comparison sites became
-  `constantTimeEquals` (`marketplace-common/src/others/constantTimeEquals.mts:53`) and the bypass is
-  refused outside development by `isIntrospectionBypassAllowed`
-  (`src/others/isIntrospectionBypassAllowed.mts:33`). The seventh site lives in `@axiumine/koa-utils`,
-  outside all sixteen repos, and is stated as out of reach rather than quietly counted. **The finding's
-  actual subject — that the port is reachable at all — is not closed by code and cannot be**: it is the
+- **c — exposure routed (ADR-032).** **The finding is not closed by code and cannot be**: it is the
   production-topology decision ADR-032 still owes. ⚠️ **Answered 2026-08-28** — [`ADR-039`](../devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md) supersedes
   ADR-032 and closes the port: one application host, a default-deny cloud security group, 443 from
-  Cloudflare's ranges alone. The `NODE_ENV` allowlist is **not** relaxed by that and is not allowed to be
-  (ADR-039 §5) — what changed is the blast radius, not the control.
+  Cloudflare's ranges alone. The session-or-refusal rule on every authenticated call is **not** relaxed by
+  that and is not allowed to be (ADR-039 §5) — what changed is the blast radius, not the control.
 - **d — fixed, and generalised.** The reject-path tests existed by the time this was
-  checked; what did not exist was anything stopping the next service from shipping without them. Eleven
-  cases AB-01..AB-11 are single-sourced in `marketplace-common/src/others/authBoundaryContract.mts` and a
+  checked; what did not exist was anything stopping the next service from shipping without them. Seven
+  cases AB-01..AB-07 are single-sourced in `marketplace-common/src/others/authBoundaryContract.mts` and a
   per-repo meta-test fails on a missing tag in all seven authenticated services.
 - **e — fixed by code, so the document became true.** `checkShopOwnerApproval`
   (`marketplace-common/src/others/checkShopOwnerApproval.mts:35`) is read at login on 4028 and on every
@@ -515,8 +510,8 @@ reopen it; "routed" means it was never a code question and now belongs to a deci
 | 3.5 | Admin-only `sendDefaultPii`, unverified TLS in all nine | fixed | `sentryBeforeSend.mts` |
 | 3.6a | Redis keys are the raw token | fixed | `sessionKeys.mts:52`; the dual-read fallback's removal is still owed |
 | 3.6b | No account→sessions index | fixed | `sessionKeys.mts:104`; admin half in the admin session console |
-| 3.6c | `INTROSPECTION_CODE` reachable wherever the port is | comparison fixed, exposure **routed** | `constantTimeEquals.mts:53`, `isIntrospectionBypassAllowed.mts:33`; the port itself is **ADR-032** |
-| 3.6d | `assertTier` reject path untested in 2 of 3 | fixed, and generalised | `authBoundaryContract.mts`, AB-01..AB-11 |
+| 3.6c | Every service port reachable wherever the machine is | exposure **routed** | the port itself is **ADR-032**, answered by **ADR-039** |
+| 3.6d | `assertTier` reject path untested in 2 of 3 | fixed, and generalised | `authBoundaryContract.mts`, AB-01..AB-07 |
 | 3.6e | `waitApprov` enforced nowhere, doc says otherwise | fixed in code | `checkShopOwnerApproval.mts:35` |
 | 3.6f | Keygrip rotation capability unused | fixed, measured | ADR-034 — `keygrip-rotation-propagation.md` |
 | 3.7a | `rememberMe` has no effect | fixed | `sessionLifetime.mts:75` |

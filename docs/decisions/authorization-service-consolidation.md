@@ -164,8 +164,6 @@ in [`CLAUDE.md`](../../CLAUDE.md) changed first, which is a separate decision.
 - No frontend change of any kind. Endpoint constants, the vite proxies, `authExchange`, the `Refresh`
   document and the `ssr: false` boundary all stay as they are.
 - No nginx change. The per-path `mkt_auth` zones keep their current meaning.
-- The `x-introspectioncode` branch keeps its current behaviour: `ctx.state.user` is never set on that
-  path in any of the three services, and `refresh.mts` already throws there.
 - Cookies. All three tiers already share one cookie name — `setLoginCookies` (koa-utils) sets
   `refresh_token` with identical options for every tier, minted by the one already-shared
   public-authorization service on 4028. This was true before the question was asked and is unaffected by
@@ -191,9 +189,7 @@ the declared type of `ctx.state.user` in all three — so the context type and t
 cannot drift.
 
 Every security property named above survives verbatim: each service still hardcodes its own `TIER.*`, the
-tier is still asserted before the `_id` is looked up, a missing tier is still refused, and the
-introspection bypass still requires a signature-verified cookie first. `resolveAuthorizationSession`
-returns `null` on that bypass rather than a stub session, which is what keeps `ctx.state.user` unset.
+tier is still asserted before the `_id` is looked up, and a missing tier is still refused.
 
 Two things the survey did not predict:
 
@@ -224,9 +220,9 @@ missing decision.** The full `yarn test:cov` aborted in the integration project'
 `MONGO_TEST_*` keys were empty in that machine's environment file, and the note here said filling them in
 meant provisioning two database users and was the user's call. The user authorised it, and doing so exposed
 what had actually happened: **both user-tier services' environment files were copies of an unrelated older
-project's**, so three further keys were not missing but *wrong* — `MONGODB_URI` pointed at a database called
-`testRnApollo` with no `authSource`, `INTROSPECTION_CODE` did not match the seven other services', and
-`KEYGRIP_KEY_1` / `KEYGRIP_KEY_2` did not match `marketplace-dev-public-authorization`'s.
+project's**, so two further keys were not missing but *wrong* — `MONGODB_URI` pointed at a database called
+`testRnApollo` with no `authSource`, and `KEYGRIP_KEY_1` / `KEYGRIP_KEY_2` did not match
+`marketplace-dev-public-authorization`'s.
 
 That last one was a live defect the extraction had no part in and no test could have caught: `loginUser`
 signs the customer's refresh cookie on 4028 and this service verifies the signature, so with a different

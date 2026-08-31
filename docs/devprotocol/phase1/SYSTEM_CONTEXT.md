@@ -206,22 +206,22 @@ if (redAccessSession != null && Object.keys(redAccessSession).length !== 0) {
 (`docs/decisions/authorization-service-consolidation.md` §Why logout can be one service and authorization
 cannot).
 
-### 5.3 Service-to-service bypass — `x-introspectioncode`
+### 5.3 A call with no credential — the refusal
 
-Same handler that enforces §5.2 also honours a header bypass for internal calls with no user session at
-all:
+Same handler that enforces §5.2 refuses outright when the header is absent. There is no second way in:
 
 ```ts
-// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37
+// BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:26-32
 if (typeof authorization === 'undefined') {
-	if (ctx.request.header['x-introspectioncode'] === `${process.env.INTROSPECTION_CODE}`) {
-		introspection = true
-	} else { throw throwPreconditionFailedNoAuthHeader() }
+	throw throwPreconditionFailedNoAuthHeader()
 }
 ```
 
-Treat `INTROSPECTION_CODE` as a secret — never logged, never sent to a browser client (`docs/architecture.md` §Auth model). Bypass leaves `ctx.state.user` unset: `resolveAuthorizationSession` returns `null` on this path
-rather than a stub session (`docs/decisions/authorization-service-consolidation.md` §As implemented).
+Every authenticated boundary on this platform reduces to that: a session resolved from Redis under a
+signed cookie, or a refusal. No header, code or shared value stands in for one, in any tier or
+environment — `resolveAuthorizationSession` has no branch that returns a caller without a session
+(`docs/decisions/authorization-service-consolidation.md` §As implemented). This is what makes `/health`
+on the authenticated tiers a session-bearing call like any other.
 
 ### 5.4 Marketplace ↔ MongoDB
 

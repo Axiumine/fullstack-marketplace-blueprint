@@ -124,7 +124,7 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
   remember every time, not something git or CI verifies.
 - Branch-first discipline ("never commit on `main`") must be independently re-applied in all 16 repos;
   nothing propagates a branch decision made in one repo to the others.
-- Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is
+- Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `REDIS_KEY`) is
   unenforced by construction — no test spans two repos, so drift between them is invisible until a manual
   fingerprint sweep.
   ⚠️ **Amended 2026-08-13**, once the required-environment-variable check absorbed the keygrip-key
@@ -135,7 +135,7 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
   are one wrapped Redis record all holders read (**ADR-034**), a service that cannot unwrap it exits rather
   than binding a port, and `<REDIS_KEY>keygrip:holders` shows a per-service fingerprint, so that one value
   is now enforced across repos by construction instead of by sweep. Read the bullet against
-  `INTROSPECTION_CODE` and `REDIS_PASSWORD`, which are still exactly as described.
+  `REDIS_KEY` and `REDIS_PASSWORD`, which are still exactly as described.
 
 ### Risks
 - **Risk:** a change spanning `marketplace-common` + N services gets committed in some repos but not

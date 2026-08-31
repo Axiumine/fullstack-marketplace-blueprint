@@ -108,8 +108,6 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   which is ADR-034's amendment of 2026-08-28. Retirement removes one regardless of age, which is its
   purpose, and R47 records the window in which a not-yet-adopted service still honours it.
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
-- `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
-  calls. Treat as a secret; never log it, never expose it to a browser client.
 - `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `shopOwner`
   also has `waitApprov` (manual approval gate, `checkShopOwnerApproval` in marketplace-common — refused
   at login on 4028 and again on every refresh on 4029, so parking a shop owner ends a session already

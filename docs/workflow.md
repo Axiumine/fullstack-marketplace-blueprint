@@ -194,7 +194,7 @@ Anything printed to a terminal here is sent to the model API **and** written in 
 
 - To inspect a secret file, print **key names only**: `grep -oE '^[A-Za-z_0-9]+' .env`.
 - Metadata (`ls`, `stat`, `wc -l`, `md5sum`, `git check-ignore`) is fine.
-- Protected values include `KEYGRIP_KEK`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`,
+- Protected values include `KEYGRIP_KEK`, `REDIS_PASSWORD`, `DSN`,
   `MONGODB_URI`, `QODANA_TOKEN`, `SOCKETLABS_SERVER_ID`, `SOCKETLABS_SERVER_APIKEY` and any npm token.
 
 Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.md) for the three layers (`permissions.deny`, the
@@ -204,8 +204,8 @@ Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.
 
 Per-machine `.env` files are the one place where a *wrong* value fails where nothing is looking.
 
-- ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so an
-  `INTROSPECTION_CODE` or `REDIS_KEY` mismatch between two services fails at runtime while both repos'
+- ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so a
+  `REDIS_KEY` mismatch between two services fails at runtime while both repos'
   suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
   reading files.**
   ✅ **The cookie-signing keys are the one pair this no longer applies to** — since *"The Keygrip pair

@@ -125,25 +125,23 @@ ADR-032 forbade closing any control by appeal to a network boundary. That prohib
 lifted**:
 
 - **Every mitigation written to hold with the port open stays exactly as it is.** Specifically, the
-  `NODE_ENV` allowlist on the introspection bypass
-  (`BEs/marketplace-common/src/others/isIntrospectionBypassAllowed.mts`, a re-export of the koa-utils
-  implementation since `marketplace-common@2.0.0`, and described in `phase3/SECURITY_AUTH.md` §3.6) and
-  the pre-lookup limiter on `refresh` (`BEs/marketplace-common/src/others/refreshRateLimit.mts`, scored as
-  `phase5/RISK_REGISTER.md` R52) are not weakened, relaxed or made configurable by this ADR. The hashed
-  session keys likewise.
+  session-or-refusal rule on every authenticated call
+  (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`, described in
+  `phase3/SECURITY_AUTH.md` §3.2) and the pre-lookup limiter on `refresh`
+  (`BEs/marketplace-common/src/others/refreshRateLimit.mts`, scored as `phase5/RISK_REGISTER.md` R52) are
+  not weakened, relaxed or made configurable by this ADR. The hashed session keys likewise.
 - **A boundary may now be cited — as a second layer, for the legs described above, and never alone.** A
   control whose entire argument is "the port is closed" is still not a control. What changed is that a
   residual score may now account for the boundary, because the boundary is written down and attributable.
 - **Anything outside the two hosts and the one segment described here is still unwritten**, and ADR-032's
   rule applies to it unchanged.
 
-### 6. The four findings ADR-032 required this ADR to name
+### 6. The three findings ADR-032 required this ADR to name
 
 | Finding | State after this ADR |
 |---|---|
 | **R46** — production topology undescribed (3 × 4 = 12, 🟠 High) | **Closed.** This is the document it was waiting for |
 | **R45** — Redis traffic unencrypted (2 × 4 = 8, 🟡 Medium) | **Open, re-scored to 1 × 4 = 4 (🟢 Low).** Impact is unchanged — session material in the clear is session material in the clear. Likelihood drops because reaching that leg now requires a foothold inside a trusted segment or a mis-scoped security group, rather than any position on a network nobody had described. It closes only when the leg is encrypted: a `@axiumine/koa-utils` release that allows `rediss://`, plus TLS on the cluster. ⚠️ **The first arrived on 2026-08-28** — `7.1.0`, hours after this table was written — **and the row still does not close**, because the second did not: no listener, no certificates, and `REDIS_TLS` set nowhere |
-| **The introspection bypass** — refused outside development | `built`, unchanged. The gate is the control; the boundary bounds its blast radius and does not replace it |
 | **R52** — `refresh` floodable with distinct garbage tokens | `built`, unchanged. The limiter is the control; Cloudflare in front bounds arrival volume and does not replace it |
 
 ### 7. What this ADR does **not** answer
@@ -170,7 +168,7 @@ Still open, and still owned by the platform owner — `INFRA.md` §14 keeps the 
   (**R45**, **R46**) get a residual a reviewer can check, and the check is a security-group rule set
   rather than a belief.
 - ADR-034's option E becomes choosable, which is the one thing standing between `KEYGRIP_KEK`,
-  `INTROSPECTION_CODE` and `REDIS_PASSWORD` and a provisioning story that is not "copy it by hand into
+  `REDIS_PASSWORD` and `MONGODB_URI` and a provisioning story that is not "copy it by hand into
   nine files".
 - The edge configuration that already exists — origin pull, real-IP from Cloudflare — stops being
   configuration whose premise is undocumented.
@@ -219,17 +217,16 @@ in §5 lives there. `ADR-039` must appear in **R39**, **R45** and **R46** in
 [`ADR-INDEX.md`](./ADR-INDEX.md), and in the Redis-transport section of
 [`architecture.md`](../../../architecture.md).
 
-The second check is that the two controls named in §6 still exist and are still unconditional:
+The second check is that the two controls this ADR leans on still exist and are still unconditional:
 
 ```bash
-grep -n "export" BEs/marketplace-common/src/others/isIntrospectionBypassAllowed.mts
+grep -n "throwRefreshTokenExpiredOrDeleted\|Promise<TAuthorizationSession" BEs/marketplace-common/src/others/resolveAuthorizationSession.mts
 grep -n "guardRefreshAttempt\|REFRESH_ATTEMPT_WINDOW_SECONDS" BEs/marketplace-common/src/others/refreshRateLimit.mts
 ```
 
-The first must stay a single bare re-export of `@axiumine/koa-utils/lib/isIntrospectionBypassAllowed` — the
-allowlist is the library's since `marketplace-common@2.0.0`, and a local condition reappearing above that
-line is the weakening. The second must still show `guardRefreshAttempt` keyed on `hashSessionToken` with
-`REFRESH_ATTEMPT_WINDOW_SECONDS = 60`.
+The first must show a function returning `Promise<TAuthorizationSession<…>>` — not a nullable one — whose
+only other outcome is a throw: a branch admitting a caller without a session is the weakening. The second must still show
+`guardRefreshAttempt` keyed on `hashSessionToken` with `REFRESH_ATTEMPT_WINDOW_SECONDS = 60`.
 
 A violation looks like: either control gaining an environment flag, a topology check or a `skipIf` whose
 justification is this ADR; a risk row closed by citing the trusted segment with no security group named; or
