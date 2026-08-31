@@ -207,7 +207,9 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
 - ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so a
   `REDIS_KEY` mismatch between two services fails at runtime while both repos'
   suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
-  reading files.**
+  reading files.** One shape of that mismatch is now caught at boot rather than at runtime: a service
+  whose prefix names a namespace holding no keygrip record exits 1 there (`KEYGRIP_RECORD_MISSING`,
+  all nine since 2026-08-31). It catches the service that drifted, never a fleet that drifted together.
   ✅ **The cookie-signing keys are the one pair this no longer applies to** — since *"The Keygrip pair
   leaves five `.env` files for one wrapped record in Redis"* in
   [`devprotocol/phase5/IDENTITY_ACCESS.md`](./devprotocol/phase5/IDENTITY_ACCESS.md) §4, they are not

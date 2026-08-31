@@ -212,6 +212,11 @@ Three properties are load-bearing and must not be "simplified":
 - **`REDIS_KEY` stays shared on purpose.** All nine services share `REDIS_KEY=marketplaceDev:`.
   Per-tier prefixes would break the single logout service, which finds a session by token content
   alone. The tier assertion is the layer that holds even if a prefix is ever reused by mistake.
+  A prefix naming a namespace the seed never wrote into is refused at boot by all nine since
+  2026-08-31: the five signing services fail in `loadKeygrip`, the four resource ones in
+  `assertRedisNamespace`, which reads the record's presence and unwraps nothing. A fleet that agrees
+  on the *same* wrong prefix still passes — that is `RISK_REGISTER` R04, and no check a service runs
+  against itself can see it.
 
 ### Session keys are digests, and the transport is not encrypted
 

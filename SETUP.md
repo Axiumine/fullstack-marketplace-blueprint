@@ -166,14 +166,15 @@ openssl rand -base64 32                # KEYGRIP_KEK   → 44 chars, one '=' of 
 | Value | Goes in | Why it must match |
 |---|---|---|
 | `KEYGRIP_KEK` | the four `*-authorization` services, `marketplace-dev-authenticated-logout`, `marketplace-dev-admin-authenticated-resource` and `marketplace-db-setup` — 6 of 9, plus the seed | it unwraps the one Redis record the cookie-signing keys live in (ADR-034). `public-authorization` signs the refresh cookie at login and the tier's own authorization service verifies it, so a service that cannot open the record **refuses to boot** rather than signing cookies its siblings cannot verify |
-| `REDIS_KEY` | all nine services **and `marketplace-db-setup`**, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A different prefix does not fail loudly — the service simply never finds a session, and the seed writes the keygrip record where nobody looks for it |
+| `REDIS_KEY` | all nine services **and `marketplace-db-setup`**, byte-identical | one shared session keyspace, deliberately: the session carries a `tier` and `assertTier` is what separates the roles. A prefix that names a namespace the seed never wrote into now fails at boot in all nine — §8's record is the thing each of them looks for first. What it still cannot catch is the whole fleet, seed included, agreeing on the *same* wrong prefix: every service then finds the record exactly where it expects it (`RISK_REGISTER` R04) |
 
 ⚠️ **Six services, not five, and the sixth is a `*-resource` one.**
 `marketplace-dev-admin-authenticated-resource` signs no cookie and still requires the KEK: it hosts the
 rotation and retirement mutations, which mint and reseal the record (the admin session console; `src/index.mts:65-71` says why
 it is required at boot rather than at first use). The other three `*-resource` services —
 `authenticated-resource`, `public-resource`, `user-authenticated-resource` — sign nothing, rotate nothing
-and **must not** carry it. This line read "five" until 2026-08-13, when starting the whole stack for the
+and **must not** carry it. They still refuse to boot without the *record* §8 seeds, which is a different
+question from holding the key that opens it: they check that it is there and never unwrap it. This line read "five" until 2026-08-13, when starting the whole stack for the
 first time found the sixth by refusing to boot — see
 [`docs/report/live-auth-path-observation.md`](./docs/report/live-auth-path-observation.md) §6.
 
@@ -266,6 +267,13 @@ REDIS_KEY=marketplaceDev:
 `REDIS_IS_CLUSTER=0` picks the single-client branch, which reads `REDIS_URL` and nothing else. Leave the
 `REDIS_DB1_HOST` … `REDIS_USERNAME` block below it in place and empty. ⚠️ The templates ship
 `REDIS_IS_CLUSTER=1` — the maintainer's cluster — so this is an edit, not a default.
+
+⚠️ **On this branch `REDIS_URL` must have a value**, and `checkRequiredEnv()` refuses the boot without one.
+It is not in any `REQUIRED_ENV_VARS` list because the cluster branch never reads it and the templates ship
+it empty; the guard is therefore conditional, `REDIS_IS_CLUSTER !== '1'`, and lives just below the loop in
+each service's `src/index.mts`. Left empty here, node-redis would answer with its own default of
+`redis://localhost:6379` — so the service would connect to whatever happens to listen on this machine,
+write every session into it and report itself healthy (`RISK_REGISTER` R04).
 
 ⚠️ **Do not set `REDIS_TLS` for a local setup.** `@axiumine/koa-utils@7.1.0` added it: set to exactly
 the string `true` it builds cluster nodes as `rediss://`, carries TLS to the nodes discovered behind
@@ -398,13 +406,20 @@ the shop-owner panel.
 **Migrations are immutable.** Never edit one that may already be applied; change a schema by adding a
 new one. `yarn migrate:down` reverts exactly one migration, the last applied.
 
-### `yarn seed:keygrip` — the record six services refuse to boot without
+### `yarn seed:keygrip` — the record all nine services refuse to boot without
 
 `yarn seed:keygrip` touches no collection. It writes **one Redis hash**, `<REDIS_KEY>keygrip`, holding
 the cookie-signing key array sealed under `KEYGRIP_KEK` (ADR-034), and it prints the record's version and
-fingerprint — never a key. The four `*-authorization` services, `marketplace-dev-authenticated-logout` and
-`marketplace-dev-admin-authenticated-resource` read it at boot and **exit 1 if it is missing**, naming this
-command, so running §9 first simply tells you to come back here.
+fingerprint — never a key. Every service **exits 1 if it is missing**, naming this command, so running §9
+first simply tells you to come back here. They do it for two different reasons, and both are on purpose:
+
+- the four `*-authorization` services and `marketplace-dev-authenticated-logout` **open** it — `loadKeygrip`
+  unwraps the keys under their `KEYGRIP_KEK` and files their row in `keygrip:holders`. No keys, no cookies;
+- the four `*-resource` services **only look for it** — `assertRedisNamespace` reads one field and unwraps
+  nothing, because three of the four hold no KEK and must not. This is a `REDIS_KEY` check wearing the
+  record as its landmark: a prefix is a string Redis accepts whatever it says, so before this probe a
+  resource service pointed at an unseeded namespace booted clean and then answered 401 to every request,
+  for ever, reporting itself healthy.
 
 It is deliberately not part of any service's start-up: a service that minted its own keys against an
 empty Redis would re-key the whole fleet on every restart, which is the split-brain ADR-034 removes.
@@ -626,7 +641,7 @@ and are gate removals — use them only when you have decided to.
 | a service exits at boot naming one missing variable | that `.env` is incomplete. `checkRequiredEnv()` throws on the *first* one it finds, so fixing it can uncover a second — and an empty value counts as missing |
 | a service behaves as though an edit to `marketplace-common` never happened, and nothing errors | that edit was never published. A consumer runs the version its `yarn.lock` names and nothing else (ADR-047) — cut a release, then move that consumer's range and re-install |
 | `Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@axiumine/marketplace-common' imported from …` | the package is genuinely absent from that consumer's `node_modules` — run `yarn install` there. It resolves from `registry.npmjs.org` since `ADR-037`, and that install is the only thing that puts it back |
-| a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else |
+| a service exits with `KEYGRIP_RECORD_MISSING` | §8's `yarn seed:keygrip` has not run against this Redis, or `REDIS_KEY` points somewhere else. Both halves of §8 raise it: the five that open the record and the four that only check it is there |
 | a service exits with `KEYGRIP_KEK_MISMATCH` | its `KEYGRIP_KEK` is not the one the record was written under. The keys are fine; this one `.env` is wrong |
 | every login returns 401 after a refresh | the five cookie services are not on the same keygrip record. `HGETALL "<REDIS_KEY>keygrip:holders"` — every row must carry the same fingerprint. A stale row means that service has not been restarted since a rotation |
 | a session is never found although login succeeded | `REDIS_KEY` differs between two services. It must be byte-identical in all nine |
