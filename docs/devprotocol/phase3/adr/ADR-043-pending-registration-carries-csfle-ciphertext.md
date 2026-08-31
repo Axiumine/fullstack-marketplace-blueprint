@@ -127,11 +127,11 @@ the rule was written about a collection and now travels with the value.
 
 ### Build record
 
-- **Built as `E20-S07`.** The pending record carries the address as the same deterministic ciphertext the
+- **Built.** The pending record carries the address as the same deterministic ciphertext the
   collection indexes, so the confirmation click copies it rather than re-encrypting it, and the uniqueness
-  check before the click is the index's own answer. `E20-S08` later moved the replay discriminator off the
-  pre-minted `_id` for a reason that starts here: a restore mints no id, so an `_id` check would answer *no*
-  over a registration that committed.
+  check before the click is the index's own answer. [ADR-046](./ADR-046-the-retention-window-is-an-undo-window.md)
+  later moved the replay discriminator off the pre-minted `_id` for a reason that starts here: a restore
+  mints no id, so an `_id` check would answer *no* over a registration that committed.
 
 ---
 

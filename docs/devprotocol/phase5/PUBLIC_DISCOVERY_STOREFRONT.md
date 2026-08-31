@@ -1,35 +1,17 @@
-# E08 — Public Discovery / SSR Storefront
+# Public Discovery / SSR Storefront
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
-**Date:** 2026-08-28
-**Author:** epics-agent
+**Version:** 1.4
+**Date:** 2026-08-26
+**Author:** records-agent
 **Bounded context:** BC-08 — Public Discovery / SSR Storefront
-**Changelog:** v1.10 - 2026-08-28, later the same day: Epic E17's and E18's own record files were
-**both** deleted and their records **distributed, not moved**, the E11/E13/E14/E15/E16 way. E17's nine
-stories and E18's thirteen are `built`; E17's five open questions and E18's three are all closed. What the
-audit found held nowhere else went to `docs/testing.md` and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6, the
-rest carried by the stories themselves. The count in §0 stays eleven — no new record joined it, and every
-story id survives. Nothing about this record's own content or build state changed.
-v1.9 - 2026-08-28, later the same day: Epic E15's own record file was deleted and its record
-**distributed rather than moved**, the E11 / E13 / E14 way and not E12's: all ten of its stories are
-`built`, so no twelfth record was written. ⚠️ Unlike E14's, **E15's §6 was not
-empty**: one Product question — whether a confirm-first email-change flow should exist — moved to
-`IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the file. The seven-step landing
-order and why the E13-S01 dependency is hard are carried by the stories themselves. The other nine facts
-went to `ADR-INDEX.md` §4 (three refused designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md`
-§3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md` E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1,
-`SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15 keeps its id and all ten story ids. Nothing about this
-record's own content or build state changed.
-v1.8 - 2026-08-28, later still: Epic E14's own record file was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all nine of its stories were `built`, its §6 read "None open.", and an audit of the file found only nine facts held nowhere else, so no twelfth sibling record was written. The seven-step landing order, and the E13-S01+S02 ordering, are carried by the stories themselves; the rest went to [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (two rejected alternatives), [`architecture.md`](../../architecture.md) (the abandoned `setLoginCookies` cookie-side comment), [`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the `E17` stories themselves, and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The count in §0 stays eleven, not twelve. E14 keeps its id and all nine story ids. Nothing about this record's own content or build state changed.
-v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.6 - 2026-08-27, later still: Epic E12's own record file was deleted and its record moved into [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now exist, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
-v1.7 - 2026-08-28: Epic E13's own record file was deleted, its record **distributed rather than moved**, the E11 way and not E12's: all eleven of its stories were `built`, its §6 read "None open.", and only seven facts survived an audit as held nowhere else, so no twelfth sibling record was written. Those seven went to [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6, and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1, the landing order and its `BGREWRITEAOF` rule carried by the stories themselves. The count in §0 stays eleven, not twelve. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed.
+**Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.1 - 2026-08-26: search paginated and split by kind. The single `search` field and
 `GraphQLPublicSearchResult` are gone, replaced by `searchCompanies` / `searchItems`, each answering the
-page envelope the listings already use; the visitor picks which, items by default. E08-S05 rewritten and
-the second open question in §6 answered — per-resolver bounding stays, and `offset` joins the bounds it
+page envelope the listings already use; the visitor picks which, items by default. The story below on
+full-text search across companies and items, paginated and one kind at a time, was rewritten, and the
+second open question in §6 answered — per-resolver bounding stays, and `offset` joins the bounds it
 enforces.
 v1.2 - 2026-08-26: NFR-PF09 is no longer assertion-free. `marketplace-nginx/test/run.sh` now sends a
 `Range:` header at `/tiles/` and asserts 206, the `Content-Range` total, the exact byte slice and a 416
@@ -37,131 +19,19 @@ on an unsatisfiable range — before this the archive path was probed for securi
 `proxy_pass` dropped into that location would have answered 200 with the whole file and passed. First
 open question in §6 rewritten: what is open is the topology decision, not a missing or untested config.
 v1.3 - 2026-08-26, later the same day: that work gets the story it was missing. NFR-PF09 was in §2's
-scope and traced from no story at all — E08-S08 owned the cache half of the edge and nothing owned the
-tiles. E08-S10 owns it now, same shape and same citation style. Nothing was built for it; the story
-records what already stands.
-v1.4 - 2026-08-26, last that day: **the file moved into `phase5/` and became this record**, for the reason §0
-gives. No story changed, no ID moved, nothing was dropped — only the one link inside it, which now resolves
-from `phase5/` rather than from the epics directory. §6's live question went with the move, and it went as a
-duplicate rather than as an answer: `phase1/NFR.md` §Open questions item 2 names PF08 and PF09, names the
-owner, and is where that question has always belonged. One thing this file held alone was copied out first
-— the public search's bounds and their asymmetry, `clampLimit`, `COUNT_CAP`, `MAX_OFFSET` against
-`MAX_CROSS_SHOP_OFFSET`, and why `totalIsExact` is `false` on every cross-shop item read — into
-[`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §4.2, whose table still listed the `search` field
-and the `GraphQLPublicSearchResult` type that the split deleted.
-v1.5 - 2026-08-27: Epic E11's own record file was deleted with no replacement record of its own,
-unlike the ten epics named beside it here. Its knowledge was distributed to
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 instead.
-Nothing about BC-08 changes.
+scope and traced from no story at all — the story on SSR never rendering authenticated HTML owned the
+cache half of the edge and nothing owned the tiles. The story on the PMTiles archive being a static file
+answered by byte ranges owns it now, same shape and same citation style. Nothing was built for it; the
+story records what already stands.
+v1.4 - 2026-08-26, last that day: §6's live open question was found already asked properly elsewhere —
+`phase1/NFR.md` §Open questions item 2 names PF08 and PF09, names the owner, and is where that question
+has always belonged, so the copy here was a duplicate, not an answer. One thing this document held alone
+was copied out first — the public search's bounds and their asymmetry, `clampLimit`, `COUNT_CAP`,
+`MAX_OFFSET` against `MAX_CROSS_SHOP_OFFSET`, and why `totalIsExact` is `false` on every cross-shop item
+read — into [`phase4/API_CONTRACTS.md`](../phase4/API_CONTRACTS.md) §4.2, whose table still listed the
+`search` field and the `GraphQLPublicSearchResult` type that the split deleted.
 
-## 0. Why this record is not an epic file
-
-This record moved out of the epics directory on 2026-08-26, the eighth to move for the reason
-[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
-[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
-[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md),
-[`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md) and
-[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) moved before it: nothing in it is work
-still ahead. All ten stories are `built` and §6 has no live question left. E01..E10 and E12 are the eleven
-whose records are documents of their own in `phase5/` — E09's is
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), moved later the same day.
-E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's joined neither list: it had no
-record of its own to move, its knowledge distributed instead into
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27.
-
-⚠️ **§6's last live question left as a duplicate, not as an answer.** It asked when `NFR-PF08`/`NFR-PF09`
-stop being 🟡 Medium, and the answer is "the day the edge is deployed" — which is not a decision this
-context can take, record, or be blocked by. [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2 asks
-it properly: *who installs the nginx configs that carry PF08, PF09, SE09, SE10, SC01, SC02, and on what
-host*, owner platform owner / ops. Keeping a second copy here meant one question with two homes and no
-owner in this one. What this file does still hold is the mechanism either NFR refers to — E08-S08 for the
-cache, E08-S10 for the tiles — and both are asserted against a live nginx by `marketplace-nginx/test/run.sh`.
-Neither is deployed anywhere; do not read a `built` tag on those two as a deployment.
-
-**The story IDs did not change.** `E08-S01` … `E08-S10` keep their names. They are cited by
-[`CONFLICT_REPORT.md`](./CONFLICT_REPORT.md) (E08-S03, E08-S07, E08-S09), and resolve to a section of this
-file; renumbering was refused for the reason E01 gives — an ID cited across files is a name, and moving a
-file is not a reason to change a name.
-
-⚠️ **E08-S10 is one day old at the move.** Like E07 before it, this record is not purely retrospective:
-the story was written on 2026-08-26 for assertions added the same day, so §3's "built end to end" describes
-a surface whose test suite grew that morning. The mechanism it records is older than the story — the
-`location /tiles/` block was written with the rest of the edge; what was new is that anything checked it.
-
-⚠️ **2026-08-27, later the same day.** Epic E12's own record file was deleted and its record moved
-beside this one to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh**
-record to make that move, and the first from the E12-E18 remediation block, so the pattern is no longer
-about the ten bounded-context epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited
-from 87 source files across all fifteen sub-repos and resolve to sections of that record.
-
-⚠️ **2026-08-28.** Epic E13's own record file was deleted — but unlike E12's move, no record of its
-own took its place beside this one: E13 was **distributed**, the E11 way, not moved, the E12 way. All
-eleven of its stories were `built`, its own §6 read "None open.", and an audit of the 592-line file found
-only seven facts held nowhere else, so there was nothing left to move into a twelfth sibling. The landing
-order, its two `BGREWRITEAOF` passes, and the "step four is the clock, not step one" rule are carried by
-the stories themselves; the rest went to [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 — the six
-`INTROSPECTION_CODE` comparison sites named with file and line; and to
-[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 — the seventh
-site, upstream in `@axiumine/koa-utils`. The count of records stays **eleven**,
-not twelve: E13 joins neither this list nor a new one of its own, because no file survived for it to join
-one with. E13 lost its file, not its id, same as E12: `E13-S01` … `E13-S11` keep their names and their
-`built` state.
-
-⚠️ **2026-08-28.** Epic E14's own record file was deleted — like E13's, not E12's move: E14 was
-**distributed**, no record of its own taking its place beside this one. All nine of its stories were
-`built`, its own §6 read "None open.", and an audit of the file found only nine facts held nowhere else, so
-there was nothing left to move into a twelfth sibling. The seven-step landing order, and "land E13-S01
-**and** E13-S02 first," are carried by the stories themselves. The rest went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 — the rejected tier-keyed privilege gradient for the
-session cap, and the rejected cached-successor-pair grace design; to
-[`architecture.md`](../../architecture.md) — the abandoned `// if remember me, generate ?` cookie-side
-comment in koa-utils' `setLoginCookies`, which E14-S07 does not revive; to
-[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 — two rate-limit windows, not one; to
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`; why E17 depends on E14 for `familyId` and can never
-key a session by a token value, carried by the `E17` stories themselves; and to
-[`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 — E14-S06's
-accepted cross-service-harness residual. The count of records stays **eleven**,
-not twelve: E14 joins neither this list nor a new one of its own, because no file survived for it to join
-one with. E14 lost its file, not its id, same as E12 and E13: `E14-S01` … `E14-S09` keep their names and
-their `built` state. The two defects E14-S09 found — both explicitly outside E14's scope — stay open and
-stay recorded in [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5
-and §9, which is not deleted.
-
-⚠️ **2026-08-28, later the same day.** Epic E15's own record file was deleted and its record
-**distributed, not moved** — the E11 / E13 / E14 way and not E12's: all ten of its stories are `built`, and
-no twelfth record was written, so the count stays **eleven** (E01..E10 and E12). ⚠️ **One thing
-differs from the last three deletions: E15's §6 was not empty.** One row survived — a **Product** question,
-whether a confirm-first email-change flow should exist at all — and it was relocated to
-[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open, rather than deleted with the file.
-The seven-step landing order, and why the E13-S01 dependency is hard, are carried by the stories
-themselves. E15's other nine facts went to [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused
-designs — the lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
-§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
-its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
-
-⚠️ **2026-08-28, later the same day.** Epic E17's and E18's own record files were **both** deleted
-and their records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way — the last two epic
-record files in the directory. Both qualified on the same test, *what a record still has to do*: E17's nine
-stories and E18's thirteen are all `built`, and both §6s are fully closed — E18's three on 2026-08-13, E17's
-fifth and last earlier the same day as this deletion, in the record before the code. An audit of the two
-files, 1 255 lines together, found almost everything already verbatim in the source docblocks the epics
-themselves caused to be written and in the reports they produced. What survived was the story ids written
-one by one, E17's five-step landing order, its two permanent scope refusals, and the reason it keys a
-session by `familyId` and can never key one by a token value; and, with a durable home, went to
-[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
-line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one
-live open question either file still carried: nobody owns a newly-red advisory under a pinned `trivy` image
-whose advisory database is not pinned, and nobody owns the first `.trivyignore` line. **No twelfth record
-was written — the count stays eleven** (E01..E10 and E12). E17 and E18 kept their
-epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the two files are gone.
-
-## 1. Epic goal
+## 1. Goal
 
 Serve anonymous and customer traffic a read-only, published-only projection of `company`/`item`/
 `itemCategory`. The only context with no domain event — nothing here mutates state. Own the SSR half
@@ -200,12 +70,12 @@ anonymous-safe.
   `marketplace-nginx/sites-available/marketplace-domain.com.conf` — the PMTiles archive is served from
   that vhost's `location /tiles/` (`:121-129`), a static `alias`, no tile process behind it.
   `marketplace-nginx/test/run.sh` asserts both performance claims against a live nginx: the cache sequence
-  (NFR-PF08, E08-S08) and the byte ranges (NFR-PF09). The customer-only copy this epic first cited,
-  `marketplace-user/docs/nginx/`, is deleted.
+  (NFR-PF08, the story on SSR never rendering authenticated HTML) and the byte ranges (NFR-PF09). The
+  customer-only copy this record first cited, `marketplace-user/docs/nginx/`, is deleted.
 
 ## 4. Stories
 
-### E08-S01 — Anonymous visitor browses a published company by slug   `built`
+### Anonymous visitor browses a published company by slug   `built`
 **As an** Anonymous Visitor, **when** I open a shop page, **I want** the published company projected by slug **so that** an unpublished/retired shop never leaks its page.
 **domains:** backend
 **Acceptance criteria:**
@@ -214,7 +84,7 @@ anonymous-safe.
 - Query runs through `livePublic`/`LIVE_PUBLIC_PIPELINE`, the one shared stage every public read uses
   rather than a per-query re-implementation (`src/lib/catalogue/publicRead.mts`).
 
-### E08-S02 — Paginated company listing without a blocking sort   `built`
+### Paginated company listing without a blocking sort   `built`
 **As an** Anonymous Visitor, **when** I browse `/shops` or `/shops/:city`, **I want** results paginated and index-sorted **so that** the page loads without a 32 MB in-memory sort throwing `QueryExceededMemoryLimitNoDiskUseAllowed`.
 **domains:** backend, database
 **Acceptance criteria:**
@@ -222,7 +92,7 @@ anonymous-safe.
 - `.explain()` on the listing query shows the winning plan uses `published_publicName` or
   `published_city_publicName` (`BEs/marketplace-db-setup/migrations/20260301000200-create-company.js`), never a blocking `SORT` stage — traces NFR-PF02.
 
-### E08-S03 — "Shops near me" resolves via 2dsphere, never a collection scan   `built`
+### "Shops near me" resolves via 2dsphere, never a collection scan   `built`
 **As an** Anonymous Visitor, **when** I search shops near a point or inside a bounding box, **I want** the geo query index-backed **so that** it stays fast at anonymous-traffic scale.
 **domains:** backend, database
 **Acceptance criteria:**
@@ -233,7 +103,7 @@ anonymous-safe.
   (`BEs/marketplace-db-setup/migrations/20260301000200-create-company.js`), never
   `COLLSCAN` — traces NFR-PF01, mechanically checkable per BCON-01.
 
-### E08-S04 — Item catalogue reads scoped to one company or one category   `built`
+### Item catalogue reads scoped to one company or one category   `built`
 **As an** Anonymous Visitor, **when** I open a shop's item list or a category page, **I want** only published items returned **so that** drafts never appear on an indexed page.
 **domains:** backend, database
 **Acceptance criteria:**
@@ -244,7 +114,7 @@ anonymous-safe.
   (`BEs/marketplace-db-setup/migrations/20260301000500-create-item.js`, replacing the
   3-key indexes once a `name` sort was needed) — traces NFR-PF04.
 
-### E08-S05 — Full-text search across companies and items, paginated and one kind at a time   `built`
+### Full-text search across companies and items, paginated and one kind at a time   `built`
 **As an** Anonymous Visitor, **when** I type a search term, **I want** one page of matches over shops *or* over items, my choice **so that** I find something without knowing the exact shop name and without waiting on a result set nobody reads to the end.
 **domains:** backend, database, frontend
 **Acceptance criteria:**
@@ -280,7 +150,7 @@ anonymous-safe.
   indexes are deliberately non-compound (a compound text index would force an equality predicate on
   every prefix key, foreclosing free-text search).
 
-### E08-S06 — Sitemap generation is keyset-paginated, never offset   `built`
+### Sitemap generation is keyset-paginated, never offset   `built`
 Technical story: SSR sitemap must scale past whatever `offset` would blow up on at high `afterId`.
 **domains:** backend, frontend
 **Acceptance criteria:**
@@ -289,7 +159,7 @@ Technical story: SSR sitemap must scale past whatever `offset` would blow up on 
 - `marketplace-user`'s sitemap generation consumes this query rather than iterating `companies`/`items`
   with `offset` — cite the SSR route file that calls it before marking a future edit "built".
 
-### E08-S07 — Customer self-registration lives on this service, not on BC-07   `built`
+### Customer self-registration lives on this service, not on BC-07   `built`
 **As an** Anonymous Visitor, **when** I sign up, **I want** to register with email+password and a Turnstile token **so that** an activation link is sent and no bot can flood registrations.
 **domains:** backend
 **Acceptance criteria:**
@@ -300,7 +170,7 @@ Technical story: SSR sitemap must scale past whatever `offset` would blow up on 
 - The account this mutation creates belongs to BC-01/BC-07 (`user` collection) — this story owns only
   the registration call itself, not the account lifecycle past it.
 
-### E08-S08 — SSR never renders authenticated HTML; `/account/*` never renders server-side   `built`
+### SSR never renders authenticated HTML; `/account/*` never renders server-side   `built`
 Technical story: the security boundary that keeps a shared `proxy_cache` from leaking one customer's page to another.
 **domains:** frontend, infra
 **Acceptance criteria:**
@@ -313,7 +183,7 @@ Technical story: the security boundary that keeps a shared `proxy_cache` from le
   map this criterion used to quote no longer exists — one map feeds both `proxy_cache_bypass` and
   `proxy_no_cache`.)
 
-### E08-S09 — SSR server builds a new urql client per request against `PUBLIC_RESOURCE_URL`   `built`
+### SSR server builds a new urql client per request against `PUBLIC_RESOURCE_URL`   `built`
 Technical story: a shared client would leak one visitor's cached GraphQL response to the next.
 **domains:** backend, frontend
 **Acceptance criteria:**
@@ -322,7 +192,7 @@ Technical story: a shared client would leak one visitor's cached GraphQL respons
 - `serve.mjs` binds `127.0.0.1` only, the one deliberate loopback exception on the platform — traces
   NFR-AV04 (partial-negotiable row).
 
-### E08-S10 — The PMTiles archive is a static file answered by byte ranges   `built`
+### The PMTiles archive is a static file answered by byte ranges   `built`
 Technical story: a tile-serving process behind `/tiles/` would be invisible from the browser.
 **domains:** frontend, infra
 **Acceptance criteria:**
@@ -346,7 +216,7 @@ Technical story: a tile-serving process behind `/tiles/` would be invisible from
 - BC-04 (Company) and BC-05/BC-06 (Catalogue/Taxonomy) ship first — this context reads their published
   projection and adds nothing of its own to the collections.
 - BC-01 mints the `User` session that `guardPublicWrite`'s Turnstile/rate-limit path protects, but this
-  epic's `userRegister` runs before any session exists — no landing-order dependency there.
+  context's `userRegister` runs before any session exists — no landing-order dependency there.
 - the config under `marketplace-nginx/` at the workspace root is the deploy target for whoever stands up the real
   edge — three vhosts, not one, and the host it runs on is still undecided (`docs/architecture.md`
   §Services, [`marketplace-nginx/README.md`](https://github.com/Axiumine/marketplace-nginx/blob/main/README.md) §Installing).
@@ -357,9 +227,10 @@ Technical story: a tile-serving process behind `/tiles/` would be invisible from
   🟠 High "the day it is deployed" — ⚠️ **and the question is asked once, in
   [`phase1/NFR.md`](../phase1/NFR.md) §Open questions item 2**, owner platform owner / ops, where it covers
   SE09, SE10, SC01 and SC02 as well as these two. It is not asked again here, because the transition is an
-  operational event rather than a code change and no story in any epic can mark it. Both mechanisms *are*
-  written and *are* verified: E08-S08 drives the cache through MISS → HIT → BYPASS and E08-S10 drives a
-  `Range:` request to a `206` with the exact slice, both against a live nginx in
+  operational event rather than a code change and no story can mark it. Both mechanisms *are*
+  written and *are* verified: the story on SSR never rendering authenticated HTML drives the cache
+  through MISS → HIT → BYPASS and the story on the PMTiles archive being a static file answered by byte
+  ranges drives a `Range:` request to a `206` with the exact slice, both against a live nginx in
   `marketplace-nginx/test/run.sh`. Only the deployment is absent.
 - `search`'s `near` radius bound and `limit` bound are enforced in the resolver, not upstream — is
   there a platform-wide max worth codifying once traffic is real, or is per-resolver bounding the

@@ -1,48 +1,12 @@
-# E05 — Catalogue
+# Catalogue
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
-**Date:** 2026-08-30
-**Author:** epics-agent
+**Version:** 1.6
+**Date:** 2026-08-27
+**Author:** records-agent
 **Bounded context:** BC-05 — Catalogue
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.13 - 2026-08-30: §0 loses its range entirely — the `E19` and `E20` epic records were the last two, both
-deleted and **distributed, not moved**, and the running *Epics + Stories* index went with them. Both §6s were
-closed first: E20's question 6 by [`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its
-question 7 by [`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), and the one half
-still undecided — whether an admin may be suspended — moved to
-[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided rather than
-dying with the file. No twelfth record was written, so the count stays eleven, and every `E19-Snn` and
-`E20-Snn` id survives in ADR-041..ADR-046 and ADR-049. Nothing about this record's own content or build state
-changed.
-v1.12 - 2026-08-28, later the same day: §0's range narrows from "E16..E19" to **E19** —
-`E17` and `E18` were **both** deleted and their records **distributed, not
-moved**, the E11/E13/E14/E15/E16 way. E17's nine stories and E18's thirteen are `built`; E17's five open
-questions and E18's three are all closed. What the audit found held nowhere else went to `docs/testing.md`
-and `PLATFORM_OPERATIONS_QUALITY_GATES.md` §6.
-The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing about this
-record's own content or build state changed.
-v1.11 - 2026-08-28, later the same day: §0's range narrows from "E15..E19" to **E16..E19** —
-`E15` was deleted and its record **distributed rather than moved**, the E11 / E13 / E14 way
-and not E12's: all ten of its stories are `built`, so no twelfth record was written.
-⚠️ Unlike E14's, **E15's §6 was not empty**: one Product question — whether a confirm-first email-change
-flow should exist — moved to `IDENTITY_ACCESS.md` §6 as an **open** question 5 rather than dying with the
-file. The other nine facts went to `ADR-INDEX.md` §4 (three refused
-designs), `SESSION_TERMINATION.md` §3.1, `IDENTITY_ACCESS.md` §3.1, `SHOPOWNER_ONBOARDING_APPROVAL.md`
-E03-S02, `PLATFORM_OPERATIONS_QUALITY_GATES.md` §3.1, `SECURITY_AUTH.md` §3 and `docs/data-model.md`. E15
-keeps its id and all ten story ids. Nothing about this record's own content or build state changed.
-v1.10 - 2026-08-28, later the same day: §0's range narrows from "E14..E19" to **E15..E19** — `E14` was deleted and its record **distributed rather than moved**, the E11 / E13 way and not E12's: all nine of its stories are `built`, its §6 read "None open.", and an audit of the file found only nine facts held nowhere else, which went to `phase3/adr/ADR-INDEX.md` §4, `docs/architecture.md`, `RISK_REGISTER.md` R52, `TELEMETRY_EGRESS_HARDENING.md`, the `E17` epic record §5 and `report/token-handling-security-audit.md` §3.4 rather than to a twelfth record. The count in §0 stays eleven — no new record joined it. E14 keeps its id and all nine story ids. The two defects E14-S09 found stay open, recorded in `report/multi-tab-refresh-behaviour.md` §4, §5 and §9. Nothing about this record's own content or build state changed.
-v1.9 - 2026-08-28: §0's range narrows from "E13..E19" to **E14..E19** — `E13` was deleted and its record **distributed rather than moved**, the E11 way and not E12's: all eleven of its stories are `built`, its §6 read "None open.", and an audit of the file found only seven facts held nowhere else, which went to `phase3/SECURITY_AUTH.md` §3.6 and `report/dependency-tree-advisory-scan.md` §6.1 rather than to a twelfth record. The count in §0 stays eleven — no new record joined it. E13 keeps its id and all eleven story ids. Nothing about this record's own content or build state changed.
-v1.8 - 2026-08-27, later still: §0's range narrows from "E12..E19" to **E13..E19** — `E12` was deleted and its record moved into [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records now exist in `phase5/`, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
-v1.7 - 2026-08-27: `E11` is deleted, its two-story record absorbed into ADR-038's closing
-note, rather than replaced by a record file of its own the way E01..E10's were.
-§0's boilerplate range narrows to E12..E19, since E11 now holds neither its own epic file nor a record of
-its own. The citing-files list for `E05-S01`..`E05-S09` drops `E11`, and the paragraph gains an explicit line drawing the
-connection its own renumbering-refusal argument already implied: the same reason `E05-S01`..`E05-S09` kept
-their names across a file move is the reason the epic id `E11` keeps its own across a file's deletion
-([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Consequences). Nothing about
-`item.published` or the race this file's §6 already closed changes.
 v1.6 - 2026-08-27: The out-of-scope column said BC-11 was "unbuilt, no model to copy", which reads as pending. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so price/cart-membership/order-lines are refused rather than deferred, and §1 says the deliberate absence of a price is permanent.
 v1.1 - 2026-08-14: §6's `item.published` race closes on the platform owner's decision — last writer wins,
 no lock field, an owner republishing after an admin's unpublish is accepted. Taken with the same
@@ -57,141 +21,11 @@ only the "an ordinary save undoes a takedown" half is struck. §2 gains the two 
 v1.3 - 2026-08-14, later still: **the image-upload question in §6 closes.** `itemAdd` takes the picture in
 the same call that creates the item — an `Upload` inside `GraphQLInputItem`, not a mutation of its own —
 and the reference lands in a new optional `image` field on `item`, chosen by the platform owner over the
-two alternatives. New story E05-S09; §2's out-of-scope row and §3 updated. Read-side exposure is this tier
+two alternatives. A new story, *A ShopOwner gives an item a picture while adding it*, follows below; §2's out-of-scope row and §3 updated. Read-side exposure is this tier
 only: `GraphQLItemFrag` is untouched, so neither the Admin nor the public tier sees the field yet, and no
 frontend consumes it.
-v1.4 - 2026-08-14, last that day: **the epic file `E05` was deleted and became this record**, for the reason §0
-gives. No story changed, no ID moved, and nothing was dropped in the move — only the links, which now
-resolve from here rather than from the deleted file. Two things E05-S09 put here alone were copied out
-to where a reader looks for them without knowing this file exists: the `image` field is now in
-[`docs/data-model.md`](../../data-model.md) §`item`, and the choice of a field over an `itemImage`
-collection is a row in [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4.
-v1.5 - 2026-08-25: the epic range this record's §0 names is **E07..E19**, not E07..E18 — `E19` opened that day (Customer Administration: the admin's missing customers list and the `user.disabled` writer, six stories, none built). Nothing about this record changes; the sentence states a range and the range grew.
 
-## 0. Why this record is not an epic file
-
-It was the epic file `E05` until 2026-08-14. The file was deleted and its record moved here in one pass,
-the fifth to move for the reason [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
-[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) and
-[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) moved before it: nothing in it is work still ahead.
-All nine stories are `built`, and §6's two open questions both closed on 2026-08-14 — the publish split
-(E05-S08) and the picture upload (E05-S09) — so the file had become the *record* of a shipped surface
-rather than a backlog entry. E11 lost its file, not its id (below); E01..E10 and E12 are the eleven whose records are documents of their own in `phase5/` —
-E06's is [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md), moved 2026-08-25, and E07's, E08's and E09's
-are [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md),
-[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) and
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md), all three moved
-2026-08-26. E10's is [`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27.
-
-**The story IDs did not change.** `E05-S01` … `E05-S09` keep their names, cited as they are from
-`COMPANY_LEGAL_ENTITY.md`, `RISK_REGISTER.md`, `CONFLICT_REPORT.md` and
-`phase3/adr/ADR-INDEX.md`. Renumbering them was refused for the reason E01 gives: an ID cited across files
-is a name, and moving a file is not a reason to change a name.
-
-⚠️ **That is the same rule under which the epic id `E11` outlives its file.** `E11` was
-deleted on 2026-08-27 — no replacement record file was written the way E01..E10's were, because by then
-there was no shipped surface left to record, only a decision — and its content moved into
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)'s closing note. The id did not move with it as a rename: `E11` stays in the epic numbering
-exactly where it always was
-([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Consequences), for the identical
-reason `E05-S01`..`E05-S09` above kept theirs — an id cited across files is a name regardless of whether the
-file it once labelled still exists to be moved. This is the rule that governs the whole change: the file
-dies, the id does not.
-
-⚠️ **Two things this record holds that no other file does.** E05-S09's failure ordering — store the upload
-in the temp directory, insert the document, publish the file — and the state a failed third step leaves
-behind, which nothing repairs. And E05-S07's two frontend traps: the shop is page state rather than a URL
-segment, and a first item added to an empty shop cannot arrive by cache invalidation because
-`companyItems: []` carries no typename to match. `docs/data-model.md` carries the `image` field itself;
-the ordering and what it costs are here.
-
-⚠️ **Narrowed again 2026-08-27, later the same day.** The range above reads **E13..E19** because
-`E12` was deleted and its record moved into
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh** record to make that move, and
-the first from the E12-E18 remediation block, so the pattern is no longer about the ten bounded-context
-epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited from 87 source files across
-all fifteen sub-repos and resolve to sections of that record.
-
-⚠️ **Narrowed again 2026-08-28.** The range above reads **E14..E19** because `E13` was
-deleted and its record **distributed rather than moved** — the E11 way, not E12's. All eleven of its
-stories were `built`, its §6 read "None open.", and an audit of the file found only seven facts held
-nowhere else, so no twelfth record was written and the count of eleven above is unchanged. Those
-seven facts went to
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 — the six `INTROSPECTION_CODE` comparison sites
-named with file and line — and to
-[`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1 — the seventh
-site, upstream in `@axiumine/koa-utils`. E13 lost its file, not its id: it stays in the epic numbering
-exactly where it always was, and every one of `E13-S01` … `E13-S11` keeps its name, for the identical
-reason `E11` and `E05-S01`..`E05-S09` kept theirs above.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above reads **E15..E19** because
-`E14` was deleted this same day and its record **distributed rather than moved** — the
-**E11 / E13** way, not E12's: all nine of E14's stories were `built`, its §6 read "None open.", and an
-audit of the file found only nine facts held nowhere else. No twelfth record was written,
-so the count stays **eleven** — E01..E10 and E12, unchanged by this pass. The nine facts went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (the two
-rejected alternatives: a tier-keyed privilege gradient for the session cap, and a cached-successor-pair
-grace design), to [`architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate
-?` cookie-side comment in koa-utils' `setLoginCookies`, which E14-S07 does not revive), to
-[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"), to
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`), to the `E17` epic record §5 (why E17 depends on E14 for
-`familyId` and can never key a session by a token value), and to
-[`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4 (E14-S06's
-accepted cross-service-harness residual). E14 lost its file, not its id: `E14-S01`..`E14-S09` are
-unchanged and every build state with them. The two defects E14-S09 found were both explicitly outside
-E14's scope and stay open, recorded in
-[`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 — that
-report is not deleted.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E16..E19** because
-`E15` was deleted and its record **distributed, not moved** — the E11 / E13 / E14 way and
-not E12's: all ten of its stories are `built`, and no twelfth record was written, so the count above
-stays **eleven** (E01..E10 and E12). ⚠️ **One thing differs from the last three deletions: E15's §6 was not
-empty.** One row survived — a **Product** question, whether a confirm-first email-change flow should exist
-at all — and it was relocated to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6 as its question 5, open,
-rather than deleted with the file. E15's other nine facts went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (three refused designs — the
-lazy prune, "revoke all but me", and `familyId`/the cap in the index value),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1, [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md)
-§3.1, [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md) E03-S02,
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §3.1,
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3 and [`data-model.md`](../../data-model.md). E15 lost
-its file, not its id: `E15-S01` … `E15-S10` keep their names and their `built` state.
-
-⚠️ **Narrowed again 2026-08-28, later the same day.** The range above now reads **E19** — one file, no
-longer a range — because `E17` and `E18` were **both** deleted and their
-records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way. Both qualified on the same test,
-*what a record still has to do*: E17's nine stories and E18's thirteen are all `built`, and both §6s are
-fully closed — E18's three on 2026-08-13, E17's fifth and last earlier the same day as this deletion, in the
-record before the code. An audit of the two files, 1 255 lines together, found almost everything already
-verbatim in the source docblocks the epics themselves caused to be written and in the reports they produced.
-What survived went to
-[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
-line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
-[`PLATFORM_OPERATIONS_QUALITY_GATES.md`](./PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which gains the one live open question either file still carried: nobody owns a newly-red advisory
-under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
-line. **No twelfth record was written — that count stays eleven** (E01..E10 and E12).
-E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
-two files are gone.
-
-⚠️ **Narrowed a last time 2026-08-30, and there is no range left.** The `E19` and `E20` epic records were
-the last two, and both were deleted and **distributed, not moved** — the E11 / E13 / E14 / E15 / E16 / E17 /
-E18 way — with the running *Epics + Stories* index deleted beside them, an index over nothing having nothing
-to index. Both qualified on the usual test, *what a record still has to do*: E19's five stories and E20's
-thirteen are `built`, the sixth and the fourteenth are anti-stories that are deliberately not built, and both
-§6s were closed before the pass — E20's question 6 by
-[`ADR-051`](../phase3/adr/ADR-051-a-session-exit-is-a-page-load.md) and its question 7 by
-[`ADR-052`](../phase3/adr/ADR-052-a-session-entrance-is-a-page-load-too.md), both on 2026-08-30. ⚠️ **One
-thing was still undecided and moved rather than died**: whether an admin may be **suspended**, the half of
-E20's question 2 that the *an admin account cannot be closed* ruling did not touch, is now
-[`ADR-044`](../phase3/adr/ADR-044-suspension-names-an-actor-and-a-reason.md) §Still undecided. **No twelfth
-record was written, so the count stays eleven** (E01..E10 and E12). Both epics kept every id: `E19-S01` …
-`E19-S06` and `E20-S01` … `E20-S14` resolve to ADR-041..ADR-046 and ADR-049, each of which records what the
-stories under it built, and to the sources those stories touched.
-
-## 1. Epic goal
+## 1. Goal
 
 Own `item` — the single generic, domain-neutral catalogue entry. One thing a `Company` sells, filed
 under an `itemCategory`, deliberately and permanently carrying no price (ADR-009 + ADR-038). Backend writers and public reads are complete;
@@ -205,12 +39,12 @@ the ShopOwner-facing management UI is not.
 | ShopOwner-tier `itemAdd`/`Update`/`UpdatePublished`/`Del` | `itemCategory` writes | BC-06, admin-only |
 | Admin-tier `itemUpdatePublished`/`itemDel` (moderation) | price, cart membership, order lines | BC-11 `WILL NOT BUILD` — permanently out of scope, [ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) |
 | Public catalogue reads (`items`, `itemBySlug`, `searchItems`) | replacing or removing an item's picture | `itemAdd` is the only writer of `image`; there is no second upload path and `itemUpdate` drops the key |
-| Item picture upload on `itemAdd`, ShopOwner tier (E05-S09) | the picture on the Admin and public tiers | `image` is on this tier's `GraphQLItem` alone — `GraphQLItemFrag` is shared by three services and stays as it is |
-| Public/customer catalogue frontend (`marketplace-user`) | — | ShopOwner-facing item management screens were the one gap; E05-S07 closed it |
+| Item picture upload on `itemAdd`, ShopOwner tier (*A ShopOwner gives an item a picture while adding it*) | the picture on the Admin and public tiers | `image` is on this tier's `GraphQLItem` alone — `GraphQLItemFrag` is shared by three services and stays as it is |
+| Public/customer catalogue frontend (`marketplace-user`) | — | ShopOwner-facing item management screens were the one gap; the story below, *Build the ShopOwner item-management screens*, closed it |
 
 ## 3. Build state
 
-**Backend fully built, both writers, verified on disk. ShopOwner frontend built by E05-S07 — the gap
+**Backend fully built, both writers, verified on disk. ShopOwner frontend built by the story below, *Build the ShopOwner item-management screens* — the gap
 recorded below is closed; the paragraph is kept because it is what the story was written against.**
 
 - Schema builder: `BEs/marketplace-db-setup/lib/schemas/item.js`, migration
@@ -231,7 +65,7 @@ recorded below is closed; the paragraph is kept because it is what the story was
   `itemBySlug.mts`, filtered through `BEs/dev/marketplace-dev-public-resource/src/lib/catalogue/publicRead.mts`.
 - Public/customer frontend: `marketplace-user/src/features/catalogue/ItemGrid.tsx`,
   `ItemCard.tsx`, route `marketplace-user/src/routes/shop.$slug.item.$itemSlug.tsx`.
-- ✅ **ShopOwner frontend, since E05-S07:** `marketplace-shopowner/src/features/items/Items.tsx`,
+- ✅ **ShopOwner frontend, since *Build the ShopOwner item-management screens*:** `marketplace-shopowner/src/features/items/Items.tsx`,
   `src/pages/ItemsPage.tsx`, route `/items`. The paragraph below is the state it was written against.
 - ⚠️ **ShopOwner frontend had no item screens.** Verified: `grep -rliE "\bitem"
   marketplace-shopowner/src` returns zero feature files (only UI kit components whose names happen to
@@ -245,7 +79,7 @@ recorded below is closed; the paragraph is kept because it is what the story was
 
 ## 4. Stories
 
-### E05-S01 — `item` `$jsonSchema` validator, no price field `built`
+### `item` `$jsonSchema` validator, no price field `built`
 Technical story. `additionalProperties:false` and the deliberate absence of a price field must both hold.
 **domains:** database
 **Acceptance criteria:**
@@ -254,7 +88,7 @@ Technical story. `additionalProperties:false` and the deliberate absence of a pr
 **Traces:** NFR-SE11; decision-not-reopened "price field" (`phase3/adr/ADR-INDEX.md` §4, per CONSTRAINTS.md §2).
 **Evidence:** `BEs/marketplace-db-setup/lib/schemas/item.js` (comment explaining the omission).
 
-### E05-S02 — ShopOwner adds an item to an owned company `built`
+### ShopOwner adds an item to an owned company `built`
 **As a** ShopOwner, **when** I add a new catalogue entry, **I want** `itemAdd` to check company ownership
 before category existence **so that** a caller who does not own the shop learns nothing about which
 category ids are real.
@@ -263,9 +97,9 @@ category ids are real.
 - `itemAdd` calls `throwIfShopOwnerDontOwnCompany` before `throwIfItemCategoryMissing`, in that order — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemAdd.mts:39-46`.
 - `itemAdd` answers `OnlyIdType!`, matching `companyAdd`'s divergence from the Admin tier's bare `Boolean` — `itemAdd.mts:29,34-39`.
 **Traces:** NFR-SE05 (tier assertion gates all six ShopOwner-resource mutations, `phase4/API_CONTRACTS.md` §5.2).
-**Evidence:** `mutations/itemAdd.mts:39-46`; guard `src/lib/item/throwIfItemCategoryMissing.mts:19`. Frontend since E05-S07: `ItemAddDocument` in `marketplace-shopowner/src/api/operations/shopOwnerResource/mutations.ts`, called from `src/features/items/Items.tsx`.
+**Evidence:** `mutations/itemAdd.mts:39-46`; guard `src/lib/item/throwIfItemCategoryMissing.mts:19`. Frontend since *Build the ShopOwner item-management screens*: `ItemAddDocument` in `marketplace-shopowner/src/api/operations/shopOwnerResource/mutations.ts`, called from `src/features/items/Items.tsx`.
 
-### E05-S03 — ShopOwner updates or retires an owned item `built`
+### ShopOwner updates or retires an owned item `built`
 **As a** ShopOwner, **when** I edit or remove a catalogue entry, **I want** `itemUpdate`/`itemDel` scoped
 to items on companies I own **so that** I cannot alter another shop's catalogue.
 **domains:** database, backend, testing
@@ -273,9 +107,9 @@ to items on companies I own **so that** I cannot alter another shop's catalogue.
 - `itemDel` stamps the `deleted` date field, never a hard remove — `BEs/dev/marketplace-dev-authenticated-resource/src/graphQLApi/schema/mutations/itemDel.mts:21-26`.
 - `itemUpdate` answers `Boolean!` (not `OnlyIdType`, unlike `itemAdd`) — `mutations/itemUpdate.mts:27-33`.
 **Traces:** DCON-03 (soft-delete convention).
-**Evidence:** `mutations/itemUpdate.mts:27-33`, `mutations/itemDel.mts:21-26`. Frontend since E05-S07: `ItemUpdateDocument` / `ItemDelDocument`, same file. ⚠️ `itemUpdate` is a transfer as well as an edit — `idCompany` travels inside `GraphQLInputItem`, so the mutation that renames an item can also move it between the owner's shops; the screen sends the field back unchanged and offers no control for that yet.
+**Evidence:** `mutations/itemUpdate.mts:27-33`, `mutations/itemDel.mts:21-26`. Frontend since *Build the ShopOwner item-management screens*: `ItemUpdateDocument` / `ItemDelDocument`, same file. ⚠️ `itemUpdate` is a transfer as well as an edit — `idCompany` travels inside `GraphQLInputItem`, so the mutation that renames an item can also move it between the owner's shops; the screen sends the field back unchanged and offers no control for that yet.
 
-### E05-S04 — Admin moderates any item regardless of owner `built`
+### Admin moderates any item regardless of owner `built`
 **As an** Admin, **when** a catalogue entry needs takedown or correction, **I want**
 `itemUpdatePublished`/`itemDel` to act on any shop's item **so that** moderation does not depend on the
 owning ShopOwner's session.
@@ -286,7 +120,7 @@ owning ShopOwner's session.
 **Traces:** NFR-SE05/SE06 (tier assertion, 403 on foreign-tier token).
 **Evidence:** `marketplace-dev-admin-authenticated-resource/src/graphQLApi/schema/mutations/itemUpdatePublished.mts`, `itemDel.mts:17,18-20`.
 
-### E05-S05 — Anonymous visitor and customer browse published items `built`
+### Anonymous visitor and customer browse published items `built`
 **As an** Anonymous Visitor, **when** I open a shop page or category page, **I want** `items`/`itemBySlug`
 to return only published entries of a published company **so that** unpublished drafts never leak.
 **domains:** database, backend, frontend, testing
@@ -296,7 +130,7 @@ to return only published entries of a published company **so that** unpublished 
 **Traces:** NFR-PF04 (index-backed listing, no blocking sort), NFR-PF05 (`search_text`, weights `name:10, description:1`).
 **Evidence:** `queries/items.mts:54-61`, `queries/itemBySlug.mts:42-47`; frontend `marketplace-user/src/features/catalogue/ItemGrid.tsx`, `ItemCard.tsx`, route `marketplace-user/src/routes/shop.$slug.item.$itemSlug.tsx`.
 
-### E05-S06 — Item listing indexes hold at catalogue scale `built`
+### Item listing indexes hold at catalogue scale `built`
 Technical story. Both listing indexes carry the sort key, so neither listing blocking-sorts.
 **domains:** database, testing
 **Acceptance criteria:**
@@ -305,7 +139,7 @@ Technical story. Both listing indexes carry the sort key, so neither listing blo
 **Traces:** NFR-PF04 — measured 100 000 keys/170 ms without the sort key vs 24 keys/3 ms with it, on a 100 000-item category.
 **Evidence:** `BEs/marketplace-db-setup/migrations/20260301000500-create-item.js` header comment.
 
-### E05-S07 — Build the ShopOwner item-management screens `built`
+### Build the ShopOwner item-management screens `built`
 Technical story that closed the verified gap. A ShopOwner now creates, edits, lists and deletes their own
 items from a shipped screen; no backend change was needed, as recorded when the gap was written down.
 **domains:** frontend
@@ -326,7 +160,7 @@ has always been free of. `throwIfShopOwnerDontOwnCompany` is what makes the argu
 matches `additionalTypenames` against typenames a *cached response carries*, and `companyItems: []` carries
 none. The new-item card drops itself on success instead of relying on the refetch.
 
-### E05-S08 — Publishing is a separate operation, on both tiers `built`
+### Publishing is a separate operation, on both tiers `built`
 The platform owner's call, taken on 2026-08-14: saving an item must not publish it. `published` was a
 `Boolean!` inside `GraphQLInputItem` and both update paths `$set` the whole object, so every save wrote the
 flag — an owner who reopened a card after the admin took it down republished it on Save, without asking
@@ -342,7 +176,7 @@ to and without a control on screen saying so.
 ⚠️ **The Admin app has no publish control at all**, on either aggregate: it calls neither `*UpdatePublished` and shows the shop's public fields nowhere. That is a screen nobody has built, not a resolver anybody removed — `marketplace-admin/README.md` §"Decisions that look wrong until you know why".
 ⚠️ **`companyUpdatePublished` has no call site anywhere yet.** The owner's app has no box for `publicName`/`slug`/`description`, and the collection's `$expr` refuses `published: true` without the first two, so publishing a *shop* needs that form before it needs anything else.
 
-### E05-S09 — A ShopOwner gives an item a picture while adding it `built`
+### A ShopOwner gives an item a picture while adding it `built`
 **As a** ShopOwner, **when** I add a catalogue entry, **I want** to send its picture in the same call
 **so that** an item and the image that sells it are one operation rather than two, with no window in
 which one exists without the other.
@@ -386,7 +220,7 @@ writer of the field, `GraphQLItemFrag` does not carry it, and the two other tier
 - BC-04 (Legal Entity / Company) lands first — `item.idCompany` needs an existing, owned `company` document.
 - BC-06 (Category Taxonomy) lands first — `item.idCategory` is checked against `itemCategory` at write
   time by `throwIfItemCategoryMissing`; an empty taxonomy makes every `itemAdd` fail that check.
-- E05-S07 depends on nothing else in this epic landing first — the resolvers it wires already exist.
+- Build the ShopOwner item-management screens depends on nothing else here landing first — the resolvers it wires already exist.
 
 ## 6. Open questions
 
@@ -394,15 +228,15 @@ writer of the field, `GraphQLItemFrag` does not carry it, and the two other tier
   10 files max — `marketplace-dev-authenticated-resource/src/index.mts:132-133`). `itemAdd.mts`'s own doc
   comment gestures at "uploading its image, most obviously" but no mutation declares a `GraphQLUpload`
   argument (`phase4/API_CONTRACTS.md` §5.2). Whether this ships as a follow-up field on `itemAdd` or a
-  separate mutation has not been asked of the user. ⚠️ **Closed 2026-08-14 — E05-S09.** A field on
+  separate mutation has not been asked of the user. ⚠️ **Closed 2026-08-14 — by the story below, *A ShopOwner gives an item a picture while adding it*.** A field on
   `itemAdd`, not a separate mutation: the `Upload` sits inside `GraphQLInputItem`, so adding an item and
   giving it a picture are one call. The reference lives in a new optional `image` on `item`, which was the
   platform owner's choice; it widened the shared `$jsonSchema`, so every database that has run these
   migrations is replayed in the same piece of work. Two things stayed deliberately out: the field is not
   on `GraphQLItemFrag`, so the Admin and public tiers cannot read it, and no frontend sends or renders one.
 - Two independent writers of `item.published` (ShopOwner's `itemUpdate`, Admin's `itemUpdatePublished`)
-  with no version/lock field in `item.js` — the same race class as E04's open question, unexamined
-  (`EVENT_STORMING.md` §5 hotspot 4). ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
+  with no version/lock field in `item.js` — the same race class as the open question on `company`'s own
+  publish flag ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6), unexamined (`EVENT_STORMING.md` §5 hotspot 4). ⚠️ **Closed 2026-08-14 by the platform owner: last writer wins, no
   lock field.** An admin unpublishes, the owner publishes it again, and that is an accepted outcome —
   decided together with the same race on `company` ([`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md) §6) and recorded in
   [`RISK_REGISTER.md`](./RISK_REGISTER.md) §5. ⚠️ **A republish is always deliberate**: publishing is

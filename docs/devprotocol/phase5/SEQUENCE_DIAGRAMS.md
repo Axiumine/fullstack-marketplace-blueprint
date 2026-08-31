@@ -8,11 +8,14 @@
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.4 - 2026-08-30: §2.10 gains `userDel`, the Admin tier's third operation on a customer account ([ADR-048](../phase3/adr/ADR-048-an-admin-closes-a-customer-account.md)). It had ended on "Nothing here sets `deleted`, which no mutation on the platform writes on a `user`" — false since 2026-08-26 on the customer tier — and what the section keeps from it is the separation of the two levers rather than the absence of one. No diagram is added: the closure is linear, one guarded write then an unconditional revoke.
 v1.3 - 2026-08-27: §1 and §10 read as "no flow yet"; they are now "no flow ever". ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so §10's table cells move from `UNBUILT` to `WILL NOT BUILD`, its closing paragraph says a speculative diagram contradicts an accepted ADR rather than merely jumping ahead, and the `price` note records that a display-only price was refused the same day.
-v1.1 - 2026-08-12: E03-S08. §2.1 no longer says Admin-provisioning is the only way an account appears, and
-§2.9 records the flow that changed it — same shape as diagram 4 with one extra write and one extra gate.
-v1.2 - 2026-08-25: E19. §2.8 was the only admin-writes-someone-else's-account flow documented, and it
-covered `shopOwner` only. §2.10 adds the `user` pair — why the table takes no search term or second sort
-key, and why the status write ends the suspended customer's sessions but restoring ends nothing.
+v1.1 - 2026-08-12: a seller can now register themselves and wait for an admin. §2.1 no longer says
+Admin-provisioning is the only way an account appears, and §2.9 records the flow that changed it — same
+shape as diagram 4 with one extra write and one extra gate.
+v1.2 - 2026-08-25: the admin account-state tables reach `user` as well as `shopOwner`
+([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md)). §2.8 was the only
+admin-writes-someone-else's-account flow documented, and it covered `shopOwner` only. §2.10 adds the `user`
+pair — why the table takes no search term or second sort key, and why the status write ends the suspended
+customer's sessions but restoring ends nothing.
 **Depends on:** `phase2/EVENT_STORMING.md` ✅ · `phase4/API_CONTRACTS.md` ✅ · `phase2/BOUNDED_CONTEXT.md` ✅ · `phase4/DDD_AGGREGATES.md` ✅ · `phase5/CONSTRAINTS.md` ✅ (binding, §4 Flow rules)
 **Mutability:** keep in sync — update when a flow, actor set or branching condition changes.
 
@@ -126,7 +129,8 @@ is what every §2.1 account has, and collapsing absent into unverified would loc
 created before this flow existed.
 
 ### 2.10 — `usersActiveTbl` / `userUpdateStatus` / `userDel` (the admin's reach into a customer account)
-§2.8's shape on the `user` collection, one tier over and with one extra step (E19, 2026-08-25). Both live on
+§2.8's shape on the `user` collection, one tier over and with one extra step
+([ADR-049](../phase3/adr/ADR-049-the-admin-tables-offer-the-four-account-states.md), 2026-08-25). Both live on
 `marketplace-dev-admin-authenticated-resource`, the only service that reads `user` for anyone but its owner.
 
 `usersActiveTbl` is a linear paged read and needs no diagram: `disabled` and `deleted` arrive as `Boolean!`
@@ -335,7 +339,7 @@ sequenceDiagram
         LO->>Redis: hGet(sessionKey(access:<token>), '_id') — optional, may already have expired
         LO->>Redis: del(sessionKey(refresh:<token>)) + del(REDIS_KEY + refresh:<token>)
         LO->>Redis: del(sessionKey(access:<token>)) + del(REDIS_KEY + access:<token>)
-        Note over LO,Redis: both key shapes every time (E13-S02) — the session may predate the cutover
+        Note over LO,Redis: both key shapes every time — the session may predate the cutover
         LO->>Any: clear refresh_token cookie
         LO-->>Any: {logout: true}
     end
@@ -352,7 +356,9 @@ sequenceDiagram
    the identity every writer stores — and never `hGetAll`, so it never learns (or needs) which collection
    minted the session. `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:78-110`
 
-   ⚠️ **That field read `id` until E15-S01, and nothing writes an `id`.** Every logout therefore missed,
+   ⚠️ **That field read `id` until a 2026-08-12 fix corrected it, and nothing writes an `id`**
+   ([ADR-005](../phase3/adr/ADR-005-single-logout-service-all-tiers.md) was amended the same day to record
+   it). Every logout therefore missed,
    took the `throwAlreadyDone` branch, and left both tokens live while answering the caller with success.
    The diagram above is what the service does now; what it did before was the 204 arm, always.
 3. Consequence documented in [`docs/architecture.md`](../../architecture.md) §Auth model: tier-named logout mutations were evaluated and
@@ -654,7 +660,7 @@ verify email, log in, maintain `personalData` and `addresses[]` — nothing in t
 them purchase anything.
 
 This section records the refusal; nothing fills it. Do not add a speculative checkout/cart/delivery/payment
-diagram — `phase5/CONSTRAINTS.md` §6 reserves exactly one epic (BC-11) for recording this absence, not a
+diagram — `phase5/CONSTRAINTS.md` §6 reserves bounded context BC-11 for recording this absence, not a
 design, and adding such a diagram now contradicts an accepted ADR rather than merely jumping ahead.
 
 ---

@@ -41,8 +41,8 @@ the same cache standing.
 
 ## Decision
 
-**B.** The platform owner's ruling of 2026-08-30, answering E20 §6
-question 6.
+**B.** The platform owner's ruling of 2026-08-30 closes what had been an open question: a session exit
+ends in a page load.
 
 1. **Both exits end in `window.location.assign('/')`, in all three apps.** The logout button, through
    `src/auth/useLogout.ts`; and `onSessionLost`, in `src/main.tsx` for the two SPAs and in `src/router.tsx`

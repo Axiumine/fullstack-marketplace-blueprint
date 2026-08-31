@@ -2,7 +2,8 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E18-S05. Not baselined, not a requirement document
+**Status:** investigation finding — closes the quality-gate criterion that Redis session values are not
+personal data. Not baselined, not a requirement document
 **Version:** 1.1
 **Date:** 2026-08-28 (v1.0 2026-08-13; v1.1 appends the topology outcome to §6 and §9,
 measuring nothing new and rewriting nothing)
@@ -54,15 +55,15 @@ carrying:
   encrypted. `shopOwner` leaves a **first name, a last name and a city** in the clear, permanently and on
   purpose, because the admin table sorts and prefix-searches all three. A volume reader gets a list of
   named shop owners and the towns they live in.
-- 🟠 **E18-S05's own premise about Redis is wrong: session values *are* personal data.** The access-token
+- 🟠 **The quality-gate premise about Redis is wrong: session values *are* personal data.** The access-token
   session hash holds `email` in plaintext (`IRedisDataAdminCommon`, `IRedisDataShopOwnerCommon`,
   `IRedisDataUserCommon` — one field each, and it is the address). R45 already records this for traffic
   in transit; **at rest it lands in the AOF and the RDB on an unencrypted volume**, and nothing has said so
   until now. The *refresh* hash is clean — `_id`, `tier`, `familyId`, `originalLogin`, `sessionCapDays`.
-- 🟢 **The Redis keyspace is no longer credentials.** E13-S01 has landed: session and tombstone keys are
-  SHA-256 digests, and the remaining key shapes (`family:`, `idx:`, `reuse:`, the two counters, `keygrip`,
-  `keygrip:holders`) name no credential by construction. Pre-cutover raw-token keys are still *readable*
-  until E13-S10 removes the fallback, but nothing writes one any more.
+- 🟢 **The Redis keyspace is no longer credentials.** The raw-token-to-digest cutover has landed: session
+  and tombstone keys are SHA-256 digests, and the remaining key shapes (`family:`, `idx:`, `reuse:`, the
+  two counters, `keygrip`, `keygrip:holders`) name no credential by construction. Pre-cutover raw-token
+  keys are still *readable* until the dual-read fallback is removed, but nothing writes one any more.
 
 **The audit §5 item is closed by this finding.** One residual is opened as a risk row rather than a story:
 §7.
@@ -264,14 +265,15 @@ travels into it unchanged, which is the one part of this that is already solved.
 | `<prefix>reuse:<tier>:<accountId>` | `reuseEventsKey` | no — same two segments |
 | `<prefix>grace-hits` | counter | no — a word and an integer |
 | `<prefix>keygrip`, `<prefix>keygrip:holders` | keygrip record | no — and the record's `wrapped` field is AES-256-GCM under `KEYGRIP_KEK`, which lives in env and is never written to Redis |
-**Amended 2026-08-14 (E13-S10).** This table had one more row when it was written: `<prefix><raw token>`,
+**Amended 2026-08-14.** This table had one more row when it was written: `<prefix><raw token>`,
 built by `legacySessionKey`, the one key shape on the platform whose *name* was a credential. It was a
-read path only — writes have been hashed-only since E13-S01 — and E13-S10 deleted the builder, the read
-and the `dual-read-hits` counter beside it. **No key shape on this platform carries a credential in its
-name any more**, which is what the table above now says without a qualifier.
+read path only — writes have been hashed-only since the raw-token-to-digest cutover — and that same
+cutover deleted the builder, the read and the `dual-read-hits` counter beside it. **No key shape on this
+platform carries a credential in its name any more**, which is what the table above now says without a
+qualifier.
 
 What that does not reach: an AOF written before the cutover still holds the old key names, and rewriting
-the file is the only thing that drops them. `BGREWRITEAOF` was run on every node as part of E13-S10 — see
+the file is the only thing that drops them. `BGREWRITEAOF` was run on every node as part of that cutover — see
 §6.3 below for what an append-only file retains and for how long.
 
 ### 6.2 The values — one plaintext email per access-token session
@@ -280,12 +282,12 @@ the file is the only thing that drops them. `BGREWRITEAOF` was run on every node
 |---|---|---|
 | access-token session hash | `_id`, `tier`, **`email`**, `onboardingStep` (ShopOwner only) | ⚠️ **yes — the address, in the clear** |
 | refresh-token session hash | `_id`, `tier`, `familyId`, `originalLogin`, `sessionCapDays` | no |
-| session index (`idx:`) field value | `{ tier, mintedAt }` | no — E15-S02 decided the field carries no token and describes the session only |
+| session index (`idx:`) field value | `{ tier, mintedAt }` | no — by design, the field carries no token and describes the session only |
 | reuse events (`reuse:`) | `familyId`, action, timestamp | no |
 | `keygrip` | `version`, `wrapped`, `fp` | no — wrapped |
 | `keygrip:holders` | `<service> -> <fingerprint>@<ISO-8601>` | no |
 
-**E18-S05's criterion says Redis session values "are not personal data". They are.** The email is written
+**The quality-gate criterion said Redis session values "are not personal data". They are.** The email is written
 by `setRedisLoginSession` on every login and re-written on every rotation, and it is read back on every
 authenticated request. R45 already names it — "*every session hash — `_id`, `email`, `tier`*" — but scores
 it as a **transport** risk, because `@axiumine/koa-utils` hardcodes `redis://`. The at-rest half was
@@ -314,7 +316,7 @@ appends an `HSET` carrying an email address to `appendonly.aof.1.incr.aof`.
 appends a `DEL`; the earlier `HSET`, email included, stays in the file until an AOF rewrite compacts it —
 triggered by size growth, not by expiry. So the retention of a session email on disk is governed by
 Redis's rewrite thresholds and by nothing anyone on this platform has decided. It is a small volume and a
-short list of fields; it is not zero, and no retention decision covers it (E12-S19 decided **the edge's**
+short list of fields; it is not zero, and no retention decision covers it ([`phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 pins **the edge's**
 logs, and `marketplace-docker-DBs/docker-compose.yml` is explicit that its own rotation caps size and decides nothing
 about retention).
 

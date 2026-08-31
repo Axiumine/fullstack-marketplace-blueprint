@@ -11,8 +11,8 @@ untouched, and so is every option, consequence and risk that turns on it. `ADR-I
 immutable once accepted; this is the second exception in the tree, after
 [ADR-011](./ADR-011-soft-delete-and-global-uniques.md), and it is an exception on the same grounds: the owner
 authorised it, and the alternative was an accepted ADR that misdescribes the code it greps for.
-**Deciders:** platform owner, ruling directly when asked how to close E16’s last open question,
-§6 question 4 — *does the wrapping key have a custody story of its own* — for a repository that is
+**Deciders:** platform owner, ruling directly on ADR-034's last open question — *does the wrapping key
+have a custody story of its own* — for a repository that is
 **published as a blueprint rather than operated as a deployment**, the same standing the
 [ADR-037](./ADR-037-marketplace-common-is-published-to-npm.md) *Deciders* line already records. The ruling,
 verbatim:
@@ -79,7 +79,7 @@ into **decided, and decided not to** — which is a materially different state, 
 
 | Option | Pros | Cons |
 |---|---|---|
-| **A** — leave the gap open, exactly as it stands | zero work; no claim can go stale | it is the state that has held since 2026-08-13 and it has now outlived its only stated blocker. A gap that nothing is waiting on is not a gap, it is an unanswered question with no owner. `E16` §6 q4 and `R50` both stay open forever with no reason on file, and every future reader re-derives this same analysis |
+| **A** — leave the gap open, exactly as it stands | zero work; no claim can go stale | it is the state that has held since 2026-08-13 and it has now outlived its only stated blocker. A gap that nothing is waiting on is not a gap, it is an unanswered question with no owner. ADR-034's KEK-custody question and `R50` both stay open forever with no reason on file, and every future reader re-derives this same analysis |
 | **B** — choose a vendor now and wire it in | closes the question with running code; matches the industry answer ADR-034 already named | this workspace has never run against any of the four. The choice would be made by whoever typed it rather than by anyone who had operated it, and it forces one cloud's IAM or one sealing story onto every adopter — most of whom run something else. ⚠️ It also cannot be tested here: there is no production deployment, so the integration would ship at 100% coverage against a mock and 0% against reality |
 | **C** — ship a vendor-neutral provider seam (`IKeygripKekProvider` or similar) with an `env` reference adapter, choose no vendor | keeps the blueprint neutral while giving adopters a typed swap point; `marketplace-common` already carries interfaces of exactly this shape — `IKeygripReadStore` and its neighbours in `readKeygrip.mts` exist so the library never names a concrete driver's types | a seam is a guess about a shape, and this one would be guessed against **zero** real integrations. The three interfaces cited as precedent were extracted from a driver already in use; this one has nothing to extract from. It also enlarges the surface the ruling is about rather than settling it: a provider that resolves independently at each call site reintroduces exactly the split-brain ADR-034 exists to refuse. *(Amended 2026-08-28: this cell originally cited the two call sites in `marketplace-dev-admin-authenticated-resource` that decoded the KEK themselves. They now call `readKek`, so the objection no longer has that example behind it — but it does not weaken, it sharpens: the seam would put a resolver behind the one decode site the platform has, which is the whole surface, not part of it.)* |
 | **D — chosen** — decline the vendor choice permanently, delegate it to the adopter, and document every swap point precisely | honest about what this repository can and cannot know; costs no code, so it cannot rot, cannot drift from an untested integration, and cannot be wrong about a vendor nobody here runs; gives an adopter the one thing a blueprint can actually give — the exact file, line and invariant to change | the platform ships with a documented hand-provisioning story and no automation, and a page nothing enforces. An adopter who does not read it deploys with a hand-copied KEK on every host, which is precisely `R50`'s residual, unchanged |
@@ -123,9 +123,9 @@ one, and calling it anything else is the misreading this ADR most wants to preve
 
 ### Positive
 
-- **A long-standing open question gets an answer instead of a fourth restatement.** `E16` §6 q4 has been
-  open since the epic was written, was retargeted once from the CSFLE master key to the KEK, and outlived
-  R02's closure (2026-08-13, E18-S07) by being split out into `R50` rather than solved. It closes here — not because the operational problem went away, but because the question it
+- **A long-standing open question gets an answer instead of a fourth restatement.** ADR-034's KEK-custody
+  question has been open since it was written, was retargeted once from the CSFLE master key to the KEK,
+  and outlived R02's closure (2026-08-13, the keygrip rotation-propagation measurement) by being split out into `R50` rather than solved. It closes here — not because the operational problem went away, but because the question it
   asks is *does a custody story exist and is it this platform's to build*, and the answer is now on file.
 - **An adopter gets something a chosen vendor would not have given them.** The swap points, the invariants,
   and the reason each one is where it is — which is portable to Vault, SOPS, KMS or a shell script, and
@@ -235,5 +235,5 @@ interface in `marketplace-common/src`, `ADR-INDEX` §5's shared-secret bullet st
   of an integration.
 - [`phase5/RISK_REGISTER.md`](../../phase5/RISK_REGISTER.md) **R50** (accepted, §5) and **R39** (open,
   unchanged in scope).
-- E16 §6 question 4 — closed on this decision, the last of E16's four open questions, all closed by
-  2026-08-28.
+- ADR-034's KEK-custody question — closed on this decision, the last of the four custody-and-rotation
+  questions this platform has been carrying, all closed by 2026-08-28.

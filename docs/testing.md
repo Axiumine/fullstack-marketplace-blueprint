@@ -19,10 +19,10 @@ Outside `dev/`, coverage lives in `marketplace-common` (vitest + stryker) and `m
 (vitest + stryker against a real Mongo; assertions are `node:assert/strict`, the runner is vitest).
 `marketplace-dev-authenticated-logout/COVERAGE.md` is the reference write-up of the pattern.
 
-## The auth-boundary contract (E18-S02)
+## The auth-boundary contract
 
 Every authenticated service refuses the same set of things, and until this contract existed each one
-decided for itself which of those refusals it tested. That is how the gap E18-S01 names appeared: three
+decided for itself which of those refusals it tested. That is how the gap this contract now closes appeared: three
 resource services, three boundary-test shapes, one of them missing the wrong-tier case for months while
 coverage read 100% and mutation read 100. **The numbers cannot see a case nobody wrote.**
 
@@ -76,7 +76,7 @@ suite in `marketplace-common` fails an exemption whose reason is blank or whose 
   an exemption sentence for any service it does not apply to. The contract test turns a forgotten service
   into a failing suite, which is the whole point of it.
 
-## The mechanical checks (E18-S08)
+## The mechanical checks
 
 The phase-5 security audit was manual, static-only and single-pass, and it is the reason most of the
 sections on this page exist. **Most of what it did by reading is now a command**, and this is the list —
@@ -94,11 +94,11 @@ script in the workspace root.
 | MC-05 | all thirteen repos that ship the block — the nine services, the three apps, the library the scrubber lives in — carry both of the above | `./scripts/audit-check.sh` §4 | workspace root |
 | MC-06 | no network-derived value reaches an event, a span, a breadcrumb or a log line | `yarn test` · `yarn semgrep` | `marketplace-common/test/sentryBeforeSend.test.mts`; `marketplace-no-log-*` in each backend `semgrep/custom.yml`, `marketplace-fe-no-log-auth-token` in each app's |
 | MC-07 | a rate-limit bucket key digests its identity and no service can obtain a client address | `yarn test` · `./scripts/audit-check.sh` §3 | `redisKeyspace.test.mts`; `app.proxy` set nowhere |
-| MC-08 | the E17 console cannot print a token, a digest or a key prefix | `yarn test` | `marketplace-dev-admin-authenticated-resource/test/sessionNoLeak.test.mts` |
+| MC-08 | the admin session console cannot print a token, a digest or a key prefix | `yarn test` | `marketplace-dev-admin-authenticated-resource/test/sessionNoLeak.test.mts` |
 | MC-09 | every authenticated service proves all eleven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
 | MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
-| MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere (E18-S11) |
+| MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
 
 ⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Four of its
 five checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing
@@ -123,10 +123,10 @@ Two more things this list deliberately does **not** claim to cover. Neither is a
 another grep:
 
 - **The audit was static.** MC-01..12 read source; none of them sends a request to a running platform.
-  E18-S09 did that once, by hand, and found two things every static check had passed over — the
-  registration path storing `bcrypt(bcrypt(password))` among them. A green checklist is not a working
-  system. ⚠️ **The general form is worth stating, because it is what made that defect invisible for six
-  epics: a file-and-line citation proves the line exists, not that the path reaches it.**
+  A hands-on run against a live platform did that once, and found two things every static check had passed
+  over — the registration path storing `bcrypt(bcrypt(password))` among them. A green checklist is not a
+  working system. ⚠️ **The general form is worth stating, because it is what kept that defect invisible for
+  so long: a file-and-line citation proves the line exists, not that the path reaches it.**
   `LoginSubDocSchema`'s `pre('save')` and `registerNewUser`'s `encryptPassword` were each correct alone,
   and each carried a citation saying so. Running them together is the only thing that showed the double
   hash. A document that cites both is not therefore describing a working path, and no amount of
@@ -156,16 +156,16 @@ another grep:
   driven".** A fully covered happy path sits next to an unexercised guard and the numbers stay green:
   `assertTier` was itself tested, and two of the three resource services never proved they *reached* it with
   the right expectation — the part a refactor breaks silently. That is why the boundary contract above
-  enumerates cases by name rather than trusting the percentages, and why E18 existed at all.
+  enumerates cases by name rather than trusting the percentages, and why the mechanical checks above exist at all.
 - ⚠️ **A service that fails its own required-env check can still exit 0.** `checkRequiredEnv()` throws
   outside `start()`'s try, so the throw reached only the entrypoint's `.catch`, which reported to a Sentry
   client that discards events when no DSN is configured — the state this platform boots in — and then let
   Node exit cleanly. Every restart policy reading the exit code saw a deliberate shutdown. The handler now
-  logs to stderr and calls `process.exit(1)` (E18-S03). **A refusal that is not an exit code is not a
+  logs to stderr and calls `process.exit(1)`. **A refusal that is not an exit code is not a
   refusal to anything watching the process.**
 - ⚠️ **Removing a name from `REQUIRED_ENV_VARS` changes exactly one runtime behaviour — the service now
   boots without it — and that is enough to gut a test silently.** Two `startFailure.itest.mts` suites
-  forced a boot refusal by deleting `PLATFORM_NAME`; once E18-S13 dropped that name from the required
+  forced a boot refusal by deleting `PLATFORM_NAME`; once that name was dropped from the required
   list, both stopped refusing and connected to a real MongoDB instead, still green. They now delete
   `INTROSPECTION_CODE`. **A test that proves a refusal must delete a variable the list still requires**,
   so shortening the list is never a comment-only change.

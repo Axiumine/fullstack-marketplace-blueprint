@@ -2,10 +2,11 @@
 
 # Marketplace
 
-**Status:** investigation finding — closes E14-S09. Not baselined, not a requirement document
+**Status:** investigation finding — closes the question of whether concurrent multi-tab refreshes are safe and
+`GRACE_SECONDS` is sized right. Not baselined, not a requirement document
 **Version:** 1.1
 **Date:** 2026-08-10 (the two defects recorded below in §4, §5 and §9 are still open, and were never part
-of E14's design)
+of the token-handling design)
 **Scope:** what the three SPAs and the three `*-authenticated-authorization` services actually do when two
 tabs of the same app refresh at the same moment. It answers three questions and nothing else: can two
 refresh calls race at all, how far apart are they in practice, and is `GRACE_SECONDS = 10` the right number.
@@ -17,7 +18,7 @@ ShopOwner tier was stood up whole — `marketplace-dev-public-authorization` (40
 wrapped in each tab to timestamp every call to the rotation endpoint. Static reading was used only to
 explain results already observed.
 **Reads against:** [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 ·
-E14-S02, E14-S04, E14-S08 ·
+the reuse tombstone, the grace-window branch of rotation, and the family rate limiter ·
 `BEs/marketplace-common/src/others/{resolveAuthorizationSession,refreshSessionTokens,sessionLifetime,throwRefreshRaceRetry}.mts` ·
 `marketplace-{admin,shopowner,user}/src/api/{client.ts,errors.ts}`
 
@@ -41,15 +42,15 @@ thing rather than reading it:
 - **🔴 The 409 the grace window raises never reaches the client in a shape the client can read.** The race
   reply is a `GraphQLError` carrying `extensions.code = 'REFRESH_RACE_RETRY'`, but it is thrown in Koa
   middleware that runs *before* Apollo, so what goes on the wire is `{"message":…,"description":…}` with no
-  `errors[]` at all. All three SPAs branch on `graphQLErrors[0].extensions.code`. **E14-S04's retry path
-  therefore cannot execute in any of the three apps**, and a lost race that does reach the 409 logs the
+  `errors[]` at all. All three SPAs branch on `graphQLErrors[0].extensions.code`. **The grace-window branch's
+  retry path therefore cannot execute in any of the three apps**, and a lost race that does reach the 409 logs the
   owner out instead of retrying — observed end to end, §5.
 
 A third, operational, result fell out of the same session: **the family mint budget is spent twice as fast
 as intended**, because every forked reload burns two mints. Nine two-tab reloads exhausted it and both tabs
 were 429'd back to the login screen for the rest of the hour (§7).
 
-Neither defect is in E14's design. Both are in the wiring underneath it, which is exactly the kind of thing
+Neither defect is in the token-handling design. Both are in the wiring underneath it, which is exactly the kind of thing
 a story written as "go and look" exists to catch.
 
 ---
@@ -65,7 +66,7 @@ in all three apps for the same reason.
 | `marketplace-shopowner` | one `Client`, module scope in `src/main.tsx` | yes — identical code | only between tabs |
 | `marketplace-user` | one browser `Client` per page load (`src/router.tsx`); the SSR client has **no** `authExchange` and never refreshes | yes, in the browser client | only between tabs |
 
-**Every SPA already de-duplicates in-flight refreshes**, and E14-S09 asks for that to be said explicitly.
+**Every SPA already de-duplicates in-flight refreshes**, and stating that plainly is exactly what this finding was asked to do.
 `@urql/exchange-auth` 3.0.0 keeps one `authPromise` per `Client`, assigned synchronously before any other
 operation can run; every operation that needs auth while a refresh is in flight is parked in `retryQueue`
 and replayed when it settles (`urql-exchange-auth.js:124-132`, `:150-153`). `@urql/core` 6.0.3 dedups
@@ -76,7 +77,7 @@ Two consequences worth stating plainly:
 
 - **A single tab can never race itself.** Any design that assumes it can — a per-operation refresh, a retry
   that fires while a refresh is in flight — is solving a problem that does not exist.
-- **E14-S04's retry path is nevertheless not dead code on that account.** It is reachable across tabs, which
+- **The grace-window branch's retry path is nevertheless not dead code on that account.** It is reachable across tabs, which
   is the case it was written for. It is dead for a different and fixable reason: §5.
 
 The cookie is host-only (no `Domain`), so the shared jar that makes the race possible is shared *per app
@@ -104,7 +105,7 @@ Individual spreads, milliseconds: 0.0, 0.1, 0.2, 0.2, 0.5, 0.5, 0.6, 1.0, 1.1, 3
 32.9, 49.9.
 
 **The measured spread does not exceed ten seconds** — it does not exceed one tenth of a second. There is no
-sign of the pathology E14-S09 warned about: no retry loop, and no SPA holding a token outside the cookie jar
+sign of the pathology this investigation was watching for: no retry loop, and no SPA holding a token outside the cookie jar
 (the access token is a module-scope variable in all three, wiped by the reload that starts the race, and the
 refresh token is `HttpOnly` and never visible to JS).
 
@@ -130,7 +131,7 @@ with a `Set-Cookie` each, **both new refresh tokens were then used independently
 One consumption produced two live lineages.
 
 In the browser, with the natural spread of §3, **nine of ten** two-tab reloads landed in the fork band and
-answered `200, 200`. **Zero** produced a 409. The grace window and the tombstone — E14-S02 and E14-S04, the
+answered `200, 200`. **Zero** produced a 409. The grace window and the tombstone — the
 controls this whole area exists for — did not run at all in the case they were built for.
 
 Why this matters beyond tidiness: reuse detection is what makes a stolen refresh token detectable
@@ -139,7 +140,7 @@ tombstoned, and leaves the thief with a lineage of their own that survives the v
 window is narrow and needs the attacker to be racing the victim, which is why this is 🔴 and not the top of
 the list — but it is the one finding here that costs *detection* rather than convenience.
 
-The fix is not in E14's design either: it is making the read-and-consume atomic — a `GETDEL`-shaped
+The fix is not in the token-handling design either: it is making the read-and-consume atomic — a `GETDEL`-shaped
 operation, a Lua script, or a per-family lock — so that exactly one of two concurrent refreshes wins and the
 loser takes the tombstone path that already exists and is already tested.
 
@@ -174,12 +175,12 @@ of its loop on the first attempt and calls `clearAccessToken()` and `onSessionLo
 
 Observed end to end: a tab given a single 409 **in the exact body the service serves** dropped its session
 and landed on the login screen. The same tab given the same 409 in GraphQL shape retried, which is the
-behaviour E14-S04 specifies.
+behaviour the grace-window branch specifies.
 
 The client's own comment explains why it matches on the code rather than the status — "a proxy that
 rewrites the status must not be able to turn a race into a logout" — and that reasoning is sound. **The
 client is not the thing to change.** The service should raise this error where Apollo can format it, or the
-Koa error handler should preserve `extensions.code`; either way the contract E14-S04 documents becomes true
+Koa error handler should preserve `extensions.code`; either way the contract the grace-window branch documents becomes true
 on the wire instead of only in the source.
 
 Until then, in all three tiers: **a lost refresh race that reaches the 409 is a logout.**
@@ -188,7 +189,7 @@ Until then, in all three tiers: **a lost refresh race that reaches the 409 is a 
 
 ## 6. `GRACE_SECONDS`: confirmed at 10
 
-E14-S09 permits this finding to lower the number. It does not.
+This finding was permitted to lower the number. It does not.
 
 The case for lowering is the measurement: 49.9 ms worst observed, so ten seconds is ~200× what was seen and
 2 s would still be ~40×. The case against is what the measurement *is*. The spread in §3 is the spread
@@ -212,7 +213,7 @@ and is not worth standing up on its own.
 
 ## 7. Side effect worth its own line: the family mint budget
 
-The rate limiter E14-S08 added counts mints per family: `REFRESH_MINTS_PER_WINDOW = 20` per
+The rate limiter counts mints per family: `REFRESH_MINTS_PER_WINDOW = 20` per
 `REFRESH_FAMILY_WINDOW_SECONDS = 3600`. Because a forked reload mints **two** tokens instead of one, two
 tabs spend that budget at double rate.
 
@@ -255,7 +256,7 @@ Ranked. None of it is in this document's own scope to land.
 | # | Work | Why |
 |---|---|---|
 | 1 | Make read-and-consume of a refresh token atomic | §4 — without it the tombstone, the grace window and reuse detection do not run in the case they exist for |
-| 2 | Put `extensions.code` on the wire for the race reply | §5 — E14-S04's client retry cannot execute until it is there, in all three tiers |
+| 2 | Put `extensions.code` on the wire for the race reply | §5 — the grace-window branch's client retry cannot execute until it is there, in all three tiers |
 | 3 | A boot smoke test per service (`/health` against a real `node`) | §8 — the gates cannot currently see a service that will not start |
 | 4 | Re-ask whether 20 mints/hour/family is right, after 1 | §7 — the budget is spent at double rate today |
 | 5 | Re-run §3 against a real network path when one exists | §6 — the only measurement that could justify lowering `GRACE_SECONDS` |

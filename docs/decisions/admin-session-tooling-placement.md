@@ -1,17 +1,19 @@
 # Where the session and key-custody resolvers live
 
-**Status: decided and implemented.** Decided 2026-08-13 while building E17; the resolvers ship in
-`marketplace-dev-admin-authenticated-resource` (port 4024). E17-S09 is the story that required this to be
-written down rather than left as the shape the code happens to have.
+**Status: decided and implemented.** Decided 2026-08-13 while building the admin session console; the
+resolvers ship in `marketplace-dev-admin-authenticated-resource` (port 4024). This record exists because
+that work needed to be written down rather than left as the shape the code happens to have.
 
 ## The question
 
-E16 and E17 add seven Admin-tier operations that are not domain data:
+Keygrip custody under a KEK
+(`docs/devprotocol/phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md`) and the admin
+session console add seven Admin-tier operations that are not domain data:
 
 | Operation | What it touches |
 |---|---|
-| `sessions(tier, accountId)` | E15's session index, in Redis, for a **different** tier |
-| `reuseEvents(tier, accountId)` | E14's revocation trail, in Redis |
+| `sessions(tier, accountId)` | the session index behind session revocation (`docs/devprotocol/phase5/SESSION_TERMINATION.md` §3.1), in Redis, for a **different** tier |
+| `reuseEvents(tier, accountId)` | the revocation trail from the token-handling audit (`docs/report/token-handling-security-audit.md`), in Redis |
 | `revokeSession(tier, accountId, id)` | another tier's live session keys |
 | `revokeAllSessions(tier, accountId)` | all of one account's session keys, and its index |
 | `keygripStatus` | the wrapped cookie-signing record at `<REDIS_KEY>keygrip` |
@@ -77,7 +79,8 @@ Revisit if **either** of these becomes true:
 1. **The environment-file risk is closed rather than mitigated** — that is, R04 is `Closed`: a wrong-but-
    populated value is refused at boot the way a wrong `KEYGRIP_KEK` already is, for every shared key rather
    than for that one. At that point a tenth deployable costs a port and a systemd unit, and the argument
-   above evaporates. E18's environment work is where that would come from.
+   above evaporates — that boot-time work belongs to the platform's quality gates (`docs/testing.md`;
+   `docs/devprotocol/phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md` §6), not to this decision.
 2. **Session administration stops being admin tooling** — if any of these operations is ever needed by an
    automated caller, on a schedule, or at a request rate that makes it worth isolating from the Admin panel's
    ordinary traffic. Today all seven are driven by one human on one screen during an incident, which is the

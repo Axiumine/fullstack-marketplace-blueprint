@@ -196,16 +196,15 @@ What that leaves standing:
   `admin._id` in `disabledBy`; a hand-run `deleteOne` still can, which is why the field stays an attribution
   rather than a foreign key.
 
-- **Built as `E20-S02`, `E20-S04`, `E20-S09` and `E20-S13`.** `E20-S02` moves `disabled`, `disabledBy` and
-  `disabledReason` as one on both collections, taking the actor from `ctx.state.user._id` and never from the
-  wire, with `validateDisabledReason` carrying the *required when this other argument is true* contract
-  graphql-js cannot express and the 1000-character cap the collection cannot enforce on a `binData`.
-  `E20-S04` is the read half: the pair is randomly encrypted, so it decrypts only in the service holding the
-  data key, on `shopOwnerById`'s projection and on the customers table row. `E20-S09` is the admin form — a
-  mandatory textarea with a counter, replacing a `window.confirm`, sending `null` when a suspension is lifted
-  so a sanction's text does not outlive the sanction. `E20-S13` is the anti-story: a lint rule in four
-  services bans the four `disabled*` **write** shapes on the ShopOwner and User tiers and bans no read,
-  scoped to `src/**` so the integration suites can still seed a suspension to prove it is refused.
+- **Built in four parts.** The write path moves `disabled`, `disabledBy` and `disabledReason` as one on both
+  collections, taking the actor from `ctx.state.user._id` and never from the wire, with `validateDisabledReason`
+  carrying the *required when this other argument is true* contract graphql-js cannot express and the
+  1000-character cap the collection cannot enforce on a `binData`. The read half: the pair is randomly encrypted, so it decrypts only in
+  the service holding the data key, on `shopOwnerById`'s projection and on the customers table row. The admin
+  form is a mandatory textarea with a counter, replacing a `window.confirm`, sending `null` when a suspension
+  is lifted so a sanction's text does not outlive the sanction. And a lint rule in four services bans the
+  four `disabled*` **write** shapes on the ShopOwner and User tiers and bans no read, scoped to `src/**` so
+  the integration suites can still seed a suspension to prove it is refused.
 
 ---
 

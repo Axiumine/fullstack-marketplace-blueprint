@@ -127,7 +127,10 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
 - Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is
   unenforced by construction — no test spans two repos, so drift between them is invisible until a manual
   fingerprint sweep.
-  ⚠️ **Amended 2026-08-13 (E18-S06).** The consequence stands; the first example no longer exists.
+  ⚠️ **Amended 2026-08-13**, once the required-environment-variable check absorbed the keygrip-key
+  removal (see [`docs/testing.md`](../../../testing.md) and
+  [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) §6).
+  The consequence stands; the first example no longer exists.
   `KEYGRIP_KEY_1`/`_2` are gone from every `env` template and every `REQUIRED_ENV_VARS` — the signing keys
   are one wrapped Redis record all holders read (**ADR-034**), a service that cannot unwrap it exits rather
   than binding a port, and `<REDIS_KEY>keygrip:holders` shows a per-service fingerprint, so that one value

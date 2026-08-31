@@ -37,8 +37,10 @@ access-token lifetime.
 Three further facts fix the shape of the question:
 
 - **`disabled` has a writer.** `funUserUpdateStatus` / `userUpdateStatus` on the Admin resource service
-  (E19-S03, built 2026-08-25) is the admin lever that did not exist when the customer account model was
-  written. Before it, this question could not arise.
+  (built 2026-08-25) is the admin lever that did not exist when the customer account model was written —
+  the same lever [ADR-049](./ADR-049-the-admin-tables-offer-the-four-account-states.md) sets out, alongside
+  its closure counterpart, as one of the two independent flags an admin can write. Before it, this question
+  could not arise.
 - **The window is real but short.** `accessTokenExpiry()` in `@axiumine/koa-utils` randomises the access
   token between 30 and ~91 minutes. That is how long after a suspension a customer can still reach
   `userDel`, and there is no route to it afterwards.

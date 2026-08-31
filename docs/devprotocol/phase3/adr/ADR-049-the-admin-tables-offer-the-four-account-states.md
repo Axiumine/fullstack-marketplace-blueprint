@@ -101,19 +101,18 @@ the index for the sort as well as for the match, and the sort becomes a blocking
 - **No migration, no new resolver, no new mutation.** All five indexes involved already lead with the pair
   the filter binds, and the tables read — the levers are the ones ADR-044 and ADR-048 already built.
 - **The counter above `/customers` disagrees with the table's `total` under all four filters**, as it
-  already did under one: it counts every account ever registered (E19 §6 question 2).
+  already did under one: it counts every account ever registered.
 - **A fifth state costs one entry in `ACCOUNT_FILTER`** — provided it is a state those leading fields can
   express. One that is not is a new index, not a new label.
-- **E19 §6 question 5 is answered by the build**: an admin arrives on *Active*, and a hidden account is
-  reached by naming its state rather than by being greyed in place — greying would mean fetching rows the
-  index cannot bound.
+- **The admin arrives on *Active*, and a hidden account is reached by naming its state** rather than by
+  being greyed in place — greying would mean fetching rows the index cannot bound.
 
-- **`E19-S06` trued up the documents this surface contradicted.** Four documents and one validator comment
-  said, correctly for the day they were written, that nothing reads `user` from the Admin tier. Each was
-  narrowed rather than deleted: `lib/schemas/user.js` now says the admin table reads no encrypted field, which
-  is why every personal field stays encrypted for exactly the reason it always was, and
-  [`phase5/CUSTOMER_ACCOUNT_ADDRESSES.md`](../../phase5/CUSTOMER_ACCOUNT_ADDRESSES.md) §6 — whose closing
-  paragraph is where the epic came from — says the lever is built and names the mutation.
+- **Building the admin customers table trued up the documents it contradicted.** Four documents and one
+  validator comment said, correctly for the day they were written, that nothing reads `user` from the Admin
+  tier. Each was narrowed rather than deleted: `lib/schemas/user.js` now says the admin table reads no
+  encrypted field, which is why every personal field stays encrypted for exactly the reason it always was,
+  and [`phase5/CUSTOMER_ACCOUNT_ADDRESSES.md`](../../phase5/CUSTOMER_ACCOUNT_ADDRESSES.md) §6 says the lever
+  is built and names the mutation.
 
 ---
 

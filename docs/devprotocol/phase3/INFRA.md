@@ -333,7 +333,9 @@ above is universal).
 ⚠️ **`KEYGRIP_KEK` is in 6 of the 9 lists, not all 9** — the four `*-authorization` services and
 `marketplace-dev-authenticated-logout`, i.e. exactly the services that mint or verify the refresh cookie,
 **plus `marketplace-dev-admin-authenticated-resource`**, which signs nothing and holds the KEK only so
-`keygripRotate` can open the record and reseal what it writes back (ADR-034, E01-S13). The other three
+`keygripRotate` can open the record and reseal what it writes back (ADR-034, built as "An admin rotates
+the signing key, and no service restarts" in [`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md)
+§4). The other three
 `*-resource` services authenticate over an `Authorization: Bearer` header checked against Redis, sign no
 cookie, and carry no keygrip variable in `REQUIRED_ENV_VARS` nor in their `env` template. Do not add one
 back to them: it puts the wrapping key on a service that has nothing to wrap.
@@ -351,11 +353,13 @@ back to them: it puts the wrapping key on a service that has nothing to wrap.
 | `marketplace-dev-user-authenticated-resource` | ❌ | |
 
 ⚠️ **The `KEYGRIP_KEY_1`/`KEYGRIP_KEY_2` pair this table used to list is gone from the code** (ADR-034,
-E01-S12). One value per service instead of two, and the keys themselves live in a wrapped record in Redis
-that a service must be able to unwrap before it will bind a port. The five signing services and the
-rotating one refuse to boot without the KEK; the ✅ rows above are therefore verifiable by starting a
-service, which the pair never was. E01-S15 takes the old names out of the `env` templates and the
-remaining prose.
+built as "The Keygrip pair leaves five `.env` files for one wrapped record in Redis" in
+[`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md) §4). One value per service instead of two, and
+the keys themselves live in a wrapped record in Redis that a service must be able to unwrap before it will
+bind a port. The five signing services and the rotating one refuse to boot without the KEK; the ✅ rows
+above are therefore verifiable by starting a service, which the pair never was. "`KEYGRIP_KEY_1`/`_2` are
+gone, and the documents stop describing five files" (same record, §4) takes the old names out of the `env`
+templates and the remaining prose.
 
 Two classes of variable and how they were found to disagree, 2026-08-07 audit:
 
@@ -367,9 +371,10 @@ Two classes of variable and how they were found to disagree, 2026-08-07 audit:
     one entry here that is **enforced**. They were the pair between `marketplace-dev-public-authorization`
     (signs the customer refresh cookie at `loginUser`) and each `*-authenticated-authorization` service
     (verifies it), and a mismatch returned 401 on every customer refresh while both repos' own suites
-    stayed green, because each one signs and verifies with itself. **Closed by ADR-034 / E01-S12**: the
-    keys are one shared record, a service whose `KEYGRIP_KEK` cannot open it refuses to boot, and neither
-    variable is in any `env` template.
+    stayed green, because each one signs and verifies with itself. **Closed by ADR-034**, built as "The
+    Keygrip pair leaves five `.env` files for one wrapped record in Redis" ([`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md)
+    §4): the keys are one shared record, a service whose `KEYGRIP_KEK` cannot open it refuses to boot, and
+    neither variable is in any `env` template.
   - `INTROSPECTION_CODE` across all 9 services — the service-to-service bypass header (§5.3 of
     `SYSTEM_CONTEXT.md`) breaks in both directions if it disagrees anywhere.
   - `REDIS_KEY` — must be the **same literal** across all 9 by design (§CON-04,
@@ -617,7 +622,7 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 |---|---|---|
 | 1 | Where do the 16 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
 | 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | No forge today means no pipeline can exist today — sequencing depends on question 1. |
-| 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | **Answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)** — one application host carries nginx and all twelve processes; **Cloudflare** sits in front, and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); the ports are closed by a **cloud security group**, default-deny inbound, opening 443 (and 80 for the redirect) from Cloudflare's ranges alone. The security-relevant half is therefore answered too: `INTROSPECTION_CODE` is still honoured wherever a service port is reachable, and no port is reachable from outside that host. ⚠️ The `NODE_ENV` allowlist that gates the bypass (E13-S11) is **not** relaxed by this — ADR-039 §5 keeps it unconditional. |
+| 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | **Answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)** — one application host carries nginx and all twelve processes; **Cloudflare** sits in front, and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); the ports are closed by a **cloud security group**, default-deny inbound, opening 443 (and 80 for the redirect) from Cloudflare's ranges alone. The security-relevant half is therefore answered too: `INTROSPECTION_CODE` is still honoured wherever a service port is reachable, and no port is reachable from outside that host. ⚠️ The `NODE_ENV` allowlist that gates the introspection bypass ([`SECURITY_AUTH.md`](./SECURITY_AUTH.md) §3.6) is **not** relaxed by this — ADR-039 §5 keeps it unconditional. |
 | 4 | Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost? | **Answered** — both do: `marketplace-nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |
 | 5 | What is the production MongoDB topology — single instance, replica set, sharded, and how is it sized? | **Placement answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)**: a replica set on a host of its own, on a private LAN segment reachable only from the application host, with inbound to `27017`-`27019` permitted from that host's security group and nowhere else. **Sizing, node count and failover stay open** — nothing in this tree specifies them, and the ADR does not either (**R39**). Dev topology (§2) remains a single unreplicated instance. ⚠️ The segment is *declared trusted*, and the dev `MONGODB_URI` ends `?ssl=false`; unlike Redis, nothing upstream stops `ssl=true` here. |
 | 6 | What is the production Redis cluster's node count, placement, and failover story? | **Placement answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)**: the cluster shares the datastore host with MongoDB, on the same private LAN segment, with `6379` reachable from the application host's security group alone. **Node count and failover stay open** (**R39**). Dev topology (§2) is 3 nodes reachable directly by hostname/port. ⚠️ **The leg is still cleartext, and since 2026-08-28 by deployment rather than by constraint** — `@axiumine/koa-utils@7.1.0` reads the cluster scheme from a `REDIS_TLS` flag instead of hardcoding `redis://`, and the ten dependent repos are on `^7.1.0`, but no `env` sets the flag and no Redis here serves TLS, so session hashes, session keys and the `AUTH` still cross that segment in the clear; the declared trust bounds who can be on it and encrypts nothing (**R45**, re-scored 🟢 Low and left open). The flag is deliberately **not** in any `REQUIRED_ENV_VARS`: `checkRequiredEnv` rejects an empty value, and an unset `REDIS_TLS` is the documented off state. |

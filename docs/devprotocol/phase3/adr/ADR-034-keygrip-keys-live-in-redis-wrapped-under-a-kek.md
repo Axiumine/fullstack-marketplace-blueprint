@@ -211,7 +211,7 @@ written.
   `KEYGRIP_KEK` is a GCM tag mismatch at boot, not a 401 storm in the customer's browser.
 - **No fifth DEK, and no prose correction owed.** Signing keys in Redis are not a CSFLE field on a Mongo
   document, so the four data encryption keys `fieldEncryption.mts:78` and `:105-109` describe stayed four
-  and that prose stayed right. The superseded design (E16-S01) required a fifth DEK *and* a sweep
+  and that prose stayed right. The superseded CSFLE-based design required a fifth DEK *and* a sweep
   correcting every "four data encryption keys" in the tree; neither ever
   became owed, and that absence is the clearest single marker of the mechanism swap. ⚠️ Do not "correct"
   that prose to five.
@@ -300,8 +300,8 @@ and demoted on day 7 signed cookies that live until day 37; its own age passed t
 next rotation after that dropped it. The customer logged out is one holding a **remembered** session that
 was idle across the whole window — an active session re-signs itself on any request, because `cookies`
 re-signs on a later-index match, so only the idle ones were exposed. Rotating less often than once every
-thirty days hid the defect entirely, and this platform had performed exactly one rotation, under E16-S09,
-against an isolated namespace.
+thirty days hid the defect entirely, and this platform had performed exactly one rotation, against an
+isolated namespace.
 
 ### The rule now
 
@@ -315,8 +315,9 @@ needs; early logs a customer out. The error is on the side that costs a byte.
 
 ### Why thirty, and not the ninety `REFRESH_TOKEN_EXPIRY` allows
 
-The figure is `SESSION_CAP_DAYS_REMEMBERED`, decided 2026-08-10 alongside the one-day default (E14-S05),
-because this window must cover the longest session anyone can hold rather than the common one. The question
+The figure is `SESSION_CAP_DAYS_REMEMBERED`, decided 2026-08-10 alongside the one-day default
+(`docs/architecture.md`'s auth model, `SESSION_CAP_DAYS_DEFAULT`), because this window must cover the
+longest session anyone can hold rather than the common one. The question
 that produced it asked how long a demoted key stays `verifiable`; **`verifiable` is not a state** — the
 shipped lifecycle is a position in an ordered array — so it reads as *how long does a key stay in the array
 after it stops being index 0*.
@@ -343,4 +344,4 @@ can only verify cookies that are already alive, and those expire on their own.
   keys, or retire one **demoted** less than `SESSION_CAP_DAYS_REMEMBERED` ago.
 - `keygripStatus` still reports `ageDays` from `createdAt`, which is what an admin asked for and is
   still true — it is simply no longer the retirement predicate. Rendering the demotion age is
-  **E17-S08**'s call, not this amendment's.
+  the admin session console's call, not this amendment's.

@@ -1,10 +1,10 @@
-# E09 — Platform Operations & Quality Gates
+# Platform Operations & Quality Gates
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
 **Version:** 1.10
 **Date:** 2026-08-30
-**Author:** epics-agent
+**Author:** records-agent
 **Bounded context:** BC-09 — Platform Operations & Quality Gates
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
 v1.10 - 2026-08-30: **§5's `deploy-local.sh` precondition and §6's closing note are both overtaken by
@@ -16,150 +16,46 @@ script *does not go away* — is struck in place with a pointer, since it is the
 ruling reverses. The question itself stays closed and ADR-037 still owns it. No gate, no story and no open
 question changed.
 v1.9 - 2026-08-28, later the same day: **§6 gains its first live question in this record's history.**
-Epic E17's and E18's own record files were both deleted and their records distributed, the
-E11/E13/E14/E15/E16 way. E18's §6 question 3 read as answered and was, but its final sentence carried a
-residual that is genuinely open and lived nowhere else: nobody owns a newly-red advisory under a pinned
+When the records for the admin session console and for the quality gates themselves were both retired,
+question 3 in the latter's own §6 read as answered, and was — but its final sentence carried a residual
+that is genuinely open and lived nowhere else: nobody owns a newly-red advisory under a pinned
 `trivy` image whose database is not pinned, and nobody owns the first `.trivyignore` line. It is MC-12's
 gap, MC-12 is this document's, so the question moves here rather than into another record. What the audit
 found held nowhere else otherwise went to `docs/testing.md`, the rest carried by the stories themselves.
-The count in §0 stays eleven — no new record joined it, and every story id survives. Nothing else about
-this record's content, build state or story ids changed.
-v1.8 - 2026-08-28, later the same day: Epic E15's own record file was deleted and distributed, the E11 /
-E13 / E14 way, no twelfth record written.
-**This file received content, not just a citation removed:** new **§3.1** records `credentialWriteRevokes.test.mts`
-— the per-repo enumeration gate E15-S06 added, which reads a service's own mutation sources and fails when a
-password or login-email write ships without `revokeAllSessionsForAccount` — and the reason its assertion is a
-substring match: Stryker rewrites string literals into ternaries, so an adjacency regex over source text
-fails in the dry run before any mutant is scored. E15's §6 was **not** empty like E14's; its surviving
-Product question moved to `IDENTITY_ACCESS.md` §6. E15 keeps its id and all ten story ids. Nothing about
-BC-09's own build state changed.
-v1.7 - 2026-08-28, later still: Epic E14's own record file was deleted and its record distributed
-rather than moved, the E11 / E13 way and not E12's: all nine of its stories are `built` and its §6 read
-"None open." An audit of the file found only nine facts held nowhere else. The count of eleven records
-in §0 is unchanged — no twelfth was written. E14 keeps its id and all nine story ids. Its
-knowledge went to [`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4, [`architecture.md`](../../architecture.md),
-[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52, [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md),
-the `E17` stories themselves and [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md)
-§3.4, the rest carried by the stories themselves. The two defects E14-S09 found stay open in
-[`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9. Nothing else
-about BC-09 changes.
-v1.6 - 2026-08-28: Epic E13's own record file was deleted with no replacement record of its own, the E11 way and not E12's: all eleven of its stories are `built` and its §6 read "None open." Its knowledge was distributed to [`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md) §6.1, the rest carried by the stories themselves. The count of eleven records in §0 is unchanged — no twelfth was written. E13 keeps its id and all eleven story ids. Nothing else about BC-09 changes.
-v1.5 - 2026-08-27, later still: Epic E12's own record file was deleted and its record moved into [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md), the eleventh to move and the first from the E12-E18 remediation block. Moved intact, the E01..E10 way, not distributed like E11: all twenty-six of its stories are `built`. The count in §0 is corrected with it — eleven records are now documents of their own in `phase5/`, not ten. E12 keeps every story id. Nothing about this record's own content or build state changed.
-v1.1 - 2026-08-25: E09-S06's first acceptance criterion said the ShopOwner and public tiers "never write"
+v1.8 - 2026-08-28, later the same day: **This file received content, not just a citation removed:** new
+**§3.1** records `credentialWriteRevokes.test.mts` — the per-repo enumeration gate added for revoking
+sessions on a credential write (see [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1), which reads
+a service's own mutation sources and fails when a password or login-email write ships without
+`revokeAllSessionsForAccount` — and the reason its assertion is a substring match: Stryker rewrites string
+literals into ternaries, so an adjacency regex over source text fails in the dry run before any mutant is
+scored. Nothing about BC-09's own build state changed.
+v1.1 - 2026-08-25: The first acceptance criterion for the story "`itemCategory` depth cap lives in the
+resolver, and writes exist only on the Admin tier" said the ShopOwner and public tiers "never write"
 `itemCategory`. The public tier still does not; the ShopOwner tier does, in one field, since
 `holdItemCategory` landed. The criterion now states the claim that actually holds — no `itemCategory`
 mutation outside the Admin resource service — and names the exception so a future grep does not read it as
 a regression. The story stays `built`: what it was written to protect, the depth cap having exactly one
 enforcement point, is untouched.
-v1.2 - 2026-08-26: §6's first open question removed as a duplicate, not closed as answered here. It restated `phase1/NFR.md` open question 1, which owns it; that question was closed 2026-08-26 when the platform owner decided GDPR is in scope, and the six unimplemented obligations continue as NFR.md open question 6. This context still owns no compliance decision, so a pointer replaces the restatement — the same treatment E08's duplicate got before that epic became a document of its own in `phase5/`. §6's second question, who owns publishing `marketplace-common` past `deploy-local.sh`, is untouched and still live, so this record had not yet become a document of its own in `phase5/`.
-v1.3 - 2026-08-26, later the same day: **that second question closed, and the file moved into `phase5/` to become
-this record**, for the reason §0 gives. The platform owner answered it directly — he owns
-`marketplace-common` and every other repo here, this platform is a blueprint published for the community,
-and `@axiumine/marketplace-common` goes to npmjs with him as the only publisher. That is
+v1.2 - 2026-08-26: §6's first open question removed as a duplicate, not closed as answered here. It
+restated `phase1/NFR.md` open question 1, which owns it; that question was closed 2026-08-26 when the
+platform owner decided GDPR is in scope, and the six unimplemented obligations continue as NFR.md open
+question 6. This context still owns no compliance decision, so a pointer replaces the restatement — the
+same treatment [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md)'s duplicate got. §6's
+second question, who owns publishing `marketplace-common` past `deploy-local.sh`, is untouched and still
+live.
+v1.3 - 2026-08-26, later the same day: **that second question closed.** The platform owner answered it
+directly — he owns `marketplace-common` and every other repo here, this platform is a blueprint published
+for the community, and `@axiumine/marketplace-common` goes to npmjs with him as the only publisher. That is
 [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes
 [`ADR-015`](../phase3/adr/ADR-015-common-consumed-by-package-name-unpublished.md) **in part** — the
 publication half only. ⚠️ **The question was also citing the wrong gap.** It pointed at `ADR-INDEX.md` §5's
 *"where the sixteen repos get published, and under which org"*, which is about **git hosting**, not the npm
 registry; the npm question had always been ADR-015 §Risks' own revisit trigger. §6 now cites what actually
-owned it, and §5's bullet gained a clause saying ADR-037 does not close it. No story changed, no ID moved,
-nothing was dropped — only the file's own relative links, which now resolve from `phase5/` rather than from
-the epics directory, and one that was already wrong before the move: §3's schema-builder `README.md` pointed at
-the workspace root's README rather than at `BEs/marketplace-db-setup/lib/schemas/README.md`, which is the
-file the sentence around it is listing.
-v1.4 - 2026-08-27: Epic E11's own record file was deleted with no replacement record of its own,
-unlike the ten epics named beside it here. Its knowledge was distributed to
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27 instead. §5's
-"E01-E08, E11" dependency list is untouched — it names epic ids, not files, and E11 still holds one. Nothing
-else about BC-09 changes.
+owned it, and §5's bullet gained a clause saying ADR-037 does not close it. Also fixed on this pass: §3's
+schema-builder `README.md` link, previously pointing at the workspace root's README, now points at
+`BEs/marketplace-db-setup/lib/schemas/README.md`, the file the surrounding sentence is listing.
 
-## 0. Why this record is not an epic file
-
-This record moved out of the epics directory on 2026-08-26, the ninth to move for the reason
-[`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
-[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
-[`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
-[`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md),
-[`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md),
-[`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) and
-[`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md) moved before it: nothing in it is work
-still ahead. All nine stories are `built` and §6 has no live question left — the first was a duplicate and
-became a pointer on 2026-08-26, the second closed the same day by the owner's decision that ADR-037 records.
-E01..E10 and E12 are the eleven whose records are documents of their own in `phase5/` — E10's is
-[`SHARED_KERNEL.md`](./SHARED_KERNEL.md), moved 2026-08-27. E11's is beside neither list: it had no record
-of its own to move, its knowledge distributed instead into
-[`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27.
-
-**The story IDs did not change.** `E09-S01` … `E09-S09` keep their names.
-
-⚠️ **This is the first record to move on a decision that also supersedes an ADR.** The eight before it moved
-when their last question was answered inside phase 5 or handed to the document that owned it. This one moved
-because a phase-3 architectural decision was taken, so the closure lives in
-[`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md) and §6 points at it rather than
-restating it — the same discipline §6's first bullet already follows for `NFR-CO02`.
-
-⚠️ **2026-08-27, later the same day.** Epic E12's own record file was deleted and its record moved
-beside this one to [`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) — the **eleventh**
-record to make that move, and the first from the E12-E18 remediation block, so the pattern is no longer
-about the ten bounded-context epics alone. E12 lost its file, not its id: `E12-S01` … `E12-S26` are cited
-from 87 source files across all fifteen sub-repos and resolve to sections of that record.
-
-⚠️ **2026-08-28.** Epic E13's own record file was deleted and its record **distributed, not moved**
-— the E11 way, not E12's: all eleven of its stories are `built` and its §6 read "None open." No twelfth
-record was written, so the count stays at eleven. E13 kept its id, and all eleven story
-ids — `E13-S01` … `E13-S11` — are untouched; only the file is gone. Its knowledge went to
-[`SECURITY_AUTH.md`](../phase3/SECURITY_AUTH.md) §3.6 (the six `INTROSPECTION_CODE` comparison sites, named
-with file and line) and [`dependency-tree-advisory-scan.md`](../../report/dependency-tree-advisory-scan.md)
-§6.1 (the seventh site, upstream in `@axiumine/koa-utils`) — the landing order, its two `BGREWRITEAOF`
-passes, and the "step four is the clock, not step one" rule are carried by the stories themselves.
-
-⚠️ **2026-08-28.** Epic E14's own record file was deleted and its record **distributed, not moved**
-— the E11 / E13 way, not E12's: all nine of its stories are `built` and its §6 read "None open. Every
-decision this epic made is carried by the story that implements it, with its reasoning — this section holds
-only what is still undecided." An audit of the whole file found only nine facts held nowhere else. No
-twelfth record was written, so the count stays at eleven (E01..E10 and E12). E14 kept
-its id, and all nine story ids — `E14-S01` … `E14-S09` — are untouched and are cited from source files
-across the workspace; only the file is gone. The seven-step landing order, and "land E13-S01 **and**
-E13-S02 first," are carried by the stories themselves. The rest of its knowledge went to
-[`ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §4 (the two rejected alternatives: the tier-keyed privilege
-gradient for the session cap, and the cached-successor-pair grace design),
-[`architecture.md`](../../architecture.md) (the abandoned `// if remember me, generate ?` cookie-side
-comment in koa-utils' `setLoginCookies`, which E14-S07 explicitly does not revive),
-[`RISK_REGISTER.md`](./RISK_REGISTER.md) R52 ("two windows, not one"),
-[`TELEMETRY_EGRESS_HARDENING.md`](./TELEMETRY_EGRESS_HARDENING.md) (the Cloudflare rate-limiting-rules
-alternative to `limit_req_zone`) and the `E17` stories themselves (why E17 depends on E14 for `familyId`
-and can never key a session by a token value instead). One further fact is E14-S06's own accepted
-cross-service-harness residual, recorded in
-[`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4. The two defects
-E14-S09 found stay open, both explicitly outside E14's scope, both still live in the working tree, and stay
-recorded in [`multi-tab-refresh-behaviour.md`](../../report/multi-tab-refresh-behaviour.md) §4, §5 and §9 —
-that report is not deleted.
-
-⚠️ **2026-08-28, later the same day.** Epic E15's own record file was deleted and its record
-**distributed, not moved** — the E11 / E13 / E14 way: all ten of its stories are `built`, and no twelfth
-record was written, so the count stays at eleven. Unlike E14's, **E15's §6 was not empty** — one
-Product question survived and moved to [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md) §6. ⚠️ **This record
-received one of E15's nine facts** rather than only losing a citation: §3.1 above is new, and records the
-per-repo `credentialWriteRevokes.test.mts` gate and why its assertion is a substring match rather than an
-adjacency regex. E15 kept its id and all ten story ids.
-
-⚠️ **2026-08-28, later the same day.** Epic E17's and E18's own record files were **both** deleted
-and their records **distributed, not moved**, the E11 / E13 / E14 / E15 / E16 way — the last two epic record
-files in the directory. Both qualified on the same test, *what a record still has to do*: E17's nine stories
-and E18's thirteen are all `built`, and both §6s are fully closed — E18's three on 2026-08-13, E17's fifth
-and last earlier the same day as this deletion, in the record before the code. An audit of the two files,
-1 255 lines together, found almost everything already verbatim in the source docblocks the epics themselves
-caused to be written and in the reports they produced. What survived was the story ids written one by one,
-E17's five-step landing order, its two permanent scope refusals, and the reason it keys a session by
-`familyId` and can never key one by a token value; and, with a durable home, went to
-[`docs/testing.md`](../../testing.md) (E18-S09's generalised lesson — a file-and-line citation proves the
-line exists, not that the path reaches it — and the `REQUIRED_ENV_VARS` trap E18-S13 walked into), and to
-§6 below, which gains the one live open question either file still carried: nobody owns a newly-red advisory
-under a pinned `trivy` image whose advisory database is not pinned, and nobody owns the first `.trivyignore`
-line. **No twelfth record was written — that count stays eleven** (E01..E10 and E12).
-E17 and E18 kept their epic ids and every story id, `E17-S01` … `E17-S09` and `E18-S01` … `E18-S13`; only the
-two files are gone.
-
-## 1. Epic goal
+## 1. Goal
 
 Keep every other context honest at commit/push time: coverage, mutation score, lint, Qodana, and the
 immutable migration pipeline every context above builds its collections on. Produces no domain event —
@@ -196,19 +92,22 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
   `test/mongoUrl.test.mjs`, `test/encryption.test.mjs`, `test/migrationCalls.test.mjs` (confirmed
   present) — these are what let the 100% mutation threshold go in for db-setup.
 - Decision record: [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) (confirmed present) — the
-  ADR-006-equivalent this epic's AV01/AV02 stories trace to.
+  ADR-006-equivalent this context's AV01/AV02 stories trace to.
 - `.githooks/pre-commit` executability check for `qodana.sh`, confirmed at lines 237-251 (`for required
   in qodana.yaml qodana.sh; do` … `if [ ! -x "$APP_DIR/qodana.sh" ]`).
 
 ### 3.1 `credentialWriteRevokes.test.mts` — an enumeration test, and the Stryker trap in writing one
 
-E15-S06 (2026-08-13) added a gate that is not a coverage or mutation threshold and is easy to mistake for a
-convention: **each service that writes a credential carries its own `test/credentialWriteRevokes.test.mts`,
-which reads its sibling mutation sources and fails when one of them writes a password or a login email
-without calling `revokeAllSessionsForAccount`.** It is a *per-repo* file by necessity — there is no
-cross-repo harness in these sixteen repos (the same residual E14-S06 accepted) — so adding the file to a
-service is part of giving that service a credential write, and E15-S10 did exactly that for
-`marketplace-dev-public-resource`.
+On 2026-08-13, the work that made a credential write revoke every session (see
+[`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md) §3.1) added a gate that is not a coverage or mutation
+threshold and is easy to mistake for a convention: **each service that writes a credential carries its own
+`test/credentialWriteRevokes.test.mts`, which reads its sibling mutation sources and fails when one of them
+writes a password or a login email without calling `revokeAllSessionsForAccount`.** It is a *per-repo* file
+by necessity — there is no cross-repo harness in these sixteen repos (the same residual accepted by the
+token-handling work, see
+[`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4) — so adding the
+file to a service is part of giving that service a credential write, and `marketplace-dev-public-resource`
+got exactly that when it gained its own credential write.
 
 ⚠️ **The assertion matches by substring, not by adjacency, and that is a fix rather than laziness.** The
 obvious form — a regex demanding the revoke call within N lines of the write — dies in Stryker's dry run:
@@ -221,7 +120,7 @@ run to break first, not the assertion to get stronger.
 
 ## 4. Stories
 
-### E09-S01 — 100% coverage on all four metrics gates every push, in all 15 packages   `built`
+### 100% coverage on all four metrics gates every push, in all 15 packages   `built`
 Technical story: statements/branches/functions/lines all-or-nothing, no partial-credit threshold.
 **domains:** testing, backend, frontend
 **Acceptance criteria:**
@@ -232,7 +131,7 @@ Technical story: statements/branches/functions/lines all-or-nothing, no partial-
 - `.githooks/pre-push` runs `test:cov` before mutation and Qodana in every repo — grep
   `.githooks/pre-push` in any sub-repo for the ordered step list.
 
-### E09-S02 — 100 Stryker mutation score gates every push, in all 15 packages   `built`
+### 100 Stryker mutation score gates every push, in all 15 packages   `built`
 Technical story: coverage proves a line ran, mutation proves a wrong line would fail a test — both required.
 **domains:** testing, backend, frontend
 **Acceptance criteria:**
@@ -242,7 +141,7 @@ Technical story: coverage proves a line ran, mutation proves a wrong line would 
   silenced with `// Stryker disable <Mutator>` plus a reason, never with `ignoreStatic` or a lowered
   `thresholds.break` (BCON-02).
 
-### E09-S03 — `marketplace-services-status` gate now actually runs, closing a silent-pass hole   `built`
+### `marketplace-services-status` gate now actually runs, closing a silent-pass hole   `built`
 **As a** platform admin, **when** `marketplace-services-status` changes, **I want** its coverage/mutation/Qodana
 gates to run from the parent's own hooks **so that** a change to code with no repo of its own is not
 merged unverified.
@@ -254,7 +153,7 @@ merged unverified.
   block with the fixing command (`chmod +x` + `git update-index --chmod=+x`) rather than silently
   reporting "Qodana failed" against a SARIF that was never created. Traces NFR-MA03, NFR-MA04.
 
-### E09-S04 — Executability is checked separately from existence for every hook-invoked script   `built`
+### Executability is checked separately from existence for every hook-invoked script   `built`
 Technical story: a `100644` mode dies with `Permission denied` before reaching the tool, and both old
 hooks reported that identically to "Qodana failed" with no results directory — this is the fix.
 **domains:** infra, testing
@@ -265,7 +164,7 @@ hooks reported that identically to "Qodana failed" with no results directory —
 - Same two-branch check exists in `.githooks/pre-push` for every sub-repo's `qodana.sh` — grep any
   sub-repo's `pre-push` for the `-x` test before citing this as fixed platform-wide.
 
-### E09-S05 — Migrations are immutable; a shape change is a new migration, never an edit   `built`
+### Migrations are immutable; a shape change is a new migration, never an edit   `built`
 Technical story: the one deliberate exception (2026-08-04 rename) is recorded, not a precedent.
 **domains:** database
 **Acceptance criteria:**
@@ -277,7 +176,7 @@ Technical story: the one deliberate exception (2026-08-04 rename) is recorded, n
   dropped by its own `globalSetup`) — no story here marks a schema edit "done" without that rebuild step
   named.
 
-### E09-S06 — `itemCategory` depth cap lives in the resolver, and writes exist only on the Admin tier   `built`
+### `itemCategory` depth cap lives in the resolver, and writes exist only on the Admin tier   `built`
 Technical story: a `$jsonSchema` cannot read another document, so "my parent has no parent" cannot be
 expressed at the database layer — the resolver is the only place this invariant can hold.
 **domains:** backend, database
@@ -294,7 +193,7 @@ expressed at the database layer — the resolver is the only place this invarian
 - A parent argument that is itself a subcategory (has its own `idParent`) is rejected before the write —
   cite the resolver's own rejection branch, not the collection validator, when marking this built.
 
-### E09-S07 — The three `*-authenticated-authorization` services stay three deployables, never merge   `built`
+### The three `*-authenticated-authorization` services stay three deployables, never merge   `built`
 Technical story: decided against 2026-08-07, re-opening needs a fresh change request, not a refactor PR.
 **domains:** backend, infra
 **Acceptance criteria:**
@@ -305,7 +204,7 @@ Technical story: decided against 2026-08-07, re-opening needs a fresh change req
   tier value is a rejected design per this file, not an open option (BCON-06 territory — do not silently
   override a higher-ranked decision).
 
-### E09-S08 — Logout stays the one shared, tier-blind service   `built`
+### Logout stays the one shared, tier-blind service   `built`
 Technical story: safe specifically because it never re-reads a tier-specific collection.
 **domains:** backend
 **Acceptance criteria:**
@@ -314,7 +213,7 @@ Technical story: safe specifically because it never re-reads a tier-specific col
 - All three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) point their
   logout call at port 4030 — traces NFR-AV02.
 
-### E09-S09 — `engines.node` is `^24.18.0` in every repo with a `package.json`, hard-gated   `built`
+### `engines.node` is `^24.18.0` in every repo with a `package.json`, hard-gated   `built`
 Technical story: a mismatch is `exit 1` under yarn classic, not a warning, and `pre-push` selects the
 pinned node via nvm before the first gate runs.
 **domains:** infra, testing
@@ -326,9 +225,17 @@ pinned node via nvm before the first gate runs.
 
 ## 5. Dependencies
 
-- Every other epic (E01-E08, E11) depends on this one landing first in the sense that its gates are what
-  make any of their "built" claims verifiable — but this context ships nothing new to any of them; it is
-  infrastructure, not a feature they consume at runtime.
+- Every other record — [`IDENTITY_ACCESS.md`](./IDENTITY_ACCESS.md),
+  [`SESSION_TERMINATION.md`](./SESSION_TERMINATION.md),
+  [`SHOPOWNER_ONBOARDING_APPROVAL.md`](./SHOPOWNER_ONBOARDING_APPROVAL.md),
+  [`COMPANY_LEGAL_ENTITY.md`](./COMPANY_LEGAL_ENTITY.md), [`CATALOGUE.md`](./CATALOGUE.md),
+  [`CATEGORY_TAXONOMY.md`](./CATEGORY_TAXONOMY.md),
+  [`CUSTOMER_ACCOUNT_ADDRESSES.md`](./CUSTOMER_ACCOUNT_ADDRESSES.md) and
+  [`PUBLIC_DISCOVERY_STOREFRONT.md`](./PUBLIC_DISCOVERY_STOREFRONT.md), plus the permanently-out-of-scope
+  commerce boundary that
+  [`ADR-038`](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) records — depends on this one
+  landing first in the sense that its gates are what make any of their "built" claims verifiable — but this
+  context ships nothing new to any of them; it is infrastructure, not a feature they consume at runtime.
 - `BEs/marketplace-common`'s own gate (coverage + mutation + `test:contract`) is a precondition for the
   **release** that carries an edit to a consumer — it is what `git push --follow-tags` runs before
   `yarn upload` can happen at all. BCON-07 still applies with the same teeth: a green gate in common is not
@@ -339,8 +246,7 @@ pinned node via nvm before the first gate runs.
 
 ## 6. Open questions
 
-**One live, added 2026-08-28**, and two closed or owned elsewhere. This record is a document of its own
-in `phase5/` — see §0.
+**One live, added 2026-08-28**, and two closed or owned elsewhere.
 
 - **OPEN — Platform owner. Who reviews a newly-red advisory under a pinned scanner image, and who decides
   a `.trivyignore` line?** MC-12's gate is `trivy fs` in `aquasec/trivy:0.70.0`, HIGH and CRITICAL,
@@ -350,13 +256,13 @@ in `phase5/` — see §0.
   fires only for whoever is pushing, and the answer available at that moment is either fix the tree or
   `--no-verify`. The second half is the same gap one step further on — **there is no `.trivyignore`
   anywhere in the workspace**, so the first one written will set the precedent for who may suppress an
-  advisory and on what evidence, with nothing to inherit. ⚠️ **This is the residual of E18's own open
-  question 3, not a re-opening of it.** That question asked who owns the scan and whether it runs in CI;
-  both halves are answered — it does not run in CI because there is no CI, and `trivy fs` replaced a
-  Qodana inspection that queried no advisory feed (E18-S04, E18-S11, `RISK_REGISTER.md` R21). What was
-  never answered is what happens *after* the gate is working. Recorded here on 2026-08-28 when
-  epic E18's own record file was deleted and its record distributed; this document owns BC-09 and MC-12,
-  so the question belongs to it rather than to another record.
+  advisory and on what evidence, with nothing to inherit. ⚠️ **This is the residual of question 3 in the
+  record for the quality gates themselves, not a re-opening of it.** That question asked who owns the scan
+  and whether it runs in CI; both halves are answered — it does not run in CI because there is no CI, and
+  `trivy fs` replaced a Qodana inspection that queried no advisory feed (see
+  [`docs/testing.md`](../../testing.md), `RISK_REGISTER.md` R21). What was never answered is what happens
+  *after* the gate is working. Recorded here on 2026-08-28: MC-12 is this document's gate, so the question
+  belongs to it rather than to another record.
 
 - `NFR-CO02` (GDPR applicability) — tracked at [`phase1/NFR.md`](../phase1/NFR.md) §Open questions.
   Not decided here: this context owns only the secret-handling layers under NFR-CO01/NFR-SE12. A pointer,

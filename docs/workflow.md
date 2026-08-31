@@ -208,7 +208,9 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
   `INTROSPECTION_CODE` or `REDIS_KEY` mismatch between two services fails at runtime while both repos'
   suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
   reading files.**
-  ✅ **The cookie-signing keys are the one pair this no longer applies to** — since E01-S12 they are not
+  ✅ **The cookie-signing keys are the one pair this no longer applies to** — since *"The Keygrip pair
+  leaves five `.env` files for one wrapped record in Redis"* in
+  [`devprotocol/phase5/IDENTITY_ACCESS.md`](./devprotocol/phase5/IDENTITY_ACCESS.md) §4, they are not
   in any `.env` at all. They live in one Redis record wrapped under `KEYGRIP_KEK` (ADR-034), and a
   service whose KEK cannot open that record **exits 1 at boot** with `KEYGRIP_KEK_MISMATCH` instead of
   signing cookies its siblings cannot verify. What is left to keep in step is the KEK itself, and getting

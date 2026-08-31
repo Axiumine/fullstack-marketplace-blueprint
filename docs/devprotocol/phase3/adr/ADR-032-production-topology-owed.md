@@ -9,8 +9,8 @@
 The platform owner answered the four questions §Decision lists as owed and declared the segment between the
 application host and the datastore host trusted, so *"nobody has written the topology down"* stops being true
 and ADR-039 owns that half. ⚠️ **The rule below is narrowed, not lifted.** Every mitigation written to hold
-with the port open still holds with it open — E13-S11's `NODE_ENV` allowlist and E14-S08's pre-lookup limiter
-are unchanged — and a boundary may be cited only as a second layer, only for the legs ADR-039 describes, and
+with the port open still holds with it open — the introspection bypass's `NODE_ENV` allowlist and the
+pre-lookup limiter on `refresh` are unchanged — and a boundary may be cited only as a second layer, only for the legs ADR-039 describes, and
 never as the whole argument. Anything outside those legs is still governed by this ADR as written. R46 closes
 there; **R45 does not** — it drops to 🟢 Low and stays open, because the traffic is still in the clear.
 
@@ -22,11 +22,11 @@ Three findings in [`docs/report/token-handling-security-audit.md`](../../../repo
 the three can be argued closed without an answer nobody has written down:
 
 - **`INTROSPECTION_CODE` is reachable wherever a service port is.** A caller holding the code and a
-  valid refresh-cookie signature gets a session-less authorized call. E13-S11 gated the bypass on a
-  `NODE_ENV` allowlist, so outside `development` and `test` the configured value is never even read —
+  valid refresh-cookie signature gets a session-less authorized call. A `NODE_ENV` allowlist gates the
+  bypass, so outside `development` and `test` the configured value is never even read —
   but "who can open a TCP connection to 4029" is still the question that sets its blast radius.
 - **`refresh` is floodable with distinct garbage tokens.** Each attempt is a Redis read and a signature
-  verification before anything rate-limitable happens. E14-S08 puts a limiter in front of the lookup;
+  verification before anything rate-limitable happens. A pre-lookup limiter sits in front of it;
   how much traffic can arrive at all is a network fact, not an application one.
 - **Redis traffic is unencrypted** (R45). Every request moves a session hash — `_id`, `email`, `tier` —
   across the wire in the clear, and this workspace cannot change it: koa-utils hardcodes `redis://` in
@@ -130,7 +130,8 @@ must be written here before it may be relied on anywhere.
   condition: any control whose argument contains "not reachable from outside" without citing a
   superseding ADR that says so.
 - **Risk:** the topology is written, and the three findings are not re-scored against it. Revisit
-  condition: this ADR being superseded — the superseding one must name R45, R46, E13-S11 and E14-S08.
+  condition: this ADR being superseded — the superseding one must name R45, R46, the introspection
+  bypass's `NODE_ENV` allowlist and the pre-lookup limiter on `refresh`.
 
 ---
 
