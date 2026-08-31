@@ -108,8 +108,6 @@ Opaque tokens + Redis sessions. **Not JWT** (ADR-003), despite a stale `JWT` typ
   which is ADR-034's amendment of 2026-08-28. Retirement removes one regardless of age, which is its
   purpose, and R47 records the window in which a not-yet-adopted service still honours it.
 - Access token: `Authorization: Bearer access:<token>` header, validated against Redis.
-- `x-introspectioncode` header (`INTROSPECTION_CODE`) bypasses the token check for service-to-service
-  calls. Treat as a secret; never log it, never expose it to a browser client.
 - `checkUserAuthorizationDisDel` in marketplace-common gates on `deleted` / `disabled`. `shopOwner`
   also has `waitApprov` (manual approval gate, `checkShopOwnerApproval` in marketplace-common — refused
   at login on 4028 and again on every refresh on 4029, so parking a shop owner ends a session already
@@ -249,17 +247,13 @@ themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Red
 
 ### Shared authorization body (ADR-006)
 
-The three `*-authenticated-authorization` services share their body and keep their ports. Since
-`marketplace-common@1.0.0` the session lookup, the account re-read and the token rotation are
-`resolveAuthorizationSession`, `findAccountForSession` and `refreshSessionTokens`; each service
-supplies only its own `TIER.*` constant, its own model and its own projection.
+The three `*-authenticated-authorization` services share their body and keep their ports. The session
+lookup, the account re-read and the token rotation are `resolveAuthorizationSession`,
+`findAccountForSession` and `refreshSessionTokens`; each service supplies only its own `TIER.*`
+constant, its own model and its own projection.
 
 - **Merging the three into one process is settled, against.** Do not re-open it as a refactor.
-- ⚠️ **`1.0.0` is a renumber, not a rewrite.** The package sat at `4.4.0` under a private scope
-  until it was renamed to `@axiumine/marketplace-common` and restarted at `1.0.0` for its first public
-  release. Same code, new name, new number — a `4.x` in an older note means this. Consumers declare
-  `^1.0.0`.
-- **`marketplace-common` now has a Koa/GraphQL-shaped surface**, consumed by three of the nine services
+- **`marketplace-common` has a Koa/GraphQL-shaped surface**, consumed by three of the nine services
   but deployed to all nine — an edit there is wider than it looks. `vitest.mutation.config.mts` must
   inline both `@axiumine/marketplace-common` and `@axiumine/koa-utils`, or a `vi.mock` of a
   koa-utils subpath silently stops intercepting.

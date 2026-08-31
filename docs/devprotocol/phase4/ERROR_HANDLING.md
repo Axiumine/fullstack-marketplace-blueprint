@@ -37,7 +37,7 @@ see `phase4/CONSTRAINTS.md` §6 and [ADR-038](../phase3/adr/ADR-038-commerce-is-
 | Generic error for anything that could leak account existence | Deleted, disabled, wrong password, unconfirmed email, unknown email all answer the identical `throwUnauthorizedError()` envelope on a login path. Copy this pattern verbatim on any new auth resolver — do not special-case one branch with a more specific message. |
 | A write that reports success must prove it changed something | `matchedCount`/`modifiedCount` (or driver equivalent) must be asserted before a mutation returns `true`. Absence of a thrown error is not proof of a write — `funUserAddressDel` shipped without this check and silently no-op'd. |
 | Fail closed at boot, never degrade silently | `checkRequiredEnv` throws and the process never starts if a required var is empty or absent. No default, no partial-service mode. |
-| Nothing secret ever reaches a GraphQL response body or a client-visible log line | `x-introspectioncode`, Keygrip keys, `MONGODB_URI`, stack traces, and whether a given email is registered are all on the never-emit list — see §7. |
+| Nothing secret ever reaches a GraphQL response body or a client-visible log line | Keygrip keys, `MONGODB_URI`, stack traces, and whether a given email is registered are all on the never-emit list — see §7. |
 | `additionalProperties: false` turns a bad write into a database-level rejection, not a silent drop | A write carrying an undeclared field is refused by the `$jsonSchema` validator and surfaces as a Mongo validation error (`[Validator]` prefix), translated to 400 — never accepted with the extra field dropped. DCON-02. |
 | Never lower a coverage/mutation threshold to make an error path easier to skip testing | ADR-016. A hard-to-test failure branch gets a test, not a lowered gate. |
 
@@ -97,7 +97,7 @@ export function checkRequiredEnv(env: NodeJS.ProcessEnv = process.env): void {
 `if (!env[envVar])` fails an **empty string** identically to an absent key — the one class this code
 catches; a wrong-but-present value (a copied-in value from an unrelated project) is invisible to it. This
 is exactly what happened on 2026-08-07 in both `*-user-authenticated-*` services: `MONGODB_URI` pointed at
-an unrelated database with no `authSource`, `INTROSPECTION_CODE` mismatched the other seven services, and
+an unrelated database with no `authSource`, and
 the cookie-signing keys mismatched the service that signs the cookie this one verifies — none of it
 tripped `checkRequiredEnv`, because every var was non-empty. No test on this platform spans two services
 (see platform [`docs/workflow.md`](../../workflow.md) §Environment files), so cross-repo value agreement is unenforced by construction; the fix
@@ -107,8 +107,8 @@ is a fingerprint sweep, not a stronger boot check.
 check after all** (ADR-034; *The Keygrip pair leaves five `.env` files for one wrapped record in Redis*,
 [`phase5/IDENTITY_ACCESS.md`](../phase5/IDENTITY_ACCESS.md) §4): the keys left the environment for a wrapped Redis record, so a
 service holding the wrong `KEYGRIP_KEK` fails to unwrap and `process.exit(1)`s instead of running. That
-generalises only where a value can be *proved* wrong at boot — `INTROSPECTION_CODE` and `MONGODB_URI`
-still cannot be, and for them the paragraph above stands unchanged.
+generalises only where a value can be *proved* wrong at boot — `MONGODB_URI`
+still cannot be, and for it the paragraph above stands unchanged.
 
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
@@ -143,7 +143,7 @@ Layer 2's generic-error rule below.
 
 | Error | When detected | Message pattern | Action |
 |---|---|---|---|
-| No `Authorization` header, no valid `x-introspectioncode` | `authorizationAuthenticatedResourceHandler.mts:28-37` | `throwPreconditionFailedNoAuthHeader()` → HTTP 412, title `Precondition Failed`, description `No authorization header.` | Client attaches a bearer token and retries. |
+| No `Authorization` header | `authorizationAuthenticatedResourceHandler.mts:26-32` | `throwPreconditionFailedNoAuthHeader()` → HTTP 412, title `Precondition Failed`, description `No authorization header.` | Client attaches a bearer token and retries. |
 | Header present but not `Bearer access:...` | same file, `:42-44` | `throwAccessTokenRequired()` → HTTP 499, title `Token Required` | Client is malformed; not a normal runtime path. |
 | Redis session absent/expired for the given access token | same file, `:46-62` | `throwAccessTokenExpiredOrDeleted()` → HTTP 498, title `Invalid Token` | **The one status that means "refresh and retry."** Frontend runs the refresh flow, not a re-login. |
 | Wrong password, unknown email, deleted, or disabled account on any login resolver | `tryLoginUser.mts`, and `login`/`loginAdmin` siblings | `throwUnauthorizedError()` → HTTP 401, generic text | Client shows a generic "invalid credentials"; never told which branch fired. See §2's generic-error rule. |
@@ -418,7 +418,6 @@ reminder:
 
 | Must never appear in a response body, log line visible to a client, or Sentry breadcrumb tagged user-facing | Where it would otherwise leak from |
 |---|---|
-| `x-introspectioncode` value | service-to-service bypass header, `authorizationAuthenticatedResourceHandler.mts:31` — must never be echoed, logged, or exposed to a browser client (platform [`docs/architecture.md`](../../architecture.md) §Auth model) |
 | `KEYGRIP_KEK` | unwraps the Redis record holding the refresh-cookie signing keys; a leak yields those keys, and a forged session cookie for any tier (ADR-034) |
 | Any Mongo connection string / `MONGODB_URI` | `throwMongoDBErrors` deliberately never forwards the driver's own error text for this reason — only `Error reported to Dev Team.` |
 | A raw stack trace | `throwInternalError()`'s description is a fixed string; the real error goes to `Sentry.captureException(e)` only |

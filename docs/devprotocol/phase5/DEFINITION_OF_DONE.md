@@ -75,7 +75,7 @@ document is that doctrine in checklist form.
   without this check and silently no-op'd (`phase4/ERROR_HANDLING.md` §2, "Layer 8").
 - [ ] `checkRequiredEnv` fails closed at boot on any empty/absent required var — no default, no
   partial-service mode (`phase4/ERROR_HANDLING.md` §2, §8).
-- [ ] No secret value (`KEYGRIP_KEK`, `REDIS_PASSWORD`, `INTROSPECTION_CODE`, `DSN`, `MONGODB_URI`,
+- [ ] No secret value (`KEYGRIP_KEK`, `REDIS_PASSWORD`, `DSN`, `MONGODB_URI`,
   `QODANA_TOKEN`, npm token, stack trace) ever reaches a GraphQL response body or a client-visible log line
   (`phase4/ERROR_HANDLING.md` §4, §8; `phase3/SECURITY_AUTH.md` §4).
 

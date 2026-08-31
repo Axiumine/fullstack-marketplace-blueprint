@@ -35,7 +35,7 @@ loop in `BEs/marketplace-db-setup/setup/mongodb.js:63-69`; dropping a database d
 Mongo keeps them in `admin.system.users` regardless of which db authenticated them.
 
 No test on this platform spans 2 services — every cross-repo value agreement (db names, but also
-`KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is therefore unenforced by construction. That is what let both
+`KEYGRIP_KEY_1/2`, `REDIS_KEY`) is therefore unenforced by construction. That is what let both
 `*-user-authenticated-*` services' `.env` files stay copies of an unrelated older project — 5
 `MONGO_TEST_*` keys empty (loud), 3 more populated and wrong (silent), and a mismatched `KEYGRIP` pair that
 broke every customer refresh while both repos' suites stayed green (`docs/workflow.md` §Environment files).
@@ -68,7 +68,7 @@ is the pattern that let the `*-user-authenticated-*` `.env` corruption ship: not
 itself, so nothing local caught it.
 
 What this decision does **not** cover, on purpose, because a single-repo `globalSetup` structurally cannot
-check it: agreement *between* repos (matching `INTROSPECTION_CODE` across all 9; matching cookie-signing
+check it: agreement *between* repos (matching `REDIS_KEY` across all 9; matching cookie-signing
 keys across the authorization services, until ADR-034 took that pair out of the environment entirely and
 made a wrong `KEYGRIP_KEK` a refused boot). That gap is real, already bit once, and its mitigation is the
 fingerprint sweep, not a per-repo assertion — recorded here so it is not re-discovered as a surprise.
@@ -98,7 +98,7 @@ fingerprint sweep, not a per-repo assertion — recorded here so it is not re-di
   stops it — `assertTestMongoDbNames` checks internal agreement, never global uniqueness. Revisit if
   `grep -h '^MONGO_TEST_DB=' BEs/**/env BEs/*/env` ever shows a duplicate value.
 - **Cross-repo secret/env agreement stays unenforced by construction**, same class as the KEYGRIP incident,
-  for any value this ADR's check does not reach (`INTROSPECTION_CODE`, `KEYGRIP_KEY_1/2`, `REDIS_PASSWORD`
+  for any value this ADR's check does not reach (`REDIS_KEY`, `KEYGRIP_KEY_1/2`, `REDIS_PASSWORD`
   pairing). Revisit if a second cross-repo drift incident happens — that would be the signal a scheduled
   fingerprint sweep needs to become a gate rather than a one-off audit.
   ⚠️ **Amended 2026-08-13.** `KEYGRIP_KEY_1/2` left this list by ceasing to exist: **ADR-034**
@@ -123,5 +123,5 @@ Verify cross-repo uniqueness by name, not by running anything:
 must return nothing. A violation on disk looks like: a repo's `env` template with `MONGO_TEST_DB`,
 `MONGO_TEST_AUTH_ADMIN` and the path segment of `MONGO_TEST_CONN_STRING` not all equal (the case the
 assertion throws on), or two repos' `env` templates sharing one `MONGO_TEST_DB` value (the case nothing
-throws on — grep is the only check). Cross-repo secret agreement (KEYGRIP, INTROSPECTION_CODE) is not
+throws on — grep is the only check). Cross-repo secret agreement (KEYGRIP, REDIS_PASSWORD) is not
 verified by any of the above — that requires the salted-hash fingerprint sweep described in [`docs/workflow.md`](../../../workflow.md) §Environment files, re-run by hand, not by a committed script as of this date.

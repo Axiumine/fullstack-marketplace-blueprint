@@ -39,10 +39,6 @@ The list is single-sourced in
 | AB-05 | a credential of the wrong shape is refused — a bad scheme, a broken signature |
 | AB-06 | a credential whose session is gone from Redis is refused |
 | AB-07 | a refresh token presented a second time is refused, and its family revoked with it |
-| AB-08 | a valid `x-introspectioncode` is accepted with no credential at all, and reads no session |
-| AB-09 | a wrong `x-introspectioncode` is refused |
-| AB-10 | no `x-introspectioncode` at all leaves the ordinary refusal exactly as it is |
-| AB-11 | a valid `x-introspectioncode` is refused outside the environment allowlist, indistinguishably from none |
 
 **How a service answers.** A `// AB-xx: <the case>` comment sits above the test that proves it, and
 `test/authBoundaryContract.test.mts` reads that service's own boundary suite and fails when a required tag
@@ -54,13 +50,13 @@ Stryker's way: Stryker instruments `src/`.
 
 | Service | Owes | Excused, and why |
 |---|---|---|
-| `marketplace-dev-authenticated-resource` | AB-01..06, 08..11 | AB-07 — reads an access session, mints nothing, so has no token to replay |
+| `marketplace-dev-authenticated-resource` | AB-01..06 | AB-07 — reads an access session, mints nothing, so has no token to replay |
 | `marketplace-dev-admin-authenticated-resource` | same | same |
 | `marketplace-dev-user-authenticated-resource` | same | same |
-| `marketplace-dev-authenticated-authorization` | all eleven | — |
-| `marketplace-dev-admin-authenticated-authorization` | all eleven | — |
-| `marketplace-dev-user-authenticated-authorization` | all eleven | — |
-| `marketplace-dev-authenticated-logout` | AB-01, 04, 05, 06, 08..11 | AB-02, AB-03 — the one service serving all three tiers (ADR-005): it finds a session by token content alone and asserts no tier. AB-07 — deletes the tokens it is given and mints none |
+| `marketplace-dev-authenticated-authorization` | all seven | — |
+| `marketplace-dev-admin-authenticated-authorization` | all seven | — |
+| `marketplace-dev-user-authenticated-authorization` | all seven | — |
+| `marketplace-dev-authenticated-logout` | AB-01, 04, 05, 06 | AB-02, AB-03 — the one service serving all three tiers (ADR-005): it finds a session by token content alone and asserts no tier. AB-07 — deletes the tokens it is given and mints none |
 
 The two public services are outside the contract: they authenticate nobody, so there is no boundary to
 refuse at. An exemption is a written sentence in `AUTH_BOUNDARY_SERVICES`, never an empty cell — the unit
@@ -95,7 +91,7 @@ script in the workspace root.
 | MC-06 | no network-derived value reaches an event, a span, a breadcrumb or a log line | `yarn test` · `yarn semgrep` | `marketplace-common/test/sentryBeforeSend.test.mts`; `marketplace-no-log-*` in each backend `semgrep/custom.yml`, `marketplace-fe-no-log-auth-token` in each app's |
 | MC-07 | a rate-limit bucket key digests its identity and no service can obtain a client address | `yarn test` · `./scripts/audit-check.sh` §3 | `redisKeyspace.test.mts`; `app.proxy` set nowhere |
 | MC-08 | the admin session console cannot print a token, a digest or a key prefix | `yarn test` | `marketplace-dev-admin-authenticated-resource/test/sessionNoLeak.test.mts` |
-| MC-09 | every authenticated service proves all eleven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
+| MC-09 | every authenticated service proves all seven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
 | MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
 | MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
@@ -166,8 +162,8 @@ another grep:
 - ⚠️ **Removing a name from `REQUIRED_ENV_VARS` changes exactly one runtime behaviour — the service now
   boots without it — and that is enough to gut a test silently.** Two `startFailure.itest.mts` suites
   forced a boot refusal by deleting `PLATFORM_NAME`; once that name was dropped from the required
-  list, both stopped refusing and connected to a real MongoDB instead, still green. They now delete
-  `INTROSPECTION_CODE`. **A test that proves a refusal must delete a variable the list still requires**,
+  list, both stopped refusing and connected to a real MongoDB instead, still green. They now delete a
+  name the list still carries. **A test that proves a refusal must delete a variable the list still requires**,
   so shortening the list is never a comment-only change.
 
 ## Integration test conventions

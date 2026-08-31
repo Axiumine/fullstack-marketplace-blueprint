@@ -34,9 +34,9 @@ repo was modified.
 
 ## 1. Verdict
 
-**No credential-bearing header reached the wire. Not one of the seven sentinels planted in
-`authorization`, `cookie`, `proxy-authorization`, `x-forwarded-for`, `x-real-ip`, `x-introspectioncode` or
-`user-agent` appeared in the sent envelope — but the scrubber is not why.** All seven were sitting in
+**No credential-bearing header reached the wire. Not one of the six sentinels planted in
+`authorization`, `cookie`, `proxy-authorization`, `x-forwarded-for`, `x-real-ip` or
+`user-agent` appeared in the sent envelope — but the scrubber is not why.** All six were sitting in
 `event.sdkProcessingMetadata.normalizedRequest.headers`, a bag `sentryBeforeSend` does not walk, and the SDK
 drops `sdkProcessingMetadata` before serialisation. The protection that held is
 `dataCollection.httpHeaders: { request: false }` at collection time, plus an internal field never being
@@ -84,7 +84,7 @@ The key list and fixture built for *The scrubber walks where the headers actuall
 | Tee | `Sentry.addEventProcessor` writing each event to disk before `beforeSend`; circular-safe |
 | Probe 1 | well-formed GraphQL POST `{ __typename }` |
 | Probe 2 | a body carrying `password:"PASSWORDPROBE…"` in the document **and** in `variables`, malformed by one trailing brace so Koa's body parser throws a `SyntaxError` — a non-`GraphQLError`, which is what `maybeCaptureSentryError` reports on |
-| Headers on both | `authorization`, `cookie`, `proxy-authorization`, `x-forwarded-for: 198.51.100.42, 203.0.113.9`, `x-real-ip`, `x-introspectioncode`, `user-agent`, each with its own sentinel |
+| Headers on both | `authorization`, `cookie`, `proxy-authorization`, `x-forwarded-for: 198.51.100.42, 203.0.113.9`, `x-real-ip`, `user-agent`, each with its own sentinel |
 | Second pass | identical, with one knob changed — a copy of `instrument.mts` adding `tracesSampleRate: 1` — to observe the transaction path the shipped configuration never samples |
 
 `tdwKoaErrorHandler`'s `maybeCaptureSentryError` reports only when `NODE_ENV === 'development'` **and** the
@@ -140,7 +140,7 @@ Every pre-`beforeSend` occurrence of the first four sat in
 
 ```
 host, accept, authorization, cookie, x-forwarded-for, x-real-ip,
-proxy-authorization, x-introspectioncode, user-agent, content-type, content-length
+proxy-authorization, user-agent, content-type, content-length
 ```
 
 `sdkProcessingMetadata` is internal SDK state and is removed before the envelope is serialised — the sent

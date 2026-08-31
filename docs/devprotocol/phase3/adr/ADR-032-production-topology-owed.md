@@ -9,8 +9,8 @@
 The platform owner answered the four questions §Decision lists as owed and declared the segment between the
 application host and the datastore host trusted, so *"nobody has written the topology down"* stops being true
 and ADR-039 owns that half. ⚠️ **The rule below is narrowed, not lifted.** Every mitigation written to hold
-with the port open still holds with it open — the introspection bypass's `NODE_ENV` allowlist and the
-pre-lookup limiter on `refresh` are unchanged — and a boundary may be cited only as a second layer, only for the legs ADR-039 describes, and
+with the port open still holds with it open — the session-or-refusal rule on every authenticated call and
+the pre-lookup limiter on `refresh` are unchanged — and a boundary may be cited only as a second layer, only for the legs ADR-039 describes, and
 never as the whole argument. Anything outside those legs is still governed by this ADR as written. R46 closes
 there; **R45 does not** — it drops to 🟢 Low and stays open, because the traffic is still in the clear.
 
@@ -21,10 +21,11 @@ there; **R45 does not** — it drops to 🟢 Low and stays open, because the tra
 Three findings in [`docs/report/token-handling-security-audit.md`](../../../report/token-handling-security-audit.md) end in the same place, and none of
 the three can be argued closed without an answer nobody has written down:
 
-- **`INTROSPECTION_CODE` is reachable wherever a service port is.** A caller holding the code and a
-  valid refresh-cookie signature gets a session-less authorized call. A `NODE_ENV` allowlist gates the
-  bypass, so outside `development` and `test` the configured value is never even read —
-  but "who can open a TCP connection to 4029" is still the question that sets its blast radius.
+- **Every service port answers wherever the host answers.** Nothing in these repos narrows them: the nine
+  bind the wildcard address by decision (ADR-022) and the vhosts proxy to them rather than fencing them.
+  Every authenticated call still resolves a session or is refused, so what a bare connection buys is the
+  public surface and the refusals — but "who can open a TCP connection to 4029" is the question that sets
+  how much of that surface is exposed at all.
 - **`refresh` is floodable with distinct garbage tokens.** Each attempt is a Redis read and a signature
   verification before anything rate-limitable happens. A pre-lookup limiter sits in front of it;
   how much traffic can arrive at all is a network fact, not an application one.
@@ -93,9 +94,9 @@ the place the three findings point at.
 - **The rule that applies until then:** **no control on this platform may be argued closed by appeal to
   a network boundary.** A mitigation that only works if a port is unreachable is not a mitigation, it is
   a bet on this document being written the way the author hoped. Every mitigation for the three findings
-  above is therefore written to hold with the port open — the environment allowlist on the introspection
-  bypass, the pre-lookup limiter on `refresh`, the hashed session keys — and stays that way after the
-  topology lands.
+  above is therefore written to hold with the port open — the session-or-refusal rule on every
+  authenticated call, the pre-lookup limiter on `refresh`, the hashed session keys — and stays that way
+  after the topology lands.
 
 Recording it as owed is itself the decision, and it is not a placeholder: it converts a silent
 assumption into an open item with a name on it, and it makes "we are behind a firewall" a claim that
@@ -130,8 +131,8 @@ must be written here before it may be relied on anywhere.
   condition: any control whose argument contains "not reachable from outside" without citing a
   superseding ADR that says so.
 - **Risk:** the topology is written, and the three findings are not re-scored against it. Revisit
-  condition: this ADR being superseded — the superseding one must name R45, R46, the introspection
-  bypass's `NODE_ENV` allowlist and the pre-lookup limiter on `refresh`.
+  condition: this ADR being superseded — the superseding one must name R45, R46, the reachability of the
+  service ports and the pre-lookup limiter on `refresh`.
 
 ---
 

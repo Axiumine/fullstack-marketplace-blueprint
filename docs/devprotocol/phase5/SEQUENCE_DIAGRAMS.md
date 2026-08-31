@@ -253,14 +253,11 @@ sequenceDiagram
     participant Redis
 
     C->>Authz: refresh() — refresh_token cookie sent automatically
-    Authz->>Common: resolveAuthorizationSession({store, refreshToken, tier, introspectionCode, readSessionData})
+    Authz->>Common: resolveAuthorizationSession({store, refreshToken, tier, readSessionData})
     Common->>Redis: hGetAll(REDIS_KEY + refreshToken)
     alt hash empty
-        alt introspectionCode !== INTROSPECTION_CODE
-            Common-->>Authz: throw throwRefreshTokenExpiredOrDeleted()
-        else introspection bypass
-            Common-->>Authz: return null (service-to-service call)
-        end
+        Common->>Redis: assertNotReplayed(store, refreshToken) — tombstone check
+        Common-->>Authz: throw throwRefreshTokenExpiredOrDeleted()
     else hash found
         Common->>Common: assertTier(redData.tier, tier)
         Common->>Redis: readSessionData(_id) — re-read account
@@ -292,7 +289,7 @@ sequenceDiagram
 **Narrative**
 
 1. Middleware verifies signed refresh cookie, calls shared `resolveAuthorizationSession` — body all three
-   `*-authenticated-authorization` services carry since `marketplace-common@1.0.0`.
+   `*-authenticated-authorization` services carry from `marketplace-common`.
    `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts:63-89`
 2. Tier asserted **before** `_id` lookup — all 9 services share one `REDIS_KEY` prefix (shared logout
    service needs that), so well-formed session found under key may belong to another tier.

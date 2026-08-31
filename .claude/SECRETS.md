@@ -47,7 +47,7 @@ close that, and no such hook point exists — so treat it as a real gap rather t
 Blocks a commit when a staged **path** looks like a secret file, or when staged **added lines** contain a
 high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----BEGIN … PRIVATE KEY-----`,
 a 40+ char non-placeholder `KEYGRIP_KEY_*`, a `KEYGRIP_KEK`, a
-`QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD`/`INTROSPECTION_CODE` literal ≥16 chars, or a
+`QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD` literal ≥16 chars, or a
 mongodb URI with a ≥10 char password.
 
 ⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034): base64 of 32
@@ -78,8 +78,8 @@ placeholder templates pass — a guard that cries wolf gets disabled. Vendored s
 **Declared-placeholder filter.** A line whose *entire* content is a placeholder assignment —
 `KEY=test-…` / `KEY: 'test-…'`, also `dummy` / `fake` / `sample` / `example` / `placeholder` /
 `changeme` / `your-` — is dropped before the value scan (`$PLACEHOLDER` in the hook). It exists because
-the vitest fixture that assigns `INTROSPECTION_CODE` a `test-` prefixed literal tripped the
-`INTROSPECTION_CODE` literal rule, which forced `--no-verify` on every commit touching a vitest config.
+a vitest fixture that assigned a protected variable a `test-` prefixed literal tripped that variable's
+literal rule, which forced `--no-verify` on every commit touching a vitest config.
 The regex is anchored at **both** ends, so it can only whitelist a self-declared placeholder line — never
 a secret embedded in a URI, an object literal, or any longer expression. Verified against the tracked
 corpus of that same 11-repo baseline: the only lines whose verdict changes are the two `vitest.config.mts` fixtures;

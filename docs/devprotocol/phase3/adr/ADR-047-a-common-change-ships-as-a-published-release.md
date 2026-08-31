@@ -4,7 +4,7 @@
 **Status:** accepted
 **Date:** 2026-08-30
 **Deciders:** platform owner, directly and in four words — *"never use `./deploy-local.sh` in your
-development, always publish the package"* — on the day `3.0.0` was cut.
+development, always publish the package"*.
 **Supersedes:** [`ADR-015`](./ADR-015-common-consumed-by-package-name-unpublished.md) **in part** — the
 `deploy-local.sh` bridge, which was the one half of ADR-015 that ADR-037 deliberately left standing. Its
 GPL-3.0-or-later licence decision is untouched and still lives there.
@@ -25,9 +25,8 @@ ADR-037 (2026-08-26) put the package on `registry.npmjs.org` and kept the script
 written as property 2: a release is a point in time, an edit is continuous, and between the two the script
 is the only thing that carries a change to a call site.
 
-That argument was sound while a release was expensive and rare. Three releases later — `1.0.0`,
-`2.0.0`, and `3.0.0` on 2026-08-30 — it is neither, and the bridge's own costs have been paid in full and
-measured.
+That argument was sound while a release was expensive and rare. Several releases on it is neither, and the
+bridge's own costs have been paid in full and measured.
 
 ### What the bridge actually did, once the registry existed
 
@@ -130,8 +129,8 @@ why the bridge was right in 2026-08-04, when the alternative was a 404.
 - **Publish-under-pressure moves up a level.** ADR-037 already names it; removing the shortcut removes the
   alternative to publishing, so the pressure lands on the gates instead. The answer is unchanged and is not
   negotiable: a release is cut from a pushed, gated commit or it is not cut.
-- **A consumer's range stops reaching the current major.** `3.0.0` needed twelve `package.json` edits, and
-  the old major-mismatch warning lived in the deleted script. The check is now step 9's `npm view` against
+- **A consumer's range stops reaching the current major.** Every major needs twelve `package.json` edits,
+  and the old major-mismatch warning lived in the deleted script. The check is now step 9's `npm view` against
   the ranges: `grep -rn '"@axiumine/marketplace-common"' BEs/dev/*/package.json marketplace-*/package.json`.
 
 ---

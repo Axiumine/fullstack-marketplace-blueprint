@@ -40,7 +40,7 @@ email-verification REST endpoints all exist on disk:
 - `BEs/dev/marketplace-dev-admin-authenticated-authorization` (own `refresh.mts`, same shared body)
 - `BEs/dev/marketplace-dev-user-authenticated-authorization` (own `refresh.mts`, same shared body)
 - `BEs/marketplace-common/src/others/Tier.mts`, `BEs/marketplace-common/src/others/assertTier.mts`
-- `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts` (shared since `marketplace-common@1.0.0`)
+- `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts` (shared by the three tiers)
 - `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts` (the two verify-email REST routes)
 
 Nothing here is designed-but-unbuilt. The gaps this record once listed as process gaps — cross-repo secret
@@ -185,18 +185,20 @@ never a lower or reversible scheme.
 **Traces:** NFR-SE04
 **Evidence:** `lib/schemas/account.js`
 
-### Service-to-service introspection bypass never reaches a browser   `built`
-State plainly: `x-introspectioncode` must be checked against `INTROSPECTION_CODE` server-side only, never
-logged, never sent to a client, and the bypass must leave `ctx.state.user` unset rather than fabricate a
-session.
-**domains:** backend
+### Nothing substitutes for a session, and no server-side secret reaches a browser   `built`
+State plainly: an authenticated call either carries a credential that resolves to a Redis session or it is
+refused. No header, code or shared value opens a second door, in any tier or environment, and no value the
+services hold may be inlined into a browser bundle.
+**domains:** backend, frontend
 **Acceptance criteria:**
-- Header checked against the env secret before any Redis lookup —
-  `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:27-37`
-- On a valid bypass, `ctx.state.user` stays unset rather than being populated with a stub session
-  (`docs/decisions/authorization-service-consolidation.md` §As implemented)
+- A call with no `Authorization` header is refused before any Redis lookup —
+  `BEs/dev/marketplace-dev-admin-authenticated-resource/src/lib/db/authorizationAuthenticatedResourceHandler.mts:26-32`
+- `resolveAuthorizationSession` returns a session or throws; it has no branch that admits a caller without
+  one (`docs/decisions/authorization-service-consolidation.md` §As implemented)
+- Only public values carry the `VITE_` prefix in the three frontends, enforced by
+  `marketplace-fe-no-secret-in-vite-env` in each one's `semgrep/custom.yml`
 **Traces:** NFR-SE08, NFR-SE12
-**Evidence:** `authorizationAuthenticatedResourceHandler.mts:27-37`
+**Evidence:** `authorizationAuthenticatedResourceHandler.mts:26-32`
 
 ### Email verification flips the gate that `loginUser`/`login` reads   `built`
 **As a** ShopOwner or User, **when** I open the link from my confirmation email, **I want**
@@ -422,7 +424,7 @@ them unused, or the next person provisioning a machine will populate two variabl
 - An eslint ban, modelled on `APPROVAL_GATE_FIELD_SHOP_OWNER`, refuses `process.env.KEYGRIP_KEY_` in `src/**`
   of the five services — the same shape of rule for the same reason: the mistake is silent otherwise
 - `INFRA.md` §7's per-service table names `KEYGRIP_KEK`; `docs/workflow.md` §Environment files loses the
-  cross-repo agreement warning for this pair and keeps it for `INTROSPECTION_CODE`; `RISK_REGISTER.md` R02
+  cross-repo agreement warning for this pair and keeps it for `REDIS_KEY`; `RISK_REGISTER.md` R02
   closes against the boot gate, and R04 loses its Keygrip half
 - `.githooks/pre-commit` check 0 is untouched: it proves a file is well-formed, which is still needed for
   every other value in it
@@ -451,7 +453,7 @@ from the required list, and a repo-wide ban would refuse the test that proves th
 
 - Depends on `BEs/marketplace-common` (`Tier.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`,
   `refreshSessionTokens`) being **published** before any story here is testable in a consumer — BCON-07.
-  Already published (`3.0.0`, consumers on `^3.0.0`); a future edit to common must be released and each
+  Already published; a future edit to common must be released and each
   consumer's range moved before this record's gates mean anything (ADR-047).
 - BC-03 (Shop Owner Onboarding & Approval) must create the `shopOwner` document before "ShopOwner login
   mints tier-stamped session" can succeed for that account, **and must not be holding it**: since "A shop

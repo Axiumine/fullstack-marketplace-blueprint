@@ -12,27 +12,24 @@ ruled that an edit to `marketplace-common` reaches a consumer by being published
 script becomes an entry for **Release (`marketplace-common`)** — the nine-step flow that replaced it — and
 §19 gains the name as a banned term. The three earlier entries below that argued over *when* to re-run the
 script are left as written: they are the record of a rule that was live at the time, and v1.6's conclusion
-that no `yarn install` path may invoke it is the half that survives, now unconditionally. Versions move to
-`3.0.0` / `^3.0.0` where they were the live state. No other term definition changed.
+that no `yarn install` path may invoke it is the half that survives, now unconditionally. No other term
+definition changed.
 v1.10 - 2026-08-29: **"operator" is banned platform-wide.** The platform owner ruled that there are three
 human roles and their names are admin, shop owner and customer; a fourth word for the `Admin` tier only made
 readers ask which of the three it meant. Every prose use of it across the sixteen repos is now "admin", the
 `Admin` entry says so, and §19 carries the ban. Two senses are untouched and stay legal: a MongoDB *update
 operator* (`$set`, `$pull`) and a language operator (`&&`) - neither names a person. No term definition
 changed; one term lost an alias it should never have had.
-v1.9 - 2026-08-27, later the same day: the v1.6 entry pinned the correct install result to `^1.0.1`, which
-moved when `marketplace-common` `2.0.0` shipped hours later. It now names the released range and both versions,
-so the rule does not go stale at the next major. No term changed.
 v1.7 - 2026-08-27: **§18 is no longer "planned".** Cart, order, delivery and payment are permanently out of scope (`phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`), so the section that named them for *readiness* now names them so they are **refused** consistently — heading, status column and purpose sentence all follow. §2's `User` definition loses "yet", §9's `item` example quotes the rewritten `item.js` comment, and §19's `price` row states the ban as permanent with the display-only escape hatch closed (ADR-009 §Note 2026-08-27). No term was added, renamed or removed, and no definition of a built thing changed: the four entries stay in the glossary precisely because a name that is not written down cannot be refused consistently.
 v1.6 - 2026-08-27, later the same day: v1.5 added *"re-run it after every install in a consumer"* to the
 `deploy-local.sh` definition. That is wrong as an unconditional rule and is removed: nothing in any `yarn install`
-invokes the script, and an install resolving the released range (`^1.0.1` that day, `^2.0.0` since) is the
+invokes the script, and an install resolving the released range is the
 correct result whenever common carries no
 unreleased edit. The definition keeps the conditional form - redeploy after an install only while such an edit is
 outstanding. No other term changed.
 v1.5 - 2026-08-27: the `deploy-local.sh` definition said it bridges *"consumed as a published package name"* and
-*"not actually on any registry"*, and that `@axiumine/marketplace-common` 404s there. `ADR-037` published it at
-`1.0.1` on 2026-08-26. The term survives with a narrower definition — it bridges an edit and the released build — and
+*"not actually on any registry"*, and that `@axiumine/marketplace-common` 404s there. `ADR-037` published it
+on 2026-08-26. The term survives with a narrower definition — it bridges an edit and the released build — and
 gains the half that was never written down: re-run it after every install in a consumer, not only after every edit to
 common. No other term changed.
 v1.4 - 2026-08-26: the vendor's trading name removed from this document. It named a company in prose that is about roles, and the role words — platform vendor, platform admin, platform owner — say everything the name said. Nothing described, decided or scored changed.
@@ -146,10 +143,6 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 **Definition:** Opaque token in a Koa signed httpOnly cookie (Keygrip SHA-512), used by the `refresh` mutation to rotate the access token. The signing keys are the shared Redis record of ADR-034, unwrapped with `KEYGRIP_KEK` — never an environment variable.
 **Used in:** every `*-authenticated-authorization` service.
 
-### Introspection code
-**Definition:** `x-introspectioncode` header value, checked against `INTROSPECTION_CODE` env var, bypasses the bearer-token check for service-to-service calls. Treat as secret — never logged, never exposed to a browser client.
-**Used in:** `resolveAuthorizationSession` in `BEs/marketplace-common/src/others/` — returns `null` for the introspection bypass rather than throwing or inventing a session.
-
 ### REDIS_KEY
 **Definition:** Shared Redis key prefix (`marketplaceDev:`), identical across all 9 services on purpose — the single shared `marketplace-dev-authenticated-logout` service deletes a session by token content alone and needs no per-tier prefix to find it.
 **Used in:** `BEs/dev/marketplace-dev-authenticated-logout/src/lib/authorizationLogoutHandler.mts:60,74`.
@@ -165,7 +158,7 @@ export function assertTier(actual: string | undefined, expected: Tier): void {
 
 ### Authorization service
 **Definition:** Refresh-token cookie → Redis session → mints/rotates access+refresh token pair. No business queries.
-**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common@1.0.0`, decision recorded in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md).
+**Used in:** `marketplace-dev-public-authorization`, `marketplace-dev-authenticated-authorization`, `marketplace-dev-admin-authenticated-authorization`, `marketplace-dev-user-authenticated-authorization`. Three of the four (excludes public) share one body via `resolveAuthorizationSession` / `findAccountForSession` / `refreshSessionTokens` in `marketplace-common`, decision recorded in [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md).
 
 ### checkUserAuthorizationDisDel
 **Definition:** Shared guard function, gates every authenticated resource call on `deleted`/`disabled` flags, all 3 tiers.
@@ -523,7 +516,7 @@ These five fields on `company` all look like "some official string about the bus
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### Release (`marketplace-common`)
-**Definition:** the nine steps that carry an edit to `marketplace-common` from `src/` to a call site: decide the bump, branch, `npm version --no-git-tag-version`, changelog, merge `--no-ff`, annotated tag, `git push --follow-tags` (which runs the full gate), `yarn upload`, then `npm view` to verify and a range bump in each consumer as separate work. ⚠️ **It is the only route.** The package is consumed by name from `registry.npmjs.org` — `3.0.0`, consumers on `^3.0.0` — so an unpublished edit is invisible at every call site, and a `yarn install` is authoritative everywhere because there is nothing else for it to overwrite. Consumers resolve through their own `yarn.lock`, so a release reaches none of them until that lockfile moves.
+**Definition:** the nine steps that carry an edit to `marketplace-common` from `src/` to a call site: decide the bump, branch, `npm version --no-git-tag-version`, changelog, merge `--no-ff`, annotated tag, `git push --follow-tags` (which runs the full gate), `yarn upload`, then `npm view` to verify and a range bump in each consumer as separate work. ⚠️ **It is the only route.** The package is consumed by name from `registry.npmjs.org`, so an unpublished edit is invisible at every call site, and a `yarn install` is authoritative everywhere because there is nothing else for it to overwrite. Consumers resolve through their own `yarn.lock`, so a release reaches none of them until that lockfile moves.
 **Used in:** [`BEs/marketplace-common/CLAUDE.md`](https://github.com/Axiumine/marketplace-common/blob/main/CLAUDE.md) §Publishing a release, [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).
 **Replaces:** `deploy-local.sh`, the script that used to sync a local build into every consumer's `node_modules` — deleted 2026-08-30 and banned in §19.
 
@@ -624,7 +617,7 @@ A policy is an automatic reaction, "when X happens do Y" — enforced in resolve
 | Logout, any tier's token | Same Redis keys deleted regardless of which service minted them | `authorizationLogoutHandler.mts:60,74` |
 | `itemAdd`/`itemUpdate` given a nonexistent `idCategory` | `throwIfItemCategoryMissing` rejects — the substitute for a reference nothing enforces | Admin/ShopOwner resource services |
 | `itemAdd` given an `idCompany` the caller does not own | `throwIfShopOwnerDontOwnCompany` rejects BEFORE the category check, so a non-owner learns nothing about real category ids | `itemAdd.mts:39-46` |
-| `x-introspectioncode` header present and matching | Bearer-token check bypassed | Introspection code, §4 |
+| Any authenticated call arriving with no `Authorization` header | Refused with 412 — no header, code or shared value substitutes for a session | `authorizationAuthenticatedResourceHandler.mts:26-32` |
 
 ---
 

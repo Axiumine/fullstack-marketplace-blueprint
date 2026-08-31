@@ -180,8 +180,8 @@ updates independently of the pinned image tag, so a tree that is clean today can
 commit in between.
 
 ⚠️ It is **not** a second copy of Qodana's SAST. Qodana runs JetBrains inspections; semgrep runs the
-vendored registry packs plus each repo's own `semgrep/custom.yml`, whose three secret-in-logs rules —
-introspection code, auth token, reset secret — are this platform's own and no general-purpose linter
+vendored registry packs plus each repo's own `semgrep/custom.yml`, whose two secret-in-logs rules —
+auth token, reset secret — are this platform's own and no general-purpose linter
 knows them. `marketplace-nginx` is the one gated repo with no ruleset and therefore no such step; it
 ships no code.
 

@@ -62,11 +62,11 @@ Everything the publish needs is already there — ADR-015 built the prepared sta
 
 | Fact | Where |
 |---|---|
-| `"name": "@axiumine/marketplace-common"`, `"version": "1.0.0"` | `BEs/marketplace-common/package.json:2-3` |
+| `"name": "@axiumine/marketplace-common"` | `BEs/marketplace-common/package.json:2` |
 | `"private": false` | `BEs/marketplace-common/package.json:15` |
 | `"publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" }` | `BEs/marketplace-common/package.json:16-19` — a scoped package defaults to `restricted`, so this key is what makes a public publish possible at all |
 | `"upload": "npm publish --registry=https://registry.npmjs.org/"` | `BEs/marketplace-common/package.json` §scripts — the command, already written |
-| Twelve consumers pin `"@axiumine/marketplace-common": "^1.0.0"` | nine `BEs/dev/*/package.json`, plus `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` |
+| Twelve consumers depend on `"@axiumine/marketplace-common"` by name | nine `BEs/dev/*/package.json`, plus `marketplace-admin`, `marketplace-shopowner`, `marketplace-user` |
 | The scope is already in use on the public registry | `BEs/marketplace-common/package.json:403` depends on `@axiumine/koa-utils` (`^6.0.0` when this was written, `^7.0.0` from 2026-08-27, `^7.1.0` since 2026-08-28), and `scripts/lockfile-registry-filter.sh` was *"copied from `@axiumine/koa-utils`, which solved this first"* — the owner already publishes under this scope, so neither the scope nor the workflow is new |
 
 **So the publish is additive, not a migration.** No consumer `package.json` changes on the day it happens:
@@ -119,11 +119,11 @@ Four properties fix what that means:
    can obtain. A stale local copy and a stale published one are not symmetric: one of the two is
    reproducible. `CLAUDE.md`'s rule is **never sync locally, publish a release**.
 
-3. **A publish is a version bump, and the range has to be able to reach it.** Consumers pin `^1.0.0`, so a
-   `1.x` release reaches them on a plain `yarn install` and a `2.0.0` does not. ⚠️ **Nothing warns about a
-   declared-range/major mismatch** — the check is step 9 of the release flow, run by hand: `npm view` the
-   published version, then move every consumer's range. It has been needed twice for real, `2.0.0` and
-   `3.0.0`, twelve ranges each time.
+3. **A publish is a version bump, and the range has to be able to reach it.** Consumers pin a caret range
+   on the current major, so a minor or patch release reaches them on a plain `yarn install` and the next
+   major does not. ⚠️ **Nothing warns about a declared-range/major mismatch** — the check is step 9 of the
+   release flow, run by hand: `npm view` the published version, then move every consumer's range. Every
+   major has needed it, twelve ranges each time.
 
 4. **Publication does not weaken any gate.** The push gates (100% coverage on four metrics, mutation score
    100, Qodana, `test:contract`) are what a release is cut from, and `test:contract` in particular is what
@@ -154,9 +154,9 @@ place both of those live.
 - The ownership question is closed with a name rather than a role: one person, who also owns the code.
 
 ### Negative
-- **The door only opens one way.** Once `1.0.0` is on the registry, that version is public forever in
-  practice; npm allows unpublish for 72 hours and then holds the name. A mistake in a published tarball is
-  corrected by publishing `1.0.1`, never by removing `1.0.0`.
+- **The door only opens one way.** Once a version is on the registry it is public forever in practice; npm
+  allows unpublish for 72 hours and then holds the name. A mistake in a published tarball is corrected by
+  publishing the next patch, never by removing the bad one.
 - **A second distribution surface now has to stay honest.** The registry can disagree with the tree —
   a published version whose `dist/` predates a commit, or an `exports` map that shipped incomplete. Nothing
   in the push gates checks the registry, so this is discipline — and since ADR-047 it is the only
@@ -173,9 +173,8 @@ place both of those live.
   the release flow itself. Revisit if a consumer is ever found waiting on a change that was merged and
   never published.
 - **Range drift becomes visible to strangers.** Today a stale major only affects this machine. After a
-  release, a consumer whose `^1.0.0` cannot reach the current major fails for anyone who clones it. It has
-  happened twice, deliberately: `2.0.0` and `3.0.0` are major releases and each was followed by twelve range
-  bumps in the same piece of work.
+  release, a consumer whose range cannot reach the current major fails for anyone who clones it. It happens
+  on every major, deliberately: the release is followed by twelve range bumps in the same piece of work.
 - **Publishing under pressure.** The gates take tens of minutes (mutation alone), and the temptation on a
   bad day is to publish from a tree the gates have not passed. Revisit — by pinning the release to a pushed,
   gated commit — the first time a version is published from a dirty working tree.

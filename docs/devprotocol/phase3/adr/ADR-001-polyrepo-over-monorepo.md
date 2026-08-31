@@ -24,9 +24,8 @@ Forces:
   `.githooks/`, own Qodana project/token. Verified: `BEs/dev/marketplace-dev-public-authorization/.git`
   through the other 8 each a separate `.git` dir.
 - `marketplace-common` is consumed as an npm package name (`@axiumine/marketplace-common`), published
-  on npmjs since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)) — `1.0.1` that
-  day, `3.0.0` since 2026-08-30 — this bullet said the name 404s there, which was true when it was written
-  and is not now. ⚠️ **The local bridge this bullet described is deleted**
+  on npmjs since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)).
+  ⚠️ **There is no local bridge**
   ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), 2026-08-30): an edit the registry
   has not released reaches no consumer at all, and a release is what carries it. Package-name coupling, not
   path coupling — already decoupled from source-tree shape before this ADR, and neither publication nor the
@@ -124,7 +123,7 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
   remember every time, not something git or CI verifies.
 - Branch-first discipline ("never commit on `main`") must be independently re-applied in all 16 repos;
   nothing propagates a branch decision made in one repo to the others.
-- Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `INTROSPECTION_CODE`) is
+- Cross-repo value agreement (shared env vars like `KEYGRIP_KEY_1/2`, `REDIS_KEY`) is
   unenforced by construction — no test spans two repos, so drift between them is invisible until a manual
   fingerprint sweep.
   ⚠️ **Amended 2026-08-13**, once the required-environment-variable check absorbed the keygrip-key
@@ -135,7 +134,7 @@ marketplace-docker-DBs/                # NO own .git — tracked by parent direc
   are one wrapped Redis record all holders read (**ADR-034**), a service that cannot unwrap it exits rather
   than binding a port, and `<REDIS_KEY>keygrip:holders` shows a per-service fingerprint, so that one value
   is now enforced across repos by construction instead of by sweep. Read the bullet against
-  `INTROSPECTION_CODE` and `REDIS_PASSWORD`, which are still exactly as described.
+  `REDIS_KEY` and `REDIS_PASSWORD`, which are still exactly as described.
 
 ### Risks
 - **Risk:** a change spanning `marketplace-common` + N services gets committed in some repos but not

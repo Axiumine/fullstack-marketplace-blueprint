@@ -292,7 +292,7 @@ have to rediscover it.
 | Package | Version | Where it is declared | What it does in the auth path | Ours to change |
 |---|---|---|---|---|
 | `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27, 7.1.0 since 2026-08-28** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcoded `redis://` in the cluster branch through `7.0.0`; `7.1.0` reads the scheme from `REDIS_TLS` instead, which no `env` here sets (R45, still open) | **no — external, unpublished from here, no source in this workspace** |
-| `@axiumine/marketplace-common` | 1.0.0 (`3.0.0` published since 2026-08-30) | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, resolved from `registry.npmjs.org` like any other dependency since `ADR-037`; the local copy step this column named is deleted (`ADR-047`) |
+| `@axiumine/marketplace-common` | whatever each consumer's `yarn.lock` pins | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, resolved from `registry.npmjs.org` like any other dependency since `ADR-037`; the local copy step this column named is deleted (`ADR-047`) |
 | `keygrip` | 1.1.0 | `dependencies` in 6 services, transitive in 3 | Cookie signing and the rotating key list behind ADR-034 | **no — external** |
 | `cookies` | 0.9.1 | transitive in all 9, via `koa` | Writes and reads the signed cookies; the `Secure` attribute the edge rewrites | **no — external** |
 | `koa` | 3.2.1 | `dependencies` in all 9 | The HTTP layer; owns `ctx.cookies` | **no — external** |
@@ -315,46 +315,6 @@ and no patch step. The three levers available are (a) a version bump when upstre
 `resolutions` entry forcing a transitive — **no repo in this workspace currently has a `resolutions` or `overrides`
 block**, so that lever is entirely unused, and (c) deleting the dependency, which §4.1 shows is the right answer
 seven times over.
-
-### 6.1 `@axiumine/koa-utils` and the introspection bypass — what each version did
-
-This section is here rather than in
-[`../devprotocol/phase3/SECURITY_AUTH.md`](../devprotocol/phase3/SECURITY_AUTH.md) §3.6 because every fact in it
-is about a package **outside this workspace** — nothing below can be fixed, tested or gated from here, which is
-the same boundary §6's table draws.
-
-- **The seventh comparison site.** §3.6 of `SECURITY_AUTH.md` enumerates six `INTROSPECTION_CODE` comparisons in
-  this workspace. A seventh is `verifyIntrospectionCode` in `@axiumine/koa-utils`
-  (`dist/private/lib/verifyIntrospectionCode.mjs`), reached from that package's own
-  `authenticatedResourceHandler`, `authenticatedLogoutHandler` and `authenticatedAuthorizationHandler`. It was
-  recorded rather than ignored because it is not dead code: those middlewares are the published ones this
-  platform's handlers are modelled on, and any service that mounts them — here or in another product built on
-  the same package — gets that comparison.
-- **At 5.9.0 it was stricter than our six in two respects and weaker in one.** It already used `timingSafeEqual`
-  over byte buffers with a length pre-check, which is what §3.6 of `SECURITY_AUTH.md` went on to ask for; and it
-  read `process.env.INTROSPECTION_CODE` directly, returning `false` for an unset or empty value rather than
-  interpolating it to the literal `'undefined'`. But it had **no environment gate of any kind**, so the bypass
-  was live under every `NODE_ENV`. Neither the constant-time-comparison fix's nor the environment-gate's
-  acceptance criteria were widened to reach it: both are verified by `yarn test:cov` and `yarn test:mutation`, in repos that cannot reach another
-  package's internals.
-- **6.0.0, 2026-08-11, closed it upstream.** It adds `isIntrospectionBypassAllowed()` — the same allowlist,
-  `development` or `test` and nothing else — exported from `lib/isIntrospectionBypassAllowed`, and evaluates it
-  as the **first statement** of `verifyIntrospectionCode`, before `INTROSPECTION_CODE` is read at all. The gate
-  sits in the primitive rather than in the three middlewares that call it, so a direct caller cannot reach an
-  ungated comparison. Otherwise the release is additive against 5.9.0 — no dependency, peer-dependency, engine
-  or export removal, one new `exports` key. It is a major because the behaviour break is real: a consumer
-  running the bypass under `staging` or an unset `NODE_ENV` loses it, which is the point. **All ten consuming
-  repos here moved to `^6.0.0` that same day** — `marketplace-common` and the nine services, `package.json` and
-  `yarn.lock` in each — with every build passing and `yarn test:cov` staying 100/4 in all ten.
-- ⚠️ **`verifyIntrospectionCode` is not importable by a consumer** in 7.0.0: it sits under `dist/private/` and is
-  absent from the 150-key `exports` map. The 5.9.0 regression path was therefore always *through the three
-  middlewares*, never a direct call — which narrows the risk `marketplace-common` 2.0.0's `>=6` peer range
-  closed without removing it. That range is the lever named in §6's table, and it bites the stranger installing
-  the published library rather than this workspace, where yarn 1 treats a peer mismatch as a warning.
-- ⚠️ **The two `isIntrospectionBypassAllowed` implementations were never byte-equivalent**, and a now-superseded
-  revision of the documentation said they were. Upstream reads `NODE_ENV` into a local `const` and carries a different doc
-  comment. They were *behaviourally* identical — the property that mattered, and the reason two copies could
-  only ever agree by luck, which is why `marketplace-common` 2.0.0 made the local one a re-export instead.
 
 ---
 
