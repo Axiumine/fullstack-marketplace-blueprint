@@ -3,8 +3,8 @@
 # Marketplace
 
 **Status:** investigation finding — closes *Investigation: capture one real Sentry event and read it* and *What a frontend actually sends is measured, and scrubbed*. Not baselined, not a requirement document
-**Version:** 1.2
-**Date:** 2026-08-11
+**Version:** 1.3
+**Date:** 2026-08-31
 **Changelog:** v1.0 — the capture. v1.1 — §6.1 added after reading the three frontends: they set
 `tracesSampleRate: 0.1` and configure no scrubber, so §6's finding is latent on the backend only. Nothing
 measured changed; a scope claim that was too narrow is now stated, and the browser payload is named as
@@ -12,7 +12,8 @@ unmeasured, ahead of *What a frontend actually sends is measured, and scrubbed*.
 capture** — closing that story: nine envelopes from two apps, both event
 kinds. `httpBodies: []` holds and `urlQueryParams: false` does not; the address bar ships in five places on
 both kinds. Corrects §6.1 — with no `browserTracingIntegration` registered, the three apps ship **no**
-transaction at all, so `tracesSampleRate: 0.1` is a rate applied to nothing.
+transaction at all, so `tracesSampleRate: 0.1` is a rate applied to nothing. v1.3 — every probe
+sentinel is named for what it probes; nothing measured changed.
 **Scope:** what a Sentry event built by one of these nine services actually contains when the request that
 produced it carried an `authorization` header, a cookie, forwarding headers and a body — and, since v1.2,
 what one built by the three browser apps contains when the page carries a credential in its URL. It settles
@@ -23,7 +24,7 @@ own `src/instrument.mts` and a `DSN` pointing at a **local collector on 127.0.0.
 envelope to a file — so a real event was built, serialised and transmitted by the real transport, and nothing
 left this host. A throwaway `addEventProcessor` teed each event **before** `beforeSend` ran, so the finding
 compares what the scrubber was handed with what actually went out. Every credential-shaped value carried a
-unique `MKTS13…` sentinel. Both throwaway files lived under `node_modules/` and were deleted; nothing in any
+unique `PASSWORDPROBE…` sentinel. Both throwaway files lived under `node_modules/` and were deleted; nothing in any
 repo was modified.
 **Reads against:** *The scrubber walks where the headers actually are*, *`sendDefaultPii` is off in all nine services* and *No network-derived value reaches telemetry* in [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) · `BEs/marketplace-common/src/others/sentryBeforeSend.mts` ·
 `BEs/dev/*/src/instrument.mts` · `@sentry/node` / `@sentry/core` / `@sentry/node-core` **10.69.0** ·
@@ -79,10 +80,10 @@ The key list and fixture built for *The scrubber walks where the headers actuall
 |---|---|
 | Service | `marketplace-dev-public-resource`, `PORT=4098`, `NODE_ENV=development`, real Mongo + Redis |
 | Instrumentation | the repo's own `src/instrument.mts`, unmodified, for the shipped-configuration pass |
-| DSN | `http://e12s13publickey…@127.0.0.1:9911/1` — a local collector, no egress |
+| DSN | `http://backendprobepublickey…@127.0.0.1:9911/1` — a local collector, no egress |
 | Tee | `Sentry.addEventProcessor` writing each event to disk before `beforeSend`; circular-safe |
 | Probe 1 | well-formed GraphQL POST `{ __typename }` |
-| Probe 2 | a body carrying `password:"MKTS13…"` in the document **and** in `variables`, malformed by one trailing brace so Koa's body parser throws a `SyntaxError` — a non-`GraphQLError`, which is what `maybeCaptureSentryError` reports on |
+| Probe 2 | a body carrying `password:"PASSWORDPROBE…"` in the document **and** in `variables`, malformed by one trailing brace so Koa's body parser throws a `SyntaxError` — a non-`GraphQLError`, which is what `maybeCaptureSentryError` reports on |
 | Headers on both | `authorization`, `cookie`, `proxy-authorization`, `x-forwarded-for: 198.51.100.42, 203.0.113.9`, `x-real-ip`, `x-introspectioncode`, `user-agent`, each with its own sentinel |
 | Second pass | identical, with one knob changed — a copy of `instrument.mts` adding `tracesSampleRate: 1` — to observe the transaction path the shipped configuration never samples |
 
@@ -315,11 +316,11 @@ kinds, two of the three apps. Nothing left this host.
 |---|---|
 | Apps | `marketplace-user` (`yarn build` + preview on 3146) and `marketplace-admin` (3147) — production bundles, not `yarn dev` |
 | Instrumentation | each app's own `src/instrument.ts`, with **two** harness-only changes, below |
-| DSN | `http://e12s24publickey…@127.0.0.1:9911/1` — the §2 collector, no egress |
-| Probe URL | `/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid#/probe%40example.invalid/MKTS24HASHPROBE` — a query string **and** a fragment, each with its own sentinel, on the one route that carries a credential |
+| DSN | `http://frontendprobepublickey…@127.0.0.1:9911/1` — the §2 collector, no egress |
+| Probe URL | `/reset-password/confirm?token=TOKENQUERYPROBE&email=probe%40example.invalid#/probe%40example.invalid/HASHFRAGMENTPROBE` — a query string **and** a fragment, each with its own sentinel, on the one route that carries a credential |
 | Probe 1 | an uncaught `Error` thrown from a `setTimeout`, the live `GlobalHandlers` path |
-| Probe 2 | a `fetch` POST to `/graphql-user-authorization?probeQuery=E12S24FETCHQUERY` with a JSON body carrying a password sentinel |
-| Probe 3 | a client-side navigation to `/account/addresses?nav=E12S24NAVPROBE#navfragmentprobe`, then a **second** error — to observe what the first page leaves behind on later events |
+| Probe 2 | a `fetch` POST to `/graphql-user-authorization?probeQuery=FETCHQUERYPROBE` with a JSON body carrying a password sentinel |
+| Probe 3 | a client-side navigation to `/account/addresses?nav=NAVPARAMPROBE#navfragmentprobe`, then a **second** error — to observe what the first page leaves behind on later events |
 | Restored | both patched `instrument.ts` restored from backup; `git status` clean in both repos before any commit |
 
 **The two harness changes, and why the second one is a finding of its own.** `tracesSampleRate` was raised
@@ -358,7 +359,7 @@ transaction):
 
 ```json
 "request": {
-  "url": "http://127.0.0.1:3146/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
+  "url": "http://127.0.0.1:3146/reset-password/confirm?token=TOKENQUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/HASHFRAGMENTPROBE",
   "headers": {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
   }
@@ -369,7 +370,7 @@ transaction):
 "contexts": { "trace": { "data": {
   "sentry.op": "pageload", "sentry.source": "url",
   "url.path": "/reset-password/confirm",
-  "url.full": "http://127.0.0.1:3146/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
+  "url.full": "http://127.0.0.1:3146/reset-password/confirm?token=TOKENQUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/HASHFRAGMENTPROBE",
   "effectiveConnectionType": "4g", "deviceMemory": "32 GB", "hardwareConcurrency": "32",
   "lcp.element": "div.flex.flex-col.gap-1 > p#password-hint.text-xs.text-tip"
 } } }
@@ -377,8 +378,8 @@ transaction):
 
 ```json
 "breadcrumbs": [ { "category": "navigation", "data": {
-  "from": "/reset-password/confirm?token=E12S24QUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/MKTS24HASHPROBE",
-  "to": "/account/addresses?nav=E12S24NAVPROBE#navfragmentprobe"
+  "from": "/reset-password/confirm?token=TOKENQUERYPROBE&email=probe%40example.invalid&cb=2#/probe%40example.invalid/HASHFRAGMENTPROBE",
+  "to": "/account/addresses?nav=NAVPARAMPROBE#navfragmentprobe"
 } } ]
 ```
 

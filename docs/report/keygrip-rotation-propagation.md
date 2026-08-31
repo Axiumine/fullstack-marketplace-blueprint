@@ -4,8 +4,10 @@
 
 **Status:** investigation finding that closes the propagation-measurement question `ADR-034` raised. Not
 baselined, not a requirement document
-**Version:** 1.0
-**Date:** 2026-08-13
+**Version:** 1.1
+**Date:** 2026-08-31
+**Changelog:** v1.0 — the measurement. v1.1 — the isolated Redis namespace is named for what it isolated;
+nothing measured changed.
 **Scope:** what a full rotate-and-retire cycle does to the five cookie-touching services while they are
 serving. It answers three questions and nothing else: how long a rotation takes to reach every signer, how
 long a retirement takes to be refused by every verifier, and whether any in-flight refresh can straddle
@@ -13,7 +15,7 @@ either change badly enough to log a user out.
 **Method:** measurement against the running Dev stack on this machine, not a reading of the code. Six
 services were started — the five that touch the signed refresh cookie plus
 `marketplace-dev-admin-authenticated-resource`, which serves the two mutations — against an **isolated
-Redis namespace** (`REDIS_KEY=e16s09:`) under an **ephemeral KEK generated for the run and never printed**,
+Redis namespace** (`REDIS_KEY=keygrip-probe:`) under an **ephemeral KEK generated for the run and never printed**,
 so that nothing this investigation wrote could reach the platform's own keyspace or adopt real key
 material. One process held the clock: it took `t0`, issued the mutation over HTTP, and polled the holders
 hash every 25 ms until every row carried the new fingerprint. The namespace was deleted afterwards. Static
@@ -57,7 +59,7 @@ One defect was found, and it has nothing to do with keys — it was found becaus
 
 ## 2. What was measured
 
-Six processes, each launched with `REDIS_KEY=e16s09:` and the ephemeral `KEYGRIP_KEK`, nothing else
+Six processes, each launched with `REDIS_KEY=keygrip-probe:` and the ephemeral `KEYGRIP_KEK`, nothing else
 changed:
 
 | Service | Port | Role in the cycle |
