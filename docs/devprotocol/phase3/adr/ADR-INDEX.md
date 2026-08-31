@@ -2,10 +2,30 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.30
+**Version:** 1.31
 **Date:** 2026-08-31
 **Author:** adr-agent
 **Changelog:**
+v1.31 - 2026-08-31, later still: **[ADR-053](./ADR-053-the-shared-half-of-the-environment-is-one-file.md)
+added — the shared half of the environment is one file, loaded by direnv.** `RISK_REGISTER` **R04** has been
+🟠 High with no mitigation since it was raised, on a stated enabling condition: *"the ~15 shared env keys
+across 9 services, every time one is provisioned by copy from an unrelated project"*. Measuring the committed
+templates rather than assuming gives **twenty-one** such keys, each stored between seven and eleven times —
+`REDIS_*` in ten repos, the `MONGO_TEST_*` accounts in eleven, `MONGODB_URI`, `CSFLE_*` and `DSN` in nine,
+`UPLOAD_DIR` in eight, `KEYGRIP_KEK` in seven — so rotating one secret is up to eleven edits and nothing
+checks that the eleven agree. They now live once, in `.env.shared` at the workspace root, exported by one
+root `.envrc`. ⚠️ **The layer answers first and cannot be overridden** — `dotenv` never overwrites an
+exported variable — which is why membership is decided by measurement: `DOMAIN` is excluded on one
+disagreement (`127.0.0.1` in `marketplace-services-status`), and `PORT`, `NODE_ENV`, `QODANA_TOKEN` and the
+three keys naming each suite's throwaway test database with it. ⚠️ **An empty key in the layer is inert** —
+`.envrc` unsets the blanks, so the committed `env.shared` is safe to copy verbatim and a blank cannot shadow
+a repo's working value. The sixteen committed `env` templates **keep every key**: they answer what a service
+reads, not where the value comes from. §2 gains the row, §3 files it under Infrastructure and delivery, and
+§4 gains two — the per-repo `.envrc` and the not-quite-identical key. **R04 does not close**: shipped with it
+but deliberately not part of it is `assertEnvShape` (`marketplace-common` v4.2.0), which refuses a value of
+the wrong *kind* at boot in all nine services and attacks the likelihood; the residual is a
+plausible-but-incorrect value of the right shape in a genuinely per-repo key, and the row wants re-scoring
+rather than retiring
 v1.30 - 2026-08-31, later the same day: **ADR-034 amended a third time — the sweep the second amendment
 added is resumable.** That amendment's cost list sent a half-finished sweep to the admin session console, one
 account at a time, with no count of what was missed; the clause is superseded. `keygripRetire` is **not** made
@@ -319,6 +339,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-050 | The scrub stops at the account collections | accepted | 2026-08-30 | — | — | Data model |
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
+| ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted | 2026-08-31 | — | — | Infrastructure and delivery |
 
 ## 3. By area
 
@@ -335,12 +356,14 @@ ADR-050
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
 ADR-037, ADR-047
 
-**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039
+**Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039, ADR-053
 
 ## 4. Decisions deliberately NOT re-opened
 
 | Temptation | Settled by | Why not |
 |---|---|---|
+| Give a sub-repo its own `.envrc`, so it can add to the shared layer | [ADR-053](./ADR-053-the-shared-half-of-the-environment-is-one-file.md) | direnv loads the **nearest** `.envrc` walking up the filesystem and does not stop at a git boundary, so a second one does not extend the root layer — it **replaces** it for that subtree, silently, and every shared value the sub-repo did not repeat simply vanishes. `source_up` makes it work and makes sixteen more files to keep honest, to solve a problem the single root file does not have. The root `.envrc` is already in force in all sixteen repos; a repo that needs a value nobody else has puts it in its own `.env`, which is what that file is for. Violation looks like `find . -name .envrc` returning anything but `./.envrc` |
+| Add one more key to `.env.shared` because it looks the same everywhere | [ADR-053](./ADR-053-the-shared-half-of-the-environment-is-one-file.md) | the layer is exported and `dotenv` never overwrites an exported variable, so a key here is not a default a repo can override — it is a value a repo can no longer change. `DOMAIN` looks shared in ten templates and differs in one (`127.0.0.1` in `marketplace-services-status`); `MONGO_TEST_DB`, `MONGO_TEST_AUTH_ADMIN` and `MONGO_TEST_CONN_STRING` look shared because the templates ship them empty, and sharing them would have two suites drop each other's database in parallel with no error. Membership is decided by measuring the real files, which is what `scripts/env-shared-migrate.sh seed` does — it omits any key the repos disagree on and names it with a count. Violation looks like a `⚠️ KEPT` line from `strip`, or a repo that quietly stopped being able to point somewhere else |
 | Bring back a local-deploy shortcut for `marketplace-common` — a script, an alias, a `yarn link`, a `file:` path, or an `rsync` in someone's shell history | [ADR-047](./ADR-047-a-common-change-ships-as-a-published-release.md) | it is ten lines to recreate and it costs the one property the registry was published for. A copied build has no version, no integrity hash and no `yarn.lock` entry, so it is reproducible on exactly one machine — and the next `yarn install` in that consumer silently puts the released tarball back over it, making "which build is this running?" a question about command order. ADR-037 §Decision property 2 argued the other way and was reversed by the platform owner on 2026-08-30 in his own words, *"never use `./deploy-local.sh` in your development, always publish the package"*: the gap between an edit and a release is closed by cutting the release, and a patch release costs nine gated steps and no consumer left running code nobody else can obtain. Violation looks like a `node_modules/@axiumine/marketplace-common` whose contents do not match the version its lockfile names |
 | Merge the three authorization services into one | ADR-006 | dispatching on a tier read from the session is the pattern ADR-002 rejects; one `process.exit(1)` for three tiers is an availability cost paid by customers |
 | Fold `logout` back into the three `*-authenticated-authorization` services, or add a tier-named `adminLogout`/`shopOwnerLogout`/`userLogout` | ADR-005 | the resolver reads no `tier` and opens no collection, so three copies could never diverge — it is one `del` per key either way — while each copy pays the full CON-08 gate cost (lint, 100% coverage, mutation 100, Qodana) for a failure isolation session teardown has no use for; it also reintroduces the tier-dispatch pattern ADR-002 rejects. Stated as a standing boundary in `phase5/SESSION_TERMINATION.md` §4, *Merging BC-02 into BC-01 stays rejected*, which is what a PR proposing it has to answer. Violation looks like a `logout*.mts` appearing under any authorization service's `schema/mutations/`, or `assertTier` appearing inside `marketplace-dev-authenticated-logout/src/` |

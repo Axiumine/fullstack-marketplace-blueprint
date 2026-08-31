@@ -236,7 +236,7 @@ reach for them.
 
 ---
 
-## 7. Fill in the sixteen `.env` files
+## 7. Fill in the environment: one shared file, then sixteen `.env` files
 
 Every repo ships a committed `env` template and reads a gitignored `.env` you create from it:
 
@@ -249,6 +249,64 @@ Sixteen of them: `marketplace-docker-DBs` (done in step 3), `BEs/marketplace-com
 
 The templates are heavily commented and the comments are the real documentation for each variable —
 read them rather than guessing. What follows is only what has to agree across files.
+
+### 7a. The shared layer — do this first
+
+Twenty-one of those variables name the *same* resource for every repo that reads them: one Redis cluster,
+one MongoDB, one CSFLE master key, one cookie-signing KEK, one pair of test-cluster accounts. Written
+sixteen times they are sixteen places to rotate a secret and sixteen chances for one repo to disagree with
+the other fifteen — which is a platform that boots, connects to a real server, and is wrong
+(`RISK_REGISTER` **R04**). They live once instead, in `.env.shared` at the workspace root, exported by one
+`.envrc` that [direnv](https://direnv.net) loads ([`ADR-053`](./docs/devprotocol/phase3/adr/ADR-053-the-shared-half-of-the-environment-is-one-file.md)):
+
+```bash
+sudo apt install direnv                      # or: brew install direnv
+# then add the hook to your shell rc, once, and open a new shell:
+#   bash:  eval "$(direnv hook bash)"
+#   zsh:   eval "$(direnv hook zsh)"
+#   fish:  direnv hook fish | source
+
+cp envrc .envrc && direnv allow              # from the workspace root
+./scripts/env-shared-migrate.sh seed         # builds .env.shared from the repos, names only in its report
+```
+
+`seed` is safe to run before the sixteen `.env` files exist — it simply finds nothing and writes a
+skeleton you fill in from the commented `env.shared` template. Run it *after* them and it collects what
+they already hold, refusing by name any key the repos disagree on. Either way, read `env.shared`: it is the
+documentation for every key in the layer, and its §What stays behind says why `PORT`, `DOMAIN`, `NODE_ENV`,
+`QODANA_TOKEN` and the three keys naming each suite's test database are **not** in it.
+
+Then, once `.env.shared` is filled in:
+
+```bash
+./scripts/env-shared-migrate.sh strip        # dry run — shows which lines would go
+./scripts/env-shared-migrate.sh strip --apply
+./scripts/env-diff.sh                        # every migrated key should read SHARED, none MISSING
+```
+
+Four things to know before you rely on it:
+
+- ⚠️ **One `.envrc`, at the workspace root, and never one inside a sub-repo.** direnv loads the *nearest*
+  one walking up the filesystem and does not stop at a git boundary, so the root file is already in force
+  in all sixteen repos. A second one would **replace** it for that subtree, silently.
+- ⚠️ **The layer wins.** `dotenv` never overwrites an exported variable, so a key in `.env.shared` is
+  answered there and that repo's own copy of it is dead text. Do not add a key that legitimately differs
+  anywhere — it would not be a default, it would be a value that repo can no longer change.
+- ⚠️ **An empty key in the layer is inert.** `.envrc` unsets every name `.env.shared` leaves blank, so a
+  key you have no value for falls through to each repo's own `.env`. That is why `env.shared` is safe to
+  copy verbatim, blanks and all.
+- ⚠️ **Only a hooked interactive shell sees it.** A systemd unit, a cron job, an IDE run configuration or
+  a container inherits nothing from `.envrc`. If you start the services any of those ways, either export
+  the same names by that launcher's own mechanism or skip 7a entirely and keep a complete `.env` in every
+  repo — the layer is additive, and the platform runs identically without it.
+
+### 7b. The rest, per repo
+
+The committed `env` templates keep **every** key, including the ones the layer now supplies: they answer
+what a service reads, which is not the same question as where the value comes from. So the sections below
+are written as though there were no layer, and each still tells you what a variable must be — if you did
+7a, the ones marked "identical everywhere" are already answered and you can leave them out of the repo
+files. `./scripts/env-diff.sh` tells you which is which at any point.
 
 **Every backend service** — `MONGODB_URI`, one line, `<pwd>` being `MONGO_DEV_PWD` written out in full:
 
