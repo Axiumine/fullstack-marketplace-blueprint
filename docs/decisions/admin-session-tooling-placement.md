@@ -19,6 +19,7 @@ session console add seven Admin-tier operations that are not domain data:
 | `keygripStatus` | the wrapped cookie-signing record at `<REDIS_KEY>keygrip` |
 | `keygripRotate` | mints a signing key for the whole platform |
 | `keygripRetire(id)` | removes one, and signs out **every** session on the platform — since 2026-08-31, not only the cookies that key signed |
+| `keygripResweep` | signs out every session on the platform again, to finish a retirement whose sweep did not reach every account — no key is read, minted, retired or changed |
 
 None of them is `itemCategory` CRUD or moderation, which is what that service was for. So: do they belong
 in a tenth deployable — an Admin-tier *operations* service — or in the existing Admin resource service?

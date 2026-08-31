@@ -410,3 +410,70 @@ for it.
   id, the version, the fingerprint and the hashed admin id.
 - **R47 closes** (`RISK_REGISTER` v1.44). §Risks' missed-message bullet keeps its meaning for rotation,
   which is the case it was written about.
+
+## Amendment — 2026-08-31, later the same day: the sweep is resumable
+
+**Status:** accepted
+**Deciders:** platform owner
+**Scope:** what happens when the sweep the amendment above added does not reach every account. The rule of
+that amendment is unchanged — a retirement still ends every live session on the platform, still after the CAS
+and never before, still with no exemption for the caller.
+
+### What the amendment above left open
+
+Its own cost list says a partial sweep *"answers 500 … and the remaining sessions come off the admin session
+console"*. ⚠️ **That last clause is superseded here.** It was an honest description of a bad remedy: the
+console revokes one account at a time, the 500 did not say how many accounts were missed, and nothing named
+them — so *finish the job* meant walking every account the console still showed a session for. The gap was
+opened as **R55**.
+
+Retrying the mutation was never the answer and still is not. `keygripRetire` takes the key out of the record
+**before** it sweeps, so a second attempt answers 404 on a key that is already gone — correctly, since there
+is nothing left to retire. Reordering to make it retryable was refused for the reason the amendment above
+already gives: sweeping first would log the whole platform out while leaving the suspect key in the keyring.
+
+### The rule now
+
+**The sweep tolerates one account's failure, reports what it did, and can be run again on its own.**
+
+1. A `revokeAllSessionsForAccount` that throws is caught and counted, and the walk continues. A tier's `find`
+   is deliberately **outside** that catch: a collection that cannot be read at all is a different failure —
+   the sweep never ran — and it must stay distinguishable from a sweep that ran and left accounts standing.
+2. The sweep answers `ISweepOutcome { ended, failed, reason }`. ⚠️ **`failed` is a count and never a list of
+   account ids**: the message travels into `throwInternalError` and on to Sentry, where this ADR's own audit
+   line already refuses to name the admin in clear, and the three collections it walks hold people. `reason`
+   is the first failure's message; a thousand copies of `Redis connection lost` is not a better answer.
+3. `keygripResweep` — a new Admin-tier mutation, no arguments — runs the same sweep on its own. ⚠️ **It
+   touches this record not at all**: no read, no unwrap, no compare-and-set. So it cannot answer 404 or 409,
+   it cannot lose a race with a rotation running beside it, and it is not a key operation at all — it is the
+   session half of one, offered separately because that is the half that is safe to repeat.
+
+Repeating it is safe for a property of `revokeAllSessionsForAccount` rather than of anything added here: it
+deletes an account's index key **last**, so an interrupted account is at worst an index naming keys that are
+already gone, and a second pass over it deletes nothing and counts nothing.
+
+### What it costs
+
+- ⚠️ **A resweep signs the platform out again, including every account the first sweep already reached.** The
+  sweep has no memory and is not given one — a list of missed accounts would be exactly the personal data
+  point 2 keeps out of the error path, and it would go stale the moment anybody signed back in. The admin
+  pressing it is paying the retirement's own cost a second time, and the confirm dialog says so rather than
+  presenting a repair with no downside.
+- ⚠️ **Nothing re-runs the sweep by itself.** There is no retry queue, no background job and no scheduler on
+  this platform; the resweep is a button an admin presses after reading a 500. An admin who closes the tab
+  leaves those accounts holding sessions until their tokens expire — which is why **R55 is `Mitigated` and
+  not closed** (`RISK_REGISTER` v1.46).
+- One more metered write in `guardKeygripWrite`'s bucket, deliberately the same bucket: this is the operation
+  reached for while a compromise is live, and an afternoon of rotations must not have spent its allowance.
+
+### What moves with it
+
+- The amendment above keeps its wording; only its console clause is superseded, by the paragraph that names
+  it. Both of `keygripRetire`'s sweep failures now name `keygripResweep` — *the sweep could not start* and
+  *the sweep ran and left N accounts standing* — and both still say the key is already gone and that retiring
+  it again answers 404.
+- The audit line is written **before** the partial-failure refusal, in the retirement and in the resweep
+  alike. The sessions really did end, and a 500 that swallowed the only record of when a key was dropped
+  would be the worse trade.
+- `keygripResweep` answers `Boolean!`, and `true` means every account was reached. Answering `true` for
+  *mostly* would hide the one state the operation exists to report.

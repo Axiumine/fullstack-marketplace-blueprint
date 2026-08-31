@@ -2,7 +2,7 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.18
+**Version:** 1.19
 **Date:** 2026-08-31
 **Author:** records-agent
 **Bounded context:** BC-01 — Identity & Access
@@ -429,8 +429,15 @@ cookie signed with the key I just removed.
 - ⚠️ **No session is exempt, the retiring admin's own included.** Nothing anywhere records which key signed
   which cookie, so the sweep is every session or none; the admin's browser answers 498 on its next request
   and `marketplace-admin`'s `authExchange` sends it to the login screen
-- A sweep that fails part way answers 500, says the key is already gone, warns that a second retirement of
-  that id answers 404, and points at the admin session console. **R55** carries what that leaves
+- ⚠️ **One account's failure ends that account's revoke and nothing else.** The per-account call is caught
+  and counted, so a single bad round trip no longer takes the rest of that tier and every tier after it;
+  the tier's own `find` stays outside that catch, so *the sweep never ran* stays distinguishable from *the
+  sweep ran and left accounts standing*
+- The sweep answers `ISweepOutcome { ended, failed, reason }`. ⚠️ **`failed` is a count and never an account
+  id** — the string reaches Sentry, and these three collections hold people
+- A sweep that could not start answers 500 saying no session was ended; a sweep that left accounts standing
+  answers 500 naming how many. Both say the key is already gone, warn that a second retirement of that id
+  answers 404, and name `keygripResweep` as what finishes the job. **R55** carries what that leaves
 - The audit line records how many sessions ended, alongside the key id, the version, the fingerprint and
   the hashed admin id. The mutation still answers `Boolean!` — *the key is gone*, not a count
 - The confirm dialog says the platform is being signed out, says the admin goes too, and says rotation is
@@ -439,7 +446,7 @@ cookie signed with the key I just removed.
 **Traces:** NFR-SE02; ADR-034 (§Amendment 2026-08-31); R47 — closed by this story — and R55
 **Evidence:** `marketplace-dev-admin-authenticated-resource/src/lib/keygrip/endEveryPlatformSession.mts`
 (the walk, and the docblock on why it is account-by-account) · `src/lib/keygrip/funKeygripRetire.mts` (the
-sweep after the CAS, and the half-finished-sweep error) · `test/endEveryPlatformSession.test.mts` (eight
+sweep after the CAS, and the half-finished-sweep error) · `test/endEveryPlatformSession.test.mts` (twelve
 tests over a 1 : 2 : 3 fixture, so a wrong sum is a different number) · `test/keygripLib.test.mts` (the
 order assertion and the 500) · `test/integration/keygripRotate.itest.mts`, whose last block seeds real
 sessions on all three tiers, retires a key over HTTP and finds all three hashes empty — against mocks a
@@ -453,6 +460,46 @@ version check for a better one: it reverses `watchKeygrip`'s deliberate fail-ope
 request forever to close a window that matters on one day.
 ⚠️ **Rotation and retirement stopped being neighbours.** Rotation is the routine lever and logs nobody out;
 retirement is the incident lever and logs everybody out. Nothing about rotation changed here.
+
+### A half-finished sweep is finished by a resweep, not by a second retirement   `built`
+**As a** platform admin, **when** a retirement's session sweep answers 500 because it could not reach every
+account, **I want** one button that runs the sweep again **so that** the accounts it missed are signed out
+without my having to revoke them one at a time — and without retrying a mutation that cannot be retried.
+**domains:** backend, frontend
+**Acceptance criteria:**
+- `keygripResweep`, an Admin-tier mutation with **no arguments**, runs `endEveryPlatformSession` on its own.
+  ⚠️ Not an argument-narrowed sweep: an account list could only rebuild the partial sweep this exists to clear
+- ⚠️ **It touches the keygrip record not at all** — no read, no KEK unwrap, no compare-and-set — so it can
+  answer neither 404 nor 409 and cannot lose a race with a rotation running beside it. That is also why
+  `keygripRetire` itself is not made retryable: the retirement removed the key before it swept, so its second
+  attempt answers 404 *correctly*, and the sweep is the only half that is safe to repeat
+- **Safe to run twice, and the reason is in `marketplace-common`**: `revokeAllSessionsForAccount` deletes an
+  account's index key last, so an interrupted account is at worst an index naming keys that are already gone
+  and a second pass over it deletes nothing and counts nothing
+- Metered in its own `guardKeygripWrite` bucket — this is the write an admin reaches for while a compromise is
+  live, and an afternoon of rotations must not have spent its allowance — and refused as 429 past it
+- The audit line records how many sessions it ended and how many accounts it could not reach, naming the admin
+  by digest and no account at all. It is written **before** the partial-failure refusal, for the same reason
+  `funKeygripRetire` writes its own first: the sessions really did end
+- Two 500s and both say *run it again*: the sweep could not start (nothing ended), or it ran and left accounts
+  standing (naming how many). `true` means every account was reached
+- The admin panel offers it in an **Unfinished retirement** box that is always visible, behind a confirm that
+  says every session on the platform ends again — the caller's included — and that no key is minted, retired
+  or changed. The call declares `additionalTypenames: ['GraphQLSession']`, so the session console above it
+  re-reads rather than showing the sessions the resweep just ended
+- `yarn test:cov` 100/4 and `yarn test:mutation` 100 in both repos
+**Traces:** NFR-SE02; ADR-034 (§Amendment 2026-08-31, second that day); **R55** — mitigated by this story, not
+closed
+**Evidence:** `marketplace-dev-admin-authenticated-resource/src/lib/keygrip/funKeygripResweep.mts` ·
+`src/graphQLApi/schema/mutations/keygripResweep.mts` · `src/lib/keygrip/endEveryPlatformSession.mts` (the
+per-account catch and `ISweepOutcome`) · `test/keygripLib.test.mts` (the `funKeygripResweep` block, including
+the 429 and the audit line surviving a partial run) · `test/endEveryPlatformSession.test.mts` (the four
+failure tests: the walk continues, the counts add across tiers, the first reason wins, and an unreadable
+collection rejects instead of being counted as failed accounts) ·
+`marketplace-admin/src/features/security/KeygripPanel.tsx` + `test/pages/SecurityPage.test.tsx`
+⚠️ **R55 is mitigated, not closed** (`RISK_REGISTER` v1.46). A sweep can still fail part way; what changed is
+that the platform now has an operation that finishes it, and that nothing on the platform runs that operation
+by itself — a resweep is a button an admin presses.
 
 ### `KEYGRIP_KEY_1`/`_2` are gone, and the documents stop describing five files   `built`
 State plainly: the old names must leave the templates and the prose in the same piece of work that makes
@@ -526,6 +573,7 @@ no other record owns the question.
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.19 | 2026-08-31 | **New story: a half-finished sweep is finished by a resweep.** `keygripResweep` runs `endEveryPlatformSession` on its own — no arguments, no keygrip record read, no compare-and-set, therefore no 404 and no 409 — and is safe to repeat because `revokeAllSessionsForAccount` deletes an account's index key last. The sweep itself changed with it: one account's failure is caught and counted instead of ending that tier and every tier after it, and the outcome is `{ ended, failed, reason }` so a caller separates *never ran* from *ran and left N standing*. ⚠️ **`keygripRetire` is deliberately not made retryable** — it removes the key before it sweeps, so its second attempt answers 404 correctly. The retirement story's failure criterion is rewritten to match. **R55** is mitigated, not closed (`RISK_REGISTER` v1.46) |
 | 1.18 | 2026-08-31 | **New story: a retirement ends every session on the platform.** `keygripRetire` sweeps all three account collections through `revokeAllSessionsForAccount` after its compare-and-set write, so a service that has not yet adopted the retirement verifies the signature and then finds no session behind it — **R47 closes**, from the session side rather than the transport, and **R55** takes the sweep that fails part way ([ADR-034](../phase3/adr/ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31). No other story changed: rotation still logs nobody out |
 | 1.0 | — | Initial retrofit, reverse-engineered from the 15-repo working tree |
 | 1.1 | 2026-08-12 | "The two admin-only `shopOwner` fields are refused by construction" added, question 1 closed with it (no ACL, Conformist permanently, CON-12). Two claims corrected in the same pass, **both false against the code**: §2 said BC-01 read `waitApprov` to refuse a login, and §5 said BC-03 had to clear it before ShopOwner login could succeed. Nothing read the field — that became question 2 rather than a sentence three documents repeated |
