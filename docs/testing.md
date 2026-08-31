@@ -199,6 +199,19 @@ Names: `dbMarketplaceTest` (db-setup), `…Common`, `…PublicAuthz`, `…Public
 these databases is never a one-file edit: the authSource *is* the database, so the two users have to be
 created in the new one before any `.env` points at it, and the old one dropped afterwards.
 
+## Per-repo Redis namespace, and the keygrip record it must hold
+
+Each integration project also pins its own `REDIS_KEY` — `marketplaceDev:itest:<service>:` — for the same
+reason the database name is unique: two suites sharing a prefix delete each other's keys. Since all nine
+services refuse to boot without the ADR-034 record at `<REDIS_KEY>keygrip`, a namespace nothing seeded
+makes `start()` exit 1 with `KEYGRIP_RECORD_MISSING`, and `yarn seed:keygrip` never writes into an itest
+prefix. So each `globalSetup` seeds one itself, beside the throwaway database and as disposable.
+
+- `marketplace-dev-admin-authenticated-resource` seeds a **real** record, wrapped with a throwaway KEK
+  minted per run: it is the service that rotates, so its suite has to open what it wrote.
+- The three other resource services seed an **opaque** one from `vitest.keygrip.mts` — 64 fixed bytes,
+  base64. They hold no `KEYGRIP_KEK` and must not, and `assertRedisNamespace` reads presence only.
+
 ## Mutation testing traps
 
 Stryker (`stryker.config.mjs`, `thresholds.break: 100`) runs as the second step of every
