@@ -10,16 +10,8 @@ v1.7 - 2026-08-30: the platform developer no longer runs a local sync script, be
 `marketplace-common` reaches a consumer by being published and by nothing else, and `deploy-local.sh` is
 deleted ([`adr/ADR-047-a-common-change-ships-as-a-published-release.md`](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)).
 The actor row, the mermaid edge and the §5 interaction row now name publishing a release; the npm-registry
-row carries `3.0.0` and drops the bridge clause. No container, actor or relationship added or removed.
-v1.6 - 2026-08-28: the npm-registry rows in §3 and §4 carry `2.0.1`, the JSDoc-only patch released that day.
-No system, actor or relationship changed.
-v1.5 - 2026-08-27, later the same day: the npm-registry row and its changelog note carry `2.0.0` rather than the
-`1.0.1` of 2026-08-26. No system, actor or relationship changed.
+row drops the bridge clause. No container, actor or relationship added or removed.
 v1.4 - 2026-08-27: §3's `User` row said the tier cannot buy anything because no cart or order model exists, which read as a build-order statement. ADR-038 (2026-08-27) makes that permanent: the models are not coming.
-v1.3 - 2026-08-27, later the same day: v1.2 corrected the npm row in §3 and missed the identical claim in the
-relationships table, which still read *"every package except `marketplace-common`"*. Corrected the same way. No
-actor, system or relationship changed.
-v1.2 - 2026-08-27: the npm-registry row said the registry resolves every dependency *except* `@axiumine/marketplace-common`, *"which 404s there"*. `ADR-037` published it on 2026-08-26 at `1.0.1`, so the exception is gone and `deploy-local.sh` bridges *edited → released* instead. No container, actor or relationship changed.
 v1.1 - 2026-08-12: the ShopOwner actor row said they register through `marketplace-shopowner`, which has no
 registration screen and never had one — the public SSR app built the flow instead, per *A seller registers
 themselves and waits for an admin* ([`phase5/SHOPOWNER_ONBOARDING_APPROVAL.md`](../phase5/SHOPOWNER_ONBOARDING_APPROVAL.md)
@@ -122,7 +114,7 @@ platform — actor identity = which MongoDB collection the session authenticated
 | Protomaps PMTiles archive | yes | static basemap tiles, `marketplace-user` browser ↔ nginx `/tiles/`, HTTP range requests |
 | nginx | — | TLS termination for three hostnames, HTML cache, rate limits, and the `Secure` cookie rewrite — configs live at `marketplace-nginx/` in the workspace root and are exercised by `marketplace-nginx/test/run.sh`, but **no nginx is installed anywhere in this workspace** |
 | Qodana Cloud | no, quality gate | every repo's `pre-commit`/`pre-push` hook uploads a SARIF-shaped scan, one project + token per repo |
-| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`), `3.0.0` since 2026-08-30, where this row recorded a 404. It is the **only** route from an edit in that repo to a service: the local bridge this row used to name is deleted (`ADR-047`) |
+| npm registry | no | resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`). It is the **only** route from an edit in that repo to a service: the local bridge this row used to name is deleted (`ADR-047`) |
 
 Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §3.2 and §5.
 
@@ -146,7 +138,7 @@ Full contract detail, direction and payload: [`docs/devprotocol/phase1/SYSTEM_CO
 | Marketplace | Protomaps PMTiles | static map tile source for the customer-facing map island |
 | Marketplace | nginx | documented reverse-proxy / cache boundary, not installed in this workspace |
 | Marketplace | Qodana Cloud | static-analysis gate, one project + token per repo |
-| Marketplace | npm registry | dependency resolution for every package, `marketplace-common` included — published at `2.0.1` (`ADR-037`) |
+| Marketplace | npm registry | dependency resolution for every package, `marketplace-common` included — published there (`ADR-037`) |
 
 ---
 

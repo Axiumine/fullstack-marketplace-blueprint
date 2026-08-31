@@ -145,7 +145,7 @@ one, and calling it anything else is the misreading this ADR most wants to preve
   asserts it is current, and an adopter who skips it is in exactly the position `R50` describes.
 - **The KEK is decoded in one place in TypeScript, and that place is not free.** `funKeygripRotate.mts` and
   `funKeygripRetire.mts` each used to decode the KEK themselves; both now call `readKek`
-  (`marketplace-common` 2.0.3), which `readKeygrip` calls too, so `src/` across the fifteen repos holds
+  (in `marketplace-common`), which `readKeygrip` calls too, so `src/` across the fifteen repos holds
   exactly one `process.env.KEYGRIP_KEK`. That gives an adopter one line to change instead of three — but it
   buys **one swap point, not one value**. Two reads of `process.env` in one process always agreed; three
   *processes* resolving a manager independently still need not, and the rule that covers that is the

@@ -137,7 +137,8 @@ admin, user — outside the chain
 - **`marketplace-common` is the only repo that may be committed, merged, pushed and published without
   asking. Every other repo is push-on-request, always.**
 - ⚠️ **An edit to `marketplace-common` reaches a consumer by being published, and by nothing else.**
-  It is consumed by name from `registry.npmjs.org` (`3.0.0`, consumers on `^3.0.0` — ADR-037, ADR-047), so
+  It is consumed by name from `registry.npmjs.org`, each consumer resolving the range its own
+  `package.json` declares (ADR-037, ADR-047), so
   an unpublished edit is invisible at every call site. Cut a release: bump, changelog, merge, tag,
   `git push --follow-tags`, `yarn upload`, then move each consumer's range — the nine steps in
   [`BEs/marketplace-common/CLAUDE.md`](./BEs/marketplace-common/CLAUDE.md) §The release flow, all of them,

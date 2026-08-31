@@ -40,7 +40,7 @@ email-verification REST endpoints all exist on disk:
 - `BEs/dev/marketplace-dev-admin-authenticated-authorization` (own `refresh.mts`, same shared body)
 - `BEs/dev/marketplace-dev-user-authenticated-authorization` (own `refresh.mts`, same shared body)
 - `BEs/marketplace-common/src/others/Tier.mts`, `BEs/marketplace-common/src/others/assertTier.mts`
-- `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts` (shared since `marketplace-common@1.0.0`)
+- `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts` (shared by the three tiers)
 - `BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts` (the two verify-email REST routes)
 
 Nothing here is designed-but-unbuilt. The gaps this record once listed as process gaps — cross-repo secret
@@ -453,7 +453,7 @@ from the required list, and a repo-wide ban would refuse the test that proves th
 
 - Depends on `BEs/marketplace-common` (`Tier.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`,
   `refreshSessionTokens`) being **published** before any story here is testable in a consumer — BCON-07.
-  Already published (`3.0.0`, consumers on `^3.0.0`); a future edit to common must be released and each
+  Already published; a future edit to common must be released and each
   consumer's range moved before this record's gates mean anything (ADR-047).
 - BC-03 (Shop Owner Onboarding & Approval) must create the `shopOwner` document before "ShopOwner login
   mints tier-stamped session" can succeed for that account, **and must not be holding it**: since "A shop

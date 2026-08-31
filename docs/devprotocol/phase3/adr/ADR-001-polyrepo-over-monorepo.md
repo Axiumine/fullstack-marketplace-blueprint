@@ -24,9 +24,8 @@ Forces:
   `.githooks/`, own Qodana project/token. Verified: `BEs/dev/marketplace-dev-public-authorization/.git`
   through the other 8 each a separate `.git` dir.
 - `marketplace-common` is consumed as an npm package name (`@axiumine/marketplace-common`), published
-  on npmjs since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)) — `1.0.1` that
-  day, `3.0.0` since 2026-08-30 — this bullet said the name 404s there, which was true when it was written
-  and is not now. ⚠️ **The local bridge this bullet described is deleted**
+  on npmjs since 2026-08-26 ([`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md)).
+  ⚠️ **There is no local bridge**
   ([`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), 2026-08-30): an edit the registry
   has not released reaches no consumer at all, and a release is what carries it. Package-name coupling, not
   path coupling — already decoupled from source-tree shape before this ADR, and neither publication nor the

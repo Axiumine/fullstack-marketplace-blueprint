@@ -12,14 +12,6 @@
 keeps the same domain and the same place in the landing order, and gains an acceptance criterion that can
 now be checked by `npm view` rather than by a directory listing. §2's ownership table and §3's build state
 lose the bridge row with it, and §5's landing order says "publish a release" where it said "run the script".
-The 1.6 and 1.7 entries below are left as written — they were true on their dates.
-v1.7 - 2026-08-28: the story that a published release is the only way an edit reaches a consumer has its
-Evidence line carry `marketplace-common` `2.0.1`, the JSDoc-only patch released that day. The criterion and
-the consumers' `^2.0.0` are untouched — the point of the range is that a patch needs neither.
-v1.6 - 2026-08-27, later still: the acceptance criterion and Evidence line for the story that a published
-release is the only way an edit reaches a consumer carry `marketplace-common` `2.0.0` / `^2.0.0` after that
-release. The story's obligation is unaffected — `deploy-local.sh` bridges the gap between releases whatever
-the released version is. **(That bridge is gone since 2026-08-30 — see v1.8.)**
 v1.3 - 2026-08-27: The "not in the kernel" row said no BC-11 shape exists to import. ADR-038 (2026-08-27) makes cart, order, delivery and payment permanently out of scope, so no shape will ever exist to import either.
 v1.2 - 2026-08-27: Question 2's answer was upgraded from inference to proof: the Cloud project is named on
 disk, so the four repos `phase1/NFR.md` open question 4 called project-less are provisioned too, and that
@@ -49,7 +41,7 @@ minus `marketplace-dev-authenticated-logout`, which touches Redis only) import a
 | `Tier`, `assertTier`, `checkUserAuthorizationDisDel` | A `role` field/enum | Banned term, `phase2/UBIQUITOUS_LANGUAGE.md:79` — role = which collection you authenticate against |
 | `resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens` (shared authz body) | Merging the 3 `*-authenticated-authorization` deployables into 1 process | Decided against 2026-08-07, [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md); NFR-AV01 |
 | The 6 Mongoose models (`Admin`, `ShopOwner`, `Company`, `User`, `Item`, `ItemCategory`) | A shop/collection model | Never existed, never will — a shop IS a `company` |
-| `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org` at `1.0.1`, published by the platform owner personally. ⚠️ **Corrected again 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)**: `deploy-local.sh` is deleted, so there is no between-releases bridge and BC-10 owns the `exports` map only — a change reaches a consumer as a published version or not at all |
+| `package.json` `exports` map (216 entries, no barrel) | Who runs the publish, and on what cadence | ⚠️ **Corrected 2026-08-26 by [`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)** — this row read *"Publishing to a real npm registry / 404s by design"* until then. The package is on `registry.npmjs.org`, published by the platform owner personally. ⚠️ **Corrected again 2026-08-30 by [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)**: `deploy-local.sh` is deleted, so there is no between-releases bridge and BC-10 owns the `exports` map only — a change reaches a consumer as a published version or not at all |
 | The published release (`yarn upload`) the nine consumers install | Any resolver, any GraphQL schema, any route | BC-10 owns compile-time surface only — a published version is the whole delivery mechanism (ADR-047) |
 | `assertTurnstile` (fail-closed anti-bot gate) | Cart/Order/Delivery/Payment models | BC-11 `WILL NOT BUILD` — no shape exists to import and none ever will ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md) §Note 2026-08-27) |
 
@@ -62,7 +54,7 @@ Koa/GraphQL-shaped surface on 2026-08-07.
 - Tier assertion: `BEs/marketplace-common/src/others/assertTier.mts:21-23` — `if (actual !== expected)
   throw throwForbiddenError()`.
 - Disabled/deleted guard: `BEs/marketplace-common/src/others/checkUserAuthorizationDisDel.mts`.
-- Shared authz body (since `@4.4.0`): `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`,
+- Shared authz body: `BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`,
   `findAccountForSession.mts`, `refreshSessionTokens.mts`.
 - Fail-closed anti-bot: `BEs/marketplace-common/src/others/assertTurnstile.mts:26,29-32`.
 - Models: `BEs/marketplace-common/src/models/MongoDB/{Admin,ShopOwner,Company,User,Item,ItemCategory}.mts`.
@@ -125,8 +117,8 @@ edits must reach its consumers by a route both can name. The route is now a vers
   version` is the check, and it answers for every machine rather than for this one (NFR-PO04, ADR-047).
 **Traces:** NFR-PO04, BCON-07 (`phase5/CONSTRAINTS.md` §3), ADR-037 (supersedes ADR-015 in part), ADR-047
 (supersedes ADR-015 and ADR-037, each in part).
-**Evidence:** `BEs/marketplace-common/package.json` `version` `3.0.0` + `publishConfig.registry` +
-`scripts.upload`; `^3.0.0` in the twelve consumers' `package.json`; `BEs/marketplace-common/CLAUDE.md`
+**Evidence:** `BEs/marketplace-common/package.json` `version` + `publishConfig.registry` +
+`scripts.upload`; the declared range in each of the twelve consumers' `package.json`; `BEs/marketplace-common/CLAUDE.md`
 §The release flow.
 
 ### Every file reachable only via the `exports` map   `built`

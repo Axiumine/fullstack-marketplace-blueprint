@@ -230,12 +230,6 @@ publication,
 [`ADR-047`](./docs/devprotocol/phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) for why
 the local copy is gone.
 
-⚠️ **Corrected 2026-08-27.** This paragraph said the package was *unpublished* and that skipping the
-script left every service unable to resolve `@axiumine/marketplace-common`. It is published —
-`registry.npmjs.org`, `2.0.0`, consumers on `^2.0.0` — so resolution succeeds either way, and the failure
-mode is quieter than it was: skipping the script leaves consumers compiling the last *released* build
-with no error, and a plain `yarn install` puts that released build back over a build the script deployed.
-
 `yarn build` is ESM only. `build:all` / `prepare:all` are broken (missing `tsconfig.cjs.json`) — do not
 reach for them.
 

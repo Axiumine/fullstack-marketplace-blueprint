@@ -390,7 +390,7 @@ Transport, auth headers and error shape all follow §2. Tier value asserted: `ad
 ### 6.1 `marketplace-dev-admin-authenticated-authorization` — port 4025
 
 Token lifecycle only, same shape as every `*-authenticated-authorization` service since the
-`marketplace-common@1.0.0` consolidation (ADR-006 — bodies shared, deployables kept separate, one process
+`marketplace-common` consolidation (ADR-006 — bodies shared, deployables kept separate, one process
 per tier so a crash in one tier does not take the others down).
 
 | Op | Type | Args | Answer | Effect | Source |

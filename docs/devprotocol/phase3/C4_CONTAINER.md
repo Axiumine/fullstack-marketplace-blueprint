@@ -6,13 +6,6 @@
 **Date:** 2026-08-30
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
-v1.8 - 2026-08-28: the `marketplace-common` node label carries `2.0.1`, and §*Non-deployed but real*'s cell —
-missed by v1.7 and still reading `1.0.1` / `^1.0.1` — carries the released version and the consumers' actual
-range. The range stays `^2.0.0` and all twelve consumers pinned `2.0.1` in their lockfiles the same day, so
-the diagram records what the registry serves *and* what the containers run. Structure unchanged — same
-containers, same edges.
-v1.7 - 2026-08-27, later the same day: the `marketplace-common` container row, the Mermaid edge label and the
-published-at note carry `2.0.0` / `^2.0.0`. Structure unchanged — same containers, same edges.
 v1.6 - 2026-08-27: The `price` row in §8 said the four commerce concepts were "unbuilt, undesigned", which invited a reader to supply the missing design. ADR-038 (2026-08-27) refuses it outright, so the row says permanently and cites it alongside ADR-009.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. It gained
 `usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the admin still cannot do
@@ -24,15 +17,15 @@ v1.6 - 2026-08-30: the `COMMON` node, its edge label, the compile-time relations
 and §Rules all described a **filesystem sync** into every consumer's `node_modules`.
 [`ADR-047`](./adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes `deploy-local.sh`: the
 only route from this container to its nine consumers is a published version, resolved by each consumer's own
-`yarn.lock`. The library is `3.0.0` and the twelve consumers pin `^3.0.0`. No container, and no
+`yarn.lock`. No container, and no
 *deployment* relationship, changed — what changed is that the one compile-time edge is a registry fetch
 rather than an `rsync`.
 v1.5 - 2026-08-27, later the same day: the `marketplace-common` container row said a plain `yarn install` restores the
 released build over a deployed one, without saying that this costs nothing unless an unreleased edit exists, and without
 saying that no install path invokes the script. Both added. No container or relationship changed.
 v1.4 - 2026-08-27, later the same day: the `COMMON` node label, its edge label and §*Non-deployed but real* all
-said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it at `1.0.1` on
-2026-08-26; it is `2.0.0` since 2026-08-27 and every consumer pins `^2.0.0`. `deploy-local.sh` keeps a narrower
+said `marketplace-common` is *"not deployed"* / *"Not on any npm registry"*. `ADR-037` published it on
+2026-08-26. `deploy-local.sh` keeps a narrower
 job — *edited → released* — which the
 diagram now says. **(That job ended on 2026-08-30: the script is deleted, ADR-047 — see v1.6.)** v1.3's Qodana-id correction stands; no container or relationship changed.
 v1.3 - 2026-08-27: the `marketplace-admin/` tree comment cited Qodana project `1rylx`. It is `VOZEg` — enumerated from every repo's scan artefact into `phase1/SYSTEM_CONTEXT.md` §5.12, which is now the one place that list lives. Two ADRs carried the same wrong id and are corrected in the same pass. Nothing about the container split changed.
@@ -90,7 +83,7 @@ graph TB
     Mongo[("MongoDB\n6 collections")]
     Redis[("Redis cluster\nshared REDIS_KEY prefix")]
 
-    COMMON["marketplace-common\n(published @axiumine/marketplace-common 3.0.0;\nreleases only — no local sync path)"]
+    COMMON["marketplace-common\n(published @axiumine/marketplace-common;\nreleases only — no local sync path)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
     STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
@@ -132,7 +125,7 @@ graph TB
     UR --> Redis
     LO --> Redis
 
-    COMMON -.compiled in, ^3.0.0 from registry.npmjs.org.-> PA
+    COMMON -.compiled in, from registry.npmjs.org.-> PA
     COMMON -.-> PR
     COMMON -.-> SA
     COMMON -.-> SR
@@ -168,7 +161,7 @@ monitoring (`marketplace-services-status`).
 |---|---|---|---|---|
 | `marketplace-dev-public-authorization` | 4028 | public | Koa 3 + Apollo Server 5, `ENDPOINT = '/public-authorization'` (`BEs/dev/marketplace-dev-public-authorization/src/index.mts`) | Mints the initial session for **all three** authenticated tiers — `login` (ShopOwner), `loginAdmin`, `loginUser` mutations. No business queries. All three run `guardPublicLogin` first — two Redis rate-limit counters (per IP, per email) then Cloudflare Turnstile verification — so this service calls `siteverify` as well as `public-resource` does. `loginAdmin` carries the tightest ceilings on the platform, 10/hr per IP and 30/hr per email. |
 | `marketplace-dev-public-resource` | 4027 | public | Koa 3 + Apollo Server 5 at `/public-resource`, **plus** a real `@koa/router` (`BEs/dev/marketplace-dev-public-resource/src/middleware/router/index.mts`) prefixed `/check` | Public catalogue reads (published `company`/`item`/`itemCategory` only), customer registration, and the platform's only 3 REST endpoints: `GET /check/`, `GET /check/verify-email/:email/:hash`, `GET /check/verify-email-user/:email/:hash`. Verifies Cloudflare Turnstile. |
-| `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-authorization'` | ShopOwner token lifecycle only — refresh/rotate, re-reads the account to re-check `checkUserAuthorizationDisDel` gates. Body shared via `marketplace-common@1.0.0`'s `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`). |
+| `marketplace-dev-authenticated-authorization` | 4029 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-authorization'` | ShopOwner token lifecycle only — refresh/rotate, re-reads the account to re-check `checkUserAuthorizationDisDel` gates. Body shared via `marketplace-common`'s `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`). |
 | `marketplace-dev-authenticated-resource` | 4026 | ShopOwner | Koa 3 + Apollo Server 5, `ENDPOINT = '/authenticated-resource'` | Domain data for ShopOwner — `shopOwnerCompanies`, `companyItems`, `itemCategories` reads; `company*`, `itemAdd`/`itemUpdate`/`itemDel` mutations; file uploads (`sharp`, `clamscan`, `file-type`, `graphql-upload` — only resource services carry these). |
 | `marketplace-dev-authenticated-logout` | 4030 | **all three tiers** | Koa 3 + Apollo Server 5, `ENDPOINT = '/logout'` | One `logout` mutation, shared by every frontend. Deletes the Redis session key by **token content**, never inspects which collection minted it — the reason `REDIS_KEY` must stay one shared prefix (`docs/architecture.md` §Auth model). |
 | `marketplace-dev-admin-authenticated-authorization` | 4025 | Admin | Koa 3 + Apollo Server 5, `ENDPOINT = '/admin-authenticated-authorization'` | Admin token lifecycle, same shared-body pattern as the other two `*-authenticated-authorization` services. |
@@ -195,7 +188,7 @@ monitoring (`marketplace-services-status`).
 
 | Container | Technology | Responsibility |
 |---|---|---|
-| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and — since v4.4.0 — the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org` at `3.0.0` (`1.0.1` when this cell was written, `2.0.0` on 2026-08-27, `2.0.1` on 2026-08-28, `3.0.0` on 2026-08-30), every consumer on `^3.0.0` (`ADR-037`). ⚠️ **A release is the only way an edit leaves this repo** ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit is dead weight to all 9 services, and `yarn install` in a consumer is authoritative — it resolves the version that consumer's `yarn.lock` names and can undo nothing. The `deploy-local.sh` sync this cell described until 2026-08-30 is deleted. ⚠️ This cell read *"Not on any npm registry"* until 2026-08-27. |
+| `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org`, every consumer resolving the range its own `package.json` declares (`ADR-037`). ⚠️ **A release is the only way an edit leaves this repo** ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit is dead weight to all 9 services, and `yarn install` in a consumer is authoritative — it resolves the version that consumer's `yarn.lock` names and can undo nothing. There is no `deploy-local.sh` sync: the script is deleted. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
 | `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |
@@ -213,7 +206,7 @@ monitoring (`marketplace-services-status`).
 | All 3 frontends | `marketplace-dev-authenticated-logout` (4030) | GraphQL mutation `logout` | deletes the Redis session key by token content — no tier check, no tier-named mutation |
 | Any `*-resource`/`*-authorization` service | MongoDB | Mongoose driver | reads/writes one or more of the 6 `$jsonSchema`-validated collections |
 | Any `*-resource`/`*-authorization` service | Redis cluster | Redis client (`hGetAll`/`hSet`/`del` etc.) | opaque session hash under the shared `REDIS_KEY` prefix; `del` is one key per call — cluster mode throws `CROSSSLOT` on multi-key `del` |
-| `marketplace-common` (compile-time) | all 9 backend services | `yarn install` from `registry.npmjs.org`, at build time only | each consumer resolves `^3.0.0` through its own `yarn.lock`. ⚠️ **There is no filesystem sync**: `deploy-local.sh` copied `dist/` into every consumer's `node_modules` and is deleted ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)) — an edit here reaches a service only as a published version |
+| `marketplace-common` (compile-time) | all 9 backend services | `yarn install` from `registry.npmjs.org`, at build time only | each consumer resolves it through its own `yarn.lock`. ⚠️ **There is no filesystem sync**: `deploy-local.sh` copied `dist/` into every consumer's `node_modules` and is deleted ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)) — an edit here reaches a service only as a published version |
 | `marketplace-db-setup` | MongoDB | migrate-mongo | `yarn migrate:up` applies migrations that define every collection's `$jsonSchema` |
 | `marketplace-services-status` | all 9 backend services | HTTP health poll | no GraphQL — reads whatever health surface each service exposes |
 
@@ -226,7 +219,7 @@ monitoring (`marketplace-services-status`).
 | Identity is the collection you authenticate against — no `role` field, no permission enum | `admin`/`shopOwner`/`user` are three separate collections, three separate service pairs | [`docs/devprotocol/phase3/adr/ADR-002-role-is-authentication-collection.md`](./adr/ADR-002-role-is-authentication-collection.md) |
 | Every Redis session hash carries `tier`; every service asserts its own via `assertTier`, 403 not 401, missing tier is invalid not a wildcard | `BEs/marketplace-common/src/others/assertTier.mts` | [`docs/devprotocol/phase3/adr/ADR-004-per-tier-session-assertion.md`](./adr/ADR-004-per-tier-session-assertion.md) |
 | One logout service for all three authenticated tiers, keyed by token content | `marketplace-dev-authenticated-logout`, port 4030 | [`docs/devprotocol/phase3/adr/ADR-005-single-logout-service-all-tiers.md`](./adr/ADR-005-single-logout-service-all-tiers.md) |
-| Three `*-authenticated-authorization` services share their handler body via `marketplace-common@1.0.0` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | [`docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`](./adr/ADR-006-authorization-services-share-body-keep-deployables.md) — see §7 below |
+| Three `*-authenticated-authorization` services share their handler body via `marketplace-common` but stay three separate deployables, three ports | `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` in common; `TIER.*`, model, projection stay per-service | [`docs/devprotocol/phase3/adr/ADR-006-authorization-services-share-body-keep-deployables.md`](./adr/ADR-006-authorization-services-share-body-keep-deployables.md) — see §7 below |
 | Catalogue is domain-neutral: one `item` + `itemCategory` pair, no per-product-type collection | presumes nothing about what is sold; a new product type must not reintroduce vocabulary that presumes one | [`docs/devprotocol/phase3/adr/ADR-008-domain-neutral-catalogue.md`](./adr/ADR-008-domain-neutral-catalogue.md) |
 | No `price` field on `item`, permanently | Order/Cart/Delivery/Payment are permanently out of scope (ADR-038, 2026-08-27) — a price with nothing to buy is a guess, and nothing will ever arrive to settle it | [`docs/devprotocol/phase3/adr/ADR-009-no-price-on-item.md`](./adr/ADR-009-no-price-on-item.md) |
 | English-only naming across code, routes, comments, fixtures and migrations | no exception anywhere; the `en-GB` locale and `english` text-index stemming are market choices, not names | [`docs/devprotocol/phase3/adr/ADR-013-english-only-naming.md`](./adr/ADR-013-english-only-naming.md) |
@@ -338,7 +331,7 @@ two load-bearing reasons so a reader does not reopen it as an obvious refactor:
   who caused it. A crash in the Admin-tier auth path would take down ShopOwner and User token refresh
   too, where three separate deployables fail independently.
 
-**What did ship instead: dedupe the body, keep the deployables.** Since `marketplace-common@1.0.0`, the
+**What did ship instead: dedupe the body, keep the deployables.** The
 session lookup, the account re-read and the token rotation are one shared implementation —
 `resolveAuthorizationSession`, `findAccountForSession`, `refreshSessionTokens`
 (`BEs/marketplace-common/src/others/resolveAuthorizationSession.mts`) — and each of the three services

@@ -1,7 +1,7 @@
 # Consolidating the three `*-authenticated-authorization` services
 
 **Status: decided and implemented — option (c).** Decided 2026-08-07 by the platform owner, after the
-survey below; shipped the same day as `marketplace-common@1.0.0` plus one commit per service — see
+survey below; shipped the same day as a `marketplace-common` release plus one commit per service — see
 *As implemented*. Options (a) and (b) are recorded here so nobody re-opens them from scratch; (a) is
 blocked on grounds that have not changed.
 
@@ -142,7 +142,7 @@ before the consumers see it, and a common bump is a separate commit in each cons
 **Pros** — zero risk, zero work.
 
 **Cons** — the duplication stays and drifts; the survey already found it drifting. The user-tier repo
-sits on `marketplace-common ^4.3.0` / `koa-utils ^5.8.0` while the other two are on `^4.0.0` / `^5.7.0`;
+sits on newer `marketplace-common` and `koa-utils` ranges than the other two;
 `qodana.yaml` `dependencyOverrides` is stale at `1.16.14` in the ShopOwner and Admin repos and correct at
 `4.3.0` in the user one; the Admin repo's `stryker.config.mjs` additionally excludes `instrument.mts`, so
 it mutation-gates less code than its siblings; the user repo has 1 integration file against 3 in the
@@ -172,7 +172,7 @@ in [`CLAUDE.md`](../../CLAUDE.md) changed first, which is a separate decision.
 
 ## As implemented (2026-08-07)
 
-Shipped as `marketplace-common@1.0.0` plus one commit in each of the three services. Three helpers under
+Shipped as a `marketplace-common` release plus one commit in each of the three services. Three helpers under
 `src/others/`, one interface under `src/models/MongoDBInterfaces/`:
 
 |Helper|Replaces|Kept per service|
@@ -268,31 +268,19 @@ the places where nothing local has an opinion** — another repo's environment f
 validator. That repo now runs 16 files / 309 tests, 100% on all four metrics, 100.00 mutation.
 
 While the three were open, the dependency skew from option (d) was closed in the same commits:
-`@axiumine/marketplace-common` is `^4.4.0` and `@axiumine/koa-utils` is `^5.9.0` in all three, and
-each `qodana.yaml` `dependencyOverrides` entry was bumped to `4.4.0` alongside — that key is an exact match,
-not a range, so a stale entry silently stops applying. The bump to `^4.4.0` is not cosmetic: the new imports
-do not exist in `4.0.0` or `4.3.0`. ⚠️ **The three `yarn.lock` files remain stale for that package** — all
-three pin `@axiumine/marketplace-common@^1.21.0` → `1.21.0` from registry.npmjs.org, a range no
-`package.json` here has declared for a long time. They were already stale before this work and a `yarn install`
-resolves against the registry rather than the lock, which is why `./deploy-local.sh` is what actually makes an
-edit visible. Regenerating them needs the package published first.
-⚠️ **Both halves expired, and the third clause has since been deleted outright.** `ADR-037` published
-`@axiumine/marketplace-common` on 2026-08-26, and the three `yarn.lock` files were regenerated on
-2026-08-27: all three now pin `@axiumine/marketplace-common@^1.0.1` → `1.0.1` — `^3.0.0` → `3.0.0` since
-2026-08-30 — and `^1.21.0` appears in no lockfile in the workspace. The paragraph above says a
-`yarn install` *"resolves against the registry rather than the lock"*, which was the reason the local sync
-script was said to matter; both are gone. Each consumer resolves the exact version its own regenerated
-lockfile names, and `deploy-local.sh` was deleted on 2026-08-30 — a change to `marketplace-common` reaches
-a consumer by being published and by nothing else
+`@axiumine/marketplace-common` and `@axiumine/koa-utils` were aligned across all three, and each
+`qodana.yaml` `dependencyOverrides` entry was bumped alongside — that key is an exact match, not a range,
+so a stale entry silently stops applying. Each of the three resolves the exact version its own `yarn.lock`
+names, and a change to `marketplace-common` reaches a consumer by being published and by nothing else
 ([`ADR-047`](../devprotocol/phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)).
 
 ## Follow-ups the survey surfaced, independent of this decision
 
 - Promoting `tokenInfoAdmin`'s ad-hoc inline `interface IAdminEmail` to a shared type: **done** —
-  `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common@1.0.0`.
+  `src/models/MongoDBInterfaces/IAdminEmail.mts` in `marketplace-common`.
 - Resolving the dependency skew listed under option (d): **done** — the two runtime ranges and the
-  `qodana.yaml` override first, then the `yarn.lock` entries that needed the package published, on
-  2026-08-27 (`ADR-037`); all three pin `^1.0.1` → `1.0.1`, then `^2.0.0` → `2.0.0` later the same day.
+  `qodana.yaml` override first, then the `yarn.lock` entries that needed the package published
+  (`ADR-037`).
 - Add foreign-tier 403 unit tests to the ShopOwner and Admin repos. Only the user repo has them. **Partly
   overtaken**: the mismatch branch itself now lives in `marketplace-common` and is tested there, at 100%
   coverage and a 100 mutation score, so it can no longer be wrong in one service and right in the other two.

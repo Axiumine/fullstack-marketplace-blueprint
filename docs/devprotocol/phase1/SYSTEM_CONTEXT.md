@@ -11,11 +11,8 @@ v1.7 - 2026-08-30: **§5.13 is rewritten again and loses its subject.**
 [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes
 `deploy-local.sh`, so the gap the section was named for is closed by publishing rather than bridged: the
 heading, the Platform-developer actor row, the context-diagram edge, the data-flow row and closed question
-5's answer all follow. Live versions move to `3.0.0` / `^3.0.0`. No boundary, actor or flow crosses the
+5's answer all follow. No boundary, actor or flow crosses the
 system boundary differently — the one compile-time edge is now a registry fetch and nothing else.
-v1.6 - 2026-08-27, later the same day: §5.13's two live version strings read `2.0.0` / `^2.0.0` after that
-release; closed question 5 keeps the `1.0.1` it was closed on and gains the follow-on version. Nothing about the
-system context changed.
 v1.5 - 2026-08-27: §6's commerce rows described things absent rather than things refused, and the payment-gateway row said it "cannot be designed before" an order model that is now never coming. ADR-038 (2026-08-27) settles both, and the End-customer row in §2 says the `User` tier cannot buy anything ever rather than not yet. The two `item.js:12-14` line anchors drop to a plain file reference — the file has been rewritten since and the line numbers no longer point at the comment.
 v1.4 - 2026-08-27, later the same day: §5.13's closing sentence read as if `yarn install` and `deploy-local.sh` were
 coupled - *"a plain `yarn install` in any consumer now undoes the script"* - stated flatly, with no condition. They are
@@ -88,7 +85,7 @@ against (`CLAUDE.md` §Terminology). A 5th actor needs a 5th collection, never a
 |Protomaps PMTiles archive|static basemap tile source|`marketplace-user` browser ↔ nginx `/tiles/` (self-hosted static file)|vector map tiles via HTTP range requests — not a live 3rd-party tile server|
 |nginx|reverse proxy / TLS terminator / HTML cache|internet ↔ nginx ↔ (`marketplace-user` SSR + all 9 backend services)|three vhosts at `marketplace-nginx/` in the workspace root, exercised by `marketplace-nginx/test/run.sh`; still installed on no host|
 |Qodana Cloud (JetBrains)|static-analysis SaaS|every repo's `pre-commit`/`pre-push` hook → Qodana Cloud|SARIF-shaped scan report, one project + token per repo|
-|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency, `@axiumine/marketplace-common` included — published at `1.0.1` since 2026-08-26 (`ADR-037`), where this row recorded a 404|
+|npm registry (`registry.npmjs.org`)|package registry|`yarn install` in 9 services + 3 frontends → npm registry|resolves every dependency, `@axiumine/marketplace-common` included — published since 2026-08-26 (`ADR-037`)|
 
 ---
 
@@ -509,7 +506,7 @@ UI would still read as present on disk.
 ### 5.13 `yarn install` → npm registry, the only route into the nine services
 
 `@axiumine/marketplace-common` is consumed as a package name by 9 services, and since 2026-08-26 it is
-also published — `registry.npmjs.org`, version `3.0.0`, consumers on `^3.0.0`
+also published — `registry.npmjs.org`
 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), which supersedes the
 publication half of `ADR-015`):
 
@@ -573,5 +570,5 @@ everywhere and can now undo nothing** — the collision this section used to des
 |2|Does an admin-facing nginx vhost exist for `marketplace-admin`/`marketplace-shopowner`?|platform owner / ops|**closed** — it did not exist and was never written. Both now do: `marketplace-nginx/sites-available/{admin,shopowner}.marketplace-domain.com.conf`, §5.11|
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|open, explicitly not verified (`docs/decisions/authorization-service-consolidation.md` §Not verified)|
 |4|Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
-|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|**closed 2026-08-26 — published. ⚠️ Its second half was answered *no* then and reversed to *yes* on 2026-08-30.** `registry.npmjs.org` at `1.0.1`, consumers on `^1.0.1` — `3.0.0` and `^3.0.0` since 2026-08-30 ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)). Publication first changed what the script bridged rather than retiring it; four days later the platform owner deleted it outright, and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
+|5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|**closed — published, and the script is retired.** It resolves from `registry.npmjs.org` like any other dependency ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)), and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
 |6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

@@ -419,7 +419,7 @@ owner's instruction — the second exception to §1's immutability rule after AD
 editing the body rather than appending a section.** The decision is untouched: the vendor choice is still the
 adopter's, still permanently, and no option, risk or reopening trigger moves. What changed is that the ADR
 described three raw `process.env.KEYGRIP_KEK` decodes as a standing consequence, and the same day's work
-collapsed them into one — `readKek`, `marketplace-common` 2.0.3, called by `readKeygrip` and by both reseal
+collapsed them into one — `readKek` in `marketplace-common`, called by `readKeygrip` and by both reseal
 mutations in `marketplace-dev-admin-authenticated-resource`. Its *Compliance* greps named those three call
 sites as the allowed set, so leaving them would have left an accepted ADR greping for a state the tree no
 longer has. ⚠️ **Two defects in those greps are corrected in the same pass, and both predate this refactor:**

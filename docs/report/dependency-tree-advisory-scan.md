@@ -292,7 +292,7 @@ have to rediscover it.
 | Package | Version | Where it is declared | What it does in the auth path | Ours to change |
 |---|---|---|---|---|
 | `@axiumine/koa-utils` | 6.0.0 ⚠️ **7.0.0 since 2026-08-27, 7.1.0 since 2026-08-28** | `dependencies` in all 9 services | Session middleware, the Redis data source, the login/reset/verify flows, `SocketLabsLib`. Hardcoded `redis://` in the cluster branch through `7.0.0`; `7.1.0` reads the scheme from `REDIS_TLS` instead, which no `env` here sets (R45, still open) | **no — external, unpublished from here, no source in this workspace** |
-| `@axiumine/marketplace-common` | 1.0.0 (`3.0.0` published since 2026-08-30) | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, resolved from `registry.npmjs.org` like any other dependency since `ADR-037`; the local copy step this column named is deleted (`ADR-047`) |
+| `@axiumine/marketplace-common` | whatever each consumer's `yarn.lock` pins | `dependencies` in all 9 services + all 3 frontends | Session key builders, the encrypted-field map, the shared boundary case list | yes — `BEs/marketplace-common`, resolved from `registry.npmjs.org` like any other dependency since `ADR-037`; the local copy step this column named is deleted (`ADR-047`) |
 | `keygrip` | 1.1.0 | `dependencies` in 6 services, transitive in 3 | Cookie signing and the rotating key list behind ADR-034 | **no — external** |
 | `cookies` | 0.9.1 | transitive in all 9, via `koa` | Writes and reads the signed cookies; the `Secure` attribute the edge rewrites | **no — external** |
 | `koa` | 3.2.1 | `dependencies` in all 9 | The HTTP layer; owns `ctx.cookies` | **no — external** |

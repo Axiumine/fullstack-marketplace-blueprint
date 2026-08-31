@@ -66,9 +66,9 @@ keeps a root-JS block off the minified Qodana report.
   omissions.
 - ⚠️ **Consumed by package name, and published** — ADR-015 for the consumption pattern, `ADR-037` for
   the publication, `ADR-047` for the release-only rule. `package.json` names it
-  `@axiumine/marketplace-common`; the twelve consumers depend on that name at `^3.0.0`, and
-  `registry.npmjs.org` serves `3.0.0`. Until 2026-08-26 this bullet said the name 404s there; that has not
-  been true since. **An edit reaches a consumer when it is published and not before** — the nine-step
+  `@axiumine/marketplace-common`; the twelve consumers depend on that name, each declaring its own caret
+  range, and `registry.npmjs.org` serves it. **An edit reaches a consumer when it is published and not
+  before** — the nine-step
   release flow in `BEs/marketplace-common/CLAUDE.md`, every step, every time. ⚠️ **There is no local
   deploy.** `deploy-local.sh` synced `dist/` into every consumer's `node_modules` and is **deleted**
   (2026-08-30): the build it wrote carried no version, no integrity hash and no `yarn.lock` entry, so it

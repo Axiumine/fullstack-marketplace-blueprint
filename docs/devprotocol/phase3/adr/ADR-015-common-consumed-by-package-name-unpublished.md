@@ -22,8 +22,8 @@ and no script to run.
 ## Context
 
 Nine backend services (`BEs/dev/*`) share one code library, `BEs/marketplace-common`. Its `package.json`
-names it `@axiumine/marketplace-common` at version `1.0.0`, and every consumer depends on that exact
-string at `^1.0.0` — a real npm-scoped package name. ⚠️ **On 2026-08-04 that package was not published
+names it `@axiumine/marketplace-common`, and every consumer depends on that exact string — a real
+npm-scoped package name. ⚠️ **On 2026-08-04 that package was not published
 to any registry**: `registry.npmjs.org/@axiumine/marketplace-common` 404ed. That 404 is the premise this
 ADR reasons from, and it held until 2026-08-26, when [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) ends it by publishing. The reasoning below is the
 answer to the premise of its day; ADR-037 changed the premise rather than faulting the answer.
@@ -131,8 +131,8 @@ links `./LICENSE` rather than `../LICENSE` for the same reason.
 ### Risks
 - **Drift risk**: a consumer's declared semver range moves out of sync with the **published** major
   version. Nothing warns about it — it is checked by hand at step 9 of the release flow, `npm view` the
-  published version and then move each range — and it bit for real on `2.0.0` and `3.0.0`, twelve
-  `package.json` ranges each time. Revisit by automating the check if a consumer is ever found on a range
+  published version and then move each range — and it bites on every major, twelve `package.json` ranges
+  each time. Revisit by automating the check if a consumer is ever found on a range
   that cannot resolve the current major.
 - **Missing-exports risk**: a new file is added to `src/` with no matching `exports` entry, caught only by
   `yarn test:contract`. Revisit if a consumer bug is ever traced to an unreachable common module that
