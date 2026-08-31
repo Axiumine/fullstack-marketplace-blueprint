@@ -50,7 +50,7 @@ a 40+ char non-placeholder `KEYGRIP_KEY_*`, a `KEYGRIP_KEK`, a
 `QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD`/`INTROSPECTION_CODE` literal ≥16 chars, or a
 mongodb URI with a ≥10 char password.
 
-⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034, added E01-S12): base64 of 32
+⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034): base64 of 32
 bytes is 43 characters plus one `=`, and every `env` template assigns it empty, so the rule cannot fire on
 a placeholder and a real key cannot slip past by starting with the `x` the `KEYGRIP_KEY_*` rule tolerates.
 It carries the whole platform's cookie-signing key set — one leaked value forges every session of every

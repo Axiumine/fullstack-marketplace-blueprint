@@ -75,7 +75,7 @@ if [ "$env_shape_fail" -ne 0 ]; then
 fi
 
 SECRET_PATH='(^|/)(\.env(\..*)?|\.envrc|\.npmrc|\.yarnrc(\.yml)?|\.netrc|\.pgpass|id_rsa|id_dsa|id_ecdsa|id_ed25519|credentials\.json|service-account.*\.json)$|\.(pem|p12|pfx|jks)$'
-# Anything under a `secrets/` directory, whatever it is called (E12-S17). `marketplace-docker-DBs/secrets/` holds
+# Anything under a `secrets/` directory, whatever it is called. `marketplace-docker-DBs/secrets/` holds
 # the replica-set keyfile, the CSFLE master key and now the generated Redis config, and the last of
 # those is a plain-text file with no extension and no telltale name. The directory is git-ignored, so
 # this rule only ever fires on a deliberate `git add -f` — which is exactly the case worth stopping.
@@ -102,8 +102,9 @@ SECRET_VALUE+='|^[[:space:]]*(QODANA_TOKEN|SOCKETLABS_SERVER_APIKEY|SOCKETLABS_S
 SECRET_VALUE+='|(QODANA_TOKEN|SOCKETLABS_SERVER_APIKEY|SOCKETLABS_SERVER_ID|REDIS_PASSWORD|INTROSPECTION_CODE|NPM_TOKEN)[[:space:]]*[:=][[:space:]]*["'"'"'][^$x"'"'"'][^"'"'"']{15,}["'"'"']'
 SECRET_VALUE+='|mongodb(\+srv)?://[^:/[:space:]]+:[^@[:space:]]{10,}@'
 # redis.conf style: a `requirepass` or `masterauth` directive, which is how the Redis credential is
-# spelled since E12-S17. There is no KEY= to match on and no fixed shape to the value, so the floor is
-# the same 15 characters the dotenv rule uses, with the same first-character-not-x placeholder escape.
+# spelled since the password stopped riding in the container's argv. There is no KEY= to match on and
+# no fixed shape to the value, so the floor is the same 15 characters the dotenv rule uses, with the
+# same first-character-not-x placeholder escape.
 # Anchored at the line start: `requirepass` inside a sentence or a backticked word cannot trip it.
 SECRET_VALUE+='|^[[:space:]]*(requirepass|masterauth)[[:space:]]+[^$x[:space:]][^[:space:]]{14,}'
 # credential URL: `https://<userinfo>@host`, which is the shape of a Sentry/Bugsink DSN.

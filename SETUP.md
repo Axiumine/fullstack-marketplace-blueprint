@@ -172,7 +172,7 @@ openssl rand -hex 24                   # INTROSPECTION_CODE
 
 ⚠️ **Six services, not five, and the sixth is a `*-resource` one.**
 `marketplace-dev-admin-authenticated-resource` signs no cookie and still requires the KEK: it hosts the
-rotation and retirement mutations, which mint and reseal the record (E17; `src/index.mts:65-71` says why
+rotation and retirement mutations, which mint and reseal the record (the admin session console; `src/index.mts:65-71` says why
 it is required at boot rather than at first use). The other three `*-resource` services —
 `authenticated-resource`, `public-resource`, `user-authenticated-resource` — sign nothing, rotate nothing
 and **must not** carry it. This line read "five" until 2026-08-13, when starting the whole stack for the
@@ -210,7 +210,7 @@ double quotes.
 
 ⚠️ **`INTROSPECTION_CODE` does nothing in production, and that is enforced rather than assumed.** The
 `x-introspectioncode` header lets a caller reach the schema with no cookie and no `Authorization`
-header at all — a development convenience, and since E13-S11 an allowlisted one: every comparison site
+header at all — a development convenience, and an allowlisted one: every comparison site
 asks `isIntrospectionBypassAllowed()` (`marketplace-common`) first, which is true only when `NODE_ENV`
 is exactly `development` or `test`. Under any other value — unset, empty, `staging`, `Production`, a
 typo — the configured code is never even read, and a request carrying the right header is answered
@@ -329,9 +329,9 @@ fallback is a working link to the wrong panel rather than a broken one — set b
 
 Five of those six are in `REQUIRED_ENV_VARS` and stop the boot when unset. `DEV_TEAM_EMAIL` is the
 exception: its only readers are `SocketLabsLib`'s `alertDevTeam()` and `sendEmailPostReported()`, which
-nothing calls today, so it is the one name here that can be missing without a single mail changing
-(E18-S13). No other service takes any of the six — the same story removed them from the eight templates
-that carried them for no reader.
+nothing calls today, so it is the one name here that can be missing without a single mail changing.
+No other service takes any of the six — the same change removed them from the eight templates that
+carried them for no reader.
 
 Without SocketLabs credentials, registration still succeeds and the confirmation mail is not sent — see
 step 12 for how to confirm an account without one.
@@ -367,12 +367,12 @@ NODE_EXTRA_CA_CERTS=/path/to/dev-ca.pem yarn dev
 > `NODE_TLS_REJECT_UNAUTHORIZED=0`, not with a `rejectUnauthorized: false` patch, not behind an
 > `INSECURE=true` flag of your own. A boolean toggle travels inside a copied `.env` and downgrades a real
 > deployment silently, with nothing failing to warn you; a path-valued variable either names a certificate
-> that exists or the process refuses to start. The nine services shipped exactly such a patch until
-> E12-S01 — `src/instrument.mts` forced `rejectUnauthorized = false` on the Sentry transport — and the
+> that exists or the process refuses to start. The nine services shipped exactly such a patch once —
+> `src/instrument.mts` forced `rejectUnauthorized = false` on the Sentry transport — and the
 > shapes that would bring one back are now refused by the `no-restricted-syntax` block in each service's
 > `eslint.config.js` rather than by review.
 
-⚠️ **`NODE_ENV` is what labels the events, and an unset one is not neutral** (E12-S23). Each
+⚠️ **`NODE_ENV` is what labels the events, and an unset one is not neutral**. Each
 `instrument.mts` passes `environment: process.env.NODE_ENV ?? 'unknown'`; without that option the SDK
 falls back to `production`, so a Dev machine's events land in the bucket a real deployment's alerts are
 built on. Nothing in `yarn dev` or `yarn start` sets it: the value comes from the `.env` you copied, where
