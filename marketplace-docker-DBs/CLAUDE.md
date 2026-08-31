@@ -23,7 +23,7 @@ write a second script that does part of its job.
 without the dot is the committed template and is safe. To answer "is X set", print key names only:
 `grep -oE '^[A-Za-z_0-9]+' marketplace-docker-DBs/.env`.
 
-⚠️ **The Redis password lives in `secrets/redis.conf`, which `up.sh` rewrites on every run** (E12-S17).
+⚠️ **The Redis password lives in `secrets/redis.conf`, which `up.sh` rewrites on every run**.
 It is not in `command:` any more — interpolating it there put it in the container's argv, where
 `docker inspect` and `docker ps --no-trunc` printed it. Three consequences for anyone editing here:
 `.env` stays the single source of truth and a password change needs `./up.sh --with-redis`, not a
@@ -56,11 +56,11 @@ empty. Rename only with a purge planned, or move the volumes by hand first.
   suite, and the per-repo test database names are the table in [`README.md`](./README.md) §Wiring the repos.
 - **One value, one line in any `.env`.** dotenv truncates at the newline even inside quotes and
   reads the tail as its own variable; the parent `.githooks/pre-commit` check 0 blocks that shape.
-- **Every container carries `logging: *logging` — 20 MiB × 5 files** (E12-S18). Docker's default is
+- **Every container carries `logging: *logging` — 20 MiB × 5 files**. Docker's default is
   `json-file` with an empty options object, which never rotates: `marketplace-mdb1` reached 229 MiB in
   52 hours of ordinary development. A new service added to this compose file gets the anchor too, or
   it is the one unbounded log again. ⚠️ **Rotation is not retention.** The pair bounds how big a log
   gets; nothing here has decided how long its content may be kept, and the 14-day answer of
-  2026-08-11 is the *edge's* (E12-S19), not this stack's.
+  2026-08-11 is the *edge's*, not this stack's.
 - **Dev only, by design.** Ports bind `127.0.0.1`, there is no TLS and only a `Dev` environment
   exists on this platform. Do not add a staging or production profile here.

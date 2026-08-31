@@ -71,7 +71,7 @@ fi
 # ---------------------------------------------------------------- keys
 
 mkdir -p secrets
-# 700 is load-bearing since E12-S17: the Redis config written below has to be world-readable to be
+# 700 is load-bearing: the Redis config written below has to be world-readable to be
 # readable by the container's own uid, so the directory is the only host-side control left on it.
 chmod 700 secrets
 
@@ -93,7 +93,7 @@ if [ ! -f secrets/csfle-master-key ]; then
 fi
 
 if [ "$WITH_REDIS" -eq 1 ]; then
-	# E12-S17. The password reached the container in its argv until 2026-08-11, where `docker inspect`,
+	# The password reached the container in its argv until 2026-08-11, where `docker inspect`,
 	# `docker ps --no-trunc` and host `ps aux` all showed it. It goes into a config file instead.
 	#
 	# Rewritten on every run rather than generated once: `.env` is the source of truth for this value,
@@ -125,14 +125,14 @@ else
 fi
 
 if [ "$WITH_REDIS" -eq 1 ]; then
-	# ⚠️ **The 7.4.0 floor, enforced here rather than assumed** (E15-S03). The account→sessions index is
+	# ⚠️ **The 7.4.0 floor, enforced here rather than assumed**. The account→sessions index is
 	# one hash per account whose fields are that account's live sessions, and every field carries a TTL of
 	# its own through `HEXPIRE` — a command that exists in no release before 7.4. Redis does not refuse an
 	# unknown command at startup, it refuses it at the first call, so a container one minor version too
 	# old comes up green here and fails inside somebody's login. README.md §Redis is the rest of it.
 	#
 	# `redis-server --version` and not `INFO server`: the binary prints its version without opening a
-	# connection, so no password goes near this check and none can reach an argv (E12-S17).
+	# connection, so no password goes near this check and none can reach an argv.
 	redis_version=''
 	for _ in $(seq 1 30); do
 		redis_version="$(dc exec -T redis redis-server --version 2> /dev/null | sed -n 's/.*v=\([0-9.]*\).*/\1/p' || true)"

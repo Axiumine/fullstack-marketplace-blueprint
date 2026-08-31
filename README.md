@@ -177,7 +177,7 @@ is cached. Bypass for a Docker or network outage, never for a finding: `SKIP_TRI
 — and every other repo passes. That is the gate reporting, not the gate misconfigured: the fix is the
 upgrade, not a `.trivyignore`, and there is no `.trivyignore` anywhere in this workspace. ⚠️ The database
 updates independently of the pinned image tag, so a tree that is clean today can go red tomorrow with no
-commit in between. E18-S11.
+commit in between.
 
 ⚠️ It is **not** a second copy of Qodana's SAST. Qodana runs JetBrains inspections; semgrep runs the
 vendored registry packs plus each repo's own `semgrep/custom.yml`, whose three secret-in-logs rules —

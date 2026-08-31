@@ -214,7 +214,7 @@ fi
 # advisory feed at all. `VulnerableLibrariesGlobalInspection`, the class in the
 # same image that does call vulnerability-search.jetbrains.com, appears in no
 # profile file and in no scan log this workspace has ever produced. A security
-# check that cannot report is indistinguishable from a passing one. E18-S11.
+# check that cannot report is indistinguishable from a passing one.
 #
 # Not `yarn audit`: yarn 1 aborts the entire run over the unpublished
 # @axiumine/marketplace-common, and `npm audit` needs a package-lock.json this

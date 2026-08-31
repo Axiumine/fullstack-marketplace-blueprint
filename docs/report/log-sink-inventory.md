@@ -4,8 +4,8 @@
 
 **Status:** investigation finding, completing the investigation into what the application and access logs
 actually contain. Not baselined, not a requirement document
-**Version:** 1.11
-**Date:** 2026-08-28
+**Version:** 1.12
+**Date:** 2026-08-31
 **Changelog:** v1.0 — the inventory. v1.1 — §10 records the platform owner's answer of 2026-08-11 to the
 first of the two questions it routed. Nothing measured changed. v1.2 — item 2 is decided and fixed
 (the mailed links stop writing a live credential to the access log); §10 gains the two corrections that fixing
@@ -52,7 +52,7 @@ and that repo's `CLAUDE.md` §95 explicitly delegate here: **which error-log lev
 **Method:** measurement against the running Dev stack on this machine, not a reading of the code — that is
 the blind spot the audit names. All nine services were stood up with `yarn dev`, each into its own capture
 file, against the Docker Mongo replica set and Redis. Every credential-shaped value in every driven request
-carried a unique sentinel (`MKTS12…`, and `203.0.113.77` as the forwarded address), so a leak is a `grep`
+carried a unique sentinel (`MKTLOG…`, and `203.0.113.77` as the forwarded address), so a leak is a `grep`
 rather than a judgement. nginx was run from its own configuration inside a throwaway
 `nginx:stable-alpine` container, at the shipped level and then one level lower. Static reading was used only
 to explain a result already observed, and every such line is cited.
@@ -60,7 +60,7 @@ to explain a result already observed, and every such line is cited.
 [`docs/devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md`](../devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4 — no network-derived value reaches telemetry, the edge access logs record no client address, nginx
 learns the real client address and nothing downstream does, the rate-limit key carries no plaintext email, and
 the observability documentation matches the code · [`sentry-event-capture.md`](./sentry-event-capture.md) (the investigation that captured one real Sentry event and read it, the sink this finding
-does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence. v1.11 — 2026-08-28: §8's *Production topology* bullet gains a dated note. The topology it named as owed is written (`ADR-039`, superseding `ADR-032`), and the bullet's own claim is untouched: where processes run is not what they log. What the note adds is the two facts a future re-measurement will meet — a datastore host with its own filesystem, and Cloudflare in front of nginx, which stops the edge's access log being a request's first record. Nothing measured, nothing re-measured.
+does not cover) v1.10 — 2026-08-26: three dated corrections, nothing re-measured. `phase1/NFR.md` open question 1 (NFR-CO02) was closed that day by a decision taken outside this finding, so the two places saying it is or stays open now say it was, and §10 gains a block quote recording the closure and why this document did not produce it. The §10 paragraph asserting that log retention is not applicability is left standing — it was right, and the fifteen-day gap is the evidence. v1.11 — 2026-08-28: §8's *Production topology* bullet gains a dated note. The topology it named as owed is written (`ADR-039`, superseding `ADR-032`), and the bullet's own claim is untouched: where processes run is not what they log. What the note adds is the two facts a future re-measurement will meet — a datastore host with its own filesystem, and Cloudflare in front of nginx, which stops the edge's access log being a request's first record. Nothing measured, nothing re-measured. v1.12 — 2026-08-31: the probe sentinels this run wrote are named for what they probe, the log line and the mailed link, in place of the opaque spellings the first pass gave them. Each new name is the same length as the one it replaces, so every byte count recorded here still holds. Nothing measured, nothing re-measured.
 
 ---
 
@@ -102,7 +102,7 @@ disk route to the standing GDPR decision rather than being fixed here. §10.
 |---|---|
 | Stack | Nine services via `yarn dev`, ports 4024-4032, each `stdout`+`stderr` into its own file; Mongo replica set (`mdb1`/`mdb2`/`mdb3`) and Redis from `marketplace-docker-DBs/docker-compose.yml` |
 | Traffic | Anonymous queries, a failing login on each of the three tiers, authenticated calls with a forged `authorization`, a refresh with a forged cookie, a malformed JSON body, and an unparsable GraphQL document |
-| Markers | Every credential-shaped header and field carried a unique `MKTS12…` sentinel; the forwarded address was the reserved-for-documentation `203.0.113.77` |
+| Markers | Every credential-shaped header and field carried a unique `MKTLOG…` sentinel; the forwarded address was the reserved-for-documentation `203.0.113.77` |
 | Failure paths | The stack was re-run three more times with the Mongo URI, the Redis credentials and the CSFLE master key each poisoned with a sentinel, to see whether a connection error prints the credential it failed with |
 | nginx | The repo's own `conf.d/`, `snippets/` and `sites-available/` mounted read-only into `nginx:stable-alpine`, with throwaway self-signed certificates generated inside the container; seven probes at `warn`, the same seven at `info`; a second run driving the two mailed link shapes |
 | Docker | `docker logs`, `docker inspect`, `docker ps --no-trunc` and host `ps aux` for each of the five running containers |
@@ -154,7 +154,7 @@ prints the constant string `auth undefined` and no value.
 
 ### 4.2 The tally
 
-| Service | Lines | `MKTS12*` | `203.0.113.77` | `Bearer` | cookie names |
+| Service | Lines | `MKTLOG*` | `203.0.113.77` | `Bearer` | cookie names |
 |---|---|---|---|---|---|
 | `marketplace-dev-admin-authenticated-authorization` | 99 | 0 | 0 | 0 | 0 |
 | `marketplace-dev-admin-authenticated-resource` | 75 | 0 | 0 | 0 | 0 |
@@ -172,7 +172,7 @@ that produced the line — which is what makes the zero mean something.
 ### 4.3 The one hit
 
 ```
-publicHelloArgs: name:  MKTS12ARGdddd4444
+publicHelloArgs: name:  MKTLOGARGdddd4444
 ```
 
 `BEs/dev/marketplace-dev-public-resource/src/graphQLPublic/schema/queries/publicHelloArgs.mts:15` is a
@@ -233,11 +233,11 @@ hash in the path:
 Driving those three shapes plus an ordinary GraphQL POST produced, verbatim:
 
 ```
-2026-08-11T08:24:24+00:00 marketplace-domain.com "GET /check/verify-email-user/probe%40example.invalid/MKTS12VERIFYHASHjjjj0000 HTTP/2.0" 200 96 "-" "curl/8.21.0" rt=0.001 urt=0.000
-2026-08-11T08:24:24+00:00 marketplace-domain.com "GET /reset-password/probe%40example.invalid/MKTS12VERIFYHASHjjjj0000 HTTP/2.0" 200 85 "-" "curl/8.21.0" rt=0.001 urt=0.001
+2026-08-11T08:24:24+00:00 marketplace-domain.com "GET /check/verify-email-user/probe%40example.invalid/MKTLOGVERIFYHASHjjjj0000 HTTP/2.0" 200 96 "-" "curl/8.21.0" rt=0.001 urt=0.000
+2026-08-11T08:24:24+00:00 marketplace-domain.com "GET /reset-password/probe%40example.invalid/MKTLOGVERIFYHASHjjjj0000 HTTP/2.0" 200 85 "-" "curl/8.21.0" rt=0.001 urt=0.001
 2026-08-11T08:24:24+00:00 marketplace-domain.com "POST /public-resource HTTP/2.0" 200 96 "-" "curl/8.21.0" rt=0.001 urt=0.000
-2026-08-11T08:24:24+00:00 marketplace-domain.com "GET / HTTP/2.0" 200 85 "https://evil.invalid/?t=MKTS12REFERERkkkk1111" "MKTS12UAllll2222" rt=0.001 urt=0.000
-2026-08-11T08:24:24+00:00 shopowner.marketplace-domain.com "GET /check/verify-email/probe%40example.invalid/MKTS12VERIFYHASHjjjj0000 HTTP/2.0" 200 106 "-" "curl/8.21.0" rt=0.001 urt=0.000
+2026-08-11T08:24:24+00:00 marketplace-domain.com "GET / HTTP/2.0" 200 85 "https://evil.invalid/?t=MKTLOGREFERERkkkk1111" "MKTLOGUAllll2222" rt=0.001 urt=0.000
+2026-08-11T08:24:24+00:00 shopowner.marketplace-domain.com "GET /check/verify-email/probe%40example.invalid/MKTLOGVERIFYHASHjjjj0000 HTTP/2.0" 200 106 "-" "curl/8.21.0" rt=0.001 urt=0.000
 ```
 
 | Marker | Occurrences |
@@ -575,14 +575,14 @@ real behaviour differed there.
 ### Measured, 2026-08-11 — and the body was only half of it
 
 A production build (`yarn build`, `node serve.mjs`) answering
-`/reset-password/probe%40example.invalid/MKTS26HASHPROBE`:
+`/reset-password/probe%40example.invalid/MKTLNKHASHPROBE`:
 
 ```
 HTTP/1.1 200
 cache-control: public, s-maxage=60, stale-while-revalidate=600
 vary: cookie
 
-…,$R[10]={i:" reset-password $email $hash reset-password probe%40example.invalid MKTS26HASHPROBE",
+…,$R[10]={i:" reset-password $email $hash reset-password probe%40example.invalid MKTLNKHASHPROBE",
           u:1786471081153,s:"success",ssr:!0}]})
 ```
 
@@ -603,8 +603,8 @@ result and is a silent failure.
 | Request | Status | `cache-control` | Probe values in body |
 |---|---|---|---|
 | `/reset-password/confirm` | 200, 4505 bytes | `private, no-store` | 0 |
-| `/reset-password/confirm#/probe%40example.invalid/MKTS26HASHPROBE` | 200, byte-identical | `private, no-store` | 0 |
-| `/reset-password/probe%40example.invalid/MKTS26HASHPROBE` (old shape) | **404** | `private, no-store` | 0 |
+| `/reset-password/confirm#/probe%40example.invalid/MKTLNKHASHPROBE` | 200, byte-identical | `private, no-store` | 0 |
+| `/reset-password/probe%40example.invalid/MKTLNKHASHPROBE` (old shape) | **404** | `private, no-store` | 0 |
 
 The match id now reads `" reset-password confirm reset-password confirm"`. The second row is the whole point
 stated as a measurement: the emailed URL and the bare path produce the same bytes, because the server never

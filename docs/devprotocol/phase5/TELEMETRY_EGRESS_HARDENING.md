@@ -2,12 +2,13 @@
 # Marketplace
 
 **Status:** implemented 2026-08-10, investigations closed 2026-08-11 - audit remediation, not baselined; see §7
-**Version:** 2.14
-**Date:** 2026-08-28
+**Version:** 2.15
+**Date:** 2026-08-31
 **Author:** records-agent
 **Bounded context:** hardens BC-09 — Platform Operations & Quality Gates, applied inside every service that BC-01..BC-08 own, and at the edge in `marketplace-nginx`. Introduces no new context.
 **Source:** [`docs/report/token-handling-security-audit.md`](../../report/token-handling-security-audit.md) v1.1 §3.5, §5
-**Changelog:** v2.14 - 2026-08-28, later the same day: this record's build state did not change; its content gained one paragraph under **the transaction-scrubbing story**, because a question closed elsewhere that day turned on a limit of `sentryBeforeSend` that only this document owns — `event.message` is not one
+**Changelog:** v2.15 - 2026-08-31: the mailed-link probe sentinel quoted here is named for the link it marks rather than for a numbering that no longer exists; it is the same length as the spelling it replaces, so the byte count this record cites is unchanged. Nothing else moved.
+v2.14 - 2026-08-28, later the same day: this record's build state did not change; its content gained one paragraph under **the transaction-scrubbing story**, because a question closed elsewhere that day turned on a limit of `sentryBeforeSend` that only this document owns — `event.message` is not one
 of the bags it walks.
 v1.0 - initial; written against the 2026-08-10 token-handling security audit, after an adversarial review that returned `refuted: true` on the first design — the original `beforeSend` scrubber looked at the wrong half of the event and would not have closed §3.5.
 v1.1 - implemented 2026-08-10. Story markers now read per story, and §7 records what is
@@ -1530,7 +1531,7 @@ server can read.
 - ⚠️ **Criterion 1, measured on the production build, and it was worse than the story assumed.** Before:
   `curl` of `/reset-password/<encoded-address>/<hash>` answered `200`, 5878 bytes, carrying **both** values
   in the router's dehydration script — `$R[10]={i:" reset-password $email $hash reset-password
-  probe%40example.invalid MKTS26HASHPROBE",…}` — under
+  probe%40example.invalid MKTLNKHASHPROBE",…}` — under
   `cache-control: public, s-maxage=60, stale-while-revalidate=600` and `vary: cookie`. The source reading
   was right, and the header beside it was the part nobody had looked at: the origin was inviting every
   shared cache in the path to keep a live one-time credential for ten minutes. After: `/reset-password/confirm`

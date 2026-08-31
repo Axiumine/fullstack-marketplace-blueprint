@@ -187,13 +187,13 @@ and a pin is one edit away from being lowered.
 **What needs 7.4 specifically: hash-field TTLs.** `HEXPIRE` / `HPEXPIRE` / `HTTL` / `HPERSIST` — a
 TTL on an individual field of a hash rather than on the whole key — were added in Redis 7.4.0 and
 exist in no earlier release. The account→sessions index — documented in
-[`docs/data-model.md`](../docs/data-model.md) §The account index, and built as story E15-S03 — is one
+[`docs/data-model.md`](../docs/data-model.md) §The account index — is one
 hash per account whose fields are that account's live sessions, and fields whose sessions expire
 without passing through logout or rotation have to age out on their own. Without per-field TTLs the
 index keeps naming sessions that no longer exist, which is both a slow memory leak and a lie told to
 the admin screen that reads it.
 
-**Those commands are called on every login and every token rotation** (E15-S03, built 2026-08-13).
+**Those commands are called on every login and every token rotation** (built 2026-08-13).
 Each field's TTL is what remains of the session it names — `originalLogin + sessionCapDays`, not the
 session key's own expiry and not the index key's — so a session that ends without passing through
 logout or rotation takes its row with it. The lazy-prune alternative was rejected rather than kept as
@@ -237,7 +237,7 @@ what makes `./up.sh --with-redis` the normal way to come back after a reboot wit
 developer out.
 
 ⚠️ **The password is no longer in the container's command line, and `secrets/redis.conf` is where it
-went** (E12-S17, 2026-08-11). It used to be interpolated into `command:` as
+went** (2026-08-11). It used to be interpolated into `command:` as
 `--requirepass ${REDIS_PASSWORD}`, which put it where `docker inspect marketplace-redis` and
 `docker ps --no-trunc` printed it to anyone who could reach the daemon. `up.sh` now writes that value
 into `secrets/redis.conf` — regenerated on every run, so `.env` stays the single source of truth —
@@ -261,13 +261,13 @@ Two consequences worth knowing before you go looking for either:
 
 - **The append-only file is a command log, and it keeps what the keyspace has forgotten.** Every
   `HSET` that ever created a session key stays in it after that key expires, so `redis:/data`
-  accumulates a history of session keys rather than a snapshot of the live ones. ⚠️ **Until E13-S01 a
-  session key *was* the token** — so an append-only file written before that cutover is a list of
-  credentials in plain text, which is why E13 hashed the key namespace and why its cutover carried an
+  accumulates a history of session keys rather than a snapshot of the live ones. ⚠️ **A
+  session key once *was* the token** — so an append-only file written before that cutover is a list of
+  credentials in plain text, which is why the key namespace is hashed and why that cutover carried an
   explicit `BGREWRITEAOF` step of its own. A rewrite is the only thing that removes what is already
   written; hashing new writes does not touch a byte of it.
-- ⚠️ **The rate-limiter keys already written are a list of email addresses, and E12-S11 does not
-  remove them.** Until that story the per-email counter was `rl:<bucket>:email:<the address itself>`,
+- ⚠️ **The rate-limiter keys already written are a list of email addresses, and hashing them does not
+  remove them.** The per-email counter used to be `rl:<bucket>:email:<the address itself>`,
   so `rl:userRegister:email:mario@example.com` is in the append-only file of every environment that
   ran the old code. New writes hash the address (SHA-256, `sha256Hex` in `marketplace-common`), which
   is a change to what is appended from now on and to nothing else. Removing the history is one
@@ -382,7 +382,7 @@ Stated plainly so nobody has to guess:
 | `ERR unknown command 'HEXPIRE'` | the two checks above were bypassed, or the server was downgraded under a running service. Check with `redis-cli INFO server \| grep redis_version` and restart the services after raising it — the probe runs at boot only. |
 | `Fatal error, can't open config file` from `redis` | `secrets/redis.conf` is missing, or is a directory Docker created for a missing bind mount. `rm -rf secrets/redis.conf && ./up.sh --with-redis`. |
 | `NOAUTH Authentication required` after changing the password | `.env` was edited but `./up.sh --with-redis` was not re-run, so the container still holds the old value. Compose does not read that variable any more — the script writes the config file. |
-| `docker logs` no longer reaches back far enough | expected: every container is capped at 20 MiB × 5 files since E12-S18. `docker inspect -f '{{json .HostConfig.LogConfig}}' <name>` shows the pair; raise `max-size` in `docker-compose.yml` if you need a longer window. |
+| `docker logs` no longer reaches back far enough | expected: every container is capped at 20 MiB × 5 files. `docker inspect -f '{{json .HostConfig.LogConfig}}' <name>` shows the pair; raise `max-size` in `docker-compose.yml` if you need a longer window. |
 
 ## License
 

@@ -8,7 +8,7 @@
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
 # script is that leftover, and nothing else: five greps that would otherwise be five things somebody has
-# to remember to run by hand, which is precisely how the phase-5 audit was conducted and what E18-S08
+# to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this script
 # exists to stop repeating.
 #
 # It reads. It never writes, never installs, never starts a container, and needs no service running.
