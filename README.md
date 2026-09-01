@@ -68,17 +68,22 @@ Redis session hashes (`<REDIS_KEY>refresh:<token>` and `<REDIS_KEY>access:<token
   `skipLibCheck: false`, so removing the package makes `tsc` (hence `yarn dev` and `yarn build`) fail
   with `TS2307: Cannot find module 'mongoose'`.
 
-### Known inconsistency in the env gates
+### The env gates, and what they do not check
 
-`checkRequiredEnv()` does not agree with actual Mongo usage in two services:
+`checkRequiredEnv()` now agrees with the matrix: every service that connects to Mongo lists
+`MONGODB_URI` in its `REQUIRED_ENV_VARS`, and `marketplace-dev-authenticated-logout` — the one that
+does not connect — does not list it. The two authorization services that used to boot without it, and
+fail later inside `MongoDBConnect()` instead of naming the variable, no longer do.
 
-|Service|Connects to Mongo|`MONGODB_URI` in `REQUIRED_ENV_VARS`|
-|---|---|---|
-|`marketplace-dev-authenticated-authorization`|✅|❌ missing|
-|`marketplace-dev-admin-authenticated-authorization`|✅|❌ missing|
+Presence is one of two passes. Each service also declares an `ENV_SHAPES` map and calls
+`assertEnvShape()` from `@axiumine/marketplace-common`, which refuses a value of the wrong *kind* — a
+port with a typo in it, `true` where koa-utils compares against `'1'`, a `mongodb://` URI in the Redis
+slot. Presence is checked first and shape second, so a boot that is missing a variable says so rather
+than complaining about the format of one nobody has written yet.
 
-Both boot without the variable and fail later inside `MongoDBConnect()` instead of fast-failing with a
-named message. Not fixed yet — logged here so it is not mistaken for intent.
+⚠️ **Neither pass knows what the rest of the fleet was pointed at.** A plausible value of the right
+shape — the right-looking password for the wrong server — passes both and always will. That residual
+is the open half of `RISK_REGISTER` R04.
 
 ### How this table was verified
 
