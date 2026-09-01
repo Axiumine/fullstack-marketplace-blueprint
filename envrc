@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# The workspace environment layer — COMMITTED TEMPLATE. Copy it, do not use it:
+#
+#     cp envrc .envrc && direnv allow
+#
+# `.envrc` is gitignored and `envrc` is tracked, the same pair this workspace
+# already uses for `env`/`.env` and `npmrc`/`.npmrc`. Nothing in this file is a
+# value and nothing in it ever may be: the values live in `.env.shared`, which
+# is gitignored too and which you create from the committed `env.shared`.
+#
+# WHAT IT IS FOR — ADR-053. Fifteen of the sixteen repos ask for the same Redis
+# server, the same MongoDB cluster, the same CSFLE master key and the same
+# cookie-signing KEK, and until now each carried its own copy of every one of
+# those values in its own `.env`. Sixteen copies of one secret is sixteen places
+# to rotate it, and a machine where fifteen agree and one does not is exactly
+# the wrong-but-populated deployment `RISK_REGISTER` R04 describes. This file
+# makes the shared half of that configuration exist once.
+#
+# ⚠️ ONE FILE, AT THE WORKSPACE ROOT, AND THERE IS NO PER-REPO `.envrc`.
+# direnv walks *up the filesystem* looking for the nearest `.envrc` and does not
+# stop at a git boundary, so this single file is in force in all sixteen repos
+# and in every directory below them. A second `.envrc` inside a sub-repo would
+# not add to this one — it would replace it, silently, for that subtree.
+#
+# ⚠️ WHAT WINS. `dotenv` never overwrites a variable that is already exported,
+# so the order is: this layer first, then a repo's own `.env` fills in whatever
+# this layer did not set. A key that appears in both is answered by this file
+# and the repo's copy is dead text — which is why the migration removes shared
+# keys from the sixteen `.env` files rather than leaving two sources of truth.
+# The committed `env` templates keep every key: they document what a service
+# reads, and that is not the same question as where the value comes from.
+#
+# ⚠️ WHAT DOES NOT SEE IT. direnv exports into an interactive shell that has its
+# hook installed. A process started any other way — a systemd unit, a cron job,
+# an IDE run configuration, a container — inherits nothing from this file. On
+# those, either export the same names by that launcher's own mechanism or keep
+# a complete `.env` in the repo. `SETUP.md` §7 says which of the two.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# `set -euo pipefail` for the rest of this file: an unset variable or a failing
+# command aborts the load with a message instead of exporting half a layer.
+strict_env
+
+# Unconditional, and before the existence test on purpose: direnv reloads when a
+# watched path changes, and a path that does not exist yet is a change when it
+# is created. Without this line, creating `.env.shared` would leave the shell
+# holding the empty layer until the next manual `direnv reload`.
+watch_file .env.shared
+
+if [[ -f .env.shared ]]; then
+	dotenv .env.shared
+
+	# ⚠️ Then drop every name it set to an empty string, and this is not tidying.
+	# `dotenv` in a repo never overwrites an exported variable, so a key exported
+	# empty from here would shadow that repo's own working value — with no error,
+	# on a key nobody has a value for. Unsetting makes an empty line in
+	# `.env.shared` inert instead: the layer declines to answer and the repo's
+	# own `.env` does. It is what lets `env.shared` be copied verbatim, blanks
+	# and all, and it is why blanking a key here does NOT blank it anywhere.
+	while read -r key; do
+		[[ -n ${!key:-} ]] || unset "$key"
+	# `tr -d ' \t'`, never `tr -d '[:space:]'` — the class contains the newline,
+	# so the second one hands the loop every key concatenated into a single word.
+	done < <(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z_0-9]*' .env.shared | tr -d ' \t' | sort -u)
+else
+	log_status "no .env.shared here — every repo falls back to its own .env (start from the committed env.shared)"
+fi

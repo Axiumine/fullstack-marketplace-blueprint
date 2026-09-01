@@ -204,8 +204,30 @@ Enforced, not just documented — see [`.claude/SECRETS.md`](../.claude/SECRETS.
 
 Per-machine `.env` files are the one place where a *wrong* value fails where nothing is looking.
 
-- ⚠️ **Values shared across repos are unenforced by construction** — no test spans two services, so a
-  `REDIS_KEY` mismatch between two services fails at runtime while both repos'
+**There are two layers.** A value identical in every repo that reads it lives once, in `.env.shared` at
+the workspace root, exported by one root `.envrc` that direnv loads
+([`ADR-053`](./devprotocol/phase3/adr/ADR-053-the-shared-half-of-the-environment-is-one-file.md)); everything
+else lives in the repo that reads it. Three rules follow and none of them is obvious:
+
+- ⚠️ **One `.envrc`, at the workspace root, and never one inside a sub-repo.** direnv loads the *nearest*
+  one walking up the filesystem and does not stop at a git boundary, so the root file already covers all
+  sixteen repos. A second one **replaces** it for that subtree rather than extending it, silently.
+- ⚠️ **The layer wins and cannot be overridden.** `dotenv` never overwrites an exported variable, so a key
+  in `.env.shared` is answered there and the repo's own copy of it is dead text. A key that legitimately
+  differs anywhere must therefore stay out — in the layer it would not be a default, it would be a value
+  that repo can no longer change. `DOMAIN` is excluded on exactly one disagreement.
+- ⚠️ **An empty key in the layer is inert.** `.envrc` unsets every name `.env.shared` leaves blank, so a
+  blank there falls through to each repo's `.env` — and blanking a key in the layer does not blank it
+  anywhere.
+
+The committed `env` templates keep **every** key, the shared ones included: they answer what a service
+reads, not where the value comes from. `./scripts/env-diff.sh` reports a key the layer supplies as
+`SHARED` and one nothing supplies as `MISSING`; `./scripts/env-shared-migrate.sh` moves keys into the
+layer and is the only script here that reads a value out of a real `.env` — it prints names only, refuses
+any key the repos disagree on, and **you** run it, never an assistant.
+
+- ⚠️ **A shared value the layer does not hold is unenforced by construction** — no test spans two
+  services, so a `REDIS_KEY` mismatch between two services fails at runtime while both repos'
   suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
   reading files.** One shape of that mismatch is now caught at boot rather than at runtime: a service
   whose prefix names a namespace holding no keygrip record exits 1 there (`KEYGRIP_RECORD_MISSING`,
