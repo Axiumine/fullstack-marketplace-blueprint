@@ -58,17 +58,26 @@ tier — so it belongs in the same class as the keys it replaced, not a lower on
 four `*-authorization` services, `marketplace-dev-authenticated-logout`, and `marketplace-db-setup`, which
 seeds the record.
 
-**Check 0 — env value split across two lines.** Runs before the two above and is the only check that
-reads the **working tree** rather than the staged index, because the file it exists for is git-ignored
-and never staged. It blocks when a repo's `.env`, `.env.*` or `env` holds a non-blank, non-comment line
-that is not `KEY=VALUE`, or a value that opens a quote the line never closes. Both are the signature of
-one value broken over two physical lines: dotenv ends the value at the newline *even inside quotes*,
-hands back the truncated prefix, and reads the orphan tail as a junk variable named after its first
-token — silently, in both halves. Added 2026-08-09, after all five `.env` files holding
+**Check 0 — an env line the readers here do not agree on.** Runs before the two above and is the only
+check that reads the **working tree** rather than the staged index, because the file it exists for is
+git-ignored and never staged. It blocks when a repo's `.env`, `.env.*`, `env` or `env.shared` holds a
+non-blank, non-comment line that is not `KEY=VALUE`, a value that opens a quote the line never closes,
+or an unquoted value holding whitespace or a `#`. The first two are the signature of one value broken
+over two physical lines: dotenv ends the value at the newline *even inside quotes*, hands back the
+truncated prefix, and reads the orphan tail as a junk variable named after its first token — silently,
+in both halves. Added 2026-08-09, after all five `.env` files holding
 `KEYGRIP_KEY_1`/`_2` were found broken exactly this way (RISK_REGISTER R05b). ⚠️ **Quoting does not
 prevent it** — every one of those ten values was correctly quoted — which is why this is a gate and not
 another line in the conventions. It reports file, line number and key name; **never a value**. A
 deliberate multi-line value would trip it; none exists here, and `--no-verify` is the escape hatch.
+
+⚠️ **The unquoted half arrived 2026-09-01, and it corrects the rule it enforces** (RISK_REGISTER R05).
+dotenv does **not** terminate a bare value at the first space, which is what the conventions claimed for
+eight weeks: 17.4.2 reads `KEY=abc def` whole. What the two readers here disagree on is `KEY=abc#tail`,
+which is `abc` to both and silent, and an unquoted space, which the direnv 2.32.1 builtin that loads the
+shared layer calls an `invalid line` before exporting **none** of that file. Trailing space is not
+flagged — both readers drop it — and **0** lines in the workspace's env files are blocked by the rule
+as it landed, so nothing needed repairing first.
 
 Patterns were tuned against the whole tracked corpus of the 11 repos of that baseline (16 today, and the
 patterns have not been re-tuned since) so the committed `env` and `npmrc`
