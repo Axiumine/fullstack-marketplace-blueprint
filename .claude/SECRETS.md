@@ -62,10 +62,14 @@ seeds the record.
 check that reads the **working tree** rather than the staged index, because the file it exists for is
 git-ignored and never staged. It blocks when a repo's `.env`, `.env.*`, `env` or `env.shared` holds a
 non-blank, non-comment line that is not `KEY=VALUE`, a value that opens a quote the line never closes,
-or an unquoted value holding whitespace or a `#`. The first two are the signature of one value broken
-over two physical lines: dotenv ends the value at the newline *even inside quotes*, hands back the
-truncated prefix, and reads the orphan tail as a junk variable named after its first token — silently,
-in both halves. Added 2026-08-09, after all five `.env` files holding
+an unquoted value holding whitespace or a `#`, or an unquoted value opening with an `=`. Its key must
+also be SCREAMING_SNAKE_CASE, which every one of the 706 keys on this platform is. The rules other
+than the whitespace pair are the signatures of one value broken over two physical lines — measured
+2026-09-02: dotenv 17.4.2 keeps a **quoted** wrap as a single newline-bearing value, 89 characters
+where 88 were meant, and truncates an **unquoted** wrap at the newline, dropping the tail unless the
+tail carries an `=`, which base64 padding supplies and which turns it into a variable. direnv 2.32.1
+refuses a wrap of either kind and exports nothing at all from that file. Every one of those answers
+is silent except direnv's. Added 2026-08-09, after all five `.env` files holding
 `KEYGRIP_KEY_1`/`_2` were found broken exactly this way (RISK_REGISTER R05b). ⚠️ **Quoting does not
 prevent it** — every one of those ten values was correctly quoted — which is why this is a gate and not
 another line in the conventions. It reports file, line number and key name; **never a value**. A
