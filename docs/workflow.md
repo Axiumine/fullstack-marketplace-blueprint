@@ -255,16 +255,23 @@ any key the repos disagree on, and **you** run it, never an assistant.
   One file, two readers, two answers, and neither says which it took. A pair of quotes settles all of it —
   **single** quotes, since dotenv expands `\n` and `\r` escapes inside double ones.
 - ⚠️ **One value, one line — quoting does not save you from a line break.** A newline inside a quoted
-  value ends the value there; the tail lands on the next line with no `KEY=` in front of it, and dotenv
-  reads that tail as its own variable named after its first token. Both halves are silent. This is how
-  all 5 `.env` files holding `KEYGRIP_KEY_1`/`_2` were found broken on 2026-08-09: 88-char keys wrapped
-  after 76 chars, and one file had the 12-char tail duplicated on a further line.
+  value does not survive the break, and each reader answers differently. Measured 2026-09-02: dotenv
+  17.4.2 keeps a **quoted** wrap as one value with the newline inside it — 89 characters where 88 were
+  meant, silently wrong rather than short — and truncates an **unquoted** wrap at the newline, dropping
+  the tail unless the tail carries an `=`, which base64 padding supplies and which promotes it to a
+  variable of its own. direnv 2.32.1 refuses a wrap of either kind and exports **nothing** from that
+  file. This is how all 5 `.env` files holding `KEYGRIP_KEY_1`/`_2` were found broken on 2026-08-09:
+  88-char keys wrapped after 76 chars, and one file had the 12-char tail duplicated on a further line.
+  ⚠️ **A value that genuinely needs a newline writes `\n` inside double quotes** — the one multi-line
+  form both readers agree on, and nothing here needs it today.
 
   **Both of the two rules above are gates, not conventions.** `.githooks/pre-commit` **check 0** reads
   the working tree — the only check that does, because a `.env` is git-ignored and never staged — and
   refuses the commit when any `.env`, `.env.*`, `env` or `env.shared` in that repo holds a non-blank,
-  non-comment line that is not `KEY=VALUE`, a value that opens a quote the line never closes, or an
-  unquoted value holding whitespace or a `#`. It reports file, line and key name, never a value.
+  non-comment line that is not `SCREAMING_SNAKE=VALUE`, a value that opens a quote the line never closes,
+  an unquoted value holding whitespace or a `#`, or an unquoted value opening with the `=` that base64
+  padding leaves on a tail. The last two rules are what stop a tail like `kJ3xQ==` — a legal `KEY=VALUE`
+  line to both readers — from passing as a name. It reports file, line and key name, never a value.
   Trailing spaces are not flagged: both readers drop them, so there is nothing to disagree about. A
   deliberate multi-line value would trip it; none exists here, and the escape hatch is
   `git commit --no-verify`.
@@ -293,8 +300,14 @@ any key the repos disagree on, and **you** run it, never an assistant.
   exactly like the pair it replaced. Losing it, unlike losing the CSFLE master key, is recoverable —
   `yarn seed:keygrip --force` mints a new set and everyone signs in again.
 - `checkRequiredEnv` is `if (!env[envVar])`, so an empty value fails exactly like a missing one — that
-  is the only class of these the code catches. Audit by parsing each service's `REQUIRED_ENV_VARS` out
-  of `src/index.mts`, then checking that repo's local config for absent-or-empty.
+  is the only class of these it catches on its own. A second pass runs beside it since 2026-08-31:
+  `assertEnvShape` (`marketplace-common` 4.2.0) walks the service's own `ENV_SHAPES` map and refuses a
+  value of the wrong *kind* — a port that is not a port, `true` where `'1'` is compared, a `mongodb://`
+  URI in the Redis slot — aggregating every failure into one `ENV_SHAPE_INVALID` and printing no value.
+  ⚠️ **It cannot refuse a wrong value of the right kind**, which is why R04 is mitigated and not closed,
+  and five credential-shaped keys plus `DSN` and `NODE_ENV` carry no shape at all. `marketplace-db-setup`
+  and the two SPAs run no shape pass whatsoever. Audit by parsing each service's `REQUIRED_ENV_VARS` and
+  `ENV_SHAPES` out of `src/index.mts`, then checking that repo's local config for absent-or-empty.
 
 ## Commands
 
