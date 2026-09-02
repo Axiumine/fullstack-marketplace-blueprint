@@ -29,6 +29,16 @@ Sixteen repos, each with its own `.env`. Measuring the committed templates rathe
 | `UPLOAD_DIR` | 8 | 1 |
 | `KEYGRIP_KEK` | 7 | 1 |
 
+⚠️ **Correction, 2026-09-02 — the `DSN` row is wrong and that key is out of the layer.** The table above
+measured the *committed templates*, and all nine carry the identical placeholder
+`https://xxxxxxxxxxxxxx@bugsink.lan/1`. A placeholder repeated nine times is a placeholder, not one
+resource. A Sentry/Bugsink DSN names a **project**, there is one project per service, and the machine this
+was migrated on holds nine distinct values. Sharing it would funnel nine services' exceptions into whichever
+project won, with no service able to opt out — the failure this ADR's own rule 2 describes, committed by the
+ADR itself. `DSN` is now in `env.shared` §What stays behind, beside `QODANA_TOKEN`, which is the same shape
+one layer down. **The measured count is therefore twenty, not twenty-one**, and the rule the correction
+adds is: *measure the real files, never the templates.* `seed` does, which is what caught it.
+
 Twenty-one keys, each naming one resource, each stored between seven and eleven times. Rotating the Redis
 password is eleven edits. Repointing the MongoDB cluster is nine. Nothing checks that the eleven agree, and
 a machine where ten agree and one does not is precisely the wrong-but-populated deployment R04 describes —
@@ -115,8 +125,8 @@ reads it.**
 ## Consequences
 
 ### Positive
-- **Agreement stops being a property to verify.** Twenty-one values that were stored between seven and
-  eleven times are stored once. R04's enabling condition — *"the ~15 shared env keys across 9 services"* —
+- **Agreement stops being a property to verify.** Twenty values that were stored between seven and
+  eleven times are stored once — twenty-one as measured, less `DSN`, corrected 2026-09-02 in §Context. R04's enabling condition — *"the ~15 shared env keys across 9 services"* —
   loses its subject for those keys; what remains under it is the per-repo half.
 - **Rotation is one edit.** The Redis password, the KEK, the CSFLE key path: one line, and every repo has
   it on the next `cd`.
@@ -188,8 +198,12 @@ A violation looks like:
 
 - an `.envrc` anywhere but the workspace root;
 - a key in `.env.shared` whose value is not identical in every repo that reads it — in particular `PORT`,
-  `DOMAIN`, `NODE_ENV`, `QODANA_TOKEN`, `MONGO_TEST_DB`, `MONGO_TEST_AUTH_ADMIN` or
+  `DOMAIN`, `NODE_ENV`, `QODANA_TOKEN`, `DSN`, `MONGO_TEST_DB`, `MONGO_TEST_AUTH_ADMIN` or
   `MONGO_TEST_CONN_STRING`, each excluded for a stated reason in `env.shared` §What stays behind;
+- a key admitted to the layer on the strength of the committed **templates** agreeing. They agree on
+  placeholders. `seed` measures the real files and reports a key every repo holds its own value for as
+  **PER-REPO** rather than as a disagreement to resolve — that report is the check, and `DSN` is what it
+  was written for;
 - a value — as opposed to a name or a non-secret default — committed in `env.shared`;
 - a key removed from a committed `env` template because the layer now supplies it;
 - a script, hook or documented step that prints or copies a value out of a real `.env`, other than
