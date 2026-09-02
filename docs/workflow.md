@@ -300,8 +300,14 @@ any key the repos disagree on, and **you** run it, never an assistant.
   exactly like the pair it replaced. Losing it, unlike losing the CSFLE master key, is recoverable —
   `yarn seed:keygrip --force` mints a new set and everyone signs in again.
 - `checkRequiredEnv` is `if (!env[envVar])`, so an empty value fails exactly like a missing one — that
-  is the only class of these the code catches. Audit by parsing each service's `REQUIRED_ENV_VARS` out
-  of `src/index.mts`, then checking that repo's local config for absent-or-empty.
+  is the only class of these it catches on its own. A second pass runs beside it since 2026-08-31:
+  `assertEnvShape` (`marketplace-common` 4.2.0) walks the service's own `ENV_SHAPES` map and refuses a
+  value of the wrong *kind* — a port that is not a port, `true` where `'1'` is compared, a `mongodb://`
+  URI in the Redis slot — aggregating every failure into one `ENV_SHAPE_INVALID` and printing no value.
+  ⚠️ **It cannot refuse a wrong value of the right kind**, which is why R04 is mitigated and not closed,
+  and five credential-shaped keys plus `DSN` and `NODE_ENV` carry no shape at all. `marketplace-db-setup`
+  and the two SPAs run no shape pass whatsoever. Audit by parsing each service's `REQUIRED_ENV_VARS` and
+  `ENV_SHAPES` out of `src/index.mts`, then checking that repo's local config for absent-or-empty.
 
 ## Commands
 
