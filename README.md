@@ -192,9 +192,10 @@ ships no code.
 
 `.githooks/pre-commit` runs the secret guard — which since 2026-08-09
 opens with **check 0**, the only check on the platform that reads the *working tree* rather than the
-staged index: it blocks when a repo's `.env` or `env` holds a value broken across two physical lines,
-the failure that silently truncated all ten `KEYGRIP_KEY_*` values that day (`.claude/SECRETS.md` §3,
-R05b) — then `yarn lint:check`, then
+staged index: it blocks when a repo's `.env`, `env` or `env.shared` holds a value broken across two physical
+lines — the failure that silently truncated all ten `KEYGRIP_KEY_*` values that day
+(`.claude/SECRETS.md` §3, R05b) — or, since 2026-09-01, an unquoted value holding whitespace or a `#`,
+which dotenv and direnv do not read the same way (R05) — then `yarn lint:check`, then
 `yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
 `./qodana.sh` (~1 min), and only when the staged paths can move a verdict — a docs-only commit skips all
 of it. Two gates stay push-only: mutation, far too slow to pay for per commit, and semgrep, which is
