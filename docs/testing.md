@@ -103,12 +103,14 @@ the report is absent.
 | MC-13 | every tracked source file `coverage.include` gates is actually in the report the thresholds were computed over, and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the four that need one — `marketplace-db-setup` and the three apps |
 | MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs` and still call it from `test:cov` | `./scripts/audit-check.sh` §6 | workspace root |
 | MC-15 | all sixteen repos have `core.hooksPath=.githooks` and a `.githooks/pre-commit` git can execute — the two ways every gate in a repo is silently off | `./scripts/audit-check.sh` §7 | workspace root |
+| MC-16 | all sixteen `.githooks/pre-commit` scan for the same secret rules — every rule a repo carries is one the parent's list has, and every repo carries the credential-flag rule a `mongosh … -password` line needs | `./scripts/audit-check.sh` §8 | workspace root |
+| MC-17 | no object reachable from a branch or a tag, in any of the sixteen object databases, matches a secret rule — the history behind the staged diff, which MC-11 never sees | `./scripts/history-scan.sh`, also run by `./scripts/audit-check.sh` §9 | workspace root, plus `scripts/history-scan-allow.txt` |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Six of its seven
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eight of its nine
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
-never armed — and a vitest suite in any single repo is structurally unable to see them. It reads only: no
-writes, no installs, no containers.
+never armed, a secret rule one repo has and the others do not — and a vitest suite in any single repo is
+structurally unable to see them. It reads only: no writes, no installs, no containers.
 
 ⚠️ **MC-15 is the one check that could not be a gate even in principle.** The condition it looks for —
 `core.hooksPath` unset, or a `.githooks/pre-commit` without its executable bit — is exactly the condition
@@ -116,6 +118,18 @@ under which no hook in that repo runs, so a hook can never be the thing that rep
 let a repository arm its own hooks from tracked content, deliberately: a clone would then execute a
 stranger's script. `./scripts/bootstrap.sh` is the one command that arms all sixteen after a fresh
 checkout, and MC-15 is how you find out afterwards whether anybody ran it (RISK_REGISTER R09).
+
+⚠️ **MC-17 is the only check that reads what a commit already did rather than what it is about to do.**
+Every other secret gate on this platform scans the *staged diff*, so a value committed before its rule
+existed, or committed past the rule with `--no-verify`, is invisible to all of them for as long as the
+repository lives. `./scripts/history-scan.sh` reads `git cat-file --batch-all-objects` — every object git
+holds, reachable or not — with the pattern list taken out of the parent's own `.githooks/pre-commit`, so
+there is one list and not two. It **blocks** on a match reachable from a branch or a tag, because that is
+what a push and a clone carry, and merely **prints** a match in a dangling object, which travels with
+nothing and disappears at the next `git gc`. Cleared blobs are named one per line in
+`scripts/history-scan-allow.txt` by object name, never by path — an object name is its content, so an
+entry can wave through the exact bytes somebody read and nothing else — and a stale entry fails the run,
+the same both-directions rule `coverage-exempt.txt` follows (RISK_REGISTER R14).
 
 ### Still manual, and why
 

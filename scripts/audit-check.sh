@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: seven checks that would otherwise be seven things somebody
+# script is that leftover, and nothing else: nine checks that would otherwise be nine things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -242,6 +242,64 @@ while IFS= read -r path; do
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
 [ "$UNARMED" -eq 0 ] && pass 'all 16 repos armed, every .githooks/pre-commit executable'
+
+echo
+echo '8. The secret rules have not drifted apart across the sixteen pre-commit hooks'
+
+# Each repo carries its own copy of the hook — not a symlink, not a template — so a rule added to one
+# is added to one. The parent's list is the superset by construction: every rule any repo has, it has.
+# Two things are checked, and neither can be seen from inside a repo. Every rule a repo carries must
+# appear in the parent's list, which catches a repo inventing a rule of its own that nothing else gets;
+# and every repo must carry the credential-flag rule RISK_REGISTER R14 landed, which is the one a
+# `mongosh -password …` line slips past when a repo is missing it.
+CANON="$(sed "s/^SECRET_VALUE='/SECRET_VALUE+='|/" .githooks/pre-commit | grep '^SECRET_VALUE')"
+DRIFTED=0
+
+check_rules() {
+	local label="$1" dir="$2"
+	local own extra
+
+	own="$(sed "s/^SECRET_VALUE='/SECRET_VALUE+='|/" "$dir/.githooks/pre-commit" 2> /dev/null | grep '^SECRET_VALUE')"
+
+	if [ -z "$own" ]; then
+		fail "$label — no SECRET_VALUE rules in .githooks/pre-commit at all"
+		DRIFTED=1
+
+		return
+	fi
+
+	extra="$(printf '%s\n' "$own" | grep -Fxv -f <(printf '%s\n' "$CANON") || true)"
+
+	if [ -n "$extra" ]; then
+		fail "$label — carries a secret rule the parent's list does not have:"
+		printf '      %s\n' "$extra"
+		DRIFTED=1
+	fi
+
+	if ! grep -qF -- '(password|passwd|pwd|pass)' "$dir/.githooks/pre-commit"; then
+		fail "$label — no credential-flag rule, so a \`-password <the value>\` line commits clean (R14)"
+		DRIFTED=1
+	fi
+}
+
+check_rules 'parent' .
+
+while IFS= read -r path; do
+	[ -n "$path" ] || continue
+	check_rules "$path" "$path"
+done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
+
+[ "$DRIFTED" -eq 0 ] && pass 'all 16 hooks scan for the same rules, and all 16 have the credential-flag rule'
+
+echo
+echo '9. No secret is sitting in a history that a push would publish'
+
+# Delegated whole, because it is the same kind of claim and a different kind of read: `pre-commit` sees
+# the staged diff and never the history behind it, so a value committed before a rule existed — or past
+# it with `--no-verify` — is invisible to every gate this platform has. RISK_REGISTER R14 is that gap.
+if ! ./scripts/history-scan.sh; then
+	fail 'history-scan found a secret reachable from a branch or a tag — see above'
+fi
 
 echo
 

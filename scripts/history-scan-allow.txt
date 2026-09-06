@@ -1,0 +1,16 @@
+# Objects `./scripts/history-scan.sh` matches, that somebody has read and cleared.
+#
+# One blob per line: `<40-hex object name>  <why it is not a secret>`. Keyed on the object name because
+# an object name *is* its content — an entry can wave through the exact bytes that were read and
+# nothing else, and editing the file gives it a new name that is scanned again from scratch.
+#
+# Checked in both directions, the `coverage-exempt.txt` rule: an entry matching no object in any of the
+# sixteen fails the run. A cleared blob that has since been rewritten out of history is a line to
+# delete, not a line to leave lying around.
+#
+# Dangling objects are NOT listed here and must not be added. They are reachable from no branch and no
+# tag, so no push and no clone carries them; the script prints them and does not fail on them, and the
+# next `git gc` takes them away — an entry for one goes stale by design.
+
+6831cfd4d0e53b83b765ea43c24f735b188d4d88  marketplace-dev-authenticated-logout test/integration/startFailure.itest.mts — a deliberately wrong Redis password the start-failure probe needs in order to fail
+dbc9f95188301e947242dbf6825ad06c3115fac2  the same fixture at its earlier revision, kept for the same reason
