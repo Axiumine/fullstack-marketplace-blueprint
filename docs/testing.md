@@ -107,12 +107,15 @@ the report is absent.
 | MC-17 | no object reachable from a branch or a tag, in any of the sixteen object databases, matches a secret rule — the history behind the staged diff, which MC-11 never sees | `./scripts/history-scan.sh`, also run by `./scripts/audit-check.sh` §9 | workspace root, plus `scripts/history-scan-allow.txt` |
 | MC-18 | no function in `marketplace-dev-public-resource` reads `Company` or `Item` without naming `livePublic` or `LIVE_PUBLIC_PIPELINE` in its own body, and the nine files that read either model are an exhaustive list | `yarn test` | `marketplace-dev-public-resource/test/publicCatalogueFilter.test.mts` and its six fixtures |
 | MC-19 | no service other than `marketplace-dev-admin-authenticated-resource` writes `itemCategory`, in any of the three spellings — the call, the computed call, the aliased import — and the one exemption (`holdItemCategory`'s `$inc: { __v: 1 }`) is one file and one verb wide | `yarn lint:check` (blocking) | the `ITEMCATEGORY_NO_WRITE` block in each of the eight `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts`, cross-checked by `./scripts/audit-check.sh` §10 |
+| MC-20 | the ClamAV daemon behind each resource service is asked how old its signature database is, once at boot, and a database past seven days or a daemon that will not answer inside 5s reaches Sentry | service startup | `reportClamSignatureAge.mts` in both resource services, over `clamSignatureFreshness` in `marketplace-common`, with nine tests a side |
+| MC-21 | every absolute host literal in any sub-repo's `src/` is named in `docs/devprotocol/phase5/PROCESSOR_INVENTORY.md` — §2 if personal data crosses it, §3 with a written reason if it provably does not | `./scripts/audit-check.sh` §11 | workspace root |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eight of its nine
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Ten of its eleven
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
-never armed, a secret rule one repo has and the others do not — and a vitest suite in any single repo is
-structurally unable to see them. It reads only: no writes, no installs, no containers.
+never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
+that no inventory names — and a vitest suite in any single repo is structurally unable to see them. It reads
+only: no writes, no installs, no containers.
 
 ⚠️ **MC-15 is the one check that could not be a gate even in principle.** The condition it looks for —
 `core.hooksPath` unset, or a `.githooks/pre-commit` without its executable bit — is exactly the condition
