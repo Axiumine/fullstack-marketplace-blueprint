@@ -88,7 +88,8 @@ the `branch = main` entries are recorded for.
   carry both a `pre-commit` and a `pre-push` — but they do not all hold the same gates.
   `marketplace-nginx` has no `package.json`, so there is no lint, coverage, mutation or Qodana step for
   it to run: its `pre-push` runs `test/run.sh` and blocks on any failed check, and its `pre-commit` is
-  the secret guard and nothing after it (ADR-030). The secret guard itself runs in **all sixteen**. No
+  the branch guard, then the secret guard, and nothing after it (ADR-030). Those two run in
+  **all sixteen**. No
   CI/CD pipeline is configured; every gate on the platform is a local git hook.
 - **The parent's own commits now include pointer bumps.** One logical change is N+1 commits, not N: one
   per affected sub-repo, plus one in the parent moving the gitlinks. Skipping the parent commit leaves it
@@ -128,7 +129,15 @@ free before that push and expensive after.
 - **Never commit on `main`. Ever.** Before the first edit of any task, `git switch -c <type>/<slug>` and
   commit there. Being on `main` is not permission to commit to it. This holds in all sixteen repos here
   and in `@axiumine/koa-utils`, a seventeenth repo outside
-  this workspace. Nothing downstream catches the mistake — the only guard is discipline.
+  this workspace. ⚠️ **Machine-checked since 2026-09-06, in all sixteen repos here** — every
+  `.githooks/pre-commit` refuses a commit whose `HEAD` is `main` before it reads anything else
+  (MC-25, `./scripts/audit-check.sh` §15). It exempts an in-progress merge, because finishing a
+  conflicted merge into `main` by hand is a legitimate commit onto `main` and `MERGE_HEAD` exists at
+  exactly that moment; an automatic `--no-ff` merge never reaches the hook at all. The escape hatch is
+  `SKIP_MAIN_GUARD=1 git commit`, named rather than `--no-verify` so that taking it does not drop the
+  secret guard with it — the first commit of a brand-new repo needs it, `git init` having started on
+  `main` with nowhere else to be. The seventeenth repo carries no such guard: it is outside this
+  workspace, and there discipline is still the only thing between a task and `main`.
 - **Merging into `main` is the user's decision alone** — do not merge, fast-forward, squash or rebase
   onto `main` unless the user says so in that message. One exception, below.
 - **`marketplace-common` may be committed, merged, pushed and published without asking.** Standing
@@ -177,8 +186,14 @@ nothing about it.
 - `marketplace-nginx` carries both, and both are unlike every other repo's (ADR-030). Its `pre-push`
   gate is `test/run.sh` — `nginx -t` plus the behavioural suite, in a throwaway container — and it
   blocks rather than skips when the container engine, the daemon or the image is missing. Its
-  `pre-commit` is the secret guard and stops there: check 0 and the two staged-secret scans, then
-  `exit 0`, because with no `package.json` there is no lint, coverage, mutation or Qodana step to run.
+  `pre-commit` is the branch guard and the secret guard and stops there: the `main` check, check 0 and
+  the two staged-secret scans, then `exit 0`, because with no `package.json` there is no lint, coverage,
+  mutation or Qodana step to run.
+- **The first thing every `pre-commit` does is read the branch**, and all sixteen copies do it
+  identically (MC-25). It is the cheapest check on the platform and the only one about the commit
+  rather than its content: `main` is not a branch to commit onto (BCON-06). ⚠️ **It is a guard, not a
+  lock** — `--no-verify` lifts it exactly as it lifts the secret guard, and a clone whose
+  `core.hooksPath` was never armed runs it no more than it runs anything else (R09).
 - A relative value is safe: git resolves it against the worktree root, so hooks fire from subdirectories
   too.
 - **Check the hook is executable.** Git skips a non-executable hook with only a hint, so the gate
