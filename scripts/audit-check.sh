@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: sixteen checks that would otherwise be sixteen things somebody
+# script is that leftover, and nothing else: eighteen checks that would otherwise be eighteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -681,6 +681,28 @@ elif ! node ./scripts/encryption-coverage-check.mjs > /dev/null 2>&1; then
 	fail 'a field is encrypted in one half of ADR-029 and not the other - run node ./scripts/encryption-coverage-check.mjs'
 else
 	pass 'the field map and the validators name the same encrypted paths, and the check fires when they do not'
+fi
+
+echo
+echo '18. Every service reaches exactly the collections its role would grant'
+
+# RISK_REGISTER R59, marketplace-docker-DBs/init/roles.js, ADR-039, ADR-040 (MC-29). The nine services
+# share one `marketplaceRwDev` account whose `readWrite` is database-scoped, so today each of them can
+# reach every collection. The narrow shape that removes it is a hand-written table in `init/roles.js`,
+# and that file's own header used to end "this file stays silent about it" - a resolver importing a
+# model its service never used widens the true surface while the table keeps describing the old one.
+#
+# Minting the eight accounts is the adopter's, by ADR-039 and ADR-040, and no check here can do it.
+# What a check can do is keep the table true, so the day someone runs it the roles fit the code rather
+# than taking a service down at first use. Same two halves as §16 and §17: the self-test plants each
+# direction under `mktemp -d` - a service reaching an ungranted collection, a grant nothing imports, a
+# service in neither list, a raw-driver escape - and the check then reads the real sources.
+if ! ./scripts/service-role-check-selftest.sh > /dev/null 2>&1; then
+	fail 'the service role check does not behave as documented - run ./scripts/service-role-check-selftest.sh'
+elif ! node ./scripts/service-role-check.mjs > /dev/null 2>&1; then
+	fail 'a service reaches a collection its role would not grant - run node ./scripts/service-role-check.mjs'
+else
+	pass 'the nine services reach exactly what init/roles.js grants them, and none reaches a database another way'
 fi
 
 echo

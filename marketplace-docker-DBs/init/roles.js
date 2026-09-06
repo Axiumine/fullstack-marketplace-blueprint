@@ -28,9 +28,16 @@
 //
 //   grep -rhoE "marketplace-common/models/MongoDB/[A-Za-z]+" <service>/src | sed 's|.*/||' | sort -u
 //
-// ⚠️ **A new resolver that imports a seventh model widens the service's true surface and this file
-// stays silent about it.** That is the standing cost of a hand-maintained list, and the reason the
-// derivation above is written down rather than described.
+// ⚠️ **A new resolver that imports a seventh model widens the service's true surface, and until
+// 2026-09-06 this file stayed silent about it.** It no longer does: `scripts/service-role-check.mjs`
+// re-runs the derivation above against every service's `src/` and compares it to the table below, so
+// the two disagree loudly rather than quietly (RISK_REGISTER R59, MC-29). The check reads this file as
+// data — it evaluates it and takes `SERVICE_COLLECTIONS`, `SERVICE_REPOS` and `NO_DATABASE_SERVICES` —
+// so a table renamed here is a failure there rather than a check that silently measures nothing.
+//
+// It also re-asserts the sentence the derivation rests on: no `db.collection(…)`, no `connection.db`
+// and no `getSiblingDB` under any service's `src/`. The day one of those appears, the import list
+// stops being the collection list and every row below becomes a guess.
 
 /**
  * Collections each service's own `src/` actually reaches, as of 2026-09-06.
@@ -48,6 +55,33 @@ const SERVICE_COLLECTIONS = {
 	marketplaceUserAuthzDev: ['user'],
 	marketplaceUserResDev: ['user']
 }
+
+/**
+ * Which repository under `BEs/dev/` each account speaks for.
+ *
+ * The keys above are MongoDB account names and these are directory names; nothing else in this
+ * workspace maps one to the other, and `scripts/service-role-check.mjs` needs the mapping to be a
+ * value rather than a convention a reader infers from the abbreviations.
+ */
+const SERVICE_REPOS = {
+	marketplaceAdminAuthzDev: 'marketplace-dev-admin-authenticated-authorization',
+	marketplaceAdminResDev: 'marketplace-dev-admin-authenticated-resource',
+	marketplaceOwnerAuthzDev: 'marketplace-dev-authenticated-authorization',
+	marketplaceOwnerResDev: 'marketplace-dev-authenticated-resource',
+	marketplacePublicAuthzDev: 'marketplace-dev-public-authorization',
+	marketplacePublicResDev: 'marketplace-dev-public-resource',
+	marketplaceUserAuthzDev: 'marketplace-dev-user-authenticated-authorization',
+	marketplaceUserResDev: 'marketplace-dev-user-authenticated-resource'
+}
+
+/**
+ * Services that hold no MongoDB connection at all, and so get no account and no role.
+ *
+ * ⚠️ **This is an assertion, not an exemption.** The check reads it as "this service must import zero
+ * models", so a resolver added here that reaches a collection fails rather than passing unnoticed as
+ * a service nobody listed.
+ */
+const NO_DATABASE_SERVICES = ['marketplace-dev-authenticated-logout']
 
 /**
  * What a service is allowed to do to a collection it owns.
