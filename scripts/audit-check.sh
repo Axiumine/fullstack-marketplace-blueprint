@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: eighteen checks that would otherwise be eighteen things somebody
+# script is that leftover, and nothing else: nineteen checks that would otherwise be nineteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -703,6 +703,31 @@ elif ! node ./scripts/service-role-check.mjs > /dev/null 2>&1; then
 	fail 'a service reaches a collection its role would not grant - run node ./scripts/service-role-check.mjs'
 else
 	pass 'the nine services reach exactly what init/roles.js grants them, and none reaches a database another way'
+fi
+
+echo
+echo '19. Every source file a package.json runs is inside its own coverage gate'
+
+# RISK_REGISTER R61, docs/testing.md MC-30. A repo's own `scripts/coverage-audit.mjs` proves that every
+# tracked file under a source root `coverage.include` declares reached the report. It cannot say
+# anything about a file outside every root, because the roots are read from those same globs: such a
+# file is absent from the report AND absent from the list the report is compared against, so nothing
+# anywhere goes red for it. Two were found that way — `marketplace-user/serve.mjs`, which `yarn start`
+# runs in front of every customer, and `marketplace-services-status/systemd/generate.mjs`, which writes
+# the ExecStart of thirteen real units — both untested and unmutated for as long as they had existed.
+#
+# What the check reads is the manifest: every file a package.json hands to node, tsx, ts-node or
+# ts-node-dev, plus `main` and `bin`. Each must be matched by a coverage.include glob of its own
+# package, or named by exact path in that package's coverage-exempt.txt or in scripts/runnable-exempt.txt.
+# Same two halves as §16, §17 and §18: the self-test plants each direction under `mktemp -d` — an
+# ungated runnable file, a line for a file that is gated now, a file declared twice, a line for a file
+# nothing runs, a glob where an exact path belongs — and the check then reads the real fifteen packages.
+if ! ./scripts/runnable-source-check-selftest.sh > /dev/null 2>&1; then
+	fail 'the runnable source check does not behave as documented - run ./scripts/runnable-source-check-selftest.sh'
+elif ! node ./scripts/runnable-source-check.mjs > /dev/null 2>&1; then
+	fail 'a file a package.json runs is gated by nothing and declared nowhere - run node ./scripts/runnable-source-check.mjs'
+else
+	pass 'every runnable source file is gated by coverage.include or declared by name, and the check fires when one is not'
 fi
 
 echo

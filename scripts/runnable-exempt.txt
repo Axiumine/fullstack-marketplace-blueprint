@@ -1,0 +1,47 @@
+# Every file a package.json hands to node, tsx, ts-node or ts-node-dev that no `coverage.include`
+# glob of its package reaches, with the reason it cannot be gated there.
+#
+# `scripts/runnable-source-check.mjs` reads this list and fails when it and reality disagree in
+# EITHER direction: a runnable source named nowhere is a file the 100% threshold said nothing about
+# (RISK_REGISTER R61), and a name here that is now gated — or no longer run at all — is a stale line
+# holding the hole open for the next file to carry that path.
+#
+# Exact paths only, never globs, and each is `<package>/<path within it>`. A glob here would exempt
+# whatever lands beside the file next, in silence, with the run still green — which is the failure
+# this list exists to close.
+#
+# ⚠️ A file already named in its own package's `coverage-exempt.txt` does NOT belong here, and the
+# check fails if it is in both: `marketplace-db-setup` declares `scripts/` a source root, so its copy
+# of the gate script is in the missing set that file describes and is declared there. The fourteen
+# packages below declare no root above `src/`, `lib/` or `migrations/`, so their copies are invisible
+# to that mechanism and this is the only place the decision can be written down.
+
+# The file-count gate itself, in the fourteen packages whose source roots do not reach `scripts/`.
+#
+# It is a reader: it parses `coverage.include` out of the vitest config, compares `git ls-files`
+# against `coverage/lcov.info`, and exits non-zero on a disagreement. It never writes, never starts a
+# service, and ships to nobody — it exists only inside `yarn test:cov`, where it runs on every single
+# invocation in all fifteen packages. A copy that crashes, parses nothing, or matches no tracked file
+# fails that run loudly and immediately, which is a stronger signal than a suite would be.
+#
+# `audit-check.sh` §6 carries what a test could not: that the file is present, that `test:cov`
+# actually calls it, and that the copy is the current revision rather than one predating the R56
+# extension-drift scan. ⚠️ What none of that catches is a copy that is current and subtly wrong — it
+# would report green while checking less than it claims. Fifteen hand-kept copies is the standing
+# cost of ADR-031's independent repos; testing one copy would say nothing about the other fourteen,
+# and testing all fifteen is fifteen suites for one file. That is the trade, written down rather
+# than left implicit.
+BEs/marketplace-common/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-admin-authenticated-authorization/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-admin-authenticated-resource/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-authenticated-authorization/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-authenticated-logout/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-authenticated-resource/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-public-authorization/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-public-resource/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-user-authenticated-authorization/scripts/coverage-audit.mjs
+BEs/dev/marketplace-dev-user-authenticated-resource/scripts/coverage-audit.mjs
+marketplace-admin/scripts/coverage-audit.mjs
+marketplace-shopowner/scripts/coverage-audit.mjs
+marketplace-user/scripts/coverage-audit.mjs
+marketplace-services-status/scripts/coverage-audit.mjs
