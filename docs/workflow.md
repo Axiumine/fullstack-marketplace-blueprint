@@ -207,7 +207,7 @@ Per-machine `.env` files are the one place where a *wrong* value fails where not
 **There are two layers.** A value identical in every repo that reads it lives once, in `.env.shared` at
 the workspace root, exported by one root `.envrc` that direnv loads
 ([`ADR-053`](./devprotocol/phase3/adr/ADR-053-the-shared-half-of-the-environment-is-one-file.md)); everything
-else lives in the repo that reads it. Three rules follow and none of them is obvious:
+else lives in the repo that reads it. Four rules follow and none of them is obvious:
 
 - ⚠️ **One `.envrc`, at the workspace root, and never one inside a sub-repo.** direnv loads the *nearest*
   one walking up the filesystem and does not stop at a git boundary, so the root file already covers all
@@ -219,6 +219,21 @@ else lives in the repo that reads it. Three rules follow and none of them is obv
 - ⚠️ **An empty key in the layer is inert.** `.envrc` unsets every name `.env.shared` leaves blank, so a
   blank there falls through to each repo's `.env` — and blanking a key in the layer does not blank it
   anywhere.
+- ⚠️ **A shell without the direnv hook does not load the layer, and nothing says so.** direnv exports
+  `.env.shared` from a *shell hook*, so an interactive shell in the workspace has the layer and a
+  non-interactive one does not: a script run as `sh -c`, a CI step, a systemd unit, an editor's task
+  runner, an assistant's tool shell. What such a shell gets is the repo's own `.env` alone — which since
+  ADR-053 is precisely the half that did **not** move — so every shared key is absent, and the symptom
+  names one of them and reads like an unprovisioned machine. `yarn test:cov` in `marketplace-db-setup`
+  dies `Missing MONGO_TEST_UDBOWNER in .env` on a box where that value has been in `.env.shared` all
+  along, and the same command in a normal terminal passes. ⚠️ **Do not answer it by copying the key back
+  into a repo's `.env`**: the layer wins, so the copy is dead text on a hooked shell and a second source
+  of truth everywhere else — it manufactures R04 rather than fixing anything. Run the command *through*
+  the layer instead — **`direnv exec . yarn test:cov`**, or `direnv exec <workspace-root> <cmd>` from
+  anywhere — which evaluates `.envrc` for that directory and needs no hook. `direnv allow`, once per
+  machine, is what makes either work; until it is run a hooked shell prints a block message and an
+  unhooked one prints nothing at all. The git hooks inherit the shell that ran `git commit`, so a commit
+  from a non-hooked shell fails its coverage gate for this reason and not for its own.
 
 The committed `env` templates keep **every** key, the shared ones included: they answer what a service
 reads, not where the value comes from. `./scripts/env-diff.sh` reports a key the layer supplies as

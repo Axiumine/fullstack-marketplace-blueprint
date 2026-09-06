@@ -81,6 +81,11 @@ what is checked, what runs it, and for the two that are still a human reading co
 Nothing here needs a service running, a container, or a network. Everything is `yarn` in a repo or one
 script in the workspace root.
 
+⚠️ **MC-13 is the one exception.** It reads the `coverage/lcov.info` that `yarn test:cov` has just
+written, so it inherits everything that run needs — including the real Redis and MongoDB the
+integration project boots against. It runs no test of its own and fails, rather than passes, when
+the report is absent.
+
 | # | The check | Runs it | Where |
 |---|---|---|---|
 | MC-01 | no Redis key is built outside `marketplace-common`, and every builder digests a token or says in writing why it does not | `yarn test` | `marketplace-common/test/redisKeyspace.test.mts` |
@@ -95,11 +100,13 @@ script in the workspace root.
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
 | MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
 | MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
+| MC-13 | every tracked source file `coverage.include` gates is actually in the report the thresholds were computed over, and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the four that need one — `marketplace-db-setup` and the three apps |
+| MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs` and still call it from `test:cov` | `./scripts/audit-check.sh` §6 | workspace root |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Four of its
-five checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing
-from one, a boundary suite absent from one — and a vitest suite in any single repo is structurally unable
-to see them. It reads only: no writes, no installs, no containers.
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Five of its six
+checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
+one, a boundary suite absent from one, a coverage gate quietly dropped from one — and a vitest suite in
+any single repo is structurally unable to see them. It reads only: no writes, no installs, no containers.
 
 ### Still manual, and why
 
@@ -137,9 +144,17 @@ another grep:
   indistinguishable from a suite that ran, while the repo still shows 100% coverage and a 100 mutation
   score. **Count the files, not the checkmarks.** Reference points: eight services carry 3–5
   `*.itest.mts`; `marketplace-dev-user-authenticated-authorization` carries 1.
-- ⚠️ **v8 coverage only reports files it saw *loaded*.** A file no suite requires is absent from the
-  report rather than listed at 0%, so a 100% threshold passes vacuously over it. Check the file list,
-  not just the percentages.
+- ⚠️ **v8 coverage only reports files it saw *loaded*, and `coverage.include` is the only thing that
+  changes that.** Leave it null and the provider lists nothing a test did not `import`: a file no suite
+  requires is absent from the report rather than sitting at 0%, so a 100% threshold passes vacuously
+  over it. All fifteen gated packages set it, and MC-13 fails the run if one stops. ⚠️ **`coverage.all`
+  is not that mechanism and never was on vitest 4** — it and `extension` were removed from
+  `CoverageOptions`, an unchecked spread swallowed both, and ten configs carried them until 2026-09-06
+  reading as though they were the gate. What `include` cannot reach is the other half: a
+  `coverage.exclude` glob. `src/gql/**` exempts whatever is dropped into that directory next, silently,
+  with the run still green — which is why every such file is now listed one per line in
+  `coverage-exempt.txt`, and why MC-13 compares the two sets rather than trusting either.
+  **Never read a percentage without the file count beside it.**
 - ⚠️ **Unit tests that mock the model cannot see driver-level failures.** Two live bugs got through
   that way: Mongoose 9 refuses an array update unless `{ updatePipeline: true }` is passed, and Mongoose
   casts a query filter against the schema but casts **nothing inside a pipeline** — `GraphQLID` resolves
