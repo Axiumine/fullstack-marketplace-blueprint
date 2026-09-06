@@ -109,8 +109,9 @@ the report is absent.
 | MC-19 | no service other than `marketplace-dev-admin-authenticated-resource` writes `itemCategory`, in any of the three spellings — the call, the computed call, the aliased import — and the one exemption (`holdItemCategory`'s `$inc: { __v: 1 }`) is one file and one verb wide | `yarn lint:check` (blocking) | the `ITEMCATEGORY_NO_WRITE` block in each of the eight `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts`, cross-checked by `./scripts/audit-check.sh` §10 |
 | MC-20 | the ClamAV daemon behind each resource service is asked how old its signature database is, once at boot, and a database past seven days or a daemon that will not answer inside 5s reaches Sentry | service startup | `reportClamSignatureAge.mts` in both resource services, over `clamSignatureFreshness` in `marketplace-common`, with nine tests a side |
 | MC-21 | every absolute host literal in any sub-repo's `src/` is named in `docs/devprotocol/phase5/PROCESSOR_INVENTORY.md` — §2 if personal data crosses it, §3 with a written reason if it provably does not | `./scripts/audit-check.sh` §11 | workspace root |
+| MC-22 | no `del` or `unlink` call takes more than one key, in any of the three spellings — `del(a, b)`, `del([a, b])`, `del(...keys)` — anywhere in the ten repos that hold a Redis client | `yarn lint:check` (blocking) | the `REDIS_ONE_KEY_PER_DEL` block in each of the ten `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts` and its four fixtures, cross-checked by `./scripts/audit-check.sh` §12 |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Ten of its eleven
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eleven of its twelve
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
 never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
@@ -233,7 +234,9 @@ Integration tests run against real infrastructure and must clean up after themse
 - **Watch the unique indexes when seeding** — `shopOwner.login.email`, `user.login.email`,
   `company.vatNumber`, `company.certifiedEmail`, `company.slug`, `item.{idCompany,slug}` **and**
   `itemCategory.slug`. A fixed literal collides on the second seed of the same run.
-- **Redis is a cluster** — delete one key per `del` call; a multi-key `del` throws CROSSSLOT.
+- **Redis is a cluster** — delete one key per `del` call; a multi-key `del` throws CROSSSLOT. Since
+  2026-09-06 this is a lint rule rather than a convention (MC-22): the batched form is refused in all
+  three spellings, in a cleanup block exactly as in a resolver.
 
 ## Per-repo integration database (ADR-023)
 

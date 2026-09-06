@@ -119,7 +119,8 @@ document is that doctrine in checklist form.
 - [ ] NFR-PF01, PF02 (🟠 High) — geo query (`company.address.position_2dsphere`) and listing-sort queries
   verified with `.explain()` showing `IXSCAN`, never `COLLSCAN`.
 - [ ] NFR-SC03 (🟠 High) — one Redis key per `del` call; Redis is a cluster and a multi-key `del` throws
-  CROSSSLOT (BCON-08).
+  CROSSSLOT (BCON-08). `yarn lint:check` refuses the three batched spellings for you (MC-22); what it
+  cannot see is a key list held in a variable, which is the shape to look for by hand.
 - [ ] NFR-PO01 (🟠 High) — `engines.node` identical (`^24.18.0`) across every repo touched; a mismatch is
   `exit 1` under yarn classic, not a warning.
 - [ ] NFR-AV03–AV05 (🟠 High) — services bind wildcard (`httpServer.listen({ port })`, no host), except
