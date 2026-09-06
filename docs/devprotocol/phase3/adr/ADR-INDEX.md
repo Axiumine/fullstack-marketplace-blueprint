@@ -2,10 +2,22 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.31
-**Date:** 2026-08-31
+**Version:** 1.32
+**Date:** 2026-09-02
 **Author:** adr-agent
 **Changelog:**
+v1.32 - 2026-09-02: **ADR-053 corrected — `DSN` is out of the shared layer, and the count is twenty.** The
+key list was measured from the committed `env` templates, where all nine services carry the identical
+placeholder `https://xxxxxxxxxxxxxx@bugsink.lan/1`. That is a placeholder repeated nine times, not one
+resource: a Sentry/Bugsink DSN names a **project**, there is one project per service, and the machine holds
+nine distinct values. Sharing it funnels nine services' exceptions into whichever project won, with no
+service able to opt out — precisely the failure ADR-053's own rule 2 forbids, committed by ADR-053 itself.
+`DSN` joins `QODANA_TOKEN` in `env.shared` §What stays behind, the same shape one layer down. The rule the
+correction adds is **measure the real files, never the templates**, and it is now enforced rather than
+stated: `scripts/env-shared-migrate.sh seed` reports a key every repo holds its own value for as
+**PER-REPO** instead of leaving it in DISAGREE, where answering the prompt would have repointed eight repos
+at the ninth's project. No score moves and no decision re-opens — §Context keeps the original table beside
+a dated correction.
 v1.31 - 2026-08-31, later still: **[ADR-053](./ADR-053-the-shared-half-of-the-environment-is-one-file.md)
 added — the shared half of the environment is one file, loaded by direnv.** `RISK_REGISTER` **R04** has been
 🟠 High with no mitigation since it was raised, on a stated enabling condition: *"the ~15 shared env keys

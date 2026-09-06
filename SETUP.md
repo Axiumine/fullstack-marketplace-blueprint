@@ -252,7 +252,7 @@ read them rather than guessing. What follows is only what has to agree across fi
 
 ### 7a. The shared layer — do this first
 
-Twenty-one of those variables name the *same* resource for every repo that reads them: one Redis cluster,
+Twenty of those variables name the *same* resource for every repo that reads them: one Redis cluster,
 one MongoDB, one CSFLE master key, one cookie-signing KEK, one pair of test-cluster accounts. Written
 sixteen times they are sixteen places to rotate a secret and sixteen chances for one repo to disagree with
 the other fifteen — which is a platform that boots, connects to a real server, and is wrong
@@ -274,7 +274,12 @@ cp envrc .envrc && direnv allow              # from the workspace root
 skeleton you fill in from the commented `env.shared` template. Run it *after* them and it collects what
 they already hold, refusing by name any key the repos disagree on. Either way, read `env.shared`: it is the
 documentation for every key in the layer, and its §What stays behind says why `PORT`, `DOMAIN`, `NODE_ENV`,
-`QODANA_TOKEN` and the three keys naming each suite's test database are **not** in it.
+`QODANA_TOKEN`, `DSN` and the three keys naming each suite's test database are **not** in it.
+
+⚠️ **A key every repo holds its own value for is reported PER-REPO, and the answer is never to unify it.**
+`DSN` is the one that got through: it names one Sentry/Bugsink project, there is one per service, and the
+nine committed templates all carry the same placeholder, which is what put it in the layer until
+2026-09-02. Take such a key out of `env.shared` — each repo then keeps what it already had.
 
 Then, once `.env.shared` is filled in:
 

@@ -36,6 +36,12 @@
 # default for that reason and leaves every repo exactly as it is. A key that genuinely needs two
 # values needs to be OUT of this layer, which is what §What stays behind in `env.shared` records.
 #
+# ⚠️ And one shape of disagreement has no right answer at all — every repo holding a value no other
+# repo holds. That is not a copy somebody edited, it is one resource per repo, and the report names
+# it PER-REPO rather than leaving it in DISAGREE. `DSN` is the worked example: a Sentry DSN names one
+# project, there is one project per service, and it sat in this layer until 2026-09-02 only because
+# the nine committed templates all carry the same placeholder. A key like that leaves the template.
+#
 # `--no-ask` suppresses the prompt, and so does having no terminal, which is what keeps the script
 # usable from a pipe: with no one to ask, a disagreement is reported and omitted exactly as before.
 #
@@ -140,6 +146,31 @@ value_groups() {
 	for digest in "${order[@]}"; do printf '%s\n' "${members[$digest]}"; done
 }
 
+# True when every repo that sets $1 holds a value no other repo holds — one group, one repo, all the
+# way down.
+#
+# ⚠️ That pattern is not drift and must not be answered at the prompt. It is what a key that is
+# PER-REPO BY NATURE looks like: a project token, a port, a DSN naming one Sentry project per
+# service. Drift is n repos sharing m values with m far below n — someone edited one copy. Nine
+# repos with nine values is nine resources, and unifying them repoints eight of the nine at the
+# ninth's, permanently, because the layer answers first and no repo can override it. Such a key
+# belongs in `env.shared` §What stays behind, not in this file.
+#
+# The reason seed can tell at all is that it measures the real files. The committed templates all
+# carry one placeholder, which is exactly how DSN was admitted to the layer in the first place.
+all_distinct() {
+	local line
+	local -a repos=()
+
+	# Its own stdin, so it is safe to call from inside the key loop, whose stdin is the key list.
+	while read -r line; do
+		read -ra repos <<<"$line"
+		[ "${#repos[@]}" -eq 1 ] || return 1
+	done < <(value_groups "$1")
+
+	return 0
+}
+
 # Puts the groups of key $1 to the person at the terminal and prints the NUMBER of the group they
 # chose, or nothing at all if they skipped.
 #
@@ -166,6 +197,13 @@ ask_which() {
 		printf '    [s] skip, leave it to the repos  (default)\n\n'
 		printf '  ⚠️ What you pick becomes the value in EVERY repo — the layer is exported and cannot\n'
 		printf '     be overridden, so the repos holding the other value stop using it.\n\n'
+
+		if [ "$2" -eq 1 ]; then
+			printf '  ⚠️ Every one of those repos holds a value no other repo holds. That is not drift,\n'
+			printf '     it is what a key that is per-repo BY NATURE looks like — one project, one\n'
+			printf '     token, one server PER REPO. Skip it here and take it out of env.shared: no\n'
+			printf '     answer to this question is right, including the one that looks tidiest.\n\n'
+		fi
 	} >/dev/tty
 
 	while true; do
@@ -320,7 +358,7 @@ seed)
 		printf '# Every value below was already identical in every repo that carries the key.\n\n'
 	} >"$tmp"
 
-	seeded=() skipped=() nowhere=() inert=() inert_disagree=() undetermined=() resolved=()
+	seeded=() skipped=() nowhere=() inert=() inert_disagree=() undetermined=() resolved=() per_repo_keys=()
 
 	while read -r key; do
 		[ -n "$key" ] || continue
@@ -362,8 +400,11 @@ seed)
 			printf '%s=%s\n' "$key" "$distinct" >>"$tmp"
 			;;
 		*)
+			per_repo=0
+			all_distinct "$key" && per_repo=1
+			[ "$per_repo" -eq 1 ] && per_repo_keys+=("$key")
 			choice=''
-			[ "$interactive" -eq 1 ] && choice=$(ask_which "$key")
+			[ "$interactive" -eq 1 ] && choice=$(ask_which "$key" "$per_repo")
 
 			if [ -n "$choice" ]; then
 				read -ra chosen <<<"$(value_groups "$key" | sed -n "${choice}p")"
@@ -406,6 +447,15 @@ seed)
 		printf '     once. Make the repos agree, then re-run with --force.\n'
 		[ "$interactive" -eq 1 ] ||
 			printf '     Nothing was asked: there is no terminal here, or --no-ask. Re-run on one to\n     choose which repo each value comes from.\n'
+	fi
+	if [ "${#per_repo_keys[@]}" -gt 0 ]; then
+		printf '\n  ⚠️ PER-REPO BY THE LOOK OF IT — every repo holds a value no other repo holds:\n'
+		printf '     %s\n' "${per_repo_keys[*]}"
+		printf '     Drift is many repos sharing few values. One value per repo is many resources —\n'
+		printf '     one project, one token, one server EACH — and no answer to that is right: the\n'
+		printf '     layer cannot be overridden, so whichever value won would repoint all the others.\n'
+		printf '     These belong in env.shared §What stays behind. Delete the key from the template\n'
+		printf '     and re-run; each repo keeps its own, which is what it already had.\n'
 	fi
 	if [ "${#undetermined[@]}" -gt 0 ]; then
 		printf '\n  ⚠️ BRANCH UNDETERMINED — one line each as "<key> <the key that decides it>":\n'
