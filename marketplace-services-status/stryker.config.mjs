@@ -28,6 +28,12 @@ export default {
     // ⚠️ Named as one file rather than as `src/public/**`, so a stylesheet stays out and the
     // next `.js` dropped beside it is a decision somebody has to make here.
     'src/public/app.js',
+    // The unit generator, and the only mutated file outside `src/`. It is a script rather than a
+    // module — `main()` runs at import — so it was invisible to every glob here until 2026-09-06
+    // (RISK_REGISTER R61), while being the file that decides what `systemctl --user start`
+    // actually runs. Named by exact path for the same reason `app.js` is: `systemd/**` would
+    // sweep in the two shell scripts and the generated units beside it.
+    'systemd/generate.mjs',
     // Interfaces and type aliases only. Stryker finds nothing to mutate and the file is
     // listed for the reader, so the exclusion is not mistaken for an oversight.
     '!src/types.ts'

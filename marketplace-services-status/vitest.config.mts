@@ -24,7 +24,12 @@ export default defineConfig({
       // with the run still green (RISK_REGISTER R60). This list is now the only gate, and
       // `scripts/coverage-audit.mjs` fails on any tracked file under `src/` that no line of it
       // matches unless coverage-exempt.txt names that file with a reason.
-      include: ['src/**/*.ts', 'src/public/app.js'],
+      //
+      // `systemd/generate.mjs` is the third entry and the one outside `src/`: it is a script with
+      // no exports that nothing imports either, so no glob rooted at `src` had ever reached it and
+      // nothing measured it (RISK_REGISTER R61) — while it is what decides the `ExecStart` of
+      // thirteen real units. `test/systemdGenerate.test.ts` runs it with `node:fs` replaced.
+      include: ['src/**/*.ts', 'src/public/app.js', 'systemd/generate.mjs'],
       // The same gate every other package in this workspace carries. Never lower one of these to
       // make a run pass — add the missing test, or delete the branch nothing can reach.
       thresholds: {

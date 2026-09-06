@@ -72,7 +72,7 @@ address is hardcoded `127.0.0.1` and `HOST` is not read at all, so "fixing" a bi
 ⚠️ **The security response headers are set only inside the `GET /` handler** — not on `/api/*` JSON,
 not on static assets. A new route ships with no framing or sniffing protection unless it sets them too.
 
-⚠️ **`yarn test:unit` skips both security suites.** It names eight files and omits `security.test.ts`
+⚠️ **`yarn test:unit` skips both security suites.** It names nine files and omits `security.test.ts`
 and `security.live.test.ts`, so it exercises none of the Origin/Host/CSRF/DNS-rebinding guards. And
 only `yarn test` and `yarn test:cov` build first — `yarn test:watch` or a bare `vitest run` runs
 `security.live.test.ts` against a missing or stale `dist/server.js`, which is green while testing old
@@ -103,7 +103,13 @@ code.
   client drive *any* user unit on the host.
 - **`generate.mjs`'s shell-syntax guard fails the whole run, not one unit.** It accepts only a plain
   `&&` chain, so one repo adding `||` or a pipe to its dev script makes `yarn systemd:install` throw
-  before writing any of the 13 unit files.
+  before writing any of the 13 unit files. ⚠️ **It is gated like `src/`, and it is the only file
+  outside `src/` that is.** A script with no exports that nothing imports, it was reached by no
+  `coverage.include` or `mutate` glob until 2026-09-06 (`RISK_REGISTER` R61) — it is named by exact
+  path in both now, and `test/systemdGenerate.test.ts` runs it with `node:fs` and `node:os`
+  replaced. ⚠️ **The fixtures are shapes, never the real sibling repos**: the generator resolves
+  every repo it reads out of `services.json`'s `workspaceRoot`, so a real-filesystem test would go
+  red whenever another repo edited a script this one has nothing to do with.
 - **`install.sh`'s step 7 warns but never exits non-zero**, despite [`README.md`](./README.md) calling it an
   assertion — a monitored unit found wrongly `enabled` does not fail the script. Do not gate automation
   on its exit code for that condition.
