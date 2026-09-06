@@ -602,6 +602,28 @@ else
 fi
 
 echo
+echo '17. A personal field is encrypted in both halves of ADR-029 or in neither'
+
+# RISK_REGISTER R48, docs/report/encryption-at-rest-coverage.md, ADR-029 (MC-27). A field is encrypted
+# by appearing in two places that cannot see each other - the field map in `marketplace-common` and the
+# `$jsonSchema` in `marketplace-db-setup` - and `encryptedFields.mts` says of that pairing, in its own
+# header, "Nothing gates that". This is the gate. The direction that matters is the quiet one: a
+# `binData` the client never encrypts fails every write, or sits in the clear if the validator is
+# rebuilt after the model, and nothing else on this platform would say so.
+#
+# Same two halves as §16: the self-test writes a two-repo tree under `mktemp -d` and plants each
+# direction of the mistake plus two unreadable sources, then the check reads the real files. Exit 2 -
+# a source it cannot read - is a failure here rather than a pass, which is the whole point of it being
+# a separate status.
+if ! ./scripts/encryption-coverage-check-selftest.sh > /dev/null 2>&1; then
+	fail 'the encryption coverage check does not behave as documented - run ./scripts/encryption-coverage-check-selftest.sh'
+elif ! node ./scripts/encryption-coverage-check.mjs > /dev/null 2>&1; then
+	fail 'a field is encrypted in one half of ADR-029 and not the other - run node ./scripts/encryption-coverage-check.mjs'
+else
+	pass 'the field map and the validators name the same encrypted paths, and the check fires when they do not'
+fi
+
+echo
 
 if [ "$FAILED" -eq 0 ]; then
 	echo 'audit-check: every cross-repo check passed.'
