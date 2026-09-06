@@ -185,7 +185,7 @@ export function assertSameOrigin(
 // everything else (groups, cards, notifications) into these mount points at runtime.
 // ---------------------------------------------------------------------------
 
-function renderHtml(): string {
+export function renderHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -504,31 +504,24 @@
   }
 
   function setPending(scope, targetId) {
+    // Dropping whatever was already recorded for this target is what stops two timers stacking on it.
+    // Marking a target pending disables its buttons, so a second action on it cannot be clicked — but
+    // that is a property of the markup, and this makes it a property of this function instead.
+    clearPending(scope, targetId);
+
     var timeoutId = setTimeout(function () {
       pendingTimedOut(scope, targetId);
     }, PENDING_TIMEOUT_MS);
 
     if (scope === 'service') {
-      clearExistingTimeout(state.pendingServices, targetId);
       state.pendingServices.set(targetId, timeoutId);
       markCardPending(targetId, true);
     } else if (scope === 'group') {
-      clearExistingTimeout(state.pendingGroups, targetId);
       state.pendingGroups.set(targetId, timeoutId);
       markGroupPending(targetId, true);
     } else {
-      if (state.pendingAll !== null) {
-        clearTimeout(state.pendingAll);
-      }
       state.pendingAll = timeoutId;
       markAllPending(true);
-    }
-  }
-
-  function clearExistingTimeout(map, key) {
-    var existing = map.get(key);
-    if (existing !== undefined) {
-      clearTimeout(existing);
     }
   }
 
@@ -592,11 +585,10 @@
   }
 
   function setButtonsDisabled(buttons, disabled) {
+    // Both callers pass the { start, stop, restart } object built in the same function that created
+    // those three buttons, so every key here holds one.
     Object.keys(buttons).forEach(function (key) {
-      var btn = buttons[key];
-      if (btn) {
-        btn.disabled = disabled;
-      }
+      buttons[key].disabled = disabled;
     });
   }
 
@@ -665,8 +657,10 @@
     }
     wrap.className = 'connection-status connection-' + status;
     dot.className = 'connection-dot connection-dot-' + status;
+    // The four callers pass exactly these three statuses, and the class names above are built from
+    // the same strings — a fourth one is a change in both places, not a fallback.
     var labels = { connected: 'Connected', disconnected: 'Disconnected', reconnecting: 'Reconnecting…' };
-    word.textContent = labels[status] || status;
+    word.textContent = labels[status];
   }
 
   function setLastUpdate(timestamp) {
@@ -690,14 +684,9 @@
   // ---------------------------------------------------------------------
 
   function iconForKind(kind) {
-    switch (kind) {
-      case 'success':
-        return 'fa-circle-check';
-      case 'error':
-        return 'fa-circle-exclamation';
-      default:
-        return 'fa-circle-info';
-    }
+    // notify() has two kinds: the ok flag of an action-result, and 'error' for everything this page
+    // decides by itself. A third kind is a third icon and a third notification-* rule as well.
+    return kind === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
   }
 
   function notify(kind, message) {
@@ -796,13 +785,11 @@
 
   // Puts the drawer body into a visible error state with a Retry button, instead
   // of leaving it on "Loading…" with only a toast (which auto-dismisses after 5s
-  // and explains nothing once it's gone). Guarded by logsTarget the same way
-  // applyLogs is, so a stale failure for a service the drawer already left cannot
-  // stomp on whatever it is showing now.
-  function showLogsError(serviceId, message) {
-    if (state.logsTarget !== serviceId) {
-      return;
-    }
+  // and explains nothing once it's gone). It writes into whichever service the
+  // drawer is on rather than taking one as an argument: the two things that move
+  // logsTarget — openLogs and closeLogs — both drop the in-flight request timer on
+  // the way, so a failure can only ever be about the service showing right now.
+  function showLogsError(message) {
     var content = document.getElementById('logsContent');
     if (!content) {
       return;
@@ -827,7 +814,7 @@
     retryBtn.appendChild(icon);
     retryBtn.appendChild(text);
     retryBtn.addEventListener('click', function () {
-      requestLogs(serviceId);
+      requestLogs(state.logsTarget);
     });
 
     content.appendChild(msgP);
@@ -838,7 +825,7 @@
     clearLogsRequestTimer(); // a retry/refresh replaces whatever request was already in flight
     if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
       notify('error', 'Not connected — cannot fetch logs.');
-      showLogsError(serviceId, 'Not connected — logs could not be fetched.');
+      showLogsError('Not connected — logs could not be fetched.');
       return;
     }
     state.ws.send(JSON.stringify({ type: 'logs', id: serviceId, lines: 200 }));
@@ -848,7 +835,7 @@
     // than a second magic number for the same wait.
     state.logsRequestTimer = setTimeout(function () {
       state.logsRequestTimer = null;
-      showLogsError(serviceId, 'No response after ' + (PENDING_TIMEOUT_MS / 1000) + 's.');
+      showLogsError('No response after ' + (PENDING_TIMEOUT_MS / 1000) + 's.');
     }, PENDING_TIMEOUT_MS);
   }
 

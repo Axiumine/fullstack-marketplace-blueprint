@@ -72,7 +72,7 @@ address is hardcoded `127.0.0.1` and `HOST` is not read at all, so "fixing" a bi
 ⚠️ **The security response headers are set only inside the `GET /` handler** — not on `/api/*` JSON,
 not on static assets. A new route ships with no framing or sniffing protection unless it sets them too.
 
-⚠️ **`yarn test:unit` skips both security suites.** It names five files and omits `security.test.ts`
+⚠️ **`yarn test:unit` skips both security suites.** It names eight files and omits `security.test.ts`
 and `security.live.test.ts`, so it exercises none of the Origin/Host/CSRF/DNS-rebinding guards. And
 only `yarn test` and `yarn test:cov` build first — `yarn test:watch` or a bare `vitest run` runs
 `security.live.test.ts` against a missing or stale `dist/server.js`, which is green while testing old
@@ -110,10 +110,19 @@ code.
 - **Raising `MAX_LOG_LINES` has an unstated dependency on `LOGS_MAX_BUFFER`.** The 16MB figure was
   chosen against the current 2000-line cap and `--output=short-iso`; raising one alone can bring back
   the `MAXBUFFER` truncation the other exists to prevent.
-- **`src/public/` is excluded from coverage and mutation deliberately, and is *in* scope for Qodana and
-  Semgrep.** It is the browser code that builds DOM from live WebSocket data; the exclusions are a
-  division of labour, not a gap. `vitest.mutation.config.mts` excludes `security.live.test.ts` for the
-  same kind of reason: it drives a `dist/` built before the mutant existed.
+- **`src/public/app.js` is gated like everything else, and its suites boot it in jsdom.** It was
+  excluded from coverage and mutation until 2026-09-06 on the reasoning that an IIFE no module
+  imports cannot be instrumented by a node-side run (RISK_REGISTER R60); `test/publicApp.test.ts`,
+  `publicAppBare.test.ts` and `publicAppSecure.test.ts` falsified that. ⚠️ **They mount
+  `renderHtml()`'s own output, never a copy of the markup** — every id `app.js` looks up is a
+  contract with a template literal in another language in `src/server.ts`, checked by nothing else,
+  so a fixture copy would stay green through exactly the rename that breaks the page. ⚠️ **One boot
+  per file**: the IIFE registers a delegated `click` and a `keydown` listener on `document` and
+  removes neither, so a second boot in one file leaves two pages handling the same click off two
+  states. A different starting condition — a bare document, another page URL — is another file.
+  The nine stylesheets beside it stay out of both gates and are named in `coverage-exempt.txt`.
+  `vitest.mutation.config.mts` excludes `security.live.test.ts` for a different reason: it drives a
+  `dist/` built before the mutant existed.
 - **`qodana.yaml`'s image tag must stay a real tag.** Only `2026.2`, `2026.1`, `2025.3`, `2025.2` and
   `latest` exist — bumping the pin to match a CLI version banner makes the pull fail and the scan never
   run. Its `licenseRules` lists **two** keys, `GPL-3.0-or-later` and `PROPRIETARY-LICENSE` — the first is
@@ -129,11 +138,12 @@ code.
 - **`yarn test:cov` is vitest *and* `scripts/coverage-audit.mjs`.** The script proves the report
   the thresholds were computed over holds every git-tracked file `coverage.include` gates; a file
   that is not in the report is not in the denominator, so 100% said nothing about it (`RISK_REGISTER`
-  R07). ⚠️ **`src/public/**` is the one to watch here.** It is a directory glob in
-  `coverage.exclude`, so it exempts whatever is dropped into it next — today only `.js` and `.css`
-  live there and `include` gates `src/**/*.ts`, so the exclusion removes nothing and this repo ships
-  no `coverage-exempt.txt`. The first `.ts` file placed there takes the run red, and the answer is a
-  test or a named line with a reason, never a wider glob.
+  R07). ⚠️ **There is no `coverage.exclude` here any more.** It used to hold `src/public/**`, a
+  directory glob that would have exempted whatever landed in that directory next, in silence, with
+  the run still green. `coverage.include` — `src/**/*.ts` plus the exact path `src/public/app.js` —
+  is now the only gate, and the audit fails on any tracked file under `src/` that no glob of it
+  matches: today the nine stylesheets, each named in `coverage-exempt.txt` with its reason. A new
+  file there takes the run red, and the answer is a test or a named line, never a wider glob.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
   non-markdown paths under `marketplace-services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
   unscoped — `semgrep:ci` → `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires
