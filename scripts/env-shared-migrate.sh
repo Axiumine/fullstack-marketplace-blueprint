@@ -56,11 +56,23 @@
 #     #! active-when   <KEY>=<VALUE> <NAME>…     the named keys are read only while KEY holds VALUE
 #     #! active-unless <KEY>=<VALUE> <NAME>…     … only while it holds anything else
 #
-# A key whose condition does not hold is reported INERT rather than NO VALUE. The distinction is the
-# point of the report: on a cluster, an empty `REDIS_URL` is the correct state and an empty
-# `KEYGRIP_KEK` is a service that will not boot, and a report that prints them on the same line as
-# the same word is a report nobody re-reads. It cuts the other way too — on the single-node branch
-# the six `REDIS_DB*` keys go INERT and an empty `REDIS_URL` is named as the hole it is.
+# A key whose condition does not hold is never reported as NO VALUE. The distinction is the point of
+# the report: on a cluster, an empty `REDIS_URL` is the correct state and an empty `KEYGRIP_KEK` is a
+# service that will not boot, and a report that prints them on the same line as the same word is a
+# report nobody re-reads. It cuts the other way too — on the single-node branch the six `REDIS_DB*`
+# keys go INERT, carrying the values the repos agree on, and an empty `REDIS_URL` is named as the
+# hole it is.
+#
+# ⚠️ Quiet means SILENT, not a gentler word for the same line. A key this branch does not read and
+# that no repo holds a value for is written to the target file with the `#` line naming the condition
+# that silenced it, and is left out of the report entirely — there is nothing to carry and nothing to
+# resolve, and a line printed on every run for a key that is correct by construction is how a reader
+# learns to skim the section that matters. `REDIS_URL` on this workspace's cluster is exactly that
+# key: no repo sets it, nothing reads it, so seed says nothing about it.
+#
+# What still reaches the report under INERT is a branch-inert key that HAS something to say — one
+# whose agreed value was carried through so a branch flip does not lose it, or one the repos disagree
+# about, which becomes a DISAGREE the moment the branch flips.
 #
 # The condition's own key is resolved from the repos like any other value. If they disagree about
 # it, the branch is unknown, every key it governs is reported as if it were active, and the report
@@ -375,14 +387,23 @@ seed)
 		# anything: a value the repos agree on is carried through so that flipping the branch does
 		# not lose it, and anything less is left blank. Flip the branch, re-seed, and the key lands
 		# in SEEDED, NO VALUE or DISAGREE like any other.
+		#
+		# ⚠️ The file records every one of them; the REPORT names only the two that have something
+		# to say — a value carried through, or a disagreement waiting for the branch to flip. The
+		# third case, nothing carried and nothing to resolve, is `REDIS_URL` on a cluster: correct
+		# by construction, so `inert` is left untouched and — when it is the only one — the whole
+		# INERT section stays off the report. The `#` line written just below accounts for it.
 		if [ "$state" = inert ]; then
-			inert+=("$key")
-
 			if [ "$count" = 1 ]; then
+				inert+=("$key")
 				printf '# %s — not read while %s says so; value carried through from the repos\n' "$key" "$cond" >>"$tmp"
 				printf '%s=%s\n' "$key" "$distinct" >>"$tmp"
 			else
-				[ "$count" -gt 1 ] && inert_disagree+=("$key")
+				if [ "$count" -gt 1 ]; then
+					inert+=("$key")
+					inert_disagree+=("$key")
+				fi
+
 				printf '# %s — not read while %s says so; nothing carried through\n' "$key" "$cond" >>"$tmp"
 				printf '%s=\n' "$key" >>"$tmp"
 			fi
@@ -428,8 +449,11 @@ seed)
 	if [ "${#inert[@]}" -gt 0 ]; then
 		printf '  INERT     %s\n' "${inert[*]}"
 		printf '            not read on the branch this machine is on — see the `#!` line above each\n'
-		printf '            in env.shared. Empty is the CORRECT state here, not a hole. Change the\n'
-		printf '            branch and re-seed and they are reported like every other key.\n'
+		printf '            in env.shared — and named here only because there is something to say: a\n'
+		printf '            value was carried through, or the repos disagree about one. Change the\n'
+		printf '            branch and re-seed and they are reported like every other key. One with\n'
+		printf '            neither is written to the file, with the `#` line naming what silenced\n'
+		printf '            it, and deliberately left out of this report.\n'
 		[ "${#inert_disagree[@]}" -gt 0 ] &&
 			printf '            (%s: the repos disagree, so nothing was carried through. Harmless while\n            it stays inert, a DISAGREE the moment the branch changes.)\n' "${inert_disagree[*]}"
 	fi
