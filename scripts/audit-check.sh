@@ -59,6 +59,23 @@ AUTH_SERVICES=(
 	BEs/dev/marketplace-dev-user-authenticated-resource
 )
 
+# Every backend service that must never write `itemCategory`: the nine, minus the one that owns the
+# collection. `marketplace-dev-admin-authenticated-resource` is absent on purpose and section 10 checks
+# that it stays absent — a list that grew to nine would be a list that had banned the only legal writer,
+# which fails loudly in that repo and would otherwise read here as an improvement.
+ITEMCATEGORY_BANNED_SERVICES=(
+	BEs/dev/marketplace-dev-admin-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-logout
+	BEs/dev/marketplace-dev-authenticated-resource
+	BEs/dev/marketplace-dev-public-authorization
+	BEs/dev/marketplace-dev-public-resource
+	BEs/dev/marketplace-dev-user-authenticated-authorization
+	BEs/dev/marketplace-dev-user-authenticated-resource
+)
+
+ITEMCATEGORY_WRITER=BEs/dev/marketplace-dev-admin-authenticated-resource
+
 # Every package with a coverage threshold, and therefore every package that owes the file-count gate.
 # The nine services and marketplace-common gate `src/**`, marketplace-db-setup gates four directories of
 # `.js`, the three apps gate `src/**` with an exclude list, and marketplace-services-status gates `src/**/*.ts`.
@@ -300,6 +317,44 @@ echo '9. No secret is sitting in a history that a push would publish'
 if ! ./scripts/history-scan.sh; then
 	fail 'history-scan found a secret reachable from a branch or a tag — see above'
 fi
+
+echo
+echo '10. The itemCategory write ban is carried by every service that owes it, and by no other'
+
+# ADR-012 caps the category tree at two levels in a resolver, because a $jsonSchema validator cannot
+# read the parent document to learn how deep this one sits. The cap holds for exactly as long as every
+# write goes through the Admin tier, and no single repo can see whether that is still true — a second
+# writer added in a neighbouring service is green in its own suite and invisible from here without this
+# check. RISK_REGISTER R19.
+#
+# Both directions, the way section 4 checks the Sentry block: the eight must carry the selector and the
+# fixture that proves it fires, and the ninth — the service that owns the collection — must not, because
+# a ban there would refuse `funItemCategoryAdd` and the ban would be lifted in the one place it must
+# never be lifted from.
+MISSING_ITEMCATEGORY=0
+
+for repo in "${ITEMCATEGORY_BANNED_SERVICES[@]}"; do
+	config="$repo/eslint.config.js"
+	fixture="$repo/test/fixtures/restrictedSyntax/item-category-write-call.mts.fixture"
+
+	if ! grep -q 'ITEMCATEGORY_NO_WRITE' "$config" 2> /dev/null; then
+		fail "$repo — no itemCategory write ban in eslint.config.js (ADR-012)"
+		MISSING_ITEMCATEGORY=1
+	elif [ ! -f "$fixture" ]; then
+		fail "$repo — the ban is there and nothing exercises it: no item-category-write-call fixture"
+		MISSING_ITEMCATEGORY=1
+	elif ! grep -q 'item-category-write-call' "$repo/test/restrictedSyntax.test.mts" 2> /dev/null; then
+		fail "$repo — the fixture is there and no test lints it"
+		MISSING_ITEMCATEGORY=1
+	fi
+done
+
+if grep -q 'ITEMCATEGORY_NO_WRITE' "$ITEMCATEGORY_WRITER/eslint.config.js" 2> /dev/null; then
+	fail "$ITEMCATEGORY_WRITER — carries the ban, and it owns the collection: ADR-012 puts the depth check here"
+	MISSING_ITEMCATEGORY=1
+fi
+
+[ "$MISSING_ITEMCATEGORY" -eq 0 ] && pass "all ${#ITEMCATEGORY_BANNED_SERVICES[@]} services, and the writer exempt"
 
 echo
 
