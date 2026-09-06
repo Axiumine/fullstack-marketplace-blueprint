@@ -296,7 +296,18 @@ names, and a change to `marketplace-common` reaches a consumer by being publishe
 
 ## Not verified
 
-The survey could not establish: whether MongoDB collection-level RBAC exists beneath the shared
-application connection; the real `.env` values (deliberately not read); whether an admin-facing nginx
-vhost exists outside this workspace; actual per-tier traffic volumes; whether Sentry alert routing could
-be re-split by a `tier` tag if the services were ever merged.
+The survey could not establish: the real environment values (deliberately not read); whether an
+admin-facing nginx vhost exists outside this workspace; actual per-tier traffic volumes; whether Sentry
+alert routing could be re-split by a `tier` tag if the services were ever merged.
+
+MongoDB collection-level RBAC beneath the shared application connection was the fifth item here and is
+no longer unverified. **It does not exist**: all eight Mongo services authenticate as one
+`marketplaceRwDev` account holding the built-in `readWrite`, which is database-scoped, so the datastore
+layer draws no tier boundary at all and `assertTier` is the only thing that does. The per-service role
+shape that would draw one is written in `marketplace-docker-DBs/init/roles.js` and proved against the
+running cluster, in both directions, by `marketplace-docker-DBs/rbac-probe.sh` — see that repo's
+`README.md` §One account for nine services. RISK_REGISTER R24, verified 2026-09-06.
+
+⚠️ **This strengthens the case for keeping the three services separate rather than weakening it.** The
+survey's tier argument rested on `assertTier` alone; with the datastore confirmed tier-blind, the
+process boundary is the only enforced one until those eight accounts exist.

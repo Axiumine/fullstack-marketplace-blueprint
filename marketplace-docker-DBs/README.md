@@ -93,6 +93,81 @@ authentication database is — so `./up.sh` never has to re-create them.
 `marketplace-dev-authenticated-logout` has no test database on purpose: its integration suite never
 touches MongoDB.
 
+## One account for nine services — the narrower shape, and how to check it
+
+⚠️ **`marketplaceRwDev` holds the built-in `readWrite` role, and that role is database-scoped.** It is
+CRUD on every collection in `dbMarketplaceDev` — the six that exist, and every one anybody creates later —
+plus `createCollection`, `createIndex` and `dropCollection`. All eight services that speak to MongoDB
+authenticate as it, so a bug in the public storefront reaches the `admin` collection at the datastore
+layer with `assertTier` never consulted. Nothing below the application code says no. That is
+RISK_REGISTER R24, and it is a real gap rather than a theoretical one.
+
+[`init/roles.js`](./init/roles.js) is the shape that closes it: one role per service, naming the
+collections that service actually reaches and nothing else.
+
+| Account | Collections it is granted |
+|---|---|
+| `marketplaceAdminAuthzDev` | `admin` |
+| `marketplaceAdminResDev` | `admin`, `company`, `item`, `itemCategory`, `shopOwner`, `user` |
+| `marketplaceOwnerAuthzDev` | `shopOwner` |
+| `marketplaceOwnerResDev` | `company`, `item`, `itemCategory`, `shopOwner` |
+| `marketplacePublicAuthzDev` | `admin`, `shopOwner`, `user` |
+| `marketplacePublicResDev` | `company`, `item`, `itemCategory`, `shopOwner`, `user` |
+| `marketplaceUserAuthzDev` | `user` |
+| `marketplaceUserResDev` | `user` |
+
+Seven of the eight hold a strict subset of the database and four need exactly one collection, so the
+separation is worth having rather than a formality. `marketplace-dev-authenticated-logout` is absent
+because it opens no MongoDB connection at all — Redis only — and therefore needs no account.
+
+The table was derived by measurement, not judgement: every service reaches MongoDB through a model
+imported from `@axiumine/marketplace-common/models/MongoDB/…` and through nothing else, so the import
+list *is* the collection list. Re-derive it with the one-liner written at the top of `init/roles.js`.
+
+Two privileges in that file look like holes and are not. **`createCollection` is granted per
+collection**, so it creates the one collection named in the resource and refuses a seventh — which is
+what makes it safe to leave Mongoose's `autoCreate` alone instead of setting `autoCreate: false` in
+eight places. And **every role gets `find`/`insert`/`createIndex`/`listIndexes` on `__keyVault`**,
+because all eight services call `setupFieldEncryption()` at boot and that both creates the unique index
+on `keyAltNames` and inserts a data key when one is missing; a role without it takes every service down
+at startup rather than at first use. `remove` on the vault is deliberately absent — deleting a data key
+makes every field encrypted under it permanently unreadable.
+
+### Checking it
+
+```bash
+./rbac-probe.sh
+```
+
+⚠️ **This provisions nothing and is not part of `up.sh`.** It creates one throwaway database
+(`dbMarketplaceRbacProbe`), one role and one user, asserts the shape in both directions, and drops all
+three on the way out whether the assertions passed or failed. It never touches `dbMarketplaceDev`.
+
+Thirteen assertions: seven that the granted operations succeed — insert, find, update, delete,
+`createCollection` on the granted collection, the key-vault unique index, a data-key insert — and six
+that the ungranted ones come back `Unauthorized`, **by error code and not merely by throwing**: reading,
+writing and creating a collection the role was not given, dropping the collection it owns, dropping the
+database, and deleting a data key. A green run is what turns "the narrower shape would work" into
+something checked, and the probe has been run against two deliberately broken variants of itself — a
+role widened to a collection it should not reach, and one with the key-vault block removed — to prove it
+still fails when the shape is wrong.
+
+### Why it is a definition and not a deployment
+
+Eight roles need eight accounts, and eight accounts need eight passwords that exist in no template in
+this workspace. The moment they share one, a service that reads its own environment can authenticate as
+any of the others and the separation is decoration. Who mints those and where they are kept is the
+adopter's decision — the same boundary
+[`ADR-039`](../docs/devprotocol/phase3/adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)
+draws for the datastore host and
+[`ADR-040`](../docs/devprotocol/phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md)
+for the secrets manager. What this repo owes is a shape that is known to work, next to the script that
+proves it — not a guess.
+
+⚠️ **A new resolver that imports a seventh model widens its service's true surface and `init/roles.js`
+stays silent about it.** That is the standing cost of a hand-maintained list, and the reason the
+derivation is written down rather than described.
+
 ## Wiring the repos
 
 Each repo has a committed `env` template and a gitignored `.env` you create from it. The values below
@@ -360,9 +435,10 @@ Stated plainly so nobody has to guess:
 - Both published ports bind **127.0.0.1 only**, and no TLS is configured anywhere in this stack.
 - The keyfile authenticates replica-set members to each other; it is not a substitute for TLS
   between them, and here they are all on one Docker network on one machine.
-- The passwords come from your `.env`. There is no rotation, no vault, and no separation between
-  the account that runs migrations and the account that serves traffic beyond `dbOwner` vs
-  `readWrite`.
+- The passwords come from your environment file. There is no rotation and no vault, and the only
+  separation between the account that runs migrations and the account that serves traffic is
+  `dbOwner` vs `readWrite` — which the nine services share. §One account for nine services holds the
+  per-service shape that replaces it, and the probe that checks it.
 - All three nodes share one host, so this survives a container restart and nothing else.
 - Only a `Dev` environment exists in this platform at all (`MONGO_DEV_*`) — there is no staging or
   production configuration to be careless with yet.
@@ -376,6 +452,8 @@ Stated plainly so nobody has to guess:
 | `Authentication failed` on a test suite | `MONGO_TEST_AUTH_ADMIN` is `admin`. It must be the test database itself. |
 | `up.sh` stops at `Unauthorized` on the root user | a root user already exists with a different password than `.env` now holds. Either restore the old value or `./down.sh --purge`. |
 | `MONGO_TEST_CONN_STRING names database "x" but MONGO_TEST_DB is "y"` | the three test-database names disagree; the table above has the right one for that repo. |
+| `rbac-probe: authentication failed as <root user>` | the probe reads the root credentials the same way `up.sh` does; the cluster holds a different password than that file now says. |
+| `probe FAILED — N of the expectations in roles.js do not hold` | `init/roles.js` no longer grants what a service needs, or grants something it should not. The report names each one and which direction it failed in. |
 | `permission denied` on `/etc/mongo/keyfile` at startup | the image was built before `secrets/mongo-keyfile` existed. `docker compose build --no-cache` then `./up.sh`. |
 | the suite drops the wrong database | it refuses to: `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env`. |
 | `Redis is older than 7.4.0` at a service's startup, or `up.sh: Redis 7.2.x is below the 7.4.0 floor` | the same cause read at two different moments: the Redis behind `REDIS_URL` — or this compose file's container, if `REDIS_TAG` was lowered — has no hash-field TTLs. See §Redis. |
