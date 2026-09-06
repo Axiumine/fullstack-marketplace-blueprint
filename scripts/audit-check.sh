@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: fifteen checks that would otherwise be fifteen things somebody
+# script is that leftover, and nothing else: sixteen checks that would otherwise be sixteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -580,6 +580,26 @@ while IFS= read -r path; do
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
 [ "$GUARD_DRIFTED" -eq 0 ] && pass 'all 16 hooks block a commit onto main, exempt an in-progress merge, and name their own escape hatch'
+
+echo
+echo '16. Every shared environment value is held identically everywhere it is read'
+
+# RISK_REGISTER R39, docs/PRODUCTION_HARDENING.md §4, ADR-040 §Decision-3 (MC-26). "Nothing on this
+# platform proves that nine environment files hold the same REDIS_KEY, or that six hold the same
+# KEYGRIP_KEK, before a deploy" - the one sentence on that page that names a gap ADR-040 explicitly
+# does NOT decline, because a fingerprint sweep needs no vendor to exist.
+#
+# Two halves, and only the second one is about this machine. The self-test builds a tree under
+# `mktemp -d` and plants drift, a shadow, a gap and three things that only look like drift - it is
+# what keeps the sweep from becoming a check that cannot fail. The sweep proper then reads the real
+# files and prints six hex per key, never a value, and exits 0 on a clone nobody has provisioned yet.
+if ! ./scripts/env-fingerprint-sweep-selftest.sh > /dev/null 2>&1; then
+	fail 'the fingerprint sweep does not behave as documented - run ./scripts/env-fingerprint-sweep-selftest.sh'
+elif ! ./scripts/env-fingerprint-sweep.sh > /dev/null 2>&1; then
+	fail 'a shared value disagrees with itself - run ./scripts/env-fingerprint-sweep.sh for which key and which files'
+else
+	pass 'the sweep fires on planted drift, and finds none in this workspace'
+fi
 
 echo
 

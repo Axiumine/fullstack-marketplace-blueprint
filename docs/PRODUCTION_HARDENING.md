@@ -162,12 +162,16 @@ inside `marketplace-common` by `sessionKeys.mts`, `assertTier.mts`, `resolveAuth
 
 Everything below is genuinely open. This page documents swap points; it builds no control.
 
-- **No cross-file agreement check.** Nothing on this platform proves that nine environment files hold the
-  same `REDIS_KEY`, or that six hold the same `KEYGRIP_KEK`, before a deploy. A vendor-neutral fingerprint
-  sweep would need no vendor and is **not** declined by `ADR-040` — it is open under **R39** and
-  [`INFRA.md`](./devprotocol/phase3/INFRA.md) §14 q8. Until then, the recipe is
-  `docs/workflow.md` §Environment files: `sha256(key + ' ' + value)`, first six hex, compared between two
-  machines. **Fingerprint, never print.**
+- ✅ **A cross-file agreement check exists since 2026-09-06** — and it is the only bullet in this section
+  that has ever moved. `./scripts/env-fingerprint-sweep.sh` reads who holds each shared value from the
+  committed `env` templates rather than from a list of its own, fingerprints what each holder answers with
+  `sha256(key + ' ' + value)`, first six hex, and exits 1 naming the files that disagree — never a value, on
+  any path. `./scripts/audit-check.sh` §16 runs it (MC-26), behind
+  `./scripts/env-fingerprint-sweep-selftest.sh`, which plants drift, a shadow and a gap on a throwaway tree
+  so the sweep cannot quietly become a check that passes on everything. ⚠️ **It compares one machine with
+  itself.** Two hosts agreeing is still you reading six hex off each and comparing them by eye, and no deploy
+  step runs any of this — nothing on this page is a gate, including this. A vendor-neutral sweep is what
+  `ADR-040` explicitly did **not** decline, and building it closes that carve-out and nothing else in **R39**.
 - **No escrow, no automated rotation** for any of the three. See §1.
 - **No process supervision, no CI/CD, no backup or restore drill, no sizing for the Redis cluster or the
   MongoDB replica set.** All of it is **R39**, all of it is still open, and `ADR-039` explicitly did not
@@ -189,6 +193,8 @@ Not a substitute for reading the sections above; a way to confirm you did.
 - [ ] Every service port is closed to everything but the edge (`ADR-039`). Nothing in these repos narrows
       them — the services bind the wildcard address and the vhosts proxy to them.
 - [ ] You have decided, explicitly, whether `REDIS_TLS` is set — and written down why, if it is not.
+- [ ] `./scripts/env-fingerprint-sweep.sh` exits 0 on every host that runs any of the twelve processes, and
+      the six-hex prints match between them. It is one command and it is the only thing here that is.
 - [ ] You have read **R50** and **R39** and know which residuals you are carrying.
 
 ---

@@ -286,8 +286,13 @@ any key the repos disagree on, and **you** run it, never an assistant.
 
 - ⚠️ **A shared value the layer does not hold is unenforced by construction** — no test spans two
   services, so a `REDIS_KEY` mismatch between two services fails at runtime while both repos'
-  suites stay green, because each one agrees with itself. **Check with a fingerprint sweep, not by
-  reading files.** One shape of that mismatch is now caught at boot rather than at runtime: a service
+  suites stay green, because each one agrees with itself. **Check with
+  `./scripts/env-fingerprint-sweep.sh`, not by reading files** — it derives who holds each shared key from
+  the committed `env` templates, fingerprints what each one answers, and exits 1 naming the files that
+  disagree (2026-09-06, MC-26, run by `audit-check.sh` §16). ⚠️ **It also catches the shape the layer
+  introduced**: a repo whose own `.env` repeats a shared key with a *different* value is invisible in a
+  terminal, because the layer wins there, and live to a systemd unit, a CI step or an `sh -c` that never
+  loaded it — one command, two values, decided by which shell started it. One shape of that mismatch is now caught at boot rather than at runtime: a service
   whose prefix names a namespace holding no keygrip record exits 1 there (`KEYGRIP_RECORD_MISSING`,
   all nine since 2026-08-31). It catches the service that drifted, never a fleet that drifted together.
   ✅ **The cookie-signing keys are the one pair this no longer applies to** — since *"The Keygrip pair
@@ -304,7 +309,10 @@ any key the repos disagree on, and **you** run it, never an assistant.
   which shares no code with it — and the invariants a swap must not break. One decode site is one place to
   edit, not one value: seven processes resolving a manager independently can still disagree.
 - **Fingerprint, never print.** `sha256(key + ' ' + value)`, first six hex — proves two repos agree
-  without putting the secret in a terminal.
+  without putting the secret in a terminal. The key name is inside the digest, which is what makes six hex
+  safe to publish: it is not a hash of the value on its own. `./scripts/env-fingerprint-sweep.sh` does this
+  and nothing else, which is why it is the one script here an assistant may run — unlike
+  `./scripts/env-shared-migrate.sh`, which reads values to move them.
 - ⚠️ **Quote any value holding whitespace or a `#`.** This page used to say dotenv terminates a bare
   value at the first space; measured against the two readers actually in play here, it does not.
   dotenv 17.4.2 reads `KEY=abc def` as `abc def` — while direnv 2.32.1 calls that line `invalid` and
