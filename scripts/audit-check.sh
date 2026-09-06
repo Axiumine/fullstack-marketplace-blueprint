@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: nine checks that would otherwise be nine things somebody
+# script is that leftover, and nothing else: eleven checks that would otherwise be eleven things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -355,6 +355,50 @@ if grep -q 'ITEMCATEGORY_NO_WRITE' "$ITEMCATEGORY_WRITER/eslint.config.js" 2> /d
 fi
 
 [ "$MISSING_ITEMCATEGORY" -eq 0 ] && pass "all ${#ITEMCATEGORY_BANNED_SERVICES[@]} services, and the writer exempt"
+
+echo
+echo '11. Every third-party host reached from source is named in PROCESSOR_INVENTORY.md'
+
+# A host literal in a source file is an outbound call to somebody, and personal data crossing to a
+# processor is the one kind of change no gate in this workspace can see: it is a new string in one repo,
+# green in that repo's own suite, and legally the most expensive line in the diff. RISK_REGISTER R25,
+# whose three obligations are the platform owner's — this check is only what keeps the list they have to
+# rule on from going stale between reviews.
+#
+# The rule is deliberately blunt: every absolute host that appears in any repo's `src/` must be named
+# somewhere in `docs/devprotocol/phase5/PROCESSOR_INVENTORY.md`, §2 if personal data crosses and §3 with a
+# written reason if it provably does not. A host in neither takes this red, which puts the argument at the
+# moment the call is added rather than at the next audit.
+#
+# ⚠️ **It cannot see a processor that is configured rather than coded**, and three of the six are: Sentry
+# is a DSN, SocketLabs is a server id, Cloudflare's edge is a DNS record. Nor can it see
+# `VITE_NOMINATIM_URL` pointed at a third party, which turns a self-hosted dependency into a processor with
+# no diff at all. §4 of that document says so; this is a drift guard, not a compliance check.
+INVENTORY='docs/devprotocol/phase5/PROCESSOR_INVENTORY.md'
+UNLISTED=0
+
+if [ ! -f "$INVENTORY" ]; then
+	fail "$INVENTORY is missing — every host below would pass unchecked"
+	UNLISTED=1
+else
+	# One pass over the tracked source of every sub-repo. `git ls-files` rather than `find`, so a build
+	# artefact or a gitignored scratch file can never add a host nobody committed.
+	while IFS= read -r host; do
+		[ -n "$host" ] || continue
+
+		if ! grep -Fq "$host" "$INVENTORY"; then
+			fail "$host — reached from source and named nowhere in PROCESSOR_INVENTORY.md"
+			UNLISTED=1
+		fi
+	done < <(
+		git submodule --quiet foreach 'git ls-files -z -- "src/*.ts" "src/*.tsx" "src/*.mts" "src/*.js" "src/*.mjs" | xargs -0 -r grep -hoE "https?://[A-Za-z0-9._-]+" || true' 2> /dev/null \
+			| grep -oE 'https?://[A-Za-z0-9._-]+' \
+			| sed -E 's#^https?://##' \
+			| sort -u
+	)
+fi
+
+[ "$UNLISTED" -eq 0 ] && pass 'every host literal in every sub-repo is a row in PROCESSOR_INVENTORY.md'
 
 echo
 
