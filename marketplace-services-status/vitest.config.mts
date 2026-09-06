@@ -14,10 +14,17 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       reportsDirectory: 'coverage',
-      include: ['src/**/*.ts'],
-      // public/ is browser code loaded by a <script> tag, not imported by any module here — it
-      // cannot be instrumented by a node-side run and would report a permanent 0%.
-      exclude: ['src/public/**'],
+      // The server's TypeScript, plus the one browser file it sends to the page. `app.js` is an
+      // IIFE nothing imports, so it used to be listed as unmeasurable — the `publicApp*.test.ts`
+      // suites falsified that: they mount `renderHtml()`'s own shell in jsdom, install a fake
+      // WebSocket, import the file and drive it through the DOM. It is gated like everything else.
+      //
+      // ⚠️ There is no `coverage.exclude` here, deliberately. It used to hold `src/public/**`, a
+      // directory glob that would have exempted whatever landed in that directory next, in silence,
+      // with the run still green (RISK_REGISTER R60). This list is now the only gate, and
+      // `scripts/coverage-audit.mjs` fails on any tracked file under `src/` that no line of it
+      // matches unless coverage-exempt.txt names that file with a reason.
+      include: ['src/**/*.ts', 'src/public/app.js'],
       // The same gate every other package in this workspace carries. Never lower one of these to
       // make a run pass — add the missing test, or delete the branch nothing can reach.
       thresholds: {

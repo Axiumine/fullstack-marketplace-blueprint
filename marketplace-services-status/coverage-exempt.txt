@@ -14,14 +14,6 @@
 # silence, with the run still green — which is the failure this file exists to close. One line per
 # file is the cost, and it is the point: an untestable source file becomes a visible decision.
 
-# ⚠️ 924 lines of browser code that no threshold has ever measured. `coverage.include` is
-# `src/**/*.ts`; this is the `.js` the server sends to the browser, so no glob has ever matched it,
-# it has never been in the report, and it has never been in the list the report was compared
-# against. It is the exact failure R56 describes, found by the check that closed R56 — and it is
-# named here to record the hole rather than to forgive it. **RISK_REGISTER R60** carries the
-# decision: a jsdom suite of its own, or it stops being source.
-src/public/app.js
-
 # Stylesheets. Nothing in them executes, so there is no branch to cover and no mutant to kill; what
 # they can get wrong is visual, which is a browser's job. Listed file by file rather than as a
 # directory, so the next thing dropped into src/public/css/ has to be looked at.

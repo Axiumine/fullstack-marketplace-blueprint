@@ -18,7 +18,7 @@
     "systemd:install": "./systemd/install.sh",
     "systemd:uninstall": "./systemd/uninstall.sh",
     "test": "yarn build && vitest run",
-    "test:unit": "vitest run test/config.test.ts test/monitor.test.ts test/probe.test.ts test/server.test.ts test/systemd.test.ts",
+    "test:unit": "vitest run test/config.test.ts test/monitor.test.ts test/probe.test.ts test/publicApp.test.ts test/publicAppBare.test.ts test/publicAppSecure.test.ts test/server.test.ts test/systemd.test.ts",
     "test:cov": "yarn build && vitest run --coverage && node scripts/coverage-audit.mjs",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
@@ -43,6 +43,7 @@
     "@types/node": "^24",
     "@types/ws": "^8.5.5",
     "@vitest/coverage-v8": "^4.1.10",
+    "jsdom": "^30.0.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2",
     "vitest": "^4.1.10"

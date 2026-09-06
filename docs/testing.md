@@ -258,8 +258,12 @@ another grep:
   nothing goes red for it. MC-13 therefore reads the *roots* of those globs too, everything before a
   pattern's first wildcard segment, and any tracked file under one of them that no glob matches has to
   be in `coverage-exempt.txt` by name. That scan found `marketplace-services-status/src/public/app.js`
-  on its first run: 924 lines of browser code that no threshold had ever measured (**R60**).
-  **Never read a percentage without the file count beside it.**
+  on its first run: 924 lines of browser code that no threshold had ever measured (**R60**). It is
+  measured now — three jsdom suites boot the IIFE against `renderHtml()`'s own shell and a fake
+  WebSocket, `coverage.include` names the file, `coverage.exclude` is gone from that config
+  entirely, and the exemption line came out because a covered file left named there is a hole
+  waiting for the next file of that path. **Never read a percentage without the file count beside
+  it.**
 - ⚠️ **Unit tests that mock the model cannot see driver-level failures.** Two live bugs got through
   that way: Mongoose 9 refuses an array update unless `{ updatePipeline: true }` is passed, and Mongoose
   casts a query filter against the schema but casts **nothing inside a pipeline** — `GraphQLID` resolves

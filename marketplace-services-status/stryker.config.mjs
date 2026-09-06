@@ -21,10 +21,13 @@ export default {
   ignorePatterns: ['.qodana', 'coverage', 'dist'],
   mutate: [
     'src/**/*.ts',
-    // Browser code, loaded by a <script> tag and never imported by a module here. No
-    // node-side test can execute it, so every mutant in it is NoCoverage noise — the same
-    // reason it is excluded from the coverage run.
-    '!src/public/**',
+    // The browser half. It is an IIFE loaded by a <script> tag that no module imports, which
+    // used to be the reason it was excluded from both gates — the `publicApp*.test.ts` suites
+    // ended that: they mount the real shell in jsdom, hand the page a fake WebSocket and drive
+    // it through the DOM, so a mutant in it is executed and can be killed like any other.
+    // ⚠️ Named as one file rather than as `src/public/**`, so a stylesheet stays out and the
+    // next `.js` dropped beside it is a decision somebody has to make here.
+    'src/public/app.js',
     // Interfaces and type aliases only. Stryker finds nothing to mutate and the file is
     // listed for the reader, so the exclusion is not mistaken for an oversight.
     '!src/types.ts'
