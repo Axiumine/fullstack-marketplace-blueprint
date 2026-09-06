@@ -110,8 +110,9 @@ the report is absent.
 | MC-20 | the ClamAV daemon behind each resource service is asked how old its signature database is, once at boot, and a database past seven days or a daemon that will not answer inside 5s reaches Sentry | service startup | `reportClamSignatureAge.mts` in both resource services, over `clamSignatureFreshness` in `marketplace-common`, with nine tests a side |
 | MC-21 | every absolute host literal in any sub-repo's `src/` is named in `docs/devprotocol/phase5/PROCESSOR_INVENTORY.md` — §2 if personal data crosses it, §3 with a written reason if it provably does not | `./scripts/audit-check.sh` §11 | workspace root |
 | MC-22 | no `del` or `unlink` call takes more than one key, in any of the three spellings — `del(a, b)`, `del([a, b])`, `del(...keys)` — anywhere in the ten repos that hold a Redis client | `yarn lint:check` (blocking) | the `REDIS_ONE_KEY_PER_DEL` block in each of the ten `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts` and its four fixtures, cross-checked by `./scripts/audit-check.sh` §12 |
+| MC-23 | no file under `test/integration/**` in any of the nine services imports a Mongoose model from `marketplace-common` — an integration fixture reaches its collection through the raw driver and through nothing else | `yarn lint:check` (blocking) | the `INTEGRATION_SEED_NO_MODEL` block in each of the nine `eslint.config.js`, exercised by three cases in `test/restrictedSyntax.test.mts` and its two fixtures, cross-checked by `./scripts/audit-check.sh` §13 |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eleven of its twelve
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Twelve of its thirteen
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
 never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
@@ -226,8 +227,16 @@ another grep:
 Integration tests run against real infrastructure and must clean up after themselves.
 
 - **Seed through the raw driver** (`mongoose.connection.db!.collection(…)`), not the Mongoose model.
-  Several models disagree with their collection's `$jsonSchema` — `ShopOwner` declares
-  `personalData.birth.date` and no `contacts`, while the validator wants `birth.date` plus `contacts`.
+  A model is a second description of a collection whose first description is the `$jsonSchema` validator
+  in `marketplace-db-setup`, and the two can disagree: `ShopOwner` **used to** declare
+  `personalData.birth.date` and no `contacts` at all while the validator demanded both. ⚠️ **That one is
+  fixed** — the model has mirrored the validator field for field since `6d090c1` (2026-08-26), pinned by
+  `marketplace-common/test/integration/models.int.test.mts` — and the convention outlives it, because
+  **these databases carry no validator**. Nothing on the way in disagrees with a model-shaped seed, so
+  the suite passes on a document the real collection would have refused. Since 2026-09-06 this is a lint
+  rule rather than a convention (MC-23): `no-restricted-imports` refuses a `models/MongoDB/*` import
+  under `test/integration/**` in all nine services, and nowhere else — unit tests mock those models by
+  name, and `marketplace-common`'s own suite is where a model is the thing under test.
 - **Register every `_id` and every Redis key in a module-level array at creation time**, and drain both
   in `afterAll`. Registering at creation rather than in a per-test `finally` matters: a seed that throws
   before its `try` block leaks the session key.
