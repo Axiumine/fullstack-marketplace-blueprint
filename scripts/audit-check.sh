@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: twelve checks that would otherwise be twelve things somebody
+# script is that leftover, and nothing else: thirteen checks that would otherwise be thirteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -28,6 +28,23 @@ fail() {
 	printf '  ✗ %s\n' "$1"
 	FAILED=1
 }
+
+# The nine services, and only the nine: each runs an integration suite against a throwaway database that
+# carries no `$jsonSchema` validator, so a fixture seeded through a Mongoose model writes whatever the
+# model believes and nothing on the way in disagrees. `marketplace-common` is absent deliberately — its
+# own suite tests the models themselves and has to import them — and so are the three apps and
+# `marketplace-db-setup`, which own no integration harness of this shape.
+DEV_SERVICES=(
+	BEs/dev/marketplace-dev-admin-authenticated-authorization
+	BEs/dev/marketplace-dev-admin-authenticated-resource
+	BEs/dev/marketplace-dev-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-logout
+	BEs/dev/marketplace-dev-authenticated-resource
+	BEs/dev/marketplace-dev-public-authorization
+	BEs/dev/marketplace-dev-public-resource
+	BEs/dev/marketplace-dev-user-authenticated-authorization
+	BEs/dev/marketplace-dev-user-authenticated-resource
+)
 
 # Every repo that holds a Redis client — the nine services, plus `marketplace-common`, whose session
 # helpers call `store.del(...)` through an injected store. Each must carry the one-key-per-del block and
@@ -462,6 +479,55 @@ for repo in "${REDIS_DEL_REPOS[@]}"; do
 done
 
 [ "$MISSING_REDIS_DEL" -eq 0 ] && pass "all ${#REDIS_DEL_REPOS[@]} repos carry the block, its fixture and its test"
+
+echo
+echo '13. Every service refuses a model-seeded integration test'
+
+# RISK_REGISTER R33, docs/testing.md "Integration test conventions" (MC-23). The convention is that an
+# integration fixture reaches the collection through the raw driver, because the model is a second
+# description of a shape whose first description is a `$jsonSchema` validator in another repo — and the
+# per-repo test databases carry no validator, so the two can disagree with nothing to say so.
+#
+# Nine copies of one block drift the way ten did in §12. Three things per repo, since any one alone is
+# decoration: the block, the fixture that plants the violation, and the test that lints it.
+MISSING_SEED_BAN=0
+
+for repo in "${DEV_SERVICES[@]}"; do
+	config="$repo/eslint.config.js"
+	fixture="$repo/test/fixtures/restrictedSyntax/integration-seed-via-model.mts.fixture"
+
+	if ! grep -q 'INTEGRATION_SEED_NO_MODEL' "$config" 2> /dev/null; then
+		fail "$repo — no integration-seed block in eslint.config.js (R33)"
+		MISSING_SEED_BAN=1
+	elif ! grep -q "files: \['test/integration/\*\*/\*.mts'\]" "$config" 2> /dev/null; then
+		fail "$repo — the block is there and scoped to something other than test/integration/**"
+		MISSING_SEED_BAN=1
+	elif [ ! -f "$fixture" ]; then
+		fail "$repo — the block is there and nothing exercises it: no integration-seed-via-model fixture"
+		MISSING_SEED_BAN=1
+	elif ! grep -q 'integration-seed-via-model' "$repo/test/restrictedSyntax.test.mts" 2> /dev/null; then
+		fail "$repo — the fixture is there and no test lints it"
+		MISSING_SEED_BAN=1
+	fi
+done
+
+# Same replacement hazard as §12, on a different rule: a later config object naming
+# `no-restricted-imports` discards this one's patterns for every file it matches, silently. Each repo
+# must wire the constant into as many declarations as it makes.
+for repo in "${DEV_SERVICES[@]}"; do
+	config="$repo/eslint.config.js"
+	[ -f "$config" ] || continue
+
+	declared=$(grep -c "'no-restricted-imports':" "$config")
+	wired=$(grep -c 'INTEGRATION_SEED_NO_MODEL\]' "$config")
+
+	if [ "$declared" -ne "$wired" ]; then
+		fail "$repo — declares no-restricted-imports $declared times and wires the seed block $wired: the odd one out un-bans it"
+		MISSING_SEED_BAN=1
+	fi
+done
+
+[ "$MISSING_SEED_BAN" -eq 0 ] && pass "all ${#DEV_SERVICES[@]} services carry the block, its fixture and its test"
 
 echo
 
