@@ -97,9 +97,18 @@ the `branch = main` entries are recorded for.
 - History is shallow: `git diff`, `git stash` and `git reset` work, but `git log` answers almost nothing
   about *why* anything is the way it is. **That is what `docs/devprotocol/phase3/adr/` is for.**
 
-The org is settled — `github.com/Axiumine` — and so is the naming: every repo is published under its own
-directory basename. Verified 2026-08-09: **all sixteen repositories exist, all sixteen are public, and all
-sixteen are empty.** No branch in any of them has an upstream, and **nothing has ever been pushed.**
+The org is settled in configuration — `github.com/Axiumine` — and so is the naming: every repo is
+published under its own directory basename. ⚠️ **Settled in configuration is not the same as ratified**,
+and `phase1/PDR.md` §8 item 1 still carries the ruling as the platform owner's open call; the ADR index
+says the same and warns that ADR-037 settled the npm scope and not the git host.
+
+⚠️ **The 2026-08-09 snapshot below has been overtaken for one repo, and holds for the other fifteen.**
+It read: all sixteen repositories exist, all sixteen are public, all sixteen are empty, no branch has an
+upstream, nothing has ever been pushed. Re-measured 2026-09-06 with `git ls-remote origin` in each:
+**`marketplace-common` is live** — `refs/heads/main` and every tag from `v1.0.0` are on the remote, which
+is what publishing `@axiumine/marketplace-common` required — and the other fifteen answer with no refs at
+all. So the org choice is free for fifteen repos and already spent for one: moving that one would strand
+a pushed history and an npm scope whose published versions keep their name for good.
 
 ⚠️ **Public, and empty is the only reason that is currently safe.** Every one of these becomes
 world-readable the moment it is pushed to, so [`docs/workflow.md`](./workflow.md) §*Scan history for secrets before the
