@@ -10,9 +10,11 @@ parent workspace, so a change here commits under the parent's rules.
 |---|---|
 | running the cluster, `.env` wiring per repo, troubleshooting table | [`README.md`](./README.md) |
 | the order the whole platform boots in | [`README.md`](./README.md) §Running the whole platform |
+| the per-service MongoDB roles, and the probe that proves them | [`README.md`](./README.md) §One account for nine services |
 | why the master key is one file for every repo | [`docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md`](../docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) |
 
-Scripts: `./up.sh [--with-redis]` · `./shell.sh [root\|dev\|owner]` · `./down.sh [--purge]`.
+Scripts: `./up.sh [--with-redis]` · `./shell.sh [root\|dev\|owner]` · `./down.sh [--purge]` ·
+`./rbac-probe.sh`.
 `up.sh` is idempotent — it mints the keys once, initiates `rs0` once and checks every user before
 creating it, so re-running it is the normal way to bring the cluster back after a reboot. Do not
 write a second script that does part of its job.
@@ -37,6 +39,14 @@ kills the container on every start until it is removed.
 the moment it is lost, and every repo must point at that same file — a migration run against a
 different key mints data keys the platform cannot use. `./down.sh --purge` leaves `secrets/` alone
 deliberately; never "tidy" that directory.
+
+⚠️ **`rbac-probe.sh` is not `up.sh`'s little brother and provisions nothing.** It exists because
+`init/roles.js` describes roles nothing here creates — RISK_REGISTER R24, where the nine services share
+one database-scoped `readWrite` account — and a role table nobody has executed is a guess. The probe
+builds a throwaway database, one role and one user, asserts in **both** directions that the shape grants
+what a service needs and refuses everything else, and drops all three on exit whatever the result. It
+never touches `dbMarketplaceDev`. Change `init/roles.js` and run it; a widened role is caught, and so is
+a narrowed one that would take every service down at boot on `__keyVault`.
 
 ⚠️ **`./down.sh --purge` deletes every database and every user on the cluster.** Destructive and
 not reversible from here — ask before running it, and never as a step in a larger fix.
