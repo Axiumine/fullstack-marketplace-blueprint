@@ -112,10 +112,16 @@ and every submodule URL follows it, because they are relative.
 *npm package* names, unrelated to where the git repo lives. Renaming a git remote never implies renaming
 the package, and vice versa.
 
-⚠️ **Scan history for secrets before the first push of any new repo.** A filename check is not enough —
-a live Mongo password once hid in an *unquoted* `mongosh -password` flag, which slips past any
-quoted-value regex. Scan every blob in `git rev-list --all --objects`, not just the working tree.
-Purging with `git filter-repo` is free before the first push and expensive after.
+⚠️ **`./scripts/history-scan.sh` scans history for secrets, and `./scripts/audit-check.sh` §9 runs it.**
+A filename check is not enough — a live Mongo password once hid in an *unquoted* `mongosh -password`
+flag, which slips past any quoted-value regex, and that is why all sixteen `pre-commit` hooks now carry a
+rule for a credential passed as a command-line flag (`docs/testing.md` MC-16). The scanner reads every
+object git holds — `git cat-file --batch-all-objects`, reachable **and** dangling, which a `git log`
+search misses — with the pattern list taken out of the parent's own `.githooks/pre-commit`, so there is
+one list and not two. It blocks on a match reachable from a branch or a tag, prints one in a dangling
+object, and takes cleared blobs from `scripts/history-scan-allow.txt` by object name, where a stale entry
+fails the run (MC-17). Run it before the first push of any new repo: purging with `git filter-repo` is
+free before that push and expensive after.
 
 ## Git rules
 
