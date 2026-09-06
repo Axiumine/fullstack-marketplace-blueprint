@@ -111,13 +111,14 @@ the report is absent.
 | MC-21 | every absolute host literal in any sub-repo's `src/` is named in `docs/devprotocol/phase5/PROCESSOR_INVENTORY.md` — §2 if personal data crosses it, §3 with a written reason if it provably does not | `./scripts/audit-check.sh` §11 | workspace root |
 | MC-22 | no `del` or `unlink` call takes more than one key, in any of the three spellings — `del(a, b)`, `del([a, b])`, `del(...keys)` — anywhere in the ten repos that hold a Redis client | `yarn lint:check` (blocking) | the `REDIS_ONE_KEY_PER_DEL` block in each of the ten `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts` and its four fixtures, cross-checked by `./scripts/audit-check.sh` §12 |
 | MC-23 | no file under `test/integration/**` in any of the nine services imports a Mongoose model from `marketplace-common` — an integration fixture reaches its collection through the raw driver and through nothing else | `yarn lint:check` (blocking) | the `INTEGRATION_SEED_NO_MODEL` block in each of the nine `eslint.config.js`, exercised by three cases in `test/restrictedSyntax.test.mts` and its two fixtures, cross-checked by `./scripts/audit-check.sh` §13 |
-
 | MC-24 | every repo declaring `@axiumine/marketplace-common` resolves the range it declares, holds the version its lockfile names, names a version that repo says it released, and imports no path that version does not export — a consumer lagging the shipped version is allowed and is reported, not failed | `node ./scripts/common-consumer-check.mjs` (blocking, and run by `./scripts/audit-check.sh` §14) | twelve `package.json`/`yarn.lock`/`node_modules` triples against `marketplace-common`'s own `CHANGELOG.md` |
 | MC-27 | a personal field is encrypted in both halves of ADR-029 or in neither — every path in `marketplace-common`'s four field-map lists is `binData` in `marketplace-db-setup`'s validators, and every `binData` leaf in those validators is in a list | `./scripts/audit-check.sh` §17 (blocking) | `node ./scripts/encryption-coverage-check.mjs` over the real sources, proved in both directions first by `./scripts/encryption-coverage-check-selftest.sh` — five cases on a two-repo `mktemp -d` tree, including the two ways a source can be unreadable, which exit 2 rather than passing |
 | MC-26 | every file that needs a shared environment value holds the same one — `KEYGRIP_KEK` across its seven holders, `REDIS_PASSWORD` and `REDIS_KEY` across their ten — and no repo shadows a shared key with a value only a shell without the direnv hook would read; and `REDIS_TLS` is spelt one of the two ways its reader accepts, `true` or `false`, rather than a `TRUE` that silently means off (R45) | `./scripts/audit-check.sh` §16 (blocking) | `./scripts/env-fingerprint-sweep.sh` over the real files, proved in both directions first by `./scripts/env-fingerprint-sweep-selftest.sh` — twelve cases on a `mktemp -d` tree, never a real one |
 | MC-25 | all sixteen `.githooks/pre-commit` refuse a commit whose `HEAD` is `main`, exempt an in-progress merge (`MERGE_HEAD`), and name `SKIP_MAIN_GUARD` as the way past — a copy missing any of the three is drift nothing else can see | `./scripts/audit-check.sh` §15 | the sixteen `.githooks/pre-commit` files |
 | MC-28 | every public catalogue query answers with published, undeleted rows only — driven against a real MongoDB seeded with a draft shop, a soft-deleted shop, a draft item, a soft-deleted item, a soft-deleted category and a **published item under an unpublished shop**, and asserting that none of them is ever an answer | `yarn test:integration` | `marketplace-dev-public-resource/test/integration/publicCatalogueLiveness.itest.mts` — nine queries, twenty-one assertions, each proved by planting a dropped-value fault at its composition site, and the nine are asserted to be the whole public read surface, so a tenth query fails this file until it is seeded a draft of its own |
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Sixteen of its seventeen
+| MC-29 | every service reaches exactly the collections the role written for it in `marketplace-docker-DBs/init/roles.js` would grant — every model a service's `src/` imports is in its row, every collection its row grants is one it imports a model for, the service declared to hold no connection holds none, every `BEs/dev/marketplace-dev-*` directory is in one of the two lists, and no service reaches MongoDB through `connection.db`, `db.collection(…)` or `getSiblingDB` at all | `./scripts/audit-check.sh` §18 (blocking) | `node ./scripts/service-role-check.mjs` over the real sources, proved in both directions first by `./scripts/service-role-check-selftest.sh` — nine cases on a three-service `mktemp -d` tree, including the three ways a source can be unreadable, which exit 2 rather than passing |
+
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Seventeen of its eighteen
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
 never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
@@ -185,6 +186,25 @@ nothing and disappears at the next `git gc`. Cleared blobs are named one per lin
 `scripts/history-scan-allow.txt` by object name, never by path — an object name is its content, so an
 entry can wave through the exact bytes somebody read and nothing else — and a stale entry fails the run,
 the same both-directions rule `coverage-exempt.txt` follows (RISK_REGISTER R14).
+
+⚠️ **MC-29 gates a table describing accounts that do not exist yet, which is the only moment gating it
+is cheap.** The nine services share one `marketplaceRwDev` login whose `readWrite` is scoped to the
+database rather than to a collection, so today every one of them can read and write all six collections
+(RISK_REGISTER R59). The narrow shape that ends that is written down — eight accounts, eight roles, one
+row of collections each, in `marketplace-docker-DBs/init/roles.js` — but **minting those accounts is
+provisioning work outside these sixteen repos, by ADR-039 and ADR-040**, so nothing here can close the
+risk and this check does not pretend to. What it removes is the second failure, the one that arrives on
+the day somebody *does* mint them: a hand-written table that stopped matching the code months earlier,
+and takes a service down at first use for a collection a resolver quietly started importing. The
+derivation is mechanical — a model import is reach, `ItemCategory` is `itemCategory` — and it is checked
+**both ways**, because a row granting a collection nothing imports is the quieter mistake: it breaks
+nothing, which is exactly why it survives as standing access to a collection the service has no code
+for. ⚠️ **The check also re-asserts its own premise.** Reading imports is a valid measure of reach only
+while no service reaches MongoDB another way, so a `db.collection(…)`, a `connection.db` or a
+`getSiblingDB` anywhere under a service's `src/` fails the run rather than being silently excluded from
+it — the day one appears, every row in that table is a guess and this is what says so. `rbac-probe.sh`
+remains the other half and answers a different question: whether the accounts, once real, actually
+refuse what the table says they refuse.
 
 ### Still manual, and why
 
