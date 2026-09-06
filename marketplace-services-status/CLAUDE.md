@@ -126,6 +126,14 @@ code.
 
 - **100% statements, branches, functions and lines; mutation `break: 100`.** Never lower either. A
   change that needs a threshold lowered needs a test.
+- **`yarn test:cov` is vitest *and* `scripts/coverage-audit.mjs`.** The script proves the report
+  the thresholds were computed over holds every git-tracked file `coverage.include` gates; a file
+  that is not in the report is not in the denominator, so 100% said nothing about it (`RISK_REGISTER`
+  R07). ⚠️ **`src/public/**` is the one to watch here.** It is a directory glob in
+  `coverage.exclude`, so it exempts whatever is dropped into it next — today only `.js` and `.css`
+  live there and `include` gates `src/**/*.ts`, so the exclusion removes nothing and this repo ships
+  no `coverage-exempt.txt`. The first `.ts` file placed there takes the run red, and the answer is a
+  test or a named line with a reason, never a wider glob.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
   non-markdown paths under `marketplace-services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
   unscoped — `semgrep:ci` → `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires

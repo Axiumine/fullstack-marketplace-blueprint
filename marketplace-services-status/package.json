@@ -19,7 +19,7 @@
     "systemd:uninstall": "./systemd/uninstall.sh",
     "test": "yarn build && vitest run",
     "test:unit": "vitest run test/config.test.ts test/monitor.test.ts test/probe.test.ts test/server.test.ts test/systemd.test.ts",
-    "test:cov": "yarn build && vitest run --coverage",
+    "test:cov": "yarn build && vitest run --coverage && node scripts/coverage-audit.mjs",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
     "semgrep": "docker run --rm --network none -e HOME=/tmp -u \"$(id -u):$(id -g)\" -v \"$PWD\":/src -w /src semgrep/semgrep:1.172.0 semgrep scan --metrics=off --disable-version-check --config semgrep/ src",

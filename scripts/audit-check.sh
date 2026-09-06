@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: five greps that would otherwise be five things somebody has
+# script is that leftover, and nothing else: six checks that would otherwise be six things somebody has
 # to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this script
 # exists to stop repeating.
 #
@@ -57,6 +57,27 @@ AUTH_SERVICES=(
 	BEs/dev/marketplace-dev-authenticated-resource
 	BEs/dev/marketplace-dev-user-authenticated-authorization
 	BEs/dev/marketplace-dev-user-authenticated-resource
+)
+
+# Every package with a coverage threshold, and therefore every package that owes the file-count gate.
+# The nine services and marketplace-common gate `src/**`, marketplace-db-setup gates four directories of
+# `.js`, the three apps gate `src/**` with an exclude list, and marketplace-services-status gates `src/**/*.ts`.
+GATED_REPOS=(
+	BEs/marketplace-common
+	BEs/marketplace-db-setup
+	BEs/dev/marketplace-dev-admin-authenticated-authorization
+	BEs/dev/marketplace-dev-admin-authenticated-resource
+	BEs/dev/marketplace-dev-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-logout
+	BEs/dev/marketplace-dev-authenticated-resource
+	BEs/dev/marketplace-dev-public-authorization
+	BEs/dev/marketplace-dev-public-resource
+	BEs/dev/marketplace-dev-user-authenticated-authorization
+	BEs/dev/marketplace-dev-user-authenticated-resource
+	marketplace-admin
+	marketplace-shopowner
+	marketplace-user
+	marketplace-services-status
 )
 
 # The three files allowed to build a Redis key, all of them in `marketplace-common`. A service that
@@ -153,6 +174,28 @@ for repo in "${AUTH_SERVICES[@]}"; do
 done
 
 [ "$MISSING_BOUNDARY" -eq 0 ] && pass "all ${#AUTH_SERVICES[@]} services"
+
+echo
+echo '6. Every coverage-gated repo carries the file-count gate and actually runs it'
+
+# Two facts, and neither can be established from inside one repo. A repo that ships no
+# scripts/coverage-audit.mjs, or ships one that `test:cov` never calls, has a 100% threshold over
+# whatever files the report happens to contain — RISK_REGISTER R07, reopened one repo at a time and
+# green in that repo's own suite the whole while. Whether the gate then passes is the script's own
+# business: it runs on every `yarn test:cov` and fails loudly, so there is nothing to duplicate here.
+MISSING_GATE=0
+
+for repo in "${GATED_REPOS[@]}"; do
+	if [ ! -f "$repo/scripts/coverage-audit.mjs" ]; then
+		fail "$repo — no scripts/coverage-audit.mjs"
+		MISSING_GATE=1
+	elif ! grep -q 'coverage-audit\.mjs' "$repo/package.json" 2> /dev/null; then
+		fail "$repo — the gate is present and test:cov never calls it"
+		MISSING_GATE=1
+	fi
+done
+
+[ "$MISSING_GATE" -eq 0 ] && pass "all ${#GATED_REPOS[@]} gated packages"
 
 echo
 
