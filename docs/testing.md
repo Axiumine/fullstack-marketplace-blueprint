@@ -105,6 +105,7 @@ the report is absent.
 | MC-15 | all sixteen repos have `core.hooksPath=.githooks` and a `.githooks/pre-commit` git can execute — the two ways every gate in a repo is silently off | `./scripts/audit-check.sh` §7 | workspace root |
 | MC-16 | all sixteen `.githooks/pre-commit` scan for the same secret rules — every rule a repo carries is one the parent's list has, and every repo carries the credential-flag rule a `mongosh … -password` line needs | `./scripts/audit-check.sh` §8 | workspace root |
 | MC-17 | no object reachable from a branch or a tag, in any of the sixteen object databases, matches a secret rule — the history behind the staged diff, which MC-11 never sees | `./scripts/history-scan.sh`, also run by `./scripts/audit-check.sh` §9 | workspace root, plus `scripts/history-scan-allow.txt` |
+| MC-18 | no function in `marketplace-dev-public-resource` reads `Company` or `Item` without naming `livePublic` or `LIVE_PUBLIC_PIPELINE` in its own body, and the nine files that read either model are an exhaustive list | `yarn test` | `marketplace-dev-public-resource/test/publicCatalogueFilter.test.mts` and its six fixtures |
 
 ⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eight of its nine
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
@@ -118,6 +119,17 @@ under which no hook in that repo runs, so a hook can never be the thing that rep
 let a repository arm its own hooks from tracked content, deliberately: a clone would then execute a
 stranger's script. `./scripts/bootstrap.sh` is the one command that arms all sixteen after a fresh
 checkout, and MC-15 is how you find out afterwards whether anybody ran it (RISK_REGISTER R09).
+
+⚠️ **MC-18 is a structural check rather than a behavioural one, and the AST in it is load-bearing.**
+It proves a *shape* — that every function reading the public catalogue names the shared liveness filter —
+and not that any particular query returns the right rows, which is what the integration suite is for. The
+parse is not tidiness: `Company.aggregate<IPin>(` is this codebase's idiom at every aggregation call site,
+and a type argument between the method name and its parenthesis defeats a `\.aggregate\(` regex while
+changing nothing about the call, so the obvious text version of this check would have been blind to a whole
+class of resolver. It is per **enclosing function**, not per file, because the failure it exists for is a
+second resolver pasted next to a compliant one. The two cross-cutting helpers that bake the filter in are
+deliberately not accepted names — a definition that satisfies a rule by referencing itself proves nothing
+(RISK_REGISTER R18; R58 carries the half a syntactic check cannot reach).
 
 ⚠️ **MC-17 is the only check that reads what a commit already did rather than what it is about to do.**
 Every other secret gate on this platform scans the *staged diff*, so a value committed before its rule
