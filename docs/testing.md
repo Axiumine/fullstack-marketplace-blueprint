@@ -98,12 +98,12 @@ the report is absent.
 | MC-08 | the admin session console cannot print a token, a digest or a key prefix | `yarn test` | `marketplace-dev-admin-authenticated-resource/test/sessionNoLeak.test.mts` |
 | MC-09 | every authenticated service proves all seven boundary cases it owes | `yarn test` | `test/authBoundaryContract.test.mts`, seven services + the contract's own suite |
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
-| MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
+| MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged, and no file whose **path** says it holds one — the extension list, anything under `secrets/`, and `marketplace-db-setup`'s `setup/mongodb.js` provisioning runbook, which carries a live database credential by design (R57) | `git commit` | the secret guard in every `.githooks/pre-commit` |
 | MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
 | MC-13 | every tracked source file under a declared source root is accounted for by the report the thresholds were computed over — gated by `coverage.include` and present in it, **or** matched by no `coverage.include` glob at all — and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the five that need one — `marketplace-db-setup`, `marketplace-services-status` and the three apps |
 | MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs`, still call it from `test:cov`, and carry the current copy of it rather than one predating the R56 extension-drift scan | `./scripts/audit-check.sh` §6 | workspace root |
 | MC-15 | all sixteen repos have `core.hooksPath=.githooks` and a `.githooks/pre-commit` git can execute — the two ways every gate in a repo is silently off | `./scripts/audit-check.sh` §7 | workspace root |
-| MC-16 | all sixteen `.githooks/pre-commit` scan for the same secret rules — every rule a repo carries is one the parent's list has, and every repo carries the credential-flag rule a `mongosh … -password` line needs | `./scripts/audit-check.sh` §8 | workspace root |
+| MC-16 | all sixteen `.githooks/pre-commit` scan for the same secret rules — every **value** rule a repo carries is one the parent's list has, every repo carries the credential-flag rule a `mongosh … -password` line needs, and all sixteen **path** rules are the same string, which is then run against seventeen paths it must refuse or pass | `./scripts/audit-check.sh` §8 | workspace root |
 | MC-17 | no object reachable from a branch or a tag, in any of the sixteen object databases, matches a secret rule — the history behind the staged diff, which MC-11 never sees | `./scripts/history-scan.sh`, also run by `./scripts/audit-check.sh` §9 | workspace root, plus `scripts/history-scan-allow.txt` |
 | MC-18 | no function in `marketplace-dev-public-resource` reads `Company` or `Item` without naming `livePublic` or `LIVE_PUBLIC_PIPELINE` in its own body, and the nine files that read either model are an exhaustive list | `yarn test` | `marketplace-dev-public-resource/test/publicCatalogueFilter.test.mts` and its six fixtures |
 | MC-19 | no service other than `marketplace-dev-admin-authenticated-resource` writes `itemCategory`, in any of the three spellings — the call, the computed call, the aliased import — and the one exemption (`holdItemCategory`'s `$inc: { __v: 1 }`) is one file and one verb wide | `yarn lint:check` (blocking) | the `ITEMCATEGORY_NO_WRITE` block in each of the eight `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts`, cross-checked by `./scripts/audit-check.sh` §10 |
@@ -129,6 +129,19 @@ under which no hook in that repo runs, so a hook can never be the thing that rep
 let a repository arm its own hooks from tracked content, deliberately: a clone would then execute a
 stranger's script. `./scripts/bootstrap.sh` is the one command that arms all sixteen after a fresh
 checkout, and MC-15 is how you find out afterwards whether anybody ran it (RISK_REGISTER R09).
+
+⚠️ **MC-16 checks the path rule two ways, because until R57 it checked it no ways.** The value rules
+were compared here from the day this section existed and `SECRET_PATH` was not, so the drift it exists to
+catch had happened inside it: fifteen hooks carried one spelling and `marketplace-nginx` carried another,
+narrower in five names — and that repo is the one whose working tree holds TLS keys. A missing name in one
+hook is the shape nobody notices, because every repo refuses *something*. The comparison is **equality**,
+not the subset rule the value list uses: unlike a value, there is no path worth refusing in one repo and
+not in the next, so one line is cheaper than sixteen judgements. Then the rule is **run** — against nine
+paths it must refuse and eight it must not, named in `./scripts/audit-check.sh` itself and fed to
+`grep -E` as text, so no file is created and none is read. Sixteen identical copies of a regex that had
+stopped matching would satisfy every other check in this section, and the second list is the half worth
+keeping honest: `setup/mongodb.js` is refused and `setup/mongodb.test.js` is not, because a rule that
+swallowed the test file would be edited out by the first person it inconvenienced (RISK_REGISTER R57).
 
 ⚠️ **MC-18 is a structural check rather than a behavioural one, and the AST in it is load-bearing.**
 It proves a *shape* — that every function reading the public catalogue names the shared liveness filter —
