@@ -126,3 +126,31 @@ grep -rn 'ItemCategory\.' BEs/dev/marketplace-dev-authenticated-resource/src
 must show exactly three uses: `find` (the read-only `itemCategories` query), `countDocuments` (`throwIfItemCategoryMissing`), and the one `findOneAndUpdate` whose update is `{ $inc: { __v: 1 } }` (`holdItemCategory`). No `create`, no `insertMany`, no `updateOne`, no `deleteOne`, and no `$set` of any field.
 
 Violation on disk looks like: an `itemCategoryAdd.mts`/`itemCategoryUpdate.mts`/`itemCategoryDel.mts` file under `marketplace-dev-authenticated-resource/src` or `marketplace-dev-public-resource/src/graphQLPublic/schema/mutations/`; a function under `lib/itemCategory/` that writes `idParent` without calling `throwIfParentNotTopLevel` first; a ShopOwner- or public-tier write of `itemCategory` that touches anything other than `__v`; or a write path in either repo that reads a category outside the transaction that writes.
+
+### Amended 2026-09-06 — the compliance greps above are now a gate
+
+Everything in this section was, until this date, a grep a reader had to think to run. RISK_REGISTER R19
+is that gap stated plainly: the depth cap is enforced in one service's resolvers, and nothing structural
+stopped a second `itemCategory` write appearing in a neighbouring one, green in its own suite, three
+levels deep the first time a category was reparented through it.
+
+The eight backend services that are not `marketplace-dev-admin-authenticated-resource` now carry an
+`ITEMCATEGORY_NO_WRITE` block in `eslint.config.js`, and `yarn lint:check` is a blocking gate on both
+commit and push. It refuses `ItemCategory.<write>()`, the computed spelling `ItemCategory['<write>']()`,
+and `import { ItemCategory as … }`, which would otherwise rename the model out of the first two
+selectors' reach. The read verbs are absent from the list on purpose: `throwIfItemCategoryMissing`
+counts, the catalogue resolvers query, and a rule refusing those would refuse the tier's own work.
+
+`holdItemCategory` keeps the exemption the 2026-08-25 amendment gave it, narrowed to its own file and to
+`findOneAndUpdate` alone — every other write verb is refused there too, and `findOneAndUpdate` stays
+refused everywhere else in that repo. Each service's `test/restrictedSyntax.test.mts` lints a fixture per
+shape so the selectors are proved to fire, and `./scripts/audit-check.sh` §10 checks the arrangement from
+outside: the eight carry the block and its fixture, and the ninth — the service that owns the collection
+— must not, because a ban there would refuse `funItemCategoryAdd` and lift the cap in the one place it
+exists.
+
+⚠️ This raises the cost of a regression; it does not make one impossible. A write through the raw
+MongoDB driver, or through a model resolved by name at runtime, matches no selector here — the same
+permanent property of Option B this ADR's Risks section already names. R19 is scored Mitigated, not
+Closed, for that reason.
+
