@@ -32,10 +32,14 @@ option names in `mongod --help`.
 
 **Two different things are called "encryption at rest" and this platform has exactly one of them.**
 
-- **Field-level, yes.** Explicit CSFLE (ADR-029) encrypts **30 field paths across 4 of the 6 collections**,
-  under **4 data encryption keys**, of which **5 paths** are deterministic and the remaining 25 random.
+- **Field-level, yes.** Explicit CSFLE (ADR-029) encrypts **32 field paths across 4 of the 6 collections**,
+  under **4 data encryption keys**, of which **5 paths** are deterministic and the remaining 27 random.
   Because it is *client-side*, the protection reaches everything the server writes: documents, indexes,
-  the oplog, the journal and any `mongodump` taken of them all hold `binData` for those 30 paths.
+  the oplog, the journal and any `mongodump` taken of them all hold `binData` for those 32 paths.
+  ⚠️ **It was 30 when this report was written and the number was not re-derived until 2026-09-06**, when
+  `scripts/encryption-coverage-check.mjs` counted the two halves and found `disabledReason` on both
+  `shopOwner` and `user` — added after this page, encrypted in both halves, and named on neither. The
+  count is now derived by that check on every `audit-check.sh` run rather than by hand (MC-27).
 - **Storage-level, no — and not anywhere on this machine.** MongoDB runs **Community 8.0.28**
   (`"modules": []`), whose `mongod` binary carries **no encryption option at all** — `mongod --help`
   matches the string `encrypt` zero times. Redis has no such feature to begin with. Both containers write
@@ -97,7 +101,7 @@ is not in the volume. Whoever takes **the host** takes both. On this machine eve
 unencrypted, so the master key file is at rest in the clear too — wherever it is. That is not a defect of
 ADR-029; it is the boundary ADR-029 stops at, and §6 is where it is picked up.
 
-## 3. The encrypted set — 30 paths, 4 keys, 5 deterministic
+## 3. The encrypted set — 32 paths, 4 keys, 5 deterministic
 
 Read straight from `encryptedFields.mts`. **D** = deterministic (equality lookup only), **R** = random.
 
@@ -109,7 +113,7 @@ Read straight from `encryptedFields.mts`. **D** = deterministic (equality lookup
 | `personalData.firstName` | R | given name |
 | `personalData.lastName` | R | family name |
 
-### `shopOwner` — DEK `shopOwner`, 11 paths
+### `shopOwner` — DEK `shopOwner`, 12 paths
 
 | Path | Alg | What it holds |
 |---|---|---|
@@ -124,8 +128,9 @@ Read straight from `encryptedFields.mts`. **D** = deterministic (equality lookup
 | `personalData.contacts.landline` | R | landline number |
 | `personalData.contacts.email` | R | contact address (not the credential) |
 | `notes` | R | what an admin wrote *about* this person |
+| `disabledReason` | R | why the account was disabled — added after this page was first written |
 
-### `user` — DEK `user`, 14 paths
+### `user` — DEK `user`, 15 paths
 
 | Path | Alg | What it holds |
 |---|---|---|
@@ -143,6 +148,7 @@ Read straight from `encryptedFields.mts`. **D** = deterministic (equality lookup
 | `addresses.[].city` | R | city |
 | `addresses.[].province` | R | province |
 | `addresses.[].position` | R | coordinate, encrypted whole |
+| `disabledReason` | R | why the account was disabled — added after this page was first written |
 
 ### `company` — DEK `company`, 2 paths
 
