@@ -308,11 +308,19 @@ echo '8. The secret rules have not drifted apart across the sixteen pre-commit h
 
 # Each repo carries its own copy of the hook — not a symlink, not a template — so a rule added to one
 # is added to one. The parent's list is the superset by construction: every rule any repo has, it has.
-# Two things are checked, and neither can be seen from inside a repo. Every rule a repo carries must
-# appear in the parent's list, which catches a repo inventing a rule of its own that nothing else gets;
-# and every repo must carry the credential-flag rule RISK_REGISTER R14 landed, which is the one a
-# `mongosh -password …` line slips past when a repo is missing it.
+# Every rule a repo carries must appear in the parent's list, which catches a repo inventing a rule of
+# its own that nothing else gets; and every repo must carry the credential-flag rule RISK_REGISTER R14
+# landed, which is the one a `mongosh -password …` line slips past when a repo is missing it.
+#
+# ⚠️ **SECRET_PATH is checked too, and it had already drifted (R57).** The value rules were compared
+# here from the day this section existed and the path rule was not, so fifteen hooks carried one
+# spelling and `marketplace-nginx` carried another — narrower in five names and wider in one, which is
+# the shape nobody notices: each repo refuses something, no repo refuses everything, and the hook that
+# is missing a name is the hook of the repo that most needs it. Equality rather than subset, because
+# unlike the value rules there is no repo-specific path worth having: a path rule that is right for one
+# of the sixteen is right for all sixteen, and one line is cheaper than sixteen judgements.
 CANON="$(sed "s/^SECRET_VALUE='/SECRET_VALUE+='|/" .githooks/pre-commit | grep '^SECRET_VALUE')"
+CANON_PATH="$(grep '^SECRET_PATH' .githooks/pre-commit)"
 DRIFTED=0
 
 check_rules() {
@@ -340,6 +348,11 @@ check_rules() {
 		fail "$label — no credential-flag rule, so a \`-password <the value>\` line commits clean (R14)"
 		DRIFTED=1
 	fi
+
+	if [ "$(grep '^SECRET_PATH' "$dir/.githooks/pre-commit")" != "$CANON_PATH" ]; then
+		fail "$label — its SECRET_PATH is not the one the parent carries, so the two hooks refuse different files"
+		DRIFTED=1
+	fi
 }
 
 check_rules 'parent' .
@@ -349,7 +362,45 @@ while IFS= read -r path; do
 	check_rules "$path" "$path"
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
-[ "$DRIFTED" -eq 0 ] && pass 'all 16 hooks scan for the same rules, and all 16 have the credential-flag rule'
+# ⚠️ Sixteen identical copies of a rule that matches nothing would pass every check above. So the rule
+# is run, here, against paths this file names — the ones it must refuse and the ones it must not — and
+# a regex that stops matching is caught by the same section that catches a regex that stops being
+# copied. No file is created and none is read: `grep -E` is given the path as text, which is all the
+# hook itself does with it.
+#
+# The second list is the one worth keeping honest. `setup/mongodb.js` is refused and
+# `setup/mongodb.test.js` is not, because a rule that swallowed the test file would be edited out by
+# the first person it inconvenienced; `docs/environment.md` is not refused, because a name that merely
+# contains a refused word is prose.
+path_rule=''
+while IFS= read -r assignment; do
+	value="${assignment#SECRET_PATH}"
+	value="${value#+}"
+	value="${value#=}"
+	value="${value#\'}"
+	path_rule+="${value%\'}"
+done <<< "$CANON_PATH"
+
+MUST_REFUSE=(.env .env.local BEs/dev/svc/.env setup/mongodb.js marketplace-nginx/tls/origin.pem
+	secrets/redis.conf a/b/id_ed25519 certs/server.key store/keys.jks)
+MUST_PASS=(env npmrc BEs/dev/svc/env docs/environment.md setup/mongodb.test.js
+	src/setup/mongodbClient.mts scripts/env-fingerprint-sweep.sh package.json)
+BEHAVIOUR=0
+
+for p in "${MUST_REFUSE[@]}"; do
+	printf '%s\n' "$p" | grep -Eq "$path_rule" ||
+		{ fail "SECRET_PATH no longer refuses $p"; BEHAVIOUR=1; }
+done
+
+for p in "${MUST_PASS[@]}"; do
+	printf '%s\n' "$p" | grep -Eq "$path_rule" &&
+		{ fail "SECRET_PATH refuses $p, which is a committed file or a name that only reads like one"; BEHAVIOUR=1; }
+done
+
+[ "$BEHAVIOUR" -ne 0 ] && DRIFTED=1
+
+[ "$DRIFTED" -eq 0 ] &&
+	pass "all 16 hooks scan for the same rules, all 16 have the credential-flag rule, and the shared path rule refuses ${#MUST_REFUSE[@]} paths and passes ${#MUST_PASS[@]}"
 
 echo
 echo '9. No secret is sitting in a history that a push would publish'
