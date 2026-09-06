@@ -116,6 +116,7 @@ the report is absent.
 | MC-27 | a personal field is encrypted in both halves of ADR-029 or in neither — every path in `marketplace-common`'s four field-map lists is `binData` in `marketplace-db-setup`'s validators, and every `binData` leaf in those validators is in a list | `./scripts/audit-check.sh` §17 (blocking) | `node ./scripts/encryption-coverage-check.mjs` over the real sources, proved in both directions first by `./scripts/encryption-coverage-check-selftest.sh` — five cases on a two-repo `mktemp -d` tree, including the two ways a source can be unreadable, which exit 2 rather than passing |
 | MC-26 | every file that needs a shared environment value holds the same one — `KEYGRIP_KEK` across its seven holders, `REDIS_PASSWORD` and `REDIS_KEY` across their ten — and no repo shadows a shared key with a value only a shell without the direnv hook would read; and `REDIS_TLS` is spelt one of the two ways its reader accepts, `true` or `false`, rather than a `TRUE` that silently means off (R45) | `./scripts/audit-check.sh` §16 (blocking) | `./scripts/env-fingerprint-sweep.sh` over the real files, proved in both directions first by `./scripts/env-fingerprint-sweep-selftest.sh` — twelve cases on a `mktemp -d` tree, never a real one |
 | MC-25 | all sixteen `.githooks/pre-commit` refuse a commit whose `HEAD` is `main`, exempt an in-progress merge (`MERGE_HEAD`), and name `SKIP_MAIN_GUARD` as the way past — a copy missing any of the three is drift nothing else can see | `./scripts/audit-check.sh` §15 | the sixteen `.githooks/pre-commit` files |
+| MC-28 | every public catalogue query answers with published, undeleted rows only — driven against a real MongoDB seeded with a draft shop, a soft-deleted shop, a draft item, a soft-deleted item, a soft-deleted category and a **published item under an unpublished shop**, and asserting that none of them is ever an answer | `yarn test:integration` | `marketplace-dev-public-resource/test/integration/publicCatalogueLiveness.itest.mts` — nine queries, twenty-one assertions, each proved by planting a dropped-value fault at its composition site, and the nine are asserted to be the whole public read surface, so a tenth query fails this file until it is seeded a draft of its own |
 ⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Sixteen of its seventeen
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
@@ -152,7 +153,26 @@ changing nothing about the call, so the obvious text version of this check would
 class of resolver. It is per **enclosing function**, not per file, because the failure it exists for is a
 second resolver pasted next to a compliant one. The two cross-cutting helpers that bake the filter in are
 deliberately not accepted names — a definition that satisfies a rule by referencing itself proves nothing
-(RISK_REGISTER R18; R58 carries the half a syntactic check cannot reach).
+(RISK_REGISTER R18; MC-28 is the half a syntactic check cannot reach).
+
+⚠️ **MC-28 follows the value where MC-18 follows the name, and the two are not interchangeable.**
+A filter can be built and then shadowed by a later spread, or `livePublic()` can be called for its
+return value and the return value dropped — both satisfy a check that looks for an identifier in a
+function body, and both serve drafts to anonymous traffic. Nothing static distinguishes them, so this
+suite runs the queries instead: the rows exist, the requests go over HTTP to a booted server, and the
+drafts must not come back. Every assertion is two-sided — the published sibling must be present in the
+same answer the hidden one is absent from — so a filter that stopped filtering and a filter that
+matches nothing both fail, and the seed is read back through the raw driver before any of it, because a
+row the validator rejected would leave every absence assertion passing for the wrong reason. The one
+fixture no single-collection predicate can express is a **published item under an unpublished shop**:
+it is why the cross-shop reads join `company` at all, and it is the row that catches a `$lookup`
+sub-pipeline losing its `$match`. Thirteen faults were planted one at a time to prove the suite bites —
+one per composition site, each dropping the value while leaving the name in the file — and all thirteen
+turned it red while **MC-18 stayed green under every one of them**, which is the measurement that says
+this file earns its place next to that one. The nine reads are also asserted to **be** the public read
+surface — the field list of `QueriesPublic` less the two demo queries — so a tenth query fails this file
+until somebody seeds a draft for it, which is what makes it a gate on tomorrow's resolvers rather than a
+snapshot of today's (RISK_REGISTER R58).
 
 ⚠️ **MC-17 is the only check that reads what a commit already did rather than what it is about to do.**
 Every other secret gate on this platform scans the *staged diff*, so a value committed before its rule
