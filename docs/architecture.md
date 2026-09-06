@@ -254,6 +254,11 @@ themselves, and what is on disk, are in [`data-model.md`](./data-model.md) §Red
   can be on the wire and encrypts nothing, so **R45 stays open** at a lower score rather than closing. What
   shuts it is now a provisioning step — a TLS listener on the cluster, certificates for it, and
   `REDIS_TLS=true` in nine `env` files — rather than a release nobody here controls.
+  ⚠️ **The exact match is deliberate and it is also a foot-gun**, so since 2026-09-06 one thing here
+  watches it: `./scripts/env-fingerprint-sweep.sh` refuses a `REDIS_TLS` spelt anything but `true` or
+  `false` (MC-26, `audit-check.sh` §16). Widening the read to a truthiness test is the wrong fix —
+  every deployment that wrote `false` would get TLS it never asked for — so the guard sits outside the
+  code, where a deployment that believes it encrypted the leg and merely typed `TRUE` is caught.
 
 ### Shared authorization body (ADR-006)
 
