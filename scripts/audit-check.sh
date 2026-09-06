@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: eleven checks that would otherwise be eleven things somebody
+# script is that leftover, and nothing else: twelve checks that would otherwise be twelve things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -28,6 +28,23 @@ fail() {
 	printf '  ✗ %s\n' "$1"
 	FAILED=1
 }
+
+# Every repo that holds a Redis client — the nine services, plus `marketplace-common`, whose session
+# helpers call `store.del(...)` through an injected store. Each must carry the one-key-per-del block and
+# the fixture that proves it fires. `marketplace-db-setup` and the three apps touch no Redis and are
+# absent on purpose: a ban nothing can violate is a line nobody maintains.
+REDIS_DEL_REPOS=(
+	BEs/marketplace-common
+	BEs/dev/marketplace-dev-admin-authenticated-authorization
+	BEs/dev/marketplace-dev-admin-authenticated-resource
+	BEs/dev/marketplace-dev-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-logout
+	BEs/dev/marketplace-dev-authenticated-resource
+	BEs/dev/marketplace-dev-public-authorization
+	BEs/dev/marketplace-dev-public-resource
+	BEs/dev/marketplace-dev-user-authenticated-authorization
+	BEs/dev/marketplace-dev-user-authenticated-resource
+)
 
 # Every repo that calls `Sentry.init`, plus `marketplace-common`, which owns the scrubber both hooks are
 # wired to. Each must carry the `no-restricted-syntax` block and the suite that proves it fires.
@@ -399,6 +416,52 @@ else
 fi
 
 [ "$UNLISTED" -eq 0 ] && pass 'every host literal in every sub-repo is a row in PROCESSOR_INVENTORY.md'
+
+echo
+echo '12. The one-key-per-del rule is carried by every repo that holds a Redis client'
+
+# BCON-08 / NFR-SC03, RISK_REGISTER R32. Redis is a cluster, so a multi-key `DEL` throws CROSSSLOT unless
+# every key hashes to the same slot — which digested session keys never do. The rule that refuses the
+# batched form is ten copies of one block, and ten copies drift: a repo that loses its copy is green in
+# its own suite and invisible from every other repo, which is the shape this script exists for.
+#
+# Three things per repo, because any one of them alone is decoration: the block, the fixture that plants
+# the violation, and a test that lints it. A block with no fixture is a rule nobody has ever seen fire.
+MISSING_REDIS_DEL=0
+
+for repo in "${REDIS_DEL_REPOS[@]}"; do
+	config="$repo/eslint.config.js"
+	fixture="$repo/test/fixtures/restrictedSyntax/redis-del-array-argument.mts.fixture"
+
+	if ! grep -q 'REDIS_ONE_KEY_PER_DEL' "$config" 2> /dev/null; then
+		fail "$repo — no one-key-per-del block in eslint.config.js (BCON-08)"
+		MISSING_REDIS_DEL=1
+	elif [ ! -f "$fixture" ]; then
+		fail "$repo — the block is there and nothing exercises it: no redis-del-array-argument fixture"
+		MISSING_REDIS_DEL=1
+	elif ! grep -q 'redis-del-array-argument' "$repo/test/restrictedSyntax.test.mts" 2> /dev/null; then
+		fail "$repo — the fixture is there and no test lints it"
+		MISSING_REDIS_DEL=1
+	fi
+done
+
+# The spread is what carries the block into a later config object naming the same rule, and a later
+# object without it discards every selector the earlier one set for the files it matches. Each repo must
+# spread it as many times as it declares the rule.
+for repo in "${REDIS_DEL_REPOS[@]}"; do
+	config="$repo/eslint.config.js"
+	[ -f "$config" ] || continue
+
+	declared=$(grep -c "'no-restricted-syntax':" "$config")
+	spread=$(grep -c '\.\.\.REDIS_ONE_KEY_PER_DEL' "$config")
+
+	if [ "$declared" -ne "$spread" ]; then
+		fail "$repo — declares no-restricted-syntax $declared times and spreads the redis block $spread: the odd one out un-bans it"
+		MISSING_REDIS_DEL=1
+	fi
+done
+
+[ "$MISSING_REDIS_DEL" -eq 0 ] && pass "all ${#REDIS_DEL_REPOS[@]} repos carry the block, its fixture and its test"
 
 echo
 
