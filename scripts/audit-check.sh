@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: fourteen checks that would otherwise be fourteen things somebody
+# script is that leftover, and nothing else: fifteen checks that would otherwise be fifteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -543,6 +543,43 @@ echo '14. Every consumer resolves the marketplace-common paths it names'
 if ! node ./scripts/common-consumer-check.mjs; then
 	fail 'a consumer names a marketplace-common path its own lockfile cannot resolve — see above'
 fi
+
+echo
+echo '15. All sixteen pre-commit hooks refuse a commit that would land on main'
+
+# RISK_REGISTER R35 (MC-25). Sixteen separate copies of one guard, and the same drift the secret rules
+# have in §8: a repo that loses it loses it alone, and the loss looks like nothing at all — commits
+# keep working, which is the whole problem.
+#
+# Three greps rather than one, because two of the three lines are what makes the guard survivable. The
+# `MERGE_HEAD` exemption is why finishing a conflicted merge into `main` by hand still works, and
+# `SKIP_MAIN_GUARD` is why the one legitimate commit onto `main` — the first commit of a new repo,
+# `git init` having started there — does not need `--no-verify`, which would drop the secret guard too.
+GUARD_DRIFTED=0
+
+check_main_guard() {
+	local label="$1" hook="$2/.githooks/pre-commit"
+
+	if ! grep -q 'symbolic-ref --short HEAD' "$hook" 2> /dev/null; then
+		fail "$label — no branch guard in .githooks/pre-commit: a commit onto main passes every gate (R35)"
+		GUARD_DRIFTED=1
+	elif ! grep -q 'MERGE_HEAD' "$hook"; then
+		fail "$label — branch guard with no MERGE_HEAD exemption: finishing a conflicted merge into main is blocked"
+		GUARD_DRIFTED=1
+	elif ! grep -q 'SKIP_MAIN_GUARD' "$hook"; then
+		fail "$label — branch guard with no named escape hatch, so the way past it is --no-verify, which drops the secret guard too"
+		GUARD_DRIFTED=1
+	fi
+}
+
+check_main_guard 'parent' .
+
+while IFS= read -r path; do
+	[ -n "$path" ] || continue
+	check_main_guard "$path" "$path"
+done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
+
+[ "$GUARD_DRIFTED" -eq 0 ] && pass 'all 16 hooks block a commit onto main, exempt an in-progress merge, and name their own escape hatch'
 
 echo
 
