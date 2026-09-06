@@ -4,7 +4,7 @@
 **Status:** finding - closes [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 —
 "No full dependency-tree audit was performed"
 **Version:** 1.2
-**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28
+**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28, §4.1 and §8 rewritten 2026-09-06 when the `axios` line was actually fixed
 **Author:** claude
 **Scope:** every one of the sixteen repos in this workspace, production and toolchain dependencies alike
 **Method:** the installed tree read from `node_modules` on disk, resolved the way Node resolves it, then queried
@@ -126,7 +126,9 @@ as "what it needs at runtime" gives the wrong answer, and this is the one repo w
 
 ## 4. Production zone — the twenty-nine
 
-### 4.1 `axios@0.21.4` — 23 advisories, 8 services, 1 loader
+### 4.1 `axios@0.21.4` — 23 advisories, 8 services, 1 loader — ✅ **fixed 2026-09-06**
+
+⚠️ **Everything in this section describes the tree as it was, and the tree changed twice.** A change on 2026-08-13 took the package out of the seven services that never loaded it, and on 2026-09-06 `marketplace-dev-public-resource` — the eighth, the one that does load it — gained a `resolutions` block pinning `axios` to `0.33.0`. **No service installs `axios@0.21.4` today.** The reasoning below is kept because it is what made the decision defensible for the three weeks in between, and because the reachability argument is the reason this was never an emergency; the section that supersedes it is §8.
 
 The chain is the same in all eight:
 
@@ -301,7 +303,7 @@ have to rediscover it.
 | `@sentry/node` | 10.69.0 | `dependencies` in all 9 | Error reporting; the scrubbing rules that keep tokens out of events | **no — external** |
 | `@sentry/react` | 10.69.0 | `dependencies` in all 3 frontends | The browser half of the same | **no — external** |
 | `@apollo/server` | 5.5.1 | `dependencies` in all 9 | GraphQL transport; brings `body-parser`, `qs` and the protobuf telemetry stack | **no — external** |
-| `@socketlabs/email` | 1.4.4 | `dependencies` in 8 services | Transactional email — registration confirmation and password reset. Pins `axios@^0.21.1` | **no — external, and at its latest published version** |
+| `@socketlabs/email` | 1.4.4 | `dependencies` in **1** service — `marketplace-dev-public-resource`; it was 8 when this table was written and story 1 removed the other seven on 2026-08-13 | Transactional email — registration confirmation and password reset. Pins `axios@^0.21.1` | **no — external, and at its latest published version** |
 | `mongoose` | 9.9.1 (9.8.0 in `marketplace-common`) | `dependencies` in 8 services, `devDependencies` in `logout` | The models behind every authenticated read | **no — external** |
 | `mongodb` | 7.5.0 | `dependencies` in 6, transitive in the rest | CSFLE's `ClientEncryption` (ADR-029) | **no — external** |
 | `uuid` | 14.0.1 | `dependencies` in 8 services | Refresh-token family ids | **no — external** |
@@ -382,10 +384,25 @@ it does not run in CI, because there is no CI. It runs in two git hooks, via Qod
 | 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that reports. ⚠️ *"despite the unpublished package (§2)"* dropped 2026-08-27 — the package is published and `yarn audit` runs, so it is a candidate again. Without a reporting gate, every other dependency decision here is unverifiable next month |
 | 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` **Done 2026-08-13** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
 
-**Opens — accepted, as a risk row:** the residual `axios@0.21.4` in `marketplace-dev-public-resource` after story 1
-lands. `@socketlabs/email@1.4.4` is the latest published version and pins `^0.21.1`; the only ways out are a
+✅ **Closed 2026-09-06, by the lever this paragraph called untested.** It read: the residual `axios@0.21.4`
+in `marketplace-dev-public-resource` after story 1 lands is accepted as a risk row, because
+`@socketlabs/email@1.4.4` is the latest published version and pins `^0.21.1`, and the only ways out are a
 `resolutions` override forcing `axios@0.33.0` — untested against the SDK — or replacing the email provider.
-Recorded as **R49**.
+
+The override is now in that repo's `package.json` and tested. `resolutions` is a yarn 1 lever and needs no
+cooperation from `@socketlabs/email`, whose pin is unchanged and irrelevant. `axios` moves `0.21.4 → 0.33.0` and
+`follow-redirects` `1.15.11 → 1.16.0`; the seven packages that appear alongside them — `asynckit`,
+`combined-stream`, `delayed-stream`, `es-set-tostringtag`, `form-data`, `hasown`, `proxy-from-env` — are `0.33`'s
+own dependencies, and **no other resolved version in the lockfile moves**. The npm bulk advisory endpoint returns
+`{}` for all ten. The pinned Trivy container the `pre-push` gate runs exits 1 on the committed lockfile, naming
+CVE-2026-44486, 44487, 44492, 44495 and 44496, and exits 0 on this one — this repo was an active push blocker and
+is not one now. The suite is unchanged at 611 tests and 100% on all four metrics, because nothing here branches on
+the SDK's error shape (`koa-utils` captures it and returns `false`) and every call site is mocked.
+
+⚠️ **The premise that made this an open is gone too.** The paragraph rested on "`yarn install` cannot run here at
+all", which was true of the workspace that produced this report and stopped being true with **ADR-037**: the
+package is published to `registry.npmjs.org` and every consumer resolves it by name. `yarn install` was run to
+produce the lockfile above. **R49 is closed.**
 
 **Corrects R21.** Its evidence column says no audit step was found "beyond lint/coverage/mutation/Qodana". Qodana
 *is* the step, it is configured to do exactly this, and it does not work. The row is rewritten rather than closed.
