@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: thirteen checks that would otherwise be thirteen things somebody
+# script is that leftover, and nothing else: fourteen checks that would otherwise be fourteen things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -528,6 +528,21 @@ for repo in "${DEV_SERVICES[@]}"; do
 done
 
 [ "$MISSING_SEED_BAN" -eq 0 ] && pass "all ${#DEV_SERVICES[@]} services carry the block, its fixture and its test"
+
+echo
+echo '14. Every consumer resolves the marketplace-common paths it names'
+
+# RISK_REGISTER R34 (MC-24). `marketplace-common` reaches a consumer by being published and by nothing
+# else, and each consumer moves its own range deliberately - so a repo lagging the shipped version is
+# the design and not a finding. The bump that was *owed* and forgotten is the finding, and it looks
+# identical from inside the repo that owes it: `yarn.lock` names a version, `node_modules` holds
+# whatever is there, and every gate that repo runs agrees with both.
+#
+# Delegated whole, like §9, because it reads four files per consumer and answers in versions rather
+# than in grep hits.
+if ! node ./scripts/common-consumer-check.mjs; then
+	fail 'a consumer names a marketplace-common path its own lockfile cannot resolve — see above'
+fi
 
 echo
 
