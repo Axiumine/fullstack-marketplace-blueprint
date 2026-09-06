@@ -100,8 +100,8 @@ the report is absent.
 | MC-10 | the seven boundary suites exist at all | `./scripts/audit-check.sh` §5 | workspace root |
 | MC-11 | no `.env`, `.npmrc` or `*.pem` value is staged | `git commit` | the secret guard in every `.githooks/pre-commit` |
 | MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
-| MC-13 | every tracked source file `coverage.include` gates is actually in the report the thresholds were computed over, and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the four that need one — `marketplace-db-setup` and the three apps |
-| MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs` and still call it from `test:cov` | `./scripts/audit-check.sh` §6 | workspace root |
+| MC-13 | every tracked source file under a declared source root is accounted for by the report the thresholds were computed over — gated by `coverage.include` and present in it, **or** matched by no `coverage.include` glob at all — and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the five that need one — `marketplace-db-setup`, `marketplace-services-status` and the three apps |
+| MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs`, still call it from `test:cov`, and carry the current copy of it rather than one predating the R56 extension-drift scan | `./scripts/audit-check.sh` §6 | workspace root |
 | MC-15 | all sixteen repos have `core.hooksPath=.githooks` and a `.githooks/pre-commit` git can execute — the two ways every gate in a repo is silently off | `./scripts/audit-check.sh` §7 | workspace root |
 | MC-16 | all sixteen `.githooks/pre-commit` scan for the same secret rules — every rule a repo carries is one the parent's list has, and every repo carries the credential-flag rule a `mongosh … -password` line needs | `./scripts/audit-check.sh` §8 | workspace root |
 | MC-17 | no object reachable from a branch or a tag, in any of the sixteen object databases, matches a secret rule — the history behind the staged diff, which MC-11 never sees | `./scripts/history-scan.sh`, also run by `./scripts/audit-check.sh` §9 | workspace root, plus `scripts/history-scan-allow.txt` |
@@ -199,6 +199,13 @@ another grep:
   `coverage.exclude` glob. `src/gql/**` exempts whatever is dropped into that directory next, silently,
   with the run still green — which is why every such file is now listed one per line in
   `coverage-exempt.txt`, and why MC-13 compares the two sets rather than trusting either.
+  ⚠️ **And `include` is also the third hole (R56), because it decides both sides of that comparison.**
+  A file whose extension no glob matches is absent from the report *and* absent from the list the
+  report is compared against — a `.js` in an app whose globs say `.ts`, a stylesheet beside it — so
+  nothing goes red for it. MC-13 therefore reads the *roots* of those globs too, everything before a
+  pattern's first wildcard segment, and any tracked file under one of them that no glob matches has to
+  be in `coverage-exempt.txt` by name. That scan found `marketplace-services-status/src/public/app.js`
+  on its first run: 924 lines of browser code that no threshold had ever measured (**R60**).
   **Never read a percentage without the file count beside it.**
 - ⚠️ **Unit tests that mock the model cannot see driver-level failures.** Two live bugs got through
   that way: Mongoose 9 refuses an array update unless `{ updatePipeline: true }` is passed, and Mongoose

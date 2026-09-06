@@ -229,11 +229,17 @@ done
 echo
 echo '6. Every coverage-gated repo carries the file-count gate and actually runs it'
 
-# Two facts, and neither can be established from inside one repo. A repo that ships no
+# Three facts, and none of them can be established from inside one repo. A repo that ships no
 # scripts/coverage-audit.mjs, or ships one that `test:cov` never calls, has a 100% threshold over
 # whatever files the report happens to contain — RISK_REGISTER R07, reopened one repo at a time and
 # green in that repo's own suite the whole while. Whether the gate then passes is the script's own
 # business: it runs on every `yarn test:cov` and fails loudly, so there is nothing to duplicate here.
+#
+# ⚠️ The third fact is that the copy is the CURRENT gate rather than an older one. The script exists
+# in fifteen hand-kept copies, so a repo can sit a revision behind and be indistinguishable from a
+# repo that is current — it is present, it is called, and it passes. `globRoot` is the function that
+# reads a source root out of a glob, which is what R56 added: a copy without it still checks that
+# every gated file reached the report, and is blind to a file no glob ever gated at all.
 MISSING_GATE=0
 
 for repo in "${GATED_REPOS[@]}"; do
@@ -242,6 +248,9 @@ for repo in "${GATED_REPOS[@]}"; do
 		MISSING_GATE=1
 	elif ! grep -q 'coverage-audit\.mjs' "$repo/package.json" 2> /dev/null; then
 		fail "$repo — the gate is present and test:cov never calls it"
+		MISSING_GATE=1
+	elif ! grep -q 'globRoot' "$repo/scripts/coverage-audit.mjs"; then
+		fail "$repo — the gate predates R56: no extension-drift scan, so a file no glob matches is invisible"
 		MISSING_GATE=1
 	fi
 done
