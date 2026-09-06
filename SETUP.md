@@ -71,20 +71,33 @@ nothing has ever been pushed, so every SHA `.gitmodules` pins exists on no remot
 you as a directory. The recipe below is what makes an existing checkout usable.
 
 ```bash
-git submodule update --init --recursive
-git submodule foreach 'git switch main'                      # ⚠️ not optional
+./scripts/bootstrap.sh
+```
+
+That is the whole of it, and it is safe to re-run at any time on a workspace already in use. It does
+five things:
+
+```bash
+git submodule update --init --recursive                      # ⚠️ only for a submodule never initialised
+git submodule foreach 'git switch main'                      # ⚠️ only for one on a detached HEAD
 git config core.hooksPath .githooks                          # parent: no package.json, no prepare hook
-git -C marketplace-nginx config core.hooksPath .githooks     # same reason
+git submodule foreach 'git config core.hooksPath .githooks'  # marketplace-nginx has no prepare hook either
 git config push.recurseSubmodules check
 ```
 
 ⚠️ **`git submodule update` leaves every sub-repo on a detached HEAD.** A commit made there is reachable
-from nothing and disappears at the next checkout, looking entirely normal until it does. Run the
-`foreach` line before touching anything.
+from nothing and disappears at the next checkout, looking entirely normal until it does. That is why the
+script's first two steps are conditional rather than unconditional: it initialises only a submodule that
+has never been initialised, and switches only one that is *already* detached. A submodule sitting on a
+feature branch mid-task is left exactly where it is — running `bootstrap.sh` never costs you work.
 
-None of those three `git config` lines can be committed — local config is per-worktree — so they survive
-exactly as long as the checkout does. Without them the parent runs no gate at all and says nothing about
-it. The other fourteen repos re-arm themselves from `package.json`'s `prepare` script on `yarn install`.
+None of those `git config` lines can be committed — local config is per-worktree — so they survive exactly
+as long as the checkout does. Without them the parent runs no gate at all and says nothing about it, and
+neither does `marketplace-nginx`. The other fourteen repos re-arm themselves from `package.json`'s
+`prepare` script on `yarn install`; those two have no `package.json` and, by decision, never will
+(ADR-025, ADR-030). **`./scripts/audit-check.sh` §7 tells you afterwards whether all sixteen are armed** —
+it is the only way to find out, because in an unarmed repo the hook that would complain is the one that
+is off (RISK_REGISTER R09).
 
 ---
 
@@ -710,7 +723,7 @@ and are gate removals — use them only when you have decided to.
 | a session is never found although login succeeded | `REDIS_KEY` differs between two services. It must be byte-identical in all nine |
 | a bogus key name in `grep -oE '^[A-Za-z_0-9]+' .env` | a wrapped value on the line above it |
 | the migration suite drops the wrong database | it refuses to — `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env` |
-| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `prepare` script), or the hook is not executable — git skips a non-executable hook with only a hint |
+| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `prepare` script), or the hook is not executable — git skips a non-executable hook with only a hint. `./scripts/audit-check.sh` §7 names every repo in either state across all sixteen; `./scripts/bootstrap.sh` fixes the first, `chmod +x` the second |
 
 ---
 

@@ -151,10 +151,23 @@ nothing about it.
 - The fourteen sub-repos that are packages carry `"prepare": "git config core.hooksPath .githooks ||
   true"` in `package.json`, so `yarn install` restores it.
 - ⚠️ **Two repos have no `package.json` and so no such mechanism: this parent workspace and
-  `marketplace-nginx`.** After a fresh clone of either, run `git config core.hooksPath .githooks` by
-  hand — or, in the parent, the secret guard and all of `marketplace-services-status`'s coverage, mutation and
+  `marketplace-nginx`.** After a fresh clone of either, run **`./scripts/bootstrap.sh`** from the
+  workspace root — it arms all sixteen, and is safe to re-run on a workspace already in use — or, in the
+  parent, the secret guard and all of `marketplace-services-status`'s coverage, mutation and
   Qodana gates are off, and in `marketplace-nginx` the edge configuration is pushed without ever being
-  validated.
+  validated. Neither repo will ever grow a `package.json` to host that one line: ADR-025 accepted the
+  residual for the parent, ADR-030 rejected the idea outright for `marketplace-nginx`, and the
+  ADR index lists it among the decisions not re-opened.
+- ⚠️ **One accidental self-heal exists in the parent and is not a mechanism to rely on.**
+  `marketplace-services-status` is a package tracked *by this repo* rather than a submodule of it, so it
+  shares the parent's `.git`; a `yarn install` there runs its `"prepare"` and arms the **parent's**
+  `core.hooksPath`, because a relative `core.hooksPath` resolves against the worktree root the hooks run
+  in. `SETUP.md` §11 marks that install optional and no other setup step reaches it, so a workspace can
+  easily be used for weeks without it ever running.
+- **`./scripts/audit-check.sh` §7 is the only thing that can report an unarmed repo** (MC-15). It cannot
+  be a hook, in any repo, for the reason that makes the risk a risk: the condition it looks for is the
+  condition under which no hook runs. It also catches the second silent form — a `.githooks/pre-commit`
+  without its executable bit, which git skips with a hint and an exit code of zero.
 - `marketplace-nginx` carries both, and both are unlike every other repo's (ADR-030). Its `pre-push`
   gate is `test/run.sh` — `nginx -t` plus the behavioural suite, in a throwaway container — and it
   blocks rather than skips when the container engine, the daemon or the image is missing. Its
