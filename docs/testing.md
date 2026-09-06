@@ -112,7 +112,8 @@ the report is absent.
 | MC-22 | no `del` or `unlink` call takes more than one key, in any of the three spellings — `del(a, b)`, `del([a, b])`, `del(...keys)` — anywhere in the ten repos that hold a Redis client | `yarn lint:check` (blocking) | the `REDIS_ONE_KEY_PER_DEL` block in each of the ten `eslint.config.js`, exercised by `test/restrictedSyntax.test.mts` and its four fixtures, cross-checked by `./scripts/audit-check.sh` §12 |
 | MC-23 | no file under `test/integration/**` in any of the nine services imports a Mongoose model from `marketplace-common` — an integration fixture reaches its collection through the raw driver and through nothing else | `yarn lint:check` (blocking) | the `INTEGRATION_SEED_NO_MODEL` block in each of the nine `eslint.config.js`, exercised by three cases in `test/restrictedSyntax.test.mts` and its two fixtures, cross-checked by `./scripts/audit-check.sh` §13 |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Twelve of its thirteen
+| MC-24 | every repo declaring `@axiumine/marketplace-common` resolves the range it declares, holds the version its lockfile names, names a version that repo says it released, and imports no path that version does not export — a consumer lagging the shipped version is allowed and is reported, not failed | `node ./scripts/common-consumer-check.mjs` (blocking, and run by `./scripts/audit-check.sh` §14) | twelve `package.json`/`yarn.lock`/`node_modules` triples against `marketplace-common`'s own `CHANGELOG.md` |
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Thirteen of its fourteen
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
 never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
