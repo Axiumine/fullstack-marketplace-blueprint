@@ -257,9 +257,15 @@ longer blocks**: this paragraph said it did, because that project did not exist 
 hook still fails closed if the token goes missing — it prints the fixing command and exits 1, by design.
 And this repo has **no
 `package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
-fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one restores
-it never. After a fresh clone of this directory, run the line by hand or all three gates and the secret
-guard are simply off.
+fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one has no
+such install to hang it off. ⚠️ **One path does restore it and is worth knowing rather than relying on**:
+`marketplace-services-status` is a package *inside this repo* rather than a submodule of it, so it shares
+this `.git`, and a `yarn install` there arms **this** repo's `core.hooksPath` as a side effect — but
+`SETUP.md` §11 marks that step optional and nothing else in the setup reaches it. After a fresh clone of
+this directory, run `./scripts/bootstrap.sh` — it arms all sixteen repos and is safe to re-run — or all
+three gates and the secret guard are simply off. `./scripts/audit-check.sh` §7 is how you find out which
+repos are in that state, and it has to be a check rather than a gate: in an unarmed repo, the hook that
+would complain is the one that is off.
 
 Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
 linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict

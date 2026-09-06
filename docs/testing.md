@@ -102,11 +102,20 @@ the report is absent.
 | MC-12 | no dependency with a known advisory, no vulnerable transitive | `git push` | `trivy fs` in `aquasec/trivy:0.70.0`, HIGH + CRITICAL, production tree only — the `pre-push` hook of the fourteen repos with a `yarn.lock` plus the parent's, per [`README.md`](../README.md). ⚠️ **Qodana is not part of this row**: the inspection every `qodana.yaml` arms queries no advisory feed and reports zero everywhere |
 | MC-13 | every tracked source file `coverage.include` gates is actually in the report the thresholds were computed over, and every file that is not is named one per line with the reason | `yarn test:cov` | `scripts/coverage-audit.mjs` in all fifteen gated repos, plus `coverage-exempt.txt` in the four that need one — `marketplace-db-setup` and the three apps |
 | MC-14 | all fifteen gated packages still carry `scripts/coverage-audit.mjs` and still call it from `test:cov` | `./scripts/audit-check.sh` §6 | workspace root |
+| MC-15 | all sixteen repos have `core.hooksPath=.githooks` and a `.githooks/pre-commit` git can execute — the two ways every gate in a repo is silently off | `./scripts/audit-check.sh` §7 | workspace root |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Five of its six
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Six of its seven
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
-one, a boundary suite absent from one, a coverage gate quietly dropped from one — and a vitest suite in
-any single repo is structurally unable to see them. It reads only: no writes, no installs, no containers.
+one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
+never armed — and a vitest suite in any single repo is structurally unable to see them. It reads only: no
+writes, no installs, no containers.
+
+⚠️ **MC-15 is the one check that could not be a gate even in principle.** The condition it looks for —
+`core.hooksPath` unset, or a `.githooks/pre-commit` without its executable bit — is exactly the condition
+under which no hook in that repo runs, so a hook can never be the thing that reports it. Git refuses to
+let a repository arm its own hooks from tracked content, deliberately: a clone would then execute a
+stranger's script. `./scripts/bootstrap.sh` is the one command that arms all sixteen after a fresh
+checkout, and MC-15 is how you find out afterwards whether anybody ran it (RISK_REGISTER R09).
 
 ### Still manual, and why
 

@@ -7,9 +7,9 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: six checks that would otherwise be six things somebody has
-# to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this script
-# exists to stop repeating.
+# script is that leftover, and nothing else: seven checks that would otherwise be seven things somebody
+# has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
+# script exists to stop repeating.
 #
 # It reads. It never writes, never installs, never starts a container, and needs no service running.
 #
@@ -196,6 +196,52 @@ for repo in "${GATED_REPOS[@]}"; do
 done
 
 [ "$MISSING_GATE" -eq 0 ] && pass "all ${#GATED_REPOS[@]} gated packages"
+
+echo
+echo '7. Every repo has its hooks armed, and the hook they point at can actually run'
+
+# The one check here that cannot be a gate, and has to be a check for that reason.
+#
+# `core.hooksPath` is local git config. It is not tracked, it does not travel with a clone, and git
+# will never set it from tracked content — a repository that could arm its own hooks would execute a
+# stranger's script on `git clone`. So a fresh checkout of any of the sixteen starts with every gate
+# off and nothing saying so (RISK_REGISTER R09), and the hook that would notice is the one that is
+# off. Fourteen repos heal on `yarn install` through `"prepare"`; this workspace and
+# `marketplace-nginx` have no `package.json` and never will (ADR-025, ADR-030 option D), so for those
+# two the value is typed by hand — `./scripts/bootstrap.sh` types it.
+#
+# The executable bit is the second half of the same silent failure: git skips a hook it cannot
+# execute with a hint on stderr and an exit code of zero, which is indistinguishable from a hook that
+# ran and was happy.
+UNARMED=0
+
+check_armed() {
+	local label="$1" dir="$2"
+	local hooks
+
+	hooks="$(git -C "$dir" config --get core.hooksPath)"
+
+	if [ "$hooks" != '.githooks' ]; then
+		fail "$label — core.hooksPath is '${hooks:-unset}', so every gate in this repo is off. Fix: ./scripts/bootstrap.sh"
+		UNARMED=1
+
+		return
+	fi
+
+	if [ ! -x "$dir/.githooks/pre-commit" ]; then
+		fail "$label — .githooks/pre-commit is not executable, and git skips it with a hint and exit 0. Fix: chmod +x $dir/.githooks/*"
+		UNARMED=1
+	fi
+}
+
+check_armed 'parent' .
+
+while IFS= read -r path; do
+	[ -n "$path" ] || continue
+	check_armed "$path" "$path"
+done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
+
+[ "$UNARMED" -eq 0 ] && pass 'all 16 repos armed, every .githooks/pre-commit executable'
 
 echo
 
