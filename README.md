@@ -128,9 +128,12 @@ independent places**, each able to block on its own, so bypassing one still leav
 |static scan|`qodana.yaml` → `failureConditions.testCoverageThresholds` (`total`/`fresh` = 100)|`./qodana.sh` fails the scan|
 |git hook|`.githooks/pre-push`|the push is refused|
 
-All three read the same run — vitest, v8 provider, `all: true` over `src/**/*.mts`, lcov into
-`coverage/lcov.info`. Redundancy is the point: skip the hook and Qodana still fails; never run
-Qodana and the hook still fails.
+All three read the same run — vitest, v8 provider, `coverage.include` over `src/**/*.mts`,
+lcov into `coverage/lcov.info`. That `include` is load-bearing: without it the v8 provider
+reports only the files a test imported, so a source file no suite loads is absent from the
+report rather than listed at 0% and the 100% threshold passes straight over it
+([`RISK_REGISTER`](./docs/devprotocol/phase5/RISK_REGISTER.md) R07). Redundancy is the point:
+skip the hook and Qodana still fails; never run Qodana and the hook still fails.
 
 Verified present in all seven services on 2026-07-26: `thresholds` in every `vitest.config.mts`,
 `total: 100` / `fresh: 100` in every `qodana.yaml`, and an **executable** `.githooks/pre-push` in
