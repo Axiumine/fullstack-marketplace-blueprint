@@ -35,6 +35,10 @@
 #              decided by which shell started it (ADR-053, `docs/workflow.md` §Environment files).
 #   MISSING    A holder that neither the layer nor its own file answers. That service does not boot.
 #
+# One value is then checked for its spelling rather than its agreement, and it is the only one on the
+# platform whose spelling decides anything: `REDIS_TLS` is read as `=== 'true'`, so `TRUE` is off and
+# says nothing about it (**R45**). Neither `true` nor `false` is refused by name.
+#
 # ⚠️ **Quoting is stripped before hashing, and it has to be.** `'abc'` and `abc` are one value to
 # dotenv and to direnv, so a sweep that hashed the raw text would report a disagreement between two
 # files that agree, and the next person would "fix" the file that was right. An empty value counts as
@@ -62,6 +66,7 @@ PROJECTS=(BEs/dev/*/ BEs/marketplace-common BEs/marketplace-db-setup marketplace
 LAYER='.env.shared'
 FAILED=0
 FILES_SEEN=0
+TLS_MISSPELT=0
 
 # The value a file answers for one key, quotes stripped, or nothing at all when the file is absent,
 # the key unnamed, or the value empty. Last assignment wins, which is what both readers do.
@@ -170,9 +175,45 @@ for key in "${SHARED_KEYS[@]}"; do
 	done
 done
 
+# ── One flag, whose exact spelling decides whether anything is encrypted ─────────────────────────────
+#
+# ⚠️ `REDIS_TLS` is read as `process.env.REDIS_TLS === 'true'`, and that exactness is deliberate: a
+# truthiness test would hand TLS to every deployment that wrote `false`, and both `docs/architecture.md`
+# and **R45** state the accepted spelling. The cost of it is a silent one — `TRUE`, `True`, `1`, `yes`
+# and `on` are all *off*, with no warning at boot, so a deployment that believes it encrypted the Redis
+# leg is the one shape in which R45 looks closed while being open. Nothing else on this platform looks
+# at that value, because the code that reads it lives in `@axiumine/koa-utils` rather than here.
+#
+# `true` and `false` are the two documented spellings and both pass; unset and empty are the off state
+# and pass; anything else is refused by name, on the grounds that it can only be someone trying to say
+# one of the two and missing. The value is never printed, like everything else here.
+TLS_FLAG='REDIS_TLS'
+tls_misspelt=()
+
+for dir in "${PROJECTS[@]}" ROOT_LAYER; do
+	[ "$dir" = 'ROOT_LAYER' ] && file=$LAYER || file="${dir%/}/.env"
+	flag=$(value_of "$file" "$TLS_FLAG") || continue
+	case $flag in
+		true | false) ;;
+		*) tls_misspelt+=("$file") ;;
+	esac
+done
+
+if [ "${#tls_misspelt[@]}" -gt 0 ]; then
+	for file in "${tls_misspelt[@]}"; do
+		printf '  ✗ %-14s %s sets it to neither `true` nor `false` — that reader treats it as off, silently\n' \
+			"$TLS_FLAG" "$file"
+	done
+	FAILED=1
+	TLS_MISSPELT=1
+fi
+
 printf '\n'
 
-if [ "$FILES_SEEN" -eq 0 ]; then
+# ⚠️ The fresh-clone exit is deliberately not conditioned on FAILED: on a clone with no real file, every
+# holder is MISSING and that is the state this branch exists to forgive. A misspelt flag is the one thing
+# it must not forgive, because writing REDIS_TLS at all means someone has provisioned something.
+if [ "$FILES_SEEN" -eq 0 ] && [ "$TLS_MISSPELT" -eq 0 ]; then
 	printf 'No real environment file exists in this workspace yet, so nothing can disagree.\n'
 	printf 'Provision first — SETUP.md §5 — then run this again.\n\n'
 	exit 0
@@ -184,6 +225,7 @@ if [ "$FAILED" -eq 0 ]; then
 	exit 0
 fi
 
-printf 'A shared value disagrees with itself. No suite catches this and no service says so at boot,\n'
-printf 'apart from the two KEYGRIP paths — see docs/PRODUCTION_HARDENING.md §1-3.\n\n'
+printf 'A shared value disagrees with itself, or a flag is spelt a way its reader does not accept.\n'
+printf 'No suite catches either and no service says so at boot, apart from the two KEYGRIP paths —\n'
+printf 'see docs/PRODUCTION_HARDENING.md §1-3 for the first and R45 for the second.\n\n'
 exit 1

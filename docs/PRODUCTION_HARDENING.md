@@ -193,6 +193,9 @@ Not a substitute for reading the sections above; a way to confirm you did.
 - [ ] Every service port is closed to everything but the edge (`ADR-039`). Nothing in these repos narrows
       them — the services bind the wildcard address and the vhosts proxy to them.
 - [ ] You have decided, explicitly, whether `REDIS_TLS` is set — and written down why, if it is not.
+      If it is set, it is spelt exactly `true`: the read is `=== 'true'` and every near miss is off
+      without saying so. `./scripts/env-fingerprint-sweep.sh` refuses anything but `true` or `false`,
+      which is as close as this workspace can get to checking a leg it does not provision (**R45**).
 - [ ] `./scripts/env-fingerprint-sweep.sh` exits 0 on every host that runs any of the twelve processes, and
       the six-hex prints match between them. It is one command and it is the only thing here that is.
 - [ ] You have read **R50** and **R39** and know which residuals you are carrying.

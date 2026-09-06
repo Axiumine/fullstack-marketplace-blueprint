@@ -158,10 +158,48 @@ else
 	cat "$FIXTURES/out.txt"
 fi
 
+# 9. REDIS_TLS spelt a way its reader does not accept. `TRUE` is off and announces nothing, which is
+#    the shape in which R45 looks closed and is not — so it is refused by name, and the value it was
+#    given stays out of the report like every other value here.
+#    Every holder is provisioned and agreeing, so the flag is the only thing that can make this red.
+build
+for dir in BEs/dev/svc-one BEs/dev/svc-two BEs/marketplace-db-setup; do
+	printf 'REDIS_KEY=not-a-real-secret-AAA\n' > "$(real "$FIXTURES/$dir" env)"
+done
+printf 'REDIS_TLS=TRUE\n' >> "$(real "$FIXTURES/BEs/dev/svc-one" env)"
+status=$(run)
+if [ "$status" = '1' ] &&
+	grep -q 'REDIS_TLS' "$FIXTURES/out.txt" &&
+	grep -q 'svc-one' "$FIXTURES/out.txt" &&
+	! grep -q 'TRUE' "$FIXTURES/out.txt"; then
+	pass 'a REDIS_TLS the reader would silently treat as off fails, naming the file and not the value'
+else
+	fail "a misspelt REDIS_TLS did not fail, or printed what it was set to (exit $status)"
+	cat "$FIXTURES/out.txt"
+fi
+
+# 10. Both documented spellings pass. `false` matters more than `true` here: it is what a deployment
+#     that decided against TLS writes, and refusing it would push everyone back to leaving it unset.
+for spelling in true false; do
+	build
+	for dir in BEs/dev/svc-one BEs/dev/svc-two BEs/marketplace-db-setup; do
+		printf 'REDIS_KEY=not-a-real-secret-AAA\n' > "$(real "$FIXTURES/$dir" env)"
+	done
+	printf 'REDIS_TLS=%s\n' "$spelling" >> "$(real "$FIXTURES/BEs/dev/svc-one" env)"
+	status=$(run)
+	if [ "$status" = '0' ] && ! grep -q 'REDIS_TLS' "$FIXTURES/out.txt"; then
+		pass "REDIS_TLS=$spelling passes without comment"
+	else
+		fail "REDIS_TLS=$spelling was refused or remarked on (exit $status)"
+		cat "$FIXTURES/out.txt"
+	fi
+done
+
 printf '\n'
 if [ "$FAILED" -eq 0 ]; then
-	printf '%d cases, all green: the sweep fires on drift, on a shadow and on a gap, and stays quiet\n' "$PASSED"
-	printf 'on quoting, on an agreeing copy and on a clone nobody has provisioned yet.\n\n'
+	printf '%d cases, all green: the sweep fires on drift, on a shadow, on a gap and on a REDIS_TLS its\n' "$PASSED"
+	printf 'reader would ignore, and stays quiet on quoting, on an agreeing copy, on both spellings of\n'
+	printf 'that flag, and on a clone nobody has provisioned yet.\n\n'
 	exit 0
 fi
 

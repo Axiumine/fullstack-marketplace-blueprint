@@ -358,6 +358,11 @@ no TLS listener, so the flag would turn a working platform into nine services th
 Unset — which is what every template ships, the variable appearing in none of them — is the off state,
 and it is not in any `REQUIRED_ENV_VARS` because `checkRequiredEnv` rejects an empty value. It exists
 for a deployment that terminates TLS on its Redis; the leg being cleartext here is **R45**.
+⚠️ **`TRUE` is not `true`, and nothing at boot says so** — the read is `=== 'true'`, so a near-miss
+spelling is off and silent, which is the one shape in which R45 looks closed and is not.
+`./scripts/env-fingerprint-sweep.sh` refuses any spelling other than those two (2026-09-06, MC-26),
+naming the file and not the value; it is the only check anywhere that looks at this flag, because the
+code that reads it lives in `@axiumine/koa-utils` rather than in these sixteen repos.
 
 **`BEs/marketplace-db-setup`** assembles its URL from pieces and injects the credentials itself, so its
 connection string carries no user:
