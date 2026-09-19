@@ -3,7 +3,9 @@
 Multi-tenant marketplace: customers order from many independent shops, each shop run by its owner, the
 platform vendor operating it. **This directory is the parent workspace of sixteen independent git
 repos — work from here, not from inside one repo.** The fifteen sub-repos are tracked here as submodules
-(ADR-031): the parent pins a commit per sub-repo and nothing more.
+(ADR-031): the parent pins a commit per sub-repo and nothing more. ⚠️ **`marketplace-services-status` is
+not one of the fifteen** — it is a plain directory of the parent repo, gated by the parent's own hooks
+(ADR-025, which considered giving it a repo and rejected it).
 
 Three human roles — `Admin`, `ShopOwner`, `User` — each with its own collection and service pair.
 `Company` (the shop) and `Item`/`ItemCategory` complete the six collections. Full detail, including the
@@ -54,11 +56,18 @@ read it before proposing a refactor of anything below.
 - ⚠️ **`git submodule update` leaves sub-repos on a detached HEAD.** Run
   `git submodule foreach 'git switch main'` before editing anything — a commit made there is reachable
   from nothing and looks normal until the next checkout drops it.
+- ⚠️ **`marketplace-services-status` is a directory of the parent repo, not a sub-repo** (ADR-025). It has
+  no `.git` of its own, so `git -C marketplace-services-status switch -c …` silently branches **the
+  parent**, a commit made "in it" is a parent commit, and `git submodule foreach` skips it entirely. Its
+  changes ride in the parent's commit — there is no N+1 pointer bump for it. Its gates are the parent's
+  `.githooks/pre-commit` (scoped to staged non-`*.md` paths under it) and `pre-push` (unscoped:
+  `test:cov` → `test:mutation` → Qodana).
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on all
   four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a test.
-- ⚠️ **Never start the mutation gate by hand**, in any of the fifteen repos that carry a
-  `stryker.config.*`. `yarn test:mutation` is hook-only — `pre-push` calls it, nothing else does. To
-  reproduce a survivor, apply the mutant by hand in the source and run `yarn test`.
+- ⚠️ **Never start the mutation gate by hand**, in any of the fifteen packages that carry a
+  `stryker.config.*` — fourteen sub-repos (every one but `marketplace-nginx`, which ships no JavaScript)
+  plus `marketplace-services-status`. `yarn test:mutation` is hook-only — `pre-push` calls it, nothing
+  else does. To reproduce a survivor, apply the mutant by hand in the source and run `yarn test`.
 - **Never read, echo or commit a secret-bearing file** (`.env`, `.npmrc`, `*.pem`, …). `env` and `npmrc`
   without the dot are committed templates and safe. Print key names only:
   `grep -oE '^[A-Za-z_0-9]+' .env`. See [`.claude/SECRETS.md`](./.claude/SECRETS.md).

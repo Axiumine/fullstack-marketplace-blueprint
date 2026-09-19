@@ -121,12 +121,32 @@ it('drops a journal it has nowhere to show', () => {
 it('has nowhere to report that the logs could not be fetched either', () => {
   ws().readyState = CLOSING;
 
+  // "Nowhere to report" has to mean the page swallows this silently, not that it
+  // throws while reaching for a container/content element that is not there and
+  // the throw merely lands nowhere a `.notification`/`.logs-error-message` count
+  // would show it: notify() and showLogsError() are both reached with their DOM
+  // anchor missing, and a mutant that drops either "element missing, give up"
+  // guard turns that miss into an uncaught exception instead of a no-op — which
+  // no assertion below would catch on its own, since it fires from inside the
+  // delegated click listener and never reaches this test as a thrown error.
+  const uncaught: unknown[] = [];
+  const onError = (event: ErrorEvent): void => {
+    uncaught.push(event.error);
+    event.preventDefault();
+  };
+  window.addEventListener('error', onError);
+
   click(actionButton({ action: 'logs', scope: 'service', target: 'api' }));
 
+  window.removeEventListener('error', onError);
+  // Restored before asserting, not after — so a failing assertion below still
+  // leaves the socket OPEN for whichever test runs next, exactly as every other
+  // test in this file expects to find it.
+  ws().readyState = OPEN;
+
+  expect(uncaught).toStrictEqual([]);
   expect(document.querySelectorAll('.notification')).toHaveLength(0);
   expect(document.querySelectorAll('.logs-error-message')).toHaveLength(0);
-
-  ws().readyState = OPEN;
 });
 
 it('sends an action for a target it has no card, group or toolbar for', () => {
