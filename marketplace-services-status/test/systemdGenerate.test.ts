@@ -83,6 +83,12 @@ interface BootOptions {
   monitor?: unknown;
   bins?: string[];
   argv?: string[];
+  /**
+   * Overrides `process.argv` outright instead of appending `argv` after the usual
+   * `['/usr/bin/node', '.../generate.mjs']` prefix — for the one test that has to control what
+   * lands at index 0 and 1, where the normal helper never would.
+   */
+  rawArgv?: string[];
 }
 
 const realArgv = process.argv;
@@ -109,7 +115,8 @@ const boot = async ({
   packages = DEFAULT_PACKAGES,
   monitor = DEFAULT_MONITOR,
   bins = [],
-  argv = []
+  argv = [],
+  rawArgv
 }: BootOptions = {}): Promise<void> => {
   const files = new Map<string, string>();
 
@@ -133,7 +140,7 @@ const boot = async ({
   });
   fs.existsSync.mockImplementation((p: unknown) => bins.includes(String(p)));
 
-  process.argv = ['/usr/bin/node', path.join(systemdDir, 'generate.mjs'), ...argv];
+  process.argv = rawArgv ?? ['/usr/bin/node', path.join(systemdDir, 'generate.mjs'), ...argv];
 
   vi.resetModules();
   await import('../systemd/generate.mjs');
@@ -219,6 +226,17 @@ describe('the unit generator', () => {
     expect(fs.mkdirSync).toHaveBeenCalledWith(defaultOutDir, { recursive: true });
   });
 
+  // main() must hand parseArgs() only the caller-supplied arguments — process.argv[0] and [1]
+  // are always the node binary and this script's own path, never something a user typed. Proven
+  // here with a two-element process.argv standing in for exactly that pair: if main() forgot to
+  // slice them off, this '--out' would be seen as index 0 of the args and 'nonsense' taken as its
+  // value, moving outDir away from the default.
+  it('never mistakes the interpreter path or this script path for a --out flag', async () => {
+    await boot({ rawArgv: ['--out', 'nonsense'] });
+
+    expect(fs.mkdirSync).toHaveBeenCalledWith(defaultOutDir, { recursive: true });
+  });
+
   // Falling back to the default output directory here would write thirteen units somewhere the
   // caller did not ask for, which `install.sh` would then install.
   it('refuses --out with nothing after it rather than falling back to the default', async () => {
@@ -226,6 +244,142 @@ describe('the unit generator', () => {
 
     expect(fs.mkdirSync).not.toHaveBeenCalled();
     expect(fs.writeFileSync).not.toHaveBeenCalled();
+  });
+});
+
+// Every read and write here goes through Buffer<->string once, at a boundary humans then read
+// (a unit file, a diagnostic in a thrown Error). Dropping the encoding argument would still run —
+// readFileSync/writeFileSync default to a Buffer/binary — so only the exact call arguments prove
+// 'utf8' is actually there, not just that some content came back.
+describe('the encoding every read and write asks for', () => {
+  it('reads services.json and a monitored repo package.json as utf8, not binary', async () => {
+    await boot();
+
+    expect(fs.readFileSync).toHaveBeenCalledWith(path.join(repoDir, 'services.json'), 'utf8');
+    expect(fs.readFileSync).toHaveBeenCalledWith(
+      path.join(workspaceRoot, 'BEs/dev/api', 'package.json'),
+      'utf8'
+    );
+  });
+
+  it('writes every generated unit file as utf8, not binary', async () => {
+    await boot();
+
+    expect(fs.writeFileSync).toHaveBeenCalledWith(
+      path.join(defaultOutDir, 'api.service'),
+      expect.any(String),
+      'utf8'
+    );
+    expect(fs.writeFileSync).toHaveBeenCalledWith(
+      path.join(defaultOutDir, 'marketplace.target'),
+      expect.any(String),
+      'utf8'
+    );
+    expect(fs.writeFileSync).toHaveBeenCalledWith(
+      path.join(defaultOutDir, 'marketplace-status.service'),
+      expect.any(String),
+      'utf8'
+    );
+  });
+});
+
+// These three assert the full, exact text of one unit of each kind — banner, every comment, every
+// blank separator line — because `.toContain()` on a substring cannot tell a line that is still
+// there from one a mutant blanked to `''`: the surrounding text it would still `.toContain()` never
+// moves. Only whole-file equality notices a missing or replaced line.
+describe('the exact content of a generated unit file', () => {
+  it('writes the full text of a monitored service unit, comments included', async () => {
+    await boot();
+
+    const repoAbs = path.join(workspaceRoot, 'BEs/dev/api');
+
+    expect(unit('api.service')).toBe(
+      BANNER +
+        '\n' +
+        '# No [Install] section: `systemctl --user enable` refuses on a unit with no [Install] —\n' +
+        '# the unit shows as \'static\', which is what makes "never start at boot" structural rather\n' +
+        '# than a convention someone has to remember to follow.\n' +
+        '[Unit]\n' +
+        'Description=API (Core) — The API service\n' +
+        `Documentation=file://${repoAbs}\n` +
+        'PartOf=marketplace.target\n' +
+        '\n' +
+        '[Service]\n' +
+        'Type=simple\n' +
+        `WorkingDirectory=${repoAbs}\n` +
+        'Environment=PATH=/home/tester/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin\n' +
+        'Environment=NODE_ENV=development\n' +
+        '# from BEs/dev/api/package.json scripts.dev: vite\n' +
+        "ExecStart=/bin/sh -c 'exec vite'\n" +
+        "# Restart=no: a crashed dev server must stay 'failed' so the status page shows it broken;\n" +
+        '# an auto-restart loop would hide the error and spam the journal instead.\n' +
+        'Restart=no\n' +
+        'KillMode=control-group\n' +
+        'KillSignal=SIGTERM\n' +
+        'SuccessExitStatus=143 15 SIGTERM\n' +
+        'TimeoutStopSec=20\n' +
+        'SyslogIdentifier=api\n' +
+        'StandardOutput=journal\n' +
+        'StandardError=journal\n'
+    );
+  });
+
+  it('writes the full text of the target unit, comments included', async () => {
+    await boot({ config: TWO_GROUPS, packages: TWO_GROUPS_PACKAGES });
+
+    expect(unit('marketplace.target')).toBe(
+      BANNER +
+        '\n' +
+        '# No [Install] section, matching every unit it groups: the target itself must not be\n' +
+        '# enable-able at boot either — "start only from the control page" holds platform-wide.\n' +
+        '[Unit]\n' +
+        'Description=Marketplace platform — all 3 monitored dev services\n' +
+        'Wants=api.service\n' +
+        'Wants=web.service\n' +
+        'Wants=gw.service\n' +
+        'After=api.service\n' +
+        'After=web.service\n' +
+        'After=gw.service\n'
+    );
+  });
+
+  it('writes the full text of the monitor unit, comments included', async () => {
+    await boot();
+
+    expect(unit('marketplace-status.service')).toBe(
+      BANNER +
+        '\n' +
+        '# The ONE generated unit that carries [Install]: the control page has to be reachable\n' +
+        '# to start anything else, so it alone may be enabled at boot. install.sh installs this\n' +
+        '# file but does not enable it — enabling is a separate, explicit step (see README.md),\n' +
+        '# and enabling it does not enable any unit it monitors (those still have no [Install]).\n' +
+        '[Unit]\n' +
+        'Description=Marketplace services status monitor — the control page itself\n' +
+        `Documentation=file://${repoDir}\n` +
+        '\n' +
+        '[Service]\n' +
+        'Type=simple\n' +
+        `WorkingDirectory=${repoDir}\n` +
+        'Environment=PATH=/home/tester/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin\n' +
+        'Environment=NODE_ENV=production\n' +
+        '# from marketplace-services-status/package.json scripts.start: node dist/server.js\n' +
+        "ExecStart=/bin/sh -c 'exec node dist/server.js'\n" +
+        '# Restart=on-failure, unlike the monitored units: this IS the control plane — nothing\n' +
+        '# else can restart it if it dies, so (unlike a crashed dev server, which must stay\n' +
+        "# 'failed' for the page to show it) it should recover on its own.\n" +
+        'Restart=on-failure\n' +
+        'RestartSec=2\n' +
+        'KillMode=control-group\n' +
+        'KillSignal=SIGTERM\n' +
+        'SuccessExitStatus=143 15 SIGTERM\n' +
+        'TimeoutStopSec=20\n' +
+        'SyslogIdentifier=marketplace-status\n' +
+        'StandardOutput=journal\n' +
+        'StandardError=journal\n' +
+        '\n' +
+        '[Install]\n' +
+        'WantedBy=default.target\n'
+    );
   });
 });
 
@@ -348,6 +502,16 @@ describe('the ExecStart command', () => {
 
     expect(execLine(unit('api.service'))).toBe("ExecStart=/bin/sh -c 'exec tsc'");
   });
+
+  // A segment is split on whitespace to find its binary (parts[0]) and rejoined with a single
+  // space. Splitting on a run of whitespace as one delimiter, rather than one whitespace character
+  // at a time, is what stops a double space (or a stray tab) from leaving an empty '' element that
+  // rejoining would turn back into extra, meaningless whitespace in the final command.
+  it('collapses a run of whitespace inside a segment to one space', async () => {
+    await boot({ packages: { 'BEs/dev/api': { scripts: { dev: 'vite  --host' } } } });
+
+    expect(execLine(unit('api.service'))).toBe("ExecStart=/bin/sh -c 'exec vite --host'");
+  });
 });
 
 describe('the scripts it refuses to translate', () => {
@@ -370,12 +534,24 @@ describe('the scripts it refuses to translate', () => {
   });
 
   // Guessing at a shell construct this generator does not parse would produce a unit that runs
-  // something other than what the repo's script says, and nothing downstream would notice.
-  it('refuses shell syntax it does not parse, quoting the script back', async () => {
-    await expect(
-      boot({ packages: { 'BEs/dev/api': { scripts: { dev: 'vite || true' } } } })
-    ).rejects.toThrow(
-      'api: the "dev" script uses shell syntax this generator does not parse ("vite || true").'
+  // something other than what the repo's script says, and nothing downstream would notice — so the
+  // message has to say that, in full, not just name the script. `.rejects.toThrow(string)` only
+  // checks a substring, which would still pass with the explanation blanked out, so the exact
+  // message is asserted directly off the caught error instead.
+  it('refuses shell syntax it does not parse, quoting the script back and explaining why', async () => {
+    let caught: unknown;
+
+    try {
+      await boot({ packages: { 'BEs/dev/api': { scripts: { dev: 'vite || true' } } } });
+    } catch (err) {
+      caught = err;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toBe(
+      'api: the "dev" script uses shell syntax this generator does not parse ("vite || true"). ' +
+        'Simplify the script, or teach buildExecCommand about it — guessing here would silently ' +
+        'produce a unit that runs the wrong thing.'
     );
   });
 
@@ -445,6 +621,16 @@ describe('the monitor unit', () => {
     );
     expect(content).toContain(
       '# from marketplace-services-status/package.json scripts.start: tsc && node dist/server.js'
+    );
+  });
+
+  // The monitor unit is built through the same buildExecCommand() as every other unit, passed a
+  // synthetic { id: 'marketplace-status', script: 'start' } rather than a services.json entry. If
+  // this repo's own package.json ever lost its start script, the error has to name it by that id —
+  // an id no services.json service ever carries — not by some other repo's id.
+  it("names itself 'marketplace-status', not a service id, when its own start script is missing", async () => {
+    await expect(boot({ monitor: { scripts: {} } })).rejects.toThrow(
+      `marketplace-status: no "start" script in ${path.join(repoDir, 'package.json')}.`
     );
   });
 });

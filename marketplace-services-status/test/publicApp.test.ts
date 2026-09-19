@@ -137,6 +137,10 @@ it('refuses an all-scope action before a snapshot has named the target', () => {
   click(byId('startAllBtn'));
 
   expect(notifications()).toContain('Not connected yet.');
+  expect(document.querySelector('.notification.notification-error')).not.toBeNull();
+  expect(document.querySelector('.notification-error .notification-icon i')?.className).toBe(
+    'fas fa-circle-exclamation'
+  );
   expect(ws().sent).toHaveLength(0);
 });
 
@@ -351,6 +355,39 @@ it('sends the all-scope action against the snapshot target', () => {
 
   expect(byId('toolbar').classList.contains('is-pending')).toBe(false);
   expect((byId('startAllBtn') as HTMLButtonElement).disabled).toBe(false);
+
+  // The other two toolbar buttons are wired from the same array-of-pairs as 'restart' above — each
+  // pair's own action string has to reach sendAction, not just whichever one this test happened to
+  // click first.
+  click(byId('startAllBtn'));
+  expect(ws().lastFrame()).toStrictEqual({
+    type: 'action',
+    scope: 'all',
+    targetId: 'marketplace.target',
+    action: 'start'
+  });
+  ws().receive({
+    type: 'action-result',
+    ok: true,
+    scope: 'all',
+    targetId: 'marketplace.target',
+    message: 'Started every unit'
+  });
+
+  click(byId('stopAllBtn'));
+  expect(ws().lastFrame()).toStrictEqual({
+    type: 'action',
+    scope: 'all',
+    targetId: 'marketplace.target',
+    action: 'stop'
+  });
+  ws().receive({
+    type: 'action-result',
+    ok: true,
+    scope: 'all',
+    targetId: 'marketplace.target',
+    message: 'Stopped every unit'
+  });
 });
 
 it('clears an all-scope pending flag on the next states tick, result or no result', () => {
@@ -557,6 +594,12 @@ it('backs off further on every reconnect, and never past the ceiling', () => {
 });
 
 it('reflects an error frame as a disconnection, and lets the close that follows do the work', () => {
+  // Self-contained on purpose: force the "connected" starting point in this same test rather than
+  // trusting whatever a sibling test left behind, so the assertion below proves onerror actually
+  // moved the status rather than finding it already at 'Disconnected' by coincidence.
+  ws().open();
+  expect(byId('connectionWord').textContent).toBe('Connected');
+
   ws().onerror?.();
 
   expect(byId('connectionWord').textContent).toBe('Disconnected');
