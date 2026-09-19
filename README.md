@@ -1,5 +1,13 @@
 # Marketplace — workspace root
 
+> [!WARNING]
+> **Work in progress — this software is not tested yet.** It has never run outside a developer
+> workstation: no real deployment, no load test, no security review, no upgrade path. Parts of the
+> platform are deliberately unbuilt, and anything here — schemas, endpoints, configuration, file
+> layout — can still change without notice. Whatever automated gates this repo runs, treat the result
+> as unproven: do not point it at real users or real data.
+> Read [`docs/PRODUCTION_HARDENING.md`](./docs/PRODUCTION_HARDENING.md) before taking any of it further.
+
 Multi-tenant marketplace — many independent shops, one platform. The catalogue is domain-neutral:
 nothing in `item` / `itemCategory` presumes what is sold, and no vocabulary that presumes a product
 type belongs in it. Everything is named in English — identifiers, collections, routes, UI text,

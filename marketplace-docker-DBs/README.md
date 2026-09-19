@@ -1,5 +1,13 @@
 # marketplace-docker-DBs — the local databases, and how to run the platform on them
 
+> [!WARNING]
+> **Work in progress — this software is not tested yet.** It has never run outside a developer
+> workstation: no real deployment, no load test, no security review, no upgrade path. Parts of the
+> platform are deliberately unbuilt, and anything here — schemas, endpoints, configuration, file
+> layout — can still change without notice. Whatever automated gates this repo runs, treat the result
+> as unproven: do not point it at real users or real data.
+> Read [`docs/PRODUCTION_HARDENING.md`](../docs/PRODUCTION_HARDENING.md) before taking any of it further.
+
 Part of the **Marketplace** project — <https://github.com/Axiumine/fullstack-marketplace-blueprint>.
 
 Marketplace talks to an **external MongoDB replica set** (`rs0`, members `db1` / `db2` / `db3`) that
