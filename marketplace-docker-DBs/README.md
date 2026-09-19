@@ -438,7 +438,8 @@ work in every repo. Everything is gated at 100% on all four coverage metrics and
 
 ## Not for production
 
-Stated plainly so nobody has to guess:
+The warning at the top of this file says it once; this section is the detail behind it, and it is
+stated plainly so nobody has to guess:
 
 - Both published ports bind **127.0.0.1 only**, and no TLS is configured anywhere in this stack.
 - The keyfile authenticates replica-set members to each other; it is not a substitute for TLS
