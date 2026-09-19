@@ -123,8 +123,16 @@ repo commits a `.gitnexusrc` at its root (JSON only, read from the repo root —
 
 | Where | `.gitnexusrc` | Effect |
 |---|---|---|
-| the 14 indexed sub-repos | `{"analyze": {"noStats": true}}` | generated block keeps its guidance, drops the volatile counts — byte-identical across runs |
+| the 14 indexed sub-repos | `{"analyze": {"noStats": true, "skipContextFiles": true}}` | no block written at all: the block lives in that repo's [`AGENTS.md`](../AGENTS.md) alone and is hand-maintained from now on |
 | this parent dir | `{"analyze": {"skipContextFiles": true}}` | no block written at all, so the hand-written [`AGENTS.md`](../AGENTS.md) block is never appended over |
+
+⚠️ **`skipContextFiles` is now set in all sixteen repos, and the block is hand-maintained everywhere.** It
+used to be written into a sub-repo's `AGENTS.md` **and** its `CLAUDE.md`, byte-identical, and only
+`CLAUDE.md` is auto-loaded into a session — so every session paid for the copy twice over. The block now
+lives in `AGENTS.md` alone; `CLAUDE.md` keeps the two rules that must be obeyed without opening another
+file (`impact` before editing a symbol, `detect_changes` before committing) and routes to `AGENTS.md` for
+the rest. The cost of that: `analyze` no longer refreshes any of it, so a registry name or a tool rule
+that drifts has to be corrected by hand in each repo's `AGENTS.md`.
 
 Scope is a separate file. `.gitnexusrc` tunes what `analyze` *writes*; **`.gitnexusignore`** decides what it
 *reads*, and only the parent has one — the fifteen sub-repos each index their own tree and have nothing to
