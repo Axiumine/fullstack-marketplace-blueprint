@@ -83,6 +83,11 @@ it('takes a whole snapshot without a grid to build it in', () => {
 });
 
 it('ignores a button that names an action but no target to act on', () => {
+  // Self-contained: put the socket in the OPEN state here rather than relying on an earlier test
+  // having done it — otherwise a mutant that drops the scope/target guard would still pass, only
+  // because sendAction's own "not connected" guard happened to swallow the click first.
+  ws().open();
+
   click(actionButton({ action: 'start' }));
   click(actionButton({ action: 'start', scope: 'service' }));
 
@@ -103,6 +108,11 @@ it('falls back to the id when a logs button carries no label, and asks anyway', 
 });
 
 it('drops a journal it has nowhere to show', () => {
+  // Self-contained: open the drawer for 'api' right here instead of relying on an earlier test
+  // having left state.logsTarget set to it — a mutant that drops the "nowhere to show it" guard
+  // must not get to pass just because some other test happened to satisfy the precondition first.
+  click(actionButton({ action: 'logs', scope: 'service', target: 'api' }));
+
   ws().receive({ type: 'logs', id: 'api', lines: ['a line nobody will read'] });
 
   expect(document.body.textContent).toBe('');

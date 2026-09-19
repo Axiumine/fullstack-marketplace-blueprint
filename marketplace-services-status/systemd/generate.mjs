@@ -20,6 +20,11 @@ const GENERATED_BANNER =
 
 function parseArgs(argv) {
   let outDir = defaultOutDir;
+  // Stryker disable next-line EqualityOperator: `i <= argv.length` only adds one extra pass with
+  // i === argv.length. On any real array (this one is process.argv.slice(2), or a plain array in
+  // tests) argv[argv.length] is always undefined by definition, and undefined can never equal the
+  // string '--out', so that extra pass can never enter the body's branch — it is inert on every
+  // reachable argv, not just the ones exercised here.
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--out') {
       const value = argv[i + 1];
@@ -81,8 +86,18 @@ function buildExecCommand({ repoAbs, service }) {
   let script;
   try {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    // Stryker disable next-line OptionalChaining: dropping `?.` only changes what happens when
+    // pkg.scripts is nullish — `pkg.scripts[...]` throws instead of `pkg.scripts?.[...]` short-
+    // circuiting to undefined. Both land in the same place: the throw is caught by the catch right
+    // below, which (unmutated) sets `script = undefined`, the exact value the optional-chaining
+    // form would have produced directly. No reachable pkg.scripts value makes the two diverge.
     script = pkg.scripts?.[service.script];
   } catch {
+    // Stryker disable next-line BlockStatement: this only ever runs when the try block threw
+    // before reaching the assignment above (readFileSync/JSON.parse failing, or — see the
+    // OptionalChaining note above — a nullish pkg.scripts), so `script` is still at its `let
+    // script;` initial value of undefined regardless of whether this block resets it again. There
+    // is no path that assigns script a truthy value and then throws afterwards within this try.
     script = undefined;
   }
   if (!script) {
@@ -93,6 +108,11 @@ function buildExecCommand({ repoAbs, service }) {
   }
   // Mask the one operator we do handle before looking for the ones we do not — testing for a
   // lone '&' against the raw string matches the second '&' of every '&&' and rejects everything.
+  // Stryker disable next-line StringLiteral: withoutChain is read only by the character-class
+  // test below, which asks "is any of ;|&$`(){}<> present anywhere", not "what replaced '&&'" —
+  // adjacency and replacement length are invisible to it. '\u0000' and '' both remove every '&'
+  // that was part of a '&&' pair and introduce none of the flagged characters, so for any script
+  // string the two replacements make that test return the same boolean.
   const withoutChain = script.replace(/&&/g, '\u0000');
   if (/[;|&$`(){}<>]/.test(withoutChain)) {
     throw new Error(
