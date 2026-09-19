@@ -1,5 +1,13 @@
 # marketplace-docker-DBs — the local databases, and how to run the platform on them
 
+> [!WARNING]
+> **Work in progress — this software is not tested yet.** It has never run outside a developer
+> workstation: no real deployment, no load test, no security review, no upgrade path. Parts of the
+> platform are deliberately unbuilt, and anything here — schemas, endpoints, configuration, file
+> layout — can still change without notice. Whatever automated gates this repo runs, treat the result
+> as unproven: do not point it at real users or real data.
+> Read [`docs/PRODUCTION_HARDENING.md`](../docs/PRODUCTION_HARDENING.md) before taking any of it further.
+
 Part of the **Marketplace** project — <https://github.com/Axiumine/fullstack-marketplace-blueprint>.
 
 Marketplace talks to an **external MongoDB replica set** (`rs0`, members `db1` / `db2` / `db3`) that
@@ -430,7 +438,8 @@ work in every repo. Everything is gated at 100% on all four coverage metrics and
 
 ## Not for production
 
-Stated plainly so nobody has to guess:
+The warning at the top of this file says it once; this section is the detail behind it, and it is
+stated plainly so nobody has to guess:
 
 - Both published ports bind **127.0.0.1 only**, and no TLS is configured anywhere in this stack.
 - The keyfile authenticates replica-set members to each other; it is not a substitute for TLS

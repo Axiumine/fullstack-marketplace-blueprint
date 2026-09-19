@@ -1,5 +1,13 @@
 # Marketplace Services Status
 
+> [!WARNING]
+> **Work in progress — this software is not tested yet.** It has never run outside a developer
+> workstation: no real deployment, no load test, no security review, no upgrade path. Parts of the
+> platform are deliberately unbuilt, and anything here — schemas, endpoints, configuration, file
+> layout — can still change without notice. Whatever automated gates this repo runs, treat the result
+> as unproven: do not point it at real users or real data.
+> Read [`docs/PRODUCTION_HARDENING.md`](../docs/PRODUCTION_HARDENING.md) before taking any of it further.
+
 Realtime monitor and control panel for the [Marketplace platform](../CLAUDE.md)'s dev processes: 9
 Koa/Apollo backend services plus 3 Vite frontends, each wrapped in its own **systemd user unit**. The
 page shows live health, uptime, memory and restart counts for all 12, streams their journal logs, and
