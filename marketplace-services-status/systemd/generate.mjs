@@ -88,17 +88,18 @@ function buildExecCommand({ repoAbs, service }) {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
     // Stryker disable next-line OptionalChaining: dropping `?.` only changes what happens when
     // pkg.scripts is nullish — `pkg.scripts[...]` throws instead of `pkg.scripts?.[...]` short-
-    // circuiting to undefined. Both land in the same place: the throw is caught by the catch right
-    // below, which (unmutated) sets `script = undefined`, the exact value the optional-chaining
-    // form would have produced directly. No reachable pkg.scripts value makes the two diverge.
+    // circuiting to undefined. Both land in the same place: the throw is caught below and `script`
+    // keeps the `undefined` it was declared with, the exact value the optional-chaining form would
+    // have produced directly. No reachable pkg.scripts value makes the two diverge.
     script = pkg.scripts?.[service.script];
   } catch {
-    // Stryker disable next-line BlockStatement: this only ever runs when the try block threw
+    // ⚠️ Deliberately empty, and it has to stay that way. This only runs when the try block threw
     // before reaching the assignment above (readFileSync/JSON.parse failing, or — see the
-    // OptionalChaining note above — a nullish pkg.scripts), so `script` is still at its `let
-    // script;` initial value of undefined regardless of whether this block resets it again. There
-    // is no path that assigns script a truthy value and then throws afterwards within this try.
-    script = undefined;
+    // OptionalChaining note — a nullish pkg.scripts), so `script` still holds the `undefined` of its
+    // own declaration and there is nothing here to reset. The `script = undefined;` that used to sit
+    // here was not merely redundant: no test could observe it, so no test could kill the mutant that
+    // deleted it, and it held the mutation gate at 99.95 by itself. An empty block Stryker does not
+    // mutate at all.
   }
   if (!script) {
     throw new Error(
