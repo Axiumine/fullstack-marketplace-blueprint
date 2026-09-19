@@ -371,3 +371,19 @@ would have *failed* had that line been wrong.
   placed inside a `try` it never reaches the `catch`. Use the `disable` … `restore` range form there.
 - **Reaching 100 means changing the code, never a threshold.** A guard no input can falsify is dead
   code; delete it and record the argument at the site.
+- ⚠️ **A score of 100 counts only four statuses.** It is (Killed + Timeout) / (Killed + Timeout + Survived +
+  NoCoverage): `Ignored` (a disable comment) and `RuntimeError` (the mutant's run failed outside any test)
+  are left out entirely, so a mutant nobody tested can sit behind a 100. Read the status counts in the
+  report, not the score alone. Two ways to reach `RuntimeError` have been hit here:
+  - **A throw in a promise nothing awaits** (`void start()`) surfaces as a run-level unhandled rejection
+    beside a passing test, never as a failing assertion. Kill it by asserting no rejection escaped —
+    `test/helpers/rejections.ts` in marketplace-admin, `test/components/ui/Turnstile.test.tsx` in all three
+    frontends.
+  - ⚠️ **A test name too long for the pattern Stryker selects tests with.** For each mutant the vitest
+    runner joins the full names of every covering test into one `testNamePattern` regex; V8 will not
+    compile a literal past 32,767 characters, and every mutant that test covers dies before a test runs.
+    Names get that long one way: `.each` with `%s`/`%o`/`%j` formatting an object row element — the whole
+    object, functions and Zod schemas included, is printed into the name (marketplace-user once carried two
+    of 474 KB). **Lead the row with a short label and format that.** Every package lists
+    `vitest.testNames.{ts,mts}` in the `setupFiles` of each config and project, and it fails any test whose
+    full name, built as Stryker builds it, passes 256 characters.

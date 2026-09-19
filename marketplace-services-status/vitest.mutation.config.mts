@@ -22,6 +22,9 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.test.ts'],
     exclude: ['test/security.live.test.ts'],
+    // `vitest.testNames.mts` caps how long a test's name may be — the mutation gate selects
+    // tests by name, and past a size it cannot; see the file.
+    setupFiles: ['./vitest.testNames.mts'],
     testTimeout: 20_000,
     hookTimeout: 20_000
   }

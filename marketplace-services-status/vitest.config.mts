@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    // `vitest.testNames.mts` caps how long a test's name may be — the mutation gate selects
+    // tests by name, and past a size it cannot; see the file.
+    setupFiles: ['./vitest.testNames.mts'],
     // The security suite boots a real HTTP+WS server on a real port and drives it with a real
     // client. Two files racing for a port would flake, and nothing here is slow enough to need
     // the parallelism.
