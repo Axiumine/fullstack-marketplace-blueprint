@@ -3,8 +3,8 @@
 
 **Status:** finding - closes [`token-handling-security-audit.md`](./token-handling-security-audit.md) §5 —
 "No full dependency-tree audit was performed"
-**Version:** 1.2
-**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28, §4.1 and §8 rewritten 2026-09-06 when the `axios` line was actually fixed
+**Version:** 1.3
+**Date:** 2026-08-13, §2 annotated 2026-08-27, the `koa-utils` version annotated the same day, §6.1 added 2026-08-28, §4.1 and §8 rewritten 2026-09-06 when the `axios` line was actually fixed, §1 and §8 annotated 2026-09-20 when every tree was refreshed to zero advisories
 **Author:** claude
 **Scope:** every one of the sixteen repos in this workspace, production and toolchain dependencies alike
 **Method:** the installed tree read from `node_modules` on disk, resolved the way Node resolves it, then queried
@@ -22,6 +22,20 @@ production zone of at least one service. Every one of those twenty-nine is in `@
 `axios@0.21.4` or in a transitive of `@apollo/server`, and none of them is reachable through an attacker-influenced
 path — but seven of the eight services that install the vulnerable `axios` never load it, and the eighth calls it
 through a client whose endpoint URL is a hard-coded literal and whose proxy is never configured.**
+
+⚠️ **Annotation, 2026-09-20 — every one of the fifteen trees now reports zero advisories, and this scan is
+still a dated snapshot.** `yarn audit` counted 54 matches across the workspace when the scan ran; it counts
+none today, in all fourteen sub-repos with a `yarn.lock` and in `marketplace-services-status`. Two moves got
+there and neither relaxed anything: `yarn upgrade` re-resolved every tree **inside the ranges already
+declared**, which cleared every advisory but one, and the one left — `qs@6.15.1`, pinned exactly by
+`typed-rest-client` inside `@stryker-mutator/core` — is now held at `^6.15.2` by a `resolutions` entry in
+every manifest. No declared range was widened, no dependency was added and no gate threshold moved. The
+count is what changed, not the method: this remains a scan of one day, and §8's second story — a gate that
+*reports* on the npm supply chain rather than a scan somebody remembers to run — is still open. What is new
+since the scan is that the OpenSSF Scorecard floor
+([`ADR-054`](../devprotocol/phase3/adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)) reads the
+`Vulnerabilities` check on every push, so raising that check's floor to what the clean trees now score turns
+this paragraph into something defended rather than something recorded.
 
 Three things this scan establishes that the audit could not:
 
@@ -388,7 +402,7 @@ it does not run in CI, because there is no CI. It runs in two git hooks, via Qod
 | # | What | Why it is a story and not a note |
 |---|---|---|
 | 1 | Remove `@socketlabs/email` from the seven services that never load it **Done 2026-08-13** | Seven `package.json` edits across seven repos plus a parent pointer bump; each needs its own gate run. It came to eight repos and eight commits, because the env contract was corrected in the same story — see the note below |
-| 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that reports. ⚠️ *"despite the unpublished package (§2)"* dropped 2026-08-27 — the package is published and `yarn audit` runs, so it is a candidate again. Without a reporting gate, every other dependency decision here is unverifiable next month |
+| 2 | Make the vulnerable-dependency gate actually report | Either fix the Qodana SCA path or add a scan that reports. ⚠️ *"despite the unpublished package (§2)"* dropped 2026-08-27 — the package is published and `yarn audit` runs, so it is a candidate again. Without a reporting gate, every other dependency decision here is unverifiable next month ⚠️ **Still open on 2026-09-20, and the trees are clean anyway** (§1): the sweep that cleaned them was run by hand, which is the story rather than its answer. The nearest thing to a report is the Scorecard floor's `Vulnerabilities` line, which is measured on every push and against the repository's committed lockfile rather than the installed tree |
 | 3 | Move `tsc-alias` to `devDependencies` in the eight services that have it in `dependencies` **Done 2026-08-13** | It is the only reason `picomatch@2.3.1` is a production dependency, and `logout` already shows the correct placement. Eight manifests, eight commits, one pointer bump; `yarn.lock` untouched in all eight, because it records resolutions and not which block declared them |
 
 ✅ **Closed 2026-09-06, by the lever this paragraph called untested.** It read: the residual `axios@0.21.4`

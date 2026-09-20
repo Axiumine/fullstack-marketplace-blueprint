@@ -80,6 +80,25 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   unregistered package by name. A new package copies the line verbatim; a yarn bump changes all fifteen
   in one sweep, exactly like `engines.node`.
 
+## Dependency ranges, and the two exceptions to them (2026-09-20)
+
+- **A refresh re-resolves, it does not widen.** `yarn upgrade` with no arguments moves every tree to the
+  newest version each declared range already allows and rewrites `yarn.lock`; that is the whole remedy for
+  an advisory against a transitive, and it cleared every advisory in the workspace but one. Reach for a
+  range edit only when the fix is outside the range, and say so in the commit.
+- **`resolutions` is for a transitive pinned exactly by a dependency that will not move.** All fifteen
+  packages carry `"qs": "^6.15.2"`, because `typed-rest-client` inside `@stryker-mutator/core` asks for
+  `qs@6.15.1` by exact version and nothing in a range refresh can reach it. Two packages carry one more —
+  `axios` in `marketplace-dev-public-resource`, `js-yaml` in `marketplace-user`. ⚠️ **A `resolutions`
+  entry is global to the tree it sits in**, so keep them to patch-level fixes with a named reason, and
+  never use one to satisfy a peer range.
+- ⚠️ **`@sentry/node` is the exact `10.69.0`, with no caret, in the nine services and in
+  `marketplace-common`.** `test/sentryVersionGuard.test.mts` asserts that exact version because
+  `src/instrument.mts` rests on SDK internals read at it (`RISK_REGISTER` R42), and on 2026-09-20 a
+  lockfile refresh moved the SDK to 10.75.0 and put ten suites red. The range now says what the guard
+  says. A bump is a manifest edit somebody reads — or a Dependabot pull request somebody reads — never a
+  side effect of `yarn upgrade`.
+
 ## marketplace-common plumbing
 
 - ⚠️ **No barrel export.** Consumers import per subpath, and every file needs its own entry in the
