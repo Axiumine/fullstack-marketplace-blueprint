@@ -337,10 +337,11 @@ call site.
 
 ### Key shapes
 
-Everything below is built by `marketplace-common/src/others/sessionKeys.mts`, by `assertUnderRateLimit.mts`
-or by `assertHashFieldTTLSupport.mts`. **Nothing anywhere else may build a session key out of a template
-literal**, and nothing does: `marketplace-common/test/redisKeyspace.test.mts` counts the interpolations in
-that package and `./scripts/audit-check.sh` greps the other fifteen repos, since no test here spans two.
+Everything below is built by one of five files in `marketplace-common/src/others/`: `sessionKeys.mts`,
+`assertUnderRateLimit.mts`, `assertHashFieldTTLSupport.mts`, `retentionKeys.mts` or `registrationKeys.mts`.
+**Nothing anywhere else may build a session key out of a template literal**, and nothing does:
+`marketplace-common/test/redisKeyspace.test.mts` counts the interpolations in that package and
+`./scripts/audit-check.sh` greps the other fifteen repos, since no test here spans two.
 
 ⚠️ **This table is the whole keyspace, and both checks above compare against it.** A shape added to the
 code and not to this table fails `audit-check.sh` §2 by name — which is how the six rows below the rate
@@ -362,6 +363,8 @@ limiter were found, live and documented nowhere, on the day the audit script fir
 | `<prefix>keygrip:holders` | one field per service — `<fingerprint>@<ISO-8601>`, the detection that five `.env` copies never had | every service at boot, and on each live swap | live — *the admin can see which service holds which key* (`phase5/IDENTITY_ACCESS.md` §4) |
 | `<prefix>keygrip:rotated` | **a pub/sub channel, not a key** — the payload is the new version number, a nudge to re-read | a rotation | live (ADR-034) |
 | `<prefix>hash-field-ttl-probe` | nothing — it is never written; `hTTL` on a missing key answers instead of throwing | nobody, by design | live |
+| `<prefix>retention:lock` | nothing but its own presence — taken with `SET NX PX`, TTL equal to the sweep interval, and never explicitly released | the hourly retention sweep, via `retentionKeys.mts` | live (ADR-041) |
+| `<prefix>pending:<tier>:<ciphertext hex>` | a registration between the form and the click, TTL three days — keyed by the hex of the deterministic ciphertext of `login.email` rather than a digest, since the ciphertext is already what MongoDB indexes (ADR-043) | registration, via `registrationKeys.mts` | live (ADR-042) |
 
 ⚠️ **The digest is of the *prefixed* token.** `access:` and `refresh:` are what tell the two hashes of one
 login apart; hashing the bare uuid would mint a key no reader on the platform can find, and the failure
