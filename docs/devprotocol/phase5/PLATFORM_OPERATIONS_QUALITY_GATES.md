@@ -252,15 +252,16 @@ pinned node via nvm before the first gate runs.
   a `.trivyignore` line?** MC-12's gate is `trivy fs` in `aquasec/trivy:0.70.0`, HIGH and CRITICAL,
   production tree only, in the `pre-push` of the fourteen repos with a `yarn.lock` plus the parent's. The
   image is pinned; its **advisory database is not** — it is fetched at run time, so a tree nobody has
-  touched can go red between two pushes. Nobody owns that event: no CI notices it — the two workflows
-  ADR-054 added measure supply-chain posture and SAST, not this tree's advisories — the hook
-  fires only for whoever is pushing, and the answer available at that moment is either fix the tree or
-  `--no-verify`. The second half is the same gap one step further on — **there is no `.trivyignore`
+  touched can go red between two pushes. Nobody owns that event: since 2026-09-20 `gates.yml` runs the same
+  trivy invocation on every pull request and every push to `main` (ADR-055), which means a red tree is now
+  caught by *two* things rather than one — and **both are still triggered by somebody pushing**. Nothing
+  runs on a schedule, so a tree nobody touches stays green-by-silence for as long as nobody touches it, and
+  the answer available to whoever finally does push is either fix the tree or `--no-verify`. The second half is the same gap one step further on — **there is no `.trivyignore`
   anywhere in the workspace**, so the first one written will set the precedent for who may suppress an
   advisory and on what evidence, with nothing to inherit. ⚠️ **This is the residual of question 3 in the
   record for the quality gates themselves, not a re-opening of it.** That question asked who owns the scan
-  and whether it runs in CI; both halves are answered — it does not run in CI because the only CI on this
-  platform measures posture and runs no gate (ADR-054), and
+  and whether it runs in CI; both halves are answered — it runs in the hook of all fifteen gated trees and,
+  since ADR-055, in CI as well on every pull request and every push to `main`, and
   `trivy fs` replaced a Qodana inspection that queried no advisory feed (see
   [`docs/testing.md`](../../testing.md), `RISK_REGISTER.md` R21). What was never answered is what happens
   *after* the gate is working. Recorded here on 2026-08-28: MC-12 is this document's gate, so the question
