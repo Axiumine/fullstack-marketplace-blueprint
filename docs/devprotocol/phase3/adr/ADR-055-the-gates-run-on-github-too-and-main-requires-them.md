@@ -202,6 +202,14 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   catches both on the next push from a clone, which for a repository in maintenance may be weeks later. This
   is the residue R63 keeps, and it is bounded by the same work R39 carries as CI/CD: a datastore bring-up
   with generated credentials and the sibling checkout the migrations are replayed from.
+- ⚠️ **`marketplace-db-setup` was in that same position without being counted in it, and the first pull
+  request run is what said so.** Its `test/migrations.test.mjs` replays the real migrations against the
+  real replica set and skips itself when none answers, so on a runner the suite reported five files green
+  and the coverage report still landed twenty statements and six functions short of the 100% threshold —
+  the required check red for something the commit under it had not done. The cause was the detector: it
+  grepped `vitest.config.mts` for a `name: 'integration'` project, and db-setup's config is
+  `vitest.config.mjs` and names no projects at all. It now reads a declared `test:unit` instead, which is
+  a declaration rather than an inference, and db-setup declares one.
 - The runner is Ubuntu with a Docker daemon and the workstation is Debian with the same images pinned by
   digest, so semgrep and trivy are genuinely the same scan. The rest — node from `.nvmrc`, yarn from
   `packageManager` via corepack — is the same version but not the same machine, and a test that depends on
@@ -210,6 +218,11 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
 
 ## Compliance
 
+- ⚠️ **A package that cannot measure coverage on a runner says so by declaring `test:unit`.** That script
+  is the contract `gates.yml` reads: where it exists the job runs it and the 100%-on-four-metrics gate
+  stays local, where it does not the job runs `yarn test:cov` in full. Adding a suite that needs a
+  datastore to a package with no `test:unit` re-arms exactly the failure of 2026-09-20 — green suite,
+  short report, red required check — so the suite and the script land together or not at all.
 - ⚠️ **The check is named `gates` and nothing may rename it.** The job id, the job name and the
   `required_status_checks.contexts` entry on sixteen repositories are the same string. Changing it is a
   three-place change, and getting it wrong fails closed on every pull request.
