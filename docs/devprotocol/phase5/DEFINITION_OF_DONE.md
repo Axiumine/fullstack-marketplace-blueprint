@@ -242,7 +242,9 @@ document is that doctrine in checklist form.
 - Where these repos get published, and under which org, is the platform owner's open call, not yet made.
   Until that call is made, a `git push` or `git merge` here is not "shipped" or "released" in any
   externally-visible sense.
-- No CI runs anything on this platform. Every gate — lint, coverage, mutation, Qodana — is a LOCAL git
+- **No CI runs any gate on this platform.** Two workflows per repo measure supply-chain posture and SAST
+  findings (ADR-054) and block nothing. Every gate — semgrep, trivy, the Scorecard floor, lint, types,
+  coverage, mutation, Qodana — is a LOCAL git
   hook (`.githooks/pre-commit`, `.githooks/pre-push`), fired only if `core.hooksPath` is set and the hook
   file is executable (`100755`). A gate that "would have caught it in CI" is not a gate here — it has to
   actually fire, locally, on this machine.

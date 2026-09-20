@@ -89,8 +89,12 @@ the `branch = main` entries are recorded for.
   `marketplace-nginx` has no `package.json`, so there is no lint, coverage, mutation or Qodana step for
   it to run: its `pre-push` runs `test/run.sh` and blocks on any failed check, and its `pre-commit` is
   the branch guard, then the secret guard, and nothing after it (ADR-030). Those two run in
-  **all sixteen**. No
-  CI/CD pipeline is configured; every gate on the platform is a local git hook.
+  **all sixteen**. ⚠️ **Since 2026-09-20 there is CI, and it gates nothing.** Every repo carries
+  `.github/workflows/scorecard.yml`, and the fifteen that ship JavaScript carry `codeql.yml` (ADR-054).
+  Both *measure* — supply-chain posture and SAST findings — and neither runs lint, types, tests, coverage,
+  mutation or Qodana. No build or deploy pipeline exists, no status check is required on any branch, and
+  every gate on the platform is still a local git hook. A merge performed on GitHub therefore passes
+  nothing.
 - **The parent's own commits now include pointer bumps.** One logical change is N+1 commits, not N: one
   per affected sub-repo, plus one in the parent moving the gitlinks. Skipping the parent commit leaves it
   describing a cross-repo state that no longer exists (ADR-031).

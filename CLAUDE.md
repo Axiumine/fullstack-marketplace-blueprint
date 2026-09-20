@@ -60,8 +60,17 @@ read it before proposing a refactor of anything below.
   no `.git` of its own, so `git -C marketplace-services-status switch -c …` silently branches **the
   parent**, a commit made "in it" is a parent commit, and `git submodule foreach` skips it entirely. Its
   changes ride in the parent's commit — there is no N+1 pointer bump for it. Its gates are the parent's
-  `.githooks/pre-commit` (scoped to staged non-`*.md` paths under it) and `pre-push` (unscoped:
-  `test:cov` → `test:mutation` → Qodana).
+  `.githooks/pre-commit` (scoped to staged non-`*.md` paths under it) and `pre-push` (unscoped, seven
+  gates: `semgrep:ci` → trivy → scorecard floor → `typecheck` → `test:cov` → `test:mutation` → Qodana).
+- ⚠️ **Never lower a number in a `.scorecard-floor`** (ADR-054). Each repo's `pre-push` measures its OpenSSF
+  Scorecard posture and blocks if the aggregate or any single check fell below the committed floor — a ratchet,
+  exactly like coverage and mutation. Raise a floor when a check genuinely improved; a push that needs one
+  lowered needs the control restored instead. `SKIP_SCORECARD=1` is for a Docker, network or GitHub outage,
+  never for a finding. ⚠️ This is the one gate that grades the repository **on GitHub right now**, not the
+  commits being pushed, and the only one that needs the network.
+- ⚠️ **A Dependabot pull request merged in the browser has passed no gate at all** — every gate is a local
+  hook, and there is no CI reproducing them. Fetch the branch, check it out, `yarn install`, let `pre-commit`
+  and `pre-push` run, and merge only then (ADR-054).
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on all
   four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a test.
 - ⚠️ **Never start the mutation gate by hand**, in any of the fifteen packages that carry a

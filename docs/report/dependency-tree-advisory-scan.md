@@ -366,6 +366,13 @@ zero is indistinguishable from a passing one**, and two hooks have been reportin
 **There is no CI.** No `.github/` directory exists anywhere in the sixteen repos. The hooks are the whole gate
 apparatus, which makes a silent inspection inside them the only line there is.
 
+⚠️ **Correction, 2026-09-20 — the sentence above was true when this report was written and is not now.** Every
+repo has a `.github/` directory carrying a Scorecard workflow, and fifteen also carry CodeQL
+([`ADR-054`](../devprotocol/phase3/adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)). Both measure;
+neither gates, so the paragraph's actual point — the hooks are the whole gate apparatus — is unchanged, and the
+`trivy fs` gate this report's §8 asked for now runs in `pre-push` beside a Scorecard floor gate. Nothing else in
+this report is restated: it is a dated scan and the rest of it stands as written.
+
 ---
 
 ## 8. What this closes, and what it opens

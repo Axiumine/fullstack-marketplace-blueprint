@@ -554,7 +554,7 @@ everywhere and can now undo nothing** — the collision this section used to des
 |---|---|
 |Cart, order, delivery, payment provider|no collection, no resolver, no design anywhere on the platform, and **permanently out of scope since 2026-08-27** ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) — `item.js` has no price field for exactly this reason and never gets one (`CLAUDE.md` §Build state, `PDR.md` §4 Out of scope)|
 |A payment gateway (Stripe/PayPal/etc.)|downstream of an order model that is not missing but refused — there is nothing for it to sit behind, permanently (ADR-038)|
-|GitHub / any git forge|no forge account is wired to this workspace; where/under which org the repos get published is the platform owner's open call (§7 q6)|
+|GitHub / any git forge|⚠️ **wired since 2026-09-20** — all 16 repos are public under `github.com/Axiumine`, and two workflows per repo measure supply-chain posture and SAST findings without gating anything ([ADR-054](../phase3/adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)). No ADR records the org as chosen, so §7 q6 stays the platform owner's open call; what is no longer true is *no forge account is wired*|
 |A separate shop / point-of-sale collection|will not exist — a shop **is** a `company` (`CLAUDE.md` §Terminology, stated twice as a thing not to re-propose)|
 |A CDN in front of PMTiles or static assets|nginx serves `dist/client` and `/tiles/` straight off disk with immutable cache headers — no CDN wired (`marketplace-nginx/sites-available/marketplace-domain.com.conf:80-110`)|
 |A live tile-serving backend|PMTiles is one static archive read via HTTP range requests, not a server (§5.9)|

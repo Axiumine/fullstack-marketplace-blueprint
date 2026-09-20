@@ -23,8 +23,8 @@ v1.1 - 2026-08-26: the stale "168 behavioural assertions" count replaced by a ci
 
 Show where Marketplace runs today, and only today. One topology exists on disk: a single dev
 workstation running 12 Node processes plus MongoDB and a Redis cluster, started by hand or by
-`dev.sh`. No staging, no cloud, no container orchestration, no forge, no pipeline anywhere in this
-tree — every claim below cites a real path or is marked open in §14. Production topology is not
+`dev.sh`. No staging, no cloud, no container orchestration, and no build or deploy pipeline anywhere in
+this tree — the only CI is the two measuring workflows §10 describes — every claim below cites a real path or is marked open in §14. Production topology is not
 designed; §14 lists what it would need to decide, it does not decide it (per
 [`docs/devprotocol/phase3/CONSTRAINTS.md`](./CONSTRAINTS.md) §5 — out of scope for Phase 3 to invent shape for anything
 undesigned).
@@ -461,17 +461,27 @@ any of these as built.
 
 ## 10. CI/CD
 
-**There is none.** State this plainly rather than implying a pipeline exists somewhere unseen.
+**There is no pipeline. Since 2026-09-20 there are two workflows, and they gate nothing** — state the
+difference plainly rather than letting either half imply the other.
 
-No forge (no GitHub Actions, no GitLab CI, no Jenkins config) is configured across the 16 repos — no
-CI/CD pipeline exists today, per [`docs/workflow.md`](../../workflow.md) §Repo layout and re-stated in `PDR.md` §6 Constraints.
+What exists, per [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md): every one of
+the 16 repos carries `.github/workflows/scorecard.yml` (OpenSSF Scorecard on push to `main` and weekly,
+`publish_results: true`, SARIF uploaded to code scanning), and the 15 that ship JavaScript also carry
+`.github/workflows/codeql.yml`. Both **measure**. Neither builds, tests, deploys or blocks: no lint,
+type-check, coverage, mutation or Qodana run happens on a runner, and no status check is required on any
+branch, so a merge performed on GitHub passes no gate at all. No GitLab CI and no Jenkins config exists
+anywhere. The claim that used to stand here — *no forge, no CI of any kind* — was true until 2026-09-20
+and is kept as history in `PDR.md` §6 Constraints and [`docs/workflow.md`](../../workflow.md) §Repo layout,
+both of which describe the pipeline that is still absent.
 
 The entire delivery/quality-gate mechanism is **local git hooks**, wired via `core.hooksPath` to
 `.githooks/` in each repo:
 
 - `.githooks/pre-commit` — lint, `tsc`, coverage (scoped to staged paths in some repos).
-- `.githooks/pre-push` — `lint:check` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14
-  sub-repos that ship code (`docs/workflow.md` §Git hooks). `marketplace-nginx`, the fifteenth, ships
+- `.githooks/pre-push` — `semgrep:ci` → trivy → the Scorecard floor (ADR-054) → `lint:check` →
+  `typecheck` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14 sub-repos that ship code
+  (`docs/workflow.md` §Git hooks); `marketplace-db-setup` runs a five-gate subset with no lint or type
+  step. `marketplace-nginx`, the fifteenth, ships
   configuration rather than code and gates on `test/run.sh` instead — one hook, `pre-push`, and no
   `pre-commit`, so no secret guard.
 
@@ -619,8 +629,8 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 
 | # | Question | Why it's open |
 |---|---|---|
-| 1 | Where do the 16 repos get pushed, and under which org/forge? | Explicitly the user's undecided call — [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
-| 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | No forge today means no pipeline can exist today — sequencing depends on question 1. |
+| 1 | Where do the 16 repos get pushed, and under which org/forge? | **Answered in fact 2026-09-20, not by a decision** — all 16 are public repositories under `github.com/Axiumine`, every one with `main` as its default branch and real history behind it, and [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)'s badges, workflows and `pre-push` floor gate all resolve that path. No ADR records the choice, so the *decision* is still the user's — see the ADR index §5, which keeps the bullet open for that reason. Originally: [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
+| 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | **Still open, and now consequential.** The forge arrived and two *measuring* workflows came with it (§10, ADR-054); not one gate runs on a runner and no status check is required, so any merge made on GitHub — a Dependabot pull request above all — passes nothing. Closing this means a pipeline that runs the gates plus required checks, which needs Docker-capable runners and a cloud `QODANA_TOKEN`; the ADR index §5 carries it as its own bullet and `RISK_REGISTER.md` R39 as its CI/CD item. |
 | 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | **Answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)** — one application host carries nginx and all twelve processes; **Cloudflare** sits in front, and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); the ports are closed by a **cloud security group**, default-deny inbound, opening 443 (and 80 for the redirect) from Cloudflare's ranges alone. The security-relevant half is therefore answered too: no service port is reachable from outside that host, and a caller that does reach one still needs a session (`NFR-SE08`). |
 | 4 | Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost? | **Answered** — both do: `marketplace-nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |
 | 5 | What is the production MongoDB topology — single instance, replica set, sharded, and how is it sized? | **Placement answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)**: a replica set on a host of its own, on a private LAN segment reachable only from the application host, with inbound to `27017`-`27019` permitted from that host's security group and nowhere else. **Sizing, node count and failover stay open** — nothing in this tree specifies them, and the ADR does not either (**R39**). Dev topology (§2) remains a single unreplicated instance. ⚠️ The segment is *declared trusted*, and the dev `MONGODB_URI` ends `?ssl=false`; unlike Redis, nothing upstream stops `ssl=true` here. |
