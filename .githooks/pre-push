@@ -11,13 +11,14 @@
 # gate. This hook and the marketplace-services-status block in pre-commit are what make them
 # real.
 #
-# Six blocking gates, in this order:
-#   [1/6] yarn semgrep:ci    — SAST: vendored rules, pinned image, offline
-#   [2/6] trivy              — dependency advisories, HIGH+, production tree only
-#   [3/6] yarn typecheck     — tsconfig.test.json: src/, test/ and the vitest configs
-#   [4/6] yarn test:cov      — tsc, the suite, and 100% on every metric
-#   [5/6] yarn test:mutation — Stryker, thresholds.break: 100
-#   [6/6] Qodana             — severity + coverage thresholds
+# Seven blocking gates, in this order:
+#   [1/7] yarn semgrep:ci    — SAST: vendored rules, pinned image, offline
+#   [2/7] trivy              — dependency advisories, HIGH+, production tree only
+#   [3/7] scorecard          — OpenSSF posture of this repo, floored in .scorecard-floor
+#   [4/7] yarn typecheck     — tsconfig.test.json: src/, test/ and the vitest configs
+#   [5/7] yarn test:cov      — tsc, the suite, and 100% on every metric
+#   [6/7] yarn test:mutation — Stryker, thresholds.break: 100
+#   [7/7] Qodana             — severity + coverage thresholds
 #
 # ⚠️ Unlike pre-commit, this one is NOT scoped by path. A push carries whatever
 # happens to be on the branch, including commits made with --no-verify and merge
@@ -30,9 +31,10 @@
 # does; here it is a manual `git config core.hooksPath .githooks` after a fresh
 # clone, or this hook and the secret guard in pre-commit are both simply off.
 #
-# Bypass: `SKIP_QODANA=1 git push`, `SKIP_SEMGREP=1 git push` and
-# `SKIP_TRIVY=1 git push` — each turns off exactly one gate and leaves the other
-# four running. All three exist for a Docker outage, never for a finding.
+# Bypass: `SKIP_QODANA=1 git push`, `SKIP_SEMGREP=1 git push`,
+# `SKIP_TRIVY=1 git push` and `SKIP_SCORECARD=1 git push` — each turns off exactly
+# one gate and leaves the other six running. All four exist for a Docker, network or
+# GitHub outage, never for a finding.
 set -uo pipefail
 
 APP='marketplace-services-status'
@@ -131,7 +133,7 @@ cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 # so the verdict is offline and reproducible — the pinned image tag is the only
 # moving part.
 #
-# ⚠️ This is NOT the same scan as gate 6. Qodana runs JetBrains inspections;
+# ⚠️ This is NOT the same scan as gate 7. Qodana runs JetBrains inspections;
 # this runs the semgrep registry packs plus semgrep/custom.yml, whose rules are
 # this platform's own.
 #
@@ -139,7 +141,7 @@ cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 # ---------------------------------------------------------------------------
 
 if [ -n "${SKIP_SEMGREP:-}" ]; then
-	echo "pre-push [1/6]: $APP — Semgrep gate skipped, SKIP_SEMGREP is set." >&2
+	echo "pre-push [1/7]: $APP — Semgrep gate skipped, SKIP_SEMGREP is set." >&2
 else
 	# An absent ruleset is not an empty one: `--config semgrep/` on a missing
 	# directory is an error, but a half-restored one would scan with whatever
@@ -161,7 +163,7 @@ else
 	fi
 
 	# Read the tag out of the yarn script rather than hard-coding it here, the same
-	# way gate 6 reads its linter out of qodana.yaml: bumping the engine in one
+	# way gate 7 reads its linter out of qodana.yaml: bumping the engine in one
 	# place must not leave this hook checking for an image no scan uses.
 	SEMGREP_IMAGE="$(grep -oE 'semgrep/semgrep:[0-9][0-9.]*' "$APP_DIR/package.json" | head -n 1 || true)"
 
@@ -178,7 +180,7 @@ else
 			"docker pull $SEMGREP_IMAGE"
 	fi
 
-	echo "pre-push [1/6]: $APP — running the SAST gate ($SEMGREP_IMAGE)…"
+	echo "pre-push [1/7]: $APP — running the SAST gate ($SEMGREP_IMAGE)…"
 
 	if ! yarn semgrep:ci; then
 		cat >&2 << 'MSG'
@@ -203,7 +205,7 @@ MSG
 		exit 1
 	fi
 
-	echo "pre-push [1/6]: $APP — Semgrep clean."
+	echo "pre-push [1/7]: $APP — Semgrep clean."
 fi
 
 # ---------------------------------------------------------------------------
@@ -242,7 +244,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ -n "${SKIP_TRIVY:-}" ]; then
-	echo 'pre-push [2/6]: dependency-advisory gate skipped — SKIP_TRIVY is set.' >&2
+	echo 'pre-push [2/7]: dependency-advisory gate skipped — SKIP_TRIVY is set.' >&2
 else
 	# Same contract as gate_block above, and a near-twin of it — separate only so the
 	# bypass line can name SKIP_TRIVY. A missing prerequisite blocks; it never warns
@@ -288,7 +290,7 @@ else
 		trivy_block "trivy image $TRIVY_IMAGE is not present locally." \
 			"docker pull $TRIVY_IMAGE"
 
-	echo "pre-push [2/6]: $APP — checking dependency advisories ($TRIVY_IMAGE)…"
+	echo "pre-push [2/7]: $APP — checking dependency advisories ($TRIVY_IMAGE)…"
 
 	# --db-repository is not a preference: from here mirror.gcr.io answers 404 for
 	# the database layer and trivy treats that as fatal rather than falling back to
@@ -328,11 +330,248 @@ MSG
 		exit 1
 	fi
 
-	echo 'pre-push [2/6]: no HIGH or CRITICAL advisory in the production tree.'
+	echo 'pre-push [2/7]: no HIGH or CRITICAL advisory in the production tree.'
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 3 — types, over the test tree as well as src/.
+# Gate 3 — OpenSSF Scorecard (supply-chain posture). Both gates above this one read
+# the working tree: semgrep reads the source, trivy reads yarn.lock, and every gate
+# below runs the code that is about to be pushed. This one does neither — and unlike
+# all of them it is about THIS repo on GitHub, not about $APP.
+#
+# ⚠️ The scorecard CLI in --repo mode asks the GitHub API about this repository as
+# GitHub knows it right now. It cannot see the commits being pushed, and there is
+# no flag that makes it. So this gate certifies the repository's posture a few
+# seconds ago on the forge — branch protection, whether a security policy exists,
+# whether the workflows are pinned — and never the diff. It is last for that
+# reason: read the honest gates' verdicts first.
+#
+# ⚠️ The CLI exits 0 whatever the score is. There is no --threshold, --fail-on or
+# --min-score flag in any version; a non-zero exit means the scan itself could not
+# run. The pass/fail decision below is ours, made from the JSON, and `$?` is never
+# trusted for it.
+#
+# The floor lives in .scorecard-floor, committed, one `Name=value` line per check
+# plus `aggregate=`. It is set to what the repository actually scored the day this
+# gate landed, so it can only ever ratchet upwards — the same rule the coverage and
+# mutation thresholds follow. Raising a number there is a normal commit. Lowering
+# one is the thing this gate exists to prevent: if a check drops, the fix is the
+# control that regressed, not the floor.
+#
+# Per-check lines and not just the aggregate: a repository can hold its aggregate
+# while Branch-Protection silently falls to 0, because some unrelated check rose
+# by as much. The aggregate alone would pass that push.
+#
+# Needs a token (the GitHub API answers 60/hr unauthenticated and the scan will
+# not finish) and needs the network. It reads GITHUB_AUTH_TOKEN, then
+# SCORECARD_TOKEN, then falls back to `gh auth token`. The value is passed into the
+# container through the environment and is never printed, logged or written to a
+# file.
+#
+# Bypass: `SKIP_SCORECARD=1 git push` — for a Docker, network or GitHub outage,
+# never for a finding.
+# ---------------------------------------------------------------------------
+
+if [ -n "${SKIP_SCORECARD:-}" ]; then
+	echo 'pre-push [3/7]: supply-chain posture gate skipped — SKIP_SCORECARD is set.' >&2
+else
+	# Same contract as every gate above: a missing prerequisite blocks. A gate that
+	# steps aside when it cannot run is not a gate.
+	scorecard_block() {
+		local reason="$1"
+		shift
+		{
+			echo
+			echo '────────────────────────────────────────────────────────────────────────────'
+			echo "PUSH BLOCKED — $reason"
+			echo
+			echo 'Fix it with:'
+			echo
+			printf '    %s\n' "$@"
+			echo
+			echo 'Bypass once (every other gate still runs): SKIP_SCORECARD=1 git push'
+			echo '────────────────────────────────────────────────────────────────────────────'
+		} >&2
+		exit 1
+	}
+
+	# Pinned by digest, not by tag. The tag is what upstream moves; the digest is what
+	# was actually read. Both forms are given so `docker pull` in a fix line is
+	# copy-pasteable.
+	SCORECARD_IMAGE='ghcr.io/ossf/scorecard:v5.5.0@sha256:3f24714e9366917adb7a05635382c97dfecb14b21eaef3dfa2ea48c8e23e0795'
+	SCORECARD_IMAGE_TAG='ghcr.io/ossf/scorecard:v5.5.0'
+	SCORECARD_FLOOR_FILE="$ROOT/.scorecard-floor"
+
+	# ⚠️ gcr.io/openssf/scorecard, which most published examples still name, is dead:
+	# the project's billing is disabled and it answers 403. ghcr.io is the live home.
+
+	[ -f "$SCORECARD_FLOOR_FILE" ] ||
+		scorecard_block "$SCORECARD_FLOOR_FILE is missing — with no floor there is nothing to compare against and every score would pass." \
+			"git checkout $SCORECARD_FLOOR_FILE"
+
+	# Checked here rather than discovered after the scan: a missing interpreter would
+	# otherwise cost a container run and an API call before failing.
+	command -v node > /dev/null 2>&1 ||
+		scorecard_block 'node not found in PATH — the floor comparison below is written in it.' \
+			'nvm install   # the version this repo pins is in package.json engines'
+
+	command -v docker > /dev/null 2>&1 ||
+		scorecard_block 'docker not found in PATH — the scan runs inside the pinned scorecard container.' \
+			'# install Docker Engine, then push again:' \
+			'https://docs.docker.com/engine/install/'
+
+	docker info > /dev/null 2>&1 ||
+		scorecard_block 'docker daemon not reachable.' \
+			'sudo systemctl start docker'
+
+	docker image inspect "$SCORECARD_IMAGE" > /dev/null 2>&1 ||
+		scorecard_block "scorecard image $SCORECARD_IMAGE is not present locally." \
+			"docker pull $SCORECARD_IMAGE_TAG"
+
+	# github.com/OWNER/REPO, from whatever form origin is written in — ssh, https, with
+	# or without the .git suffix.
+	SCORECARD_ORIGIN="$(git remote get-url origin 2> /dev/null || true)"
+	SCORECARD_SLUG="$(printf '%s' "$SCORECARD_ORIGIN" | sed -E 's#^git@github\.com:#github.com/#; s#^(https?|ssh)://([^@]*@)?github\.com/#github.com/#; s#\.git$##')"
+	case "$SCORECARD_SLUG" in
+		github.com/*/*) ;;
+		*) scorecard_block "origin does not look like a GitHub repository — scorecard has nothing to score. origin reads: ${SCORECARD_ORIGIN:-<unset>}" \
+			'git remote set-url origin https://github.com/<owner>/<repo>.git' ;;
+	esac
+
+	# Never echoed, never written to disk. `gh auth token` is the last resort so that a
+	# shell that already exports one is not overridden.
+	SCORECARD_TOKEN_VALUE="${GITHUB_AUTH_TOKEN:-${SCORECARD_TOKEN:-}}"
+	if [ -z "$SCORECARD_TOKEN_VALUE" ]; then
+		SCORECARD_TOKEN_VALUE="$(gh auth token 2> /dev/null || true)"
+	fi
+	[ -n "$SCORECARD_TOKEN_VALUE" ] ||
+		scorecard_block 'no GitHub token available — unauthenticated the API allows 60 requests an hour and the scan cannot finish.' \
+			'gh auth login' \
+			'# or, for one push:  GITHUB_AUTH_TOKEN=<token> git push'
+
+	echo "pre-push [3/7]: checking supply-chain posture of $SCORECARD_SLUG ($SCORECARD_IMAGE_TAG)…"
+
+	SCORECARD_JSON="$(mktemp)"
+	if ! GITHUB_AUTH_TOKEN="$SCORECARD_TOKEN_VALUE" docker run --rm \
+		-e GITHUB_AUTH_TOKEN \
+		"$SCORECARD_IMAGE" \
+		--repo="$SCORECARD_SLUG" \
+		--format=json \
+		> "$SCORECARD_JSON" 2> /dev/null; then
+		rm -f "$SCORECARD_JSON"
+		scorecard_block 'the scorecard scan could not run — the network, the GitHub API or the token is the usual cause. A scan that did not run is not a clean scan.' \
+			'gh auth status' \
+			'# then push again, or bypass this one gate during an outage:' \
+			'SKIP_SCORECARD=1 git push'
+	fi
+	unset SCORECARD_TOKEN_VALUE
+
+	# The floor comparison, inline. node, which every repo but marketplace-nginx already needs to run its own suite.
+	# Column 0 for the heredoc body on purpose: <<- strips every leading tab, which
+	# would flatten the script's own indentation on its way to the interpreter.
+	#
+	# Exit 0 = at or above the floor. 3 = below it. Anything else means the comparison
+	# itself broke, which says nothing at all about the score — reported as its own
+	# failure below rather than dressed up as a finding.
+	SCORECARD_VERDICT=0
+	SC_JSON="$SCORECARD_JSON" SC_FLOOR="$SCORECARD_FLOOR_FILE" node <<'EVAL' || SCORECARD_VERDICT=$?
+const fs = require("fs");
+const report = JSON.parse(fs.readFileSync(process.env.SC_JSON, "utf8"));
+const floor = new Map();
+let floorAggregate = null;
+for (const rawLine of fs.readFileSync(process.env.SC_FLOOR, "utf8").split("\n")) {
+	const line = rawLine.replace(/#.*$/, "").trim();
+	const eq = line.indexOf("=");
+	if (eq < 1) continue;
+	const name = line.slice(0, eq).trim();
+	const value = Number(line.slice(eq + 1).trim());
+	if (!Number.isFinite(value)) continue;
+	if (name === "aggregate") floorAggregate = value;
+	else floor.set(name, value);
+}
+const actual = new Map((report.checks || []).map((c) => [c.name, c.score]));
+const reason = new Map((report.checks || []).map((c) => [c.name, (c.reason || "").split("\n")[0]]));
+const fell = [];
+const rose = [];
+const unfloored = [];
+if (floorAggregate === null) fell.push(["aggregate", "none", report.score, "no aggregate= line in the floor file"]);
+else if (report.score < floorAggregate) fell.push(["aggregate", floorAggregate, report.score, "weighted score of every scored check"]);
+for (const [name, want] of floor) {
+	if (!actual.has(name)) {
+		fell.push([name, want, "absent", "the scan returned no such check — renamed upstream, or the scan was partial"]);
+		continue;
+	}
+	const got = actual.get(name);
+	// -1 means the check did not apply. Going from a real score to -1 is a regression too:
+	// the control did not improve, it stopped being measurable.
+	if (got < want) fell.push([name, want, got, reason.get(name) || ""]);
+	else if (got > want) rose.push([name, want, got]);
+}
+for (const [name, got] of actual) if (!floor.has(name)) unfloored.push([name, got]);
+const pad = (v, n) => String(v).padEnd(n);
+const out = [];
+if (fell.length) {
+	out.push("", "Below the floor:", "");
+	out.push(`  ${pad("check", 26)}${pad("floor", 8)}${pad("now", 8)}why`);
+	for (const [name, want, got, why] of fell) out.push(`  ${pad(name, 26)}${pad(want, 8)}${pad(got, 8)}${why}`);
+}
+if (rose.length) {
+	out.push("", "Above the floor — raise these in .scorecard-floor to defend the new number:", "");
+	for (const [name, want, got] of rose) out.push(`  ${pad(name, 26)}${want} -> ${got}`);
+}
+if (unfloored.length) {
+	out.push("", "⚠️ Scored but not in the floor file — add a line each, or a new check could sit at 0 unnoticed:", "");
+	for (const [name, got] of unfloored) out.push(`  ${pad(name, 26)}${got}`);
+}
+if (out.length) console.error(out.join("\n"));
+if (!fell.length) console.error(`\n  aggregate ${report.score} >= floor ${floorAggregate}`);
+process.exit(fell.length ? 3 : 0);
+EVAL
+
+	rm -f "$SCORECARD_JSON"
+
+	case "$SCORECARD_VERDICT" in
+		0)
+			echo 'pre-push [3/7]: supply-chain posture at or above the floor.'
+			;;
+		3)
+			cat >&2 <<'MSG'
+
+────────────────────────────────────────────────────────────────────────────
+PUSH BLOCKED — this repository's supply-chain posture on GitHub is below the
+floor recorded in .scorecard-floor. The checks that fell are listed above.
+
+⚠️ This is about the repository as GitHub holds it right now, not about the
+commits you are pushing. A check can fall here with nothing of yours having
+changed: a branch protection rule switched off, a workflow pinned to a tag that
+moved, an advisory published overnight against a dependency already in the
+lockfile.
+
+In order:
+
+  1. Read the check that fell and its reason, above. The same result with the
+     documentation for every check is at
+     https://scorecard.dev/viewer/?uri=<owner>/<repo>
+  2. Restore the control that regressed. A dependency advisory is `yarn upgrade`;
+     a workflow that came unpinned needs its SHA back; branch protection lives on
+     GitHub, not in this tree.
+  3. Raise the floor only when a check genuinely improved and you want the new
+     number defended from here on. Never to make this message go away — the floor
+     is the record of what this repository has already earned.
+────────────────────────────────────────────────────────────────────────────
+MSG
+			exit 1
+			;;
+		*)
+			scorecard_block "the floor comparison did not run (exit $SCORECARD_VERDICT) — its error is above. The score was never compared against the floor, so nothing here is cleared." \
+				'# that is a bug in this gate, not a finding in the repository' \
+				'node --version'
+			;;
+	esac
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 4 — types, over the test tree as well as src/.
 #
 # `tsconfig.json` compiles `src/` alone (`rootDir: ./src`), so the `yarn build`
 # inside `test:cov` has never read a line of `test/` — and vitest strips types
@@ -345,7 +584,7 @@ fi
 # .prettierrc.
 # ---------------------------------------------------------------------------
 
-echo "pre-push [3/6]: $APP — type-checking (yarn typecheck)…"
+echo "pre-push [4/7]: $APP — type-checking (yarn typecheck)…"
 
 if ! yarn typecheck; then
 	cat >&2 << 'MSG'
@@ -364,13 +603,13 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [3/6]: types clean."
+echo "pre-push [4/7]: types clean."
 
 # ---------------------------------------------------------------------------
-# Gate 4 — build, tests, coverage.
+# Gate 5 — build, tests, coverage.
 # ---------------------------------------------------------------------------
 
-echo "pre-push [4/6]: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
+echo "pre-push [5/7]: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
 
 if ! yarn test:cov; then
 	cat >&2 << 'MSG'
@@ -397,10 +636,10 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [4/6]: 100% coverage held."
+echo "pre-push [5/7]: 100% coverage held."
 
 # ---------------------------------------------------------------------------
-# Gate 5 — mutation. Coverage asks whether a line RAN; mutation asks whether a
+# Gate 6 — mutation. Coverage asks whether a line RAN; mutation asks whether a
 # test would have FAILED had that line been wrong, and the two answers diverge
 # badly — every package on this platform sat at 100% coverage with survivors.
 #
@@ -408,11 +647,11 @@ echo "pre-push [4/6]: 100% coverage held."
 # that per commit is how a hook gets bypassed out of habit.
 #
 # ⚠️ No SKIP_TESTS-style reuse is possible here: Stryker runs the suite once per
-# mutant under its own instrumentation, so nothing gate 4 produced can stand in
+# mutant under its own instrumentation, so nothing gate 5 produced can stand in
 # for it.
 # ---------------------------------------------------------------------------
 
-echo "pre-push [5/6]: $APP — mutation testing, gated at 100 (yarn test:mutation)…"
+echo "pre-push [6/7]: $APP — mutation testing, gated at 100 (yarn test:mutation)…"
 
 if ! yarn test:mutation; then
 	cat >&2 << 'MSG'
@@ -453,10 +692,10 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [5/6]: mutation score 100 held."
+echo "pre-push [6/7]: mutation score 100 held."
 
 # ---------------------------------------------------------------------------
-# Gate 6 — Qodana. Deliberately here as well as in pre-commit, for two reasons
+# Gate 7 — Qodana. Deliberately here as well as in pre-commit, for two reasons
 # pre-commit structurally cannot cover: `git merge --no-ff` never fires
 # pre-commit, so the merge commit is the one revision no pre-commit scan sees;
 # and Qodana Cloud files every report under the branch it was produced on (the
@@ -467,7 +706,7 @@ echo "pre-push [5/6]: mutation score 100 held."
 # ---------------------------------------------------------------------------
 
 if [ -n "${SKIP_QODANA:-}" ]; then
-	echo 'pre-push [6/6]: Qodana gate skipped — SKIP_QODANA is set.' >&2
+	echo 'pre-push [7/7]: Qodana gate skipped — SKIP_QODANA is set.' >&2
 	exit 0
 fi
 
@@ -536,11 +775,11 @@ if [ -z "${QODANA_TOKEN:-}" ] && { [ ! -f "$APP_DIR/.env" ] || ! grep -q '^[[:sp
 		"echo 'QODANA_TOKEN=<token>' >> $APP/.env"
 fi
 
-echo "pre-push [6/6]: $APP — enforcing the Qodana gate ($LINTER)…"
+echo "pre-push [7/7]: $APP — enforcing the Qodana gate ($LINTER)…"
 
 # SKIP_TESTS=1, exactly as the fourteen gated packages pass it: qodana.sh would
 # otherwise regenerate coverage as `yarn test:cov || true`, with the exit code
-# swallowed. Gate 4 above has already written coverage/lcov.info.
+# swallowed. Gate 5 above has already written coverage/lcov.info.
 if ! SKIP_TESTS=1 "$APP_DIR/qodana.sh" --results-dir "$APP_DIR/.qodana/results"; then
 	cat >&2 << 'MSG'
 
@@ -562,5 +801,5 @@ MSG
 	exit 1
 fi
 
-echo "pre-push [6/6]: Qodana clean. Pushing."
+echo "pre-push [7/7]: Qodana clean. Pushing."
 exit 0

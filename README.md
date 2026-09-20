@@ -1,5 +1,7 @@
 # Marketplace — workspace root
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Axiumine/fullstack-marketplace-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/Axiumine/fullstack-marketplace-blueprint)
+
 > [!WARNING]
 > **Work in progress — this software is not tested yet.** It has never run outside a developer
 > workstation: no real deployment, no load test, no security review, no upgrade path. Parts of the
@@ -215,7 +217,7 @@ fast but needs Docker and is only trustworthy over committed files (see above).
 
 `marketplace-db-setup` runs a shorter chain, and the one omission left is a decision rather than a gap.
 Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push` is
-trivy → `test:cov` → `test:mutation` → Qodana. **No lint and no type gate**, because it is the one repo on the
+trivy → scorecard floor → `test:cov` → `test:mutation` → Qodana. **No lint and no type gate**, because it is the one repo on the
 platform with no `eslint.config.js`, no `.prettierrc` and no TypeScript at all — its content is applied migrations, which are immutable, so a
 formatter that rewrites them is the wrong tool. Qodana still *inspects* those files, which is the part
 worth having.
@@ -242,7 +244,7 @@ appearance of a gated project. Both parent hooks now close it:
 |Hook|Gates|Scope|
 |---|---|---|
 |`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `marketplace-services-status/`|
-|`.githooks/pre-push`|`yarn semgrep:ci` → trivy → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+|`.githooks/pre-push`|`yarn semgrep:ci` → trivy → scorecard floor → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
 
 The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
 commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
@@ -350,7 +352,7 @@ Three settings that are invisible until they disagree, and none of them fails lo
 |---|---|---|
 |linter image|`qodana.yaml` (`image:` here, `linter:` in koa-utils)|`jetbrains/qodana-js:2026.2`|
 |CLI|the machine, a hand-installed `.deb` (dpkg only, no apt repo)|`2026.2.0`|
-|GitHub action|`.github/workflows/qodana.yml` — koa-utils only, no marketplace repo has CI|`JetBrains/qodana-action@v2026.2`|
+|GitHub action|`.github/workflows/qodana.yml` — koa-utils only; the marketplace repos run Scorecard and CodeQL (ADR-054), not Qodana, in CI|`JetBrains/qodana-action@v2026.2`|
 
 The linter decides which inspections run, so two repos on different tags are not being held to the
 same rules. A CLI *older* than its linter still scans, but prints `You are using a non-compatible

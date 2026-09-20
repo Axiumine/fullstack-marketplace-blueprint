@@ -173,7 +173,7 @@ Everything below is genuinely open. This page documents swap points; it builds n
   step runs any of this — nothing on this page is a gate, including this. A vendor-neutral sweep is what
   `ADR-040` explicitly did **not** decline, and building it closes that carve-out and nothing else in **R39**.
 - **No escrow, no automated rotation** for any of the three. See §1.
-- **No process supervision, no CI/CD, no backup or restore drill, no sizing for the Redis cluster or the
+- **No process supervision, no build or deploy pipeline, no backup or restore drill, no sizing for the Redis cluster or the
   MongoDB replica set.** All of it is **R39**, all of it is still open, and `ADR-039` explicitly did not
   answer any of it.
 - **No secret rotation runbook.** The platform has one rotation mechanism, and it is for the *signing keys*

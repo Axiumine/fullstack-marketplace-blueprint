@@ -36,7 +36,7 @@ names the tests that should have failed, and it costs nobody the machine.
   file there takes the run red, and the answer is a test or a named line, never a wider glob.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
   non-markdown paths under `marketplace-services-status/` and runs `yarn typecheck` then `yarn test:cov`
-  then Qodana; `pre-push` runs unscoped — `semgrep:ci` → trivy → `typecheck` → `test:cov` →
+  then Qodana; `pre-push` runs unscoped — `semgrep:ci` → trivy → scorecard floor → `typecheck` → `test:cov` →
   `test:mutation` → Qodana — because `pre-commit` never fires for a merge commit and never saw a
   `--no-verify` one.
 - ⚠️ **`yarn build` type-checks `src/` and nothing else.** `tsconfig.json` has `rootDir: ./src`, so

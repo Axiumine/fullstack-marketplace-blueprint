@@ -1,0 +1,88 @@
+# Dependabot — what raises Scorecard's Dependency-Update-Tool check, and nothing more.
+#
+# ⚠️ READ THIS BEFORE MERGING ANY DEPENDABOT PULL REQUEST.
+# Every gate this platform has — semgrep, trivy, lint, typecheck, 100% coverage, 100%
+# mutation score, Qodana — lives in .githooks/, wired by `core.hooksPath`, which is git
+# config local to a real clone. Dependabot never clones locally and never runs `prepare`,
+# and a merge from the GitHub UI is a server-side operation with no local git process in
+# the path. So a Dependabot PR merged from the browser has passed NOTHING.
+#
+# The procedure is therefore not optional: fetch the branch, check it out, `yarn install`,
+# and let pre-commit and pre-push run for real. Merge only after they pass. This is the
+# whole control — there is no CI reproducing those gates (ADR-054 records why).
+#
+# ⚠️ YAML forbids tabs — see the note in .github/workflows/scorecard.yml.
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/marketplace-services-status'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '03:00'
+      timezone: 'Etc/UTC'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+    groups:
+      # One PR for the whole toolchain rather than fifteen. The toolchain is where every
+      # advisory this platform currently carries lives, and a grouped bump is one local
+      # verification run instead of fifteen.
+      dev-toolchain:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+    ignore:
+      # ⚠️ Never auto-bumped. Moving a consumer's range onto a new
+      # @axiumine/marketplace-common is step 9 of the mandatory nine-step release in
+      # BEs/marketplace-common/REPO.md §Publishing a release, and it is deliberately
+      # hand-driven: the release cuts the version, then each consumer moves. A bot PR
+      # arriving out of that order would land the range move before — or instead of — the
+      # release it belongs to.
+      - dependency-name: '@axiumine/marketplace-common'
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '03:30'
+      timezone: 'Etc/UTC'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
+    labels:
+      - 'dependencies'
+    groups:
+      actions:
+        patterns:
+          - '*'
+
+  - package-ecosystem: 'docker'
+    # marketplace-docker-DBs is a plain directory of this repo, not a submodule (ADR-025),
+    # so its Dockerfile is this repo's to keep current.
+    #
+    # ⚠️ This entry is inert today, on purpose. That Dockerfile reads
+    # `FROM mongo:${MONGO_TAG}`, and Dependabot cannot resolve a tag that comes from a
+    # build argument — it will find nothing to bump until the tag is written literally.
+    # The entry is here so that the day the tag is inlined, it is already covered.
+    #
+    # ⚠️ The pinned semgrep, trivy and scorecard images live inside package.json scripts
+    # and .githooks/pre-push as shell strings. No Dependabot ecosystem can see a version
+    # inside a shell string, so those stay a hand-bump — a known limit, not an oversight.
+    directory: '/marketplace-docker-DBs'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '04:00'
+      timezone: 'Etc/UTC'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    labels:
+      - 'dependencies'
