@@ -304,6 +304,17 @@ another grep:
   list, both stopped refusing and connected to a real MongoDB instead, still green. They now delete a
   name the list still carries. **A test that proves a refusal must delete a variable the list still requires**,
   so shortening the list is never a comment-only change.
+- ⚠️ **`CI=true` changes how typescript-eslint parses, so an ESLint-driven test can pass here and fail on
+  every runner.** typescript-estree's `inferSingleRun` reads `CI=true` as a one-off run and builds a plain
+  program from `tsconfig`, whose source files it reads **from disk** — where a watch program serves the text
+  it was handed. So `lintText(code, { filePath })` at a path a real file occupies lints the *file's* contents
+  instead of `code`, and the rules report ranges into a text that is not the one being checked.
+  `test/restrictedSyntax.test.mts` died this way in seven services with `RangeError: Index out of range
+  (requested index 186, but source text has length 158)` out of `simple-import-sort` — 186 is the end of the
+  borrowed file's import block, 158 the length of the fixture. The fix is one parser option,
+  `disallowAutomaticSingleRunInference: true`, passed through `overrideConfig` where the instance is built.
+  **Run any ESLint-driven suite as `CI=true yarn test:unit` before believing it is green**: nothing else on
+  this platform makes a local run and a runner disagree this quietly.
 
 ## Integration test conventions
 

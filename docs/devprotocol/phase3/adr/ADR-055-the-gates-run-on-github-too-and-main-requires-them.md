@@ -150,6 +150,20 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   which is the sequencing note in §Compliance.
 - The gates become reproducible by someone who is not at this workstation. Until now the only way to know
   whether the fleet was green was to have the clone, the Docker daemon, the images and the Qodana token.
+- ⚠️ **The first run of this pipeline found two pre-existing defects that no local gate could ever have
+  reported, which is the strongest argument for it in this document.** Eight of the sixteen repositories
+  failed their first `gates` run, in two ways, and the workflow caused neither. `marketplace-db-setup` failed
+  `Gate 1 - SAST` because its `.githooks/pre-push` carried five gates and no semgrep step at all: the
+  `semgrep/` ruleset, the vendored packs and the `semgrep:ci` script had been sitting in that repo uncalled,
+  so CI ran the repo's own SAST for the first time and reported a finding the hook had never shown anybody.
+  Seven of the nine services failed `Gate 6 - unit suite` in `test/restrictedSyntax.test.mts` with a
+  `RangeError: Index out of range` out of `simple-import-sort`: typescript-estree's `inferSingleRun` treats
+  `CI=true` as a one-off run and builds a plain program from `tsconfig`, whose source files are read **from
+  disk**, so the fixture text handed to `lintText` was discarded in favour of the borrowed `SRC_PATH` file's
+  own contents and the rules ran over one file's AST against another's text. Green on this workstation, red
+  on every runner, and undetectable here by construction. Both are fixed — a sixth gate in db-setup's hook,
+  and `disallowAutomaticSingleRunInference` where each `ESLint` instance is built — and both are exactly the
+  class of defect a second, differently-shaped environment exists to find.
 
 ### Negative
 
@@ -210,6 +224,27 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   already conservative by the time the protection rule exists. A second raise is owed, not optional, and its
   order is: this landed, a run reported on `main`, the protection rule applied — then re-measure all sixteen
   and raise every floor to the measured value. Never lower one.
+- ⚠️ **That second raise was performed on 2026-09-20, and it moved one number in one repository — the
+  prediction in the bullet above was wrong about both halves.** `Branch-Protection` did **not** rise when the
+  rule was applied: it reads `3` in all sixteen, with the reason `branch protection is not maximal on
+  development and all release branches`. Scorecard's higher tiers for that check want required reviewers,
+  dismissal of stale approvals and administrator enforcement — which is precisely the stricter protection the
+  platform owner did not ask for, and `enforce_admins=false` is a recorded decision of ADR-054. So `3` is this
+  platform's ceiling for that check while that decision stands, not a step on the way to something higher.
+  `CI-Tests` did **not** stop being `-1` either, for a duller reason: its measurement needs merged pull
+  requests to look at, and its reason is `no pull request found`. Every commit here has arrived by a push from
+  this workstation. The one genuine change was the parent's `Pinned-Dependencies`, **6 → 7**, earned by the
+  SHA-pinned `uses:` lines this ADR's own workflows added; its aggregate stayed `6.4`. The other fifteen
+  matched their committed floors exactly, in every check and in the aggregate — which is the more useful
+  reading of the exercise: re-measuring found no regression anywhere, and the floors landed with ADR-054's
+  merge were already the measured truth rather than a conservative guess.
+- ⚠️ **`CI-Tests` turning from `-1` into a real number will move every aggregate, and that is not a
+  regression.** The aggregate is weighted over the checks that scored `>= 0`, so the first merged pull request
+  in a repository adds a check to the average and recomputes it. The direction should be upwards — `gates` now
+  reports on every pull request, which is the thing that check looks for — but a push blocked by an aggregate
+  that fell on the day `CI-Tests` appeared is the floor gate working on a changed measurement, not a broken
+  control. Re-measure, confirm the per-check values only rose, and raise the aggregate floor to what was
+  measured. Do not reach for `SKIP_SCORECARD=1`.
 - ⚠️ **Do not add `cache: yarn`, and do not add a Qodana token as a repository secret.** Both are recorded
   decisions with a stated reason, and both look like obvious improvements from a distance.
 - ⚠️ **Do not move this workflow to a self-hosted runner on this workstation.** A `pull_request` trigger

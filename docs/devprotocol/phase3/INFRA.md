@@ -493,8 +493,9 @@ The entire delivery/quality-gate mechanism is **local git hooks**, wired via `co
 - `.githooks/pre-commit` — lint, `tsc`, coverage (scoped to staged paths in some repos).
 - `.githooks/pre-push` — `semgrep:ci` → trivy → the Scorecard floor (ADR-054) → `lint:check` →
   `typecheck` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14 sub-repos that ship code
-  (`docs/workflow.md` §Git hooks); `marketplace-db-setup` runs a five-gate subset with no lint or type
-  step. `marketplace-nginx`, the fifteenth, ships
+  (`docs/workflow.md` §Git hooks); `marketplace-db-setup` runs a six-gate subset with no lint or type
+  step — its semgrep step landed on 2026-09-20, long after the rest, because CI ran that ruleset before any
+  hook did (ADR-055 §Positive). `marketplace-nginx`, the fifteenth, ships
   configuration rather than code and gates on `test/run.sh` instead — one hook, `pre-push`, and no
   `pre-commit`, so no secret guard.
 

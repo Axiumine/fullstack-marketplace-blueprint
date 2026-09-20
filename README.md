@@ -189,7 +189,11 @@ server-side check — which is the arrangement the hooks were designed for, and 
 layer rather than the layer.
 
 **Semgrep joined `pre-push` on 2026-08-13, in all fifteen projects that carry a ruleset, and it is
-push-only on purpose.** Before that date it was in no hook at all — fifteen `semgrep/` directories, a
+push-only on purpose.** ⚠️ **In fourteen of the fifteen, as it turned out: `marketplace-db-setup`'s hook
+kept its five gates and called no semgrep step until 2026-09-20**, while this sentence read as though it
+did. The divergence surfaced only when ADR-055 put the same gates in CI and the repo's own `semgrep:ci`
+reported a finding on its first run — a ruleset nothing calls is not a gate, which is the very point the
+rest of this paragraph makes. Before that date it was in no hook at all — fifteen `semgrep/` directories, a
 `semgrep` and a `semgrep:ci` script in every `package.json`, and nothing that ever ran either: a
 ruleset is not a gate. It runs **first** of the gates in each hook, because at ~3 s it is cheaper than
 the rest by an order of magnitude, so a rule violation is reported in seconds rather than after a full
