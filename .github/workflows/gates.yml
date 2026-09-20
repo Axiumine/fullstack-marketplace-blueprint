@@ -1,0 +1,125 @@
+# The gates of marketplace-services-status, run on GitHub — the second caller of the
+# gates this repository's .githooks/pre-push runs locally (ADR-055).
+#
+# ⚠️ marketplace-services-status is a directory of this repository, not a sub-repo
+# (ADR-025), so its gates have always lived in the parent's hooks. Same here: every
+# step below runs inside it, which is what `defaults.run.working-directory` is for.
+# The workspace documentation this repository also tracks is markdown, gated by
+# review, exactly as before.
+#
+# ⚠️ This workflow exists for one path only: a pull request merged in the browser.
+# Every other gate on this platform is a local git hook, and a merge performed on
+# github.com runs no hook at all — so before this file, a Dependabot pull request
+# merged with the green button reached main having passed nothing (RISK_REGISTER R63).
+# `required_status_checks` on main names the `gates` job below, which is why the job
+# id must not be renamed: the branch protection rule on all sixteen repositories
+# refers to it by that exact string.
+#
+# ⚠️ YAML forbids tabs. The workspace-wide "indentation is tabs" rule is enforced by
+# eslint and prettier over JavaScript and TypeScript — it cannot apply here.
+#
+# ⚠️ Every `uses:` is pinned to a commit SHA, not a tag: Scorecard's
+# Pinned-Dependencies check grades this file too, and a tag is mutable.
+#
+# Five of the seven pre-push gates run here, in the hook's own order. The two that
+# do not:
+#
+#   Qodana    — needs a JetBrains Cloud token this repository does not hold. It stays
+#               a local-only gate; the hook is still the only place it runs.
+#   scorecard — has its own workflow (scorecard.yml) and grades the repository rather
+#               than a diff, so running it per pull request would say nothing new.
+#
+# There is no lint gate in this list because there is none in the hook either, and
+# nothing for it to run: marketplace-services-status carries neither an eslint config
+# nor a .prettierrc — the thirteen that do are the thirteen sub-repo packages
+# (ADR-024) — so `pre-push` here has never had a lint gate to renumber.
+name: Gates
+
+on:
+  pull_request:
+  push:
+    branches: ['main']
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: marketplace-services-status
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: marketplace-services-status/.nvmrc
+
+      # ⚠️ No `cache: yarn`, deliberately. This workflow runs on pull requests from
+      # anywhere, and a dependency cache is state one pull request writes and the next
+      # reads — the one input to a security gate that a contributor could choose.
+      # A cold install costs well under a minute; the gates below cost minutes.
+
+      # packageManager pins yarn 1.22.22 in every package.json; corepack is what
+      # honours it, so the runner uses the same yarn the hooks do.
+      - name: Enable corepack
+        run: corepack enable
+
+      # --frozen-lockfile is the point: an install that may rewrite yarn.lock proves
+      # nothing about the lockfile under review. The committed lockfile carries
+      # registry.npmjs.org URLs (scripts/lockfile-registry-filter.sh rewrites the
+      # local proxy out on the way into git), so this resolves from the public
+      # registry with no configuration.
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Read from package.json rather than hard-coded, for the same reason the hooks
+      # read engines.node from it: a script renamed in one place cannot leave this
+      # workflow silently running nothing.
+      - name: Which gates does this package declare
+        id: scripts
+        run: |
+          has() { node -p "Boolean(require('./package.json').scripts['$1'])"; }
+          {
+            echo "typecheck=$(has typecheck)"
+            echo "mutation=$(has test:mutation)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Gate 1 - SAST (yarn semgrep:ci)
+        run: yarn semgrep:ci
+
+      # The hook's trivy invocation, flag for flag. --skip-dirs .stryker-tmp is
+      # load-bearing there and harmless here; the named db cache volume is not
+      # reproduced because a runner is thrown away after every job.
+      - name: Gate 2 - dependency advisories (trivy)
+        run: |
+          docker run --rm \
+            -v "$PWD":/src:ro \
+            aquasec/trivy:0.70.0 fs \
+            --db-repository ghcr.io/aquasecurity/trivy-db:2 \
+            --scanners vuln \
+            --skip-dirs node_modules \
+            --skip-dirs .stryker-tmp \
+            --skip-dirs .qodana \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --skip-version-check \
+            /src
+
+      - name: Gate 4 - types (yarn typecheck)
+        if: steps.scripts.outputs.typecheck == 'true'
+        run: yarn typecheck
+
+      - name: Gate 5 - coverage, 100% on every metric (yarn test:cov)
+        run: yarn test:cov
+
+      - name: Gate 6 - mutation score 100 (yarn test:mutation)
+        if: steps.scripts.outputs.mutation == 'true'
+        run: yarn test:mutation

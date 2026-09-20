@@ -201,5 +201,6 @@ fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the 
 File and test counts are a `yarn test` run of 2026-08-30 for the three apps, and of 2026-08-25 for
 `marketplace-services-status`. ⚠️ **The mutant columns are older than that** —
 they are each app's last `pre-push` run, and `marketplace-admin`'s predates the nine files and 229 tests
-the admin active-user tables and retention work added (ADR-049). The gate is hook-only in all four repos,
-so the next push is what re-measures them; do not start a run to refresh this table.
+the admin active-user tables and retention work added (ADR-049). The gate is hook-only in all four repos — `pre-push` and,
+since ADR-055, `.github/workflows/gates.yml`, and a hand is neither — so the next push or pull request is
+what re-measures them; do not start a run to refresh this table.

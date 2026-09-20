@@ -157,6 +157,37 @@ so there is no lint, coverage, mutation or Qodana step it could run: its `pre-pu
 — `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check, and
 its `pre-commit` is the secret guard below and nothing else (ADR-030).
 
+### The second layer — six of the eight gates, on GitHub, since 2026-09-20
+
+**The hooks are still the authoritative layer, and they are no longer the only one.**
+`.github/workflows/gates.yml` in all sixteen repos runs the same gates against the same scripts on every
+pull request and on every push to `main`, and `main` requires the check (ADR-055). It exists for the one
+path a local hook can never see: a merge performed on github.com, which is how a Dependabot pull request
+used to reach `main` having passed nothing at all.
+
+What runs there, per repo class:
+
+|Repo class|Gates in CI|
+|---|---|
+|the thirteen sub-repo packages + `marketplace-services-status`|semgrep → trivy → `lint:check` → `typecheck` → `test:cov` → `test:mutation`|
+|the nine services, out of those fourteen|the same, with `test:unit` in place of `test:cov`|
+|`marketplace-nginx`|`test/run.sh`|
+
+Three things it does **not** do, and a green check is not a substitute for any of them:
+
+- **Qodana** — needs a JetBrains Cloud token this workspace does not put in CI. Local hook only.
+- **the Scorecard floor** — has its own workflow, and grades the repository's state on GitHub rather than
+  a diff, so per-pull-request it would say nothing new.
+- **the integration project, and with it the coverage measurement, in the nine services** — those suites
+  need the MongoDB replica set with its `MONGO_TEST_*` users, the Redis ACL, and the sibling
+  `marketplace-db-setup` checkout whose migrations `globalSetup` replays. None of the three exists on a
+  runner. CI runs `yarn test:unit` instead — a differently-named gate, not a lowered threshold; the
+  coverage gate is untouched and still fires in `pre-push`, here, where the datastores are.
+
+`enforce_admins` stays **false**, so a direct `git push` to `main` from this machine runs the hooks and no
+server-side check — which is the arrangement the hooks were designed for, and the reason CI is a second
+layer rather than the layer.
+
 **Semgrep joined `pre-push` on 2026-08-13, in all fifteen projects that carry a ruleset, and it is
 push-only on purpose.** Before that date it was in no hook at all — fifteen `semgrep/` directories, a
 `semgrep` and a `semgrep:ci` script in every `package.json`, and nothing that ever ran either: a

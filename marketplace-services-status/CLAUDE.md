@@ -27,6 +27,8 @@ anywhere.
 file, never to confirm a survivor is fixed. Never invoke `stryker` directly either. A survivor is
 answered by writing the test it names; to reproduce one, apply the mutant by hand and run `yarn test`
 (seconds, and names the tests that should have failed). Full rationale in [`REPO.md`](./REPO.md).
+⚠️ Since ADR-055 the script has a second caller, `.github/workflows/gates.yml`, which runs it on
+every pull request — two callers, both automated, and a hand is neither.
 
 ## Hard rules and traps
 

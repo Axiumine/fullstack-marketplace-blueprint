@@ -68,15 +68,21 @@ read it before proposing a refactor of anything below.
   lowered needs the control restored instead. `SKIP_SCORECARD=1` is for a Docker, network or GitHub outage,
   never for a finding. ⚠️ This is the one gate that grades the repository **on GitHub right now**, not the
   commits being pushed, and the only one that needs the network.
-- ⚠️ **A Dependabot pull request merged in the browser has passed no gate at all** — every gate is a local
-  hook, and there is no CI reproducing them. Fetch the branch, check it out, `yarn install`, let `pre-commit`
-  and `pre-push` run, and merge only then (ADR-054).
+- ⚠️ **A Dependabot pull request merged in the browser has passed six of the eight gates, and not the other
+  two.** `.github/workflows/gates.yml` runs semgrep, trivy, lint, types, coverage and mutation on every pull
+  request, and `main` requires that check (ADR-055) — so the browser path is no longer ungated, as it was
+  under ADR-054. What CI still cannot run is Qodana (no token), the Scorecard floor (its own workflow, and it
+  grades the repo rather than a diff) and, in the nine services only, the integration project and with it the
+  coverage measurement (they need MongoDB, Redis and the sibling `marketplace-db-setup` checkout). Green is
+  therefore not enough: fetch the branch, check it out, `yarn install`, let `pre-commit` and `pre-push` run,
+  and merge only then.
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on all
   four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a test.
 - ⚠️ **Never start the mutation gate by hand**, in any of the fifteen packages that carry a
   `stryker.config.*` — fourteen sub-repos (every one but `marketplace-nginx`, which ships no JavaScript)
-  plus `marketplace-services-status`. `yarn test:mutation` is hook-only — `pre-push` calls it, nothing
-  else does. To reproduce a survivor, apply the mutant by hand in the source and run `yarn test`.
+  plus `marketplace-services-status`. `yarn test:mutation` has exactly two callers, `.githooks/pre-push` and
+  `.github/workflows/gates.yml` (ADR-055), and a hand is neither. To reproduce a survivor, apply the mutant
+  by hand in the source and run `yarn test`.
 - **Never read, echo or commit a secret-bearing file** (`.env`, `.npmrc`, `*.pem`, …). `env` and `npmrc`
   without the dot are committed templates and safe. Print key names only:
   `grep -oE '^[A-Za-z_0-9]+' .env`. See [`.claude/SECRETS.md`](./.claude/SECRETS.md).

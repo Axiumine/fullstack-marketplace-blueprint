@@ -89,12 +89,15 @@ the `branch = main` entries are recorded for.
   `marketplace-nginx` has no `package.json`, so there is no lint, coverage, mutation or Qodana step for
   it to run: its `pre-push` runs `test/run.sh` and blocks on any failed check, and its `pre-commit` is
   the branch guard, then the secret guard, and nothing after it (ADR-030). Those two run in
-  **all sixteen**. ⚠️ **Since 2026-09-20 there is CI, and it gates nothing.** Every repo carries
-  `.github/workflows/scorecard.yml`, and the fifteen that ship JavaScript carry `codeql.yml` (ADR-054).
-  Both *measure* — supply-chain posture and SAST findings — and neither runs lint, types, tests, coverage,
-  mutation or Qodana. No build or deploy pipeline exists, no status check is required on any branch, and
-  every gate on the platform is still a local git hook. A merge performed on GitHub therefore passes
-  nothing.
+  **all sixteen**. ⚠️ **Since 2026-09-20 there is CI: three workflows per repo, two that measure and one
+  that gates.** `scorecard.yml` and — in the fifteen that ship JavaScript — `codeql.yml` measure
+  supply-chain posture and SAST findings and block nothing (ADR-054). `gates.yml` blocks: it runs semgrep,
+  trivy, `lint:check`, `typecheck`, `test:cov` and `test:mutation` on every pull request and every push to
+  `main`, `main` requires the `gates` check in all sixteen repos, and a merge performed on GitHub therefore
+  no longer passes nothing (ADR-055). ⚠️ **It is a second layer, not the layer.** Qodana and the Scorecard
+  floor stay local-only, the nine services run `test:unit` there because their integration project needs
+  datastores no runner has, `enforce_admins` is false so a direct push to `main` is gated by the hooks
+  alone, and no build or deploy pipeline exists at all.
 - **The parent's own commits now include pointer bumps.** One logical change is N+1 commits, not N: one
   per affected sub-repo, plus one in the parent moving the gitlinks. Skipping the parent commit leaves it
   describing a cross-repo state that no longer exists (ADR-031).

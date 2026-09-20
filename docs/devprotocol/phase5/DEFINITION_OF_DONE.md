@@ -242,12 +242,18 @@ document is that doctrine in checklist form.
 - Where these repos get published, and under which org, is the platform owner's open call, not yet made.
   Until that call is made, a `git push` or `git merge` here is not "shipped" or "released" in any
   externally-visible sense.
-- **No CI runs any gate on this platform.** Two workflows per repo measure supply-chain posture and SAST
-  findings (ADR-054) and block nothing. Every gate — semgrep, trivy, the Scorecard floor, lint, types,
-  coverage, mutation, Qodana — is a LOCAL git
-  hook (`.githooks/pre-commit`, `.githooks/pre-push`), fired only if `core.hooksPath` is set and the hook
-  file is executable (`100755`). A gate that "would have caught it in CI" is not a gate here — it has to
-  actually fire, locally, on this machine.
+- **The local hooks are still the authoritative gate layer, and since 2026-09-20 they are not the only
+  one.** Every gate — semgrep, trivy, the Scorecard floor, lint, types, coverage, mutation, Qodana — is a
+  LOCAL git hook (`.githooks/pre-commit`, `.githooks/pre-push`), fired only if `core.hooksPath` is set and
+  the hook file is executable (`100755`). ⚠️ **Done still means the hooks fired on this machine**: a direct
+  push to `main` runs no server-side check, because `enforce_admins` is false by decision. What changed is
+  the one path the hooks could never see — `.github/workflows/gates.yml` in all 16 repos runs six of the
+  eight gates on every pull request and `main` requires that check
+  ([`ADR-055`](../phase3/adr/ADR-055-the-gates-run-on-github-too-and-main-requires-them.md)), so a pull
+  request merged in the browser is gated where it used to pass nothing. ⚠️ **Three gates are not in that
+  six** and a green check is not a substitute for them: Qodana, the Scorecard floor, and — in the nine
+  services only — the integration project and the coverage measurement, which need the platform's
+  datastores. "It was green in CI" is not done for those three; the hook is.
 - "Tests pass" alone is never done — coverage without mutation is proven insufficient platform-wide:
   `marketplace-common` sat 100% covered at a 45.95% mutation score, `marketplace-db-setup` at 52.92%.
   Both gates required together, in order (`lint:check` → `test:cov` → `test:mutation` → Qodana).

@@ -461,18 +461,31 @@ any of these as built.
 
 ## 10. CI/CD
 
-**There is no pipeline. Since 2026-09-20 there are two workflows, and they gate nothing** — state the
-difference plainly rather than letting either half imply the other.
+**There is no deployment pipeline. Since 2026-09-20 there are three workflows, two of which measure and one
+of which gates** — state the difference plainly rather than letting any of it imply the rest.
 
 What exists, per [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md): every one of
 the 16 repos carries `.github/workflows/scorecard.yml` (OpenSSF Scorecard on push to `main` and weekly,
 `publish_results: true`, SARIF uploaded to code scanning), and the 15 that ship JavaScript also carry
-`.github/workflows/codeql.yml`. Both **measure**. Neither builds, tests, deploys or blocks: no lint,
-type-check, coverage, mutation or Qodana run happens on a runner, and no status check is required on any
-branch, so a merge performed on GitHub passes no gate at all. No GitLab CI and no Jenkins config exists
-anywhere. The claim that used to stand here — *no forge, no CI of any kind* — was true until 2026-09-20
-and is kept as history in `PDR.md` §6 Constraints and [`docs/workflow.md`](../../workflow.md) §Repo layout,
-both of which describe the pipeline that is still absent.
+`.github/workflows/codeql.yml`. Both **measure** and block nothing.
+
+What exists as a gate, per [`ADR-055`](./adr/ADR-055-the-gates-run-on-github-too-and-main-requires-them.md)
+the same day: every one of the 16 repos also carries `.github/workflows/gates.yml`, one job named `gates`,
+on `pull_request` and on `push` to `main`, and `main` in all 16 **requires** that check. It runs six of the
+eight `pre-push` gates in the 14 packages — `semgrep:ci`, trivy, `lint:check`, `typecheck`, the test suite,
+`test:mutation` — five of the seven in the parent (over `marketplace-services-status`, which has no lint
+gate to run), and `test/run.sh` in `marketplace-nginx`. ⚠️ **Three things it does not do**, each for a
+stated reason and none of them a lowered threshold: **Qodana** needs a JetBrains token these public repos
+will not hold; **the Scorecard floor** has its own workflow and grades the repo rather than a diff; and in
+the **nine services** the coverage run is replaced by `yarn test:unit`, because its `integration` project
+needs the MongoDB replica set, the provisioned `MONGO_TEST_*` users, the Redis ACL namespace and the sibling
+`marketplace-db-setup` checkout its migrations are replayed from — none of which exists on a runner.
+
+So the position is: a pull request can no longer be merged in the browser past the gates, and nothing here
+builds, releases or deploys anything. No GitLab CI and no Jenkins config exists anywhere. The claim that
+used to stand here — *no forge, no CI of any kind* — was true until 2026-09-20 and is kept as history in
+`PDR.md` §6 Constraints and [`docs/workflow.md`](../../workflow.md) §Repo layout, both of which describe
+the delivery pipeline that is still absent.
 
 The entire delivery/quality-gate mechanism is **local git hooks**, wired via `core.hooksPath` to
 `.githooks/` in each repo:
