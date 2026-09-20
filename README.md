@@ -207,16 +207,16 @@ staged index: it blocks when a repo's `.env`, `env` or `env.shared` holds a valu
 lines — the failure that silently truncated all ten `KEYGRIP_KEY_*` values that day
 (`.claude/SECRETS.md` §3, R05b) — or, since 2026-09-01, an unquoted value holding whitespace or a `#`,
 which dotenv and direnv do not read the same way (R05), or a tail that reads as its own `KEY=VALUE`
-line — `kJ3xQ==` is one, and base64 padding makes them — then `yarn lint:check`, then
-`yarn test:cov` (with `yarn typecheck` between them in `marketplace-admin`), then a full Qodana scan through
+line — `kJ3xQ==` is one, and base64 padding makes them — then `yarn lint:check`, then `yarn typecheck`,
+then `yarn test:cov`, then a full Qodana scan through
 `./qodana.sh` (~1 min), and only when the staged paths can move a verdict — a docs-only commit skips all
 of it. Two gates stay push-only: mutation, far too slow to pay for per commit, and semgrep, which is
 fast but needs Docker and is only trustworthy over committed files (see above).
 
 `marketplace-db-setup` runs a shorter chain, and the one omission left is a decision rather than a gap.
 Its `pre-commit` is the secret guard, `yarn test:cov` and Qodana; its `pre-push` is
-trivy → `test:cov` → `test:mutation` → Qodana. **No lint**, because it is the one repo on the platform with no
-`eslint.config.js` and no `.prettierrc` — its content is applied migrations, which are immutable, so a
+trivy → `test:cov` → `test:mutation` → Qodana. **No lint and no type gate**, because it is the one repo on the
+platform with no `eslint.config.js`, no `.prettierrc` and no TypeScript at all — its content is applied migrations, which are immutable, so a
 formatter that rewrites them is the wrong tool. Qodana still *inspects* those files, which is the part
 worth having.
 

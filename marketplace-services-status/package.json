@@ -17,6 +17,7 @@
     "systemd:generate": "node systemd/generate.mjs",
     "systemd:install": "./systemd/install.sh",
     "systemd:uninstall": "./systemd/uninstall.sh",
+    "typecheck": "tsc -p tsconfig.test.json",
     "test": "yarn build && vitest run",
     "test:unit": "vitest run test/config.test.ts test/monitor.test.ts test/probe.test.ts test/publicApp.test.ts test/publicAppBare.test.ts test/publicAppSecure.test.ts test/server.test.ts test/systemd.test.ts test/systemdGenerate.test.ts",
     "test:cov": "yarn build && vitest run --coverage && node scripts/coverage-audit.mjs",

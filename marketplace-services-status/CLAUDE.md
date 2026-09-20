@@ -67,8 +67,8 @@ one of those lines "for clarity" is how the mutation gate goes red.
 - **100% statements, branches, functions and lines; mutation `break: 100`. Never lower either** — a
   change that needs a threshold lowered needs a test instead, never a smaller number.
 - **The parent workspace's hooks gate this directory**, not a hook of its own — `pre-commit` runs
-  `yarn test:cov` + Qodana on staged paths here, `pre-push` runs the full unscoped chain including
-  mutation. Why the split, and what `coverage-audit.mjs` proves beyond vitest: [`REPO.md`](./REPO.md).
+  `yarn typecheck` + `yarn test:cov` + Qodana on staged paths here, `pre-push` runs the full unscoped
+  chain including mutation. Why the split, and what `coverage-audit.mjs` proves beyond vitest: [`REPO.md`](./REPO.md).
 - **Semgrep is a push-only gate.** Bypass for a Docker outage, never for a finding:
   `SKIP_SEMGREP=1 git push`.
 - Commits here land in the parent repo. **Never commit on `main`** — branch first with
