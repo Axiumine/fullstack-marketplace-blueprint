@@ -81,7 +81,9 @@ read it before proposing a refactor of anything below.
 - ⚠️ **Never start the mutation gate by hand**, in any of the fifteen packages that carry a
   `stryker.config.*` — fourteen sub-repos (every one but `marketplace-nginx`, which ships no JavaScript)
   plus `marketplace-services-status`. `yarn test:mutation` has exactly two callers, `.githooks/pre-push` and
-  `.github/workflows/gates.yml` (ADR-055), and a hand is neither. To reproduce a survivor, apply the mutant
+  `.github/workflows/gates.yml` (ADR-055), and a hand is neither. ⚠️ `marketplace-db-setup` declares a
+  second script, `test:mutation:ci` (`stryker.ci.config.mjs`: the same config minus the patterns only a
+  real database can kill), whose one caller is `gates.yml`. Same rule, and its break threshold is also 100. To reproduce a survivor, apply the mutant
   by hand in the source and run `yarn test`.
 - **Never read, echo or commit a secret-bearing file** (`.env`, `.npmrc`, `*.pem`, …). `env` and `npmrc`
   without the dot are committed templates and safe. Print key names only:

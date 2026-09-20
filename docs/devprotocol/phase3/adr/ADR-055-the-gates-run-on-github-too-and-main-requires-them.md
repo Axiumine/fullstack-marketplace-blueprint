@@ -210,6 +210,17 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   grepped `vitest.config.mts` for a `name: 'integration'` project, and db-setup's config is
   `vitest.config.mjs` and names no projects at all. It now reads a declared `test:unit` instead, which is
   a declaration rather than an inference, and db-setup declares one.
+- ⚠️ **Fixing that surfaced the same defect one gate later, in the mutation gate, and this one is
+  structural rather than a bad detector.** db-setup's `mutate` covers `migrations/**`, and a migration is
+  replayed by migrate-mongo against a real database or not at all: with the coverage gate corrected the
+  run reached Gate 7 and reported 85.68 against a break threshold of 100, with 60 survivors nobody
+  introduced — 56 of them in `20260301000600-seed-demo.js`, the rest in `lib/encryption.js` and one
+  lifecycle migration. No narrowing of the *test* set fixes that, because the mutants are in files whose
+  only killers need the database. So db-setup declares `test:mutation:ci`, pointing at
+  `stryker.ci.config.mjs`: the real config spread, with the database-only patterns dropped from `mutate`
+  and `lib/encryption.js` excluded whole rather than by a line range that would silently stop meaning what
+  it says. 582 mutants remain and the first run killed every one of them with no database present. The
+  break threshold is 100 in both configs, and `pre-push` still runs the full one.
 - The runner is Ubuntu with a Docker daemon and the workstation is Debian with the same images pinned by
   digest, so semgrep and trivy are genuinely the same scan. The rest — node from `.nvmrc`, yarn from
   `packageManager` via corepack — is the same version but not the same machine, and a test that depends on
@@ -226,8 +237,15 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
 - ⚠️ **The check is named `gates` and nothing may rename it.** The job id, the job name and the
   `required_status_checks.contexts` entry on sixteen repositories are the same string. Changing it is a
   three-place change, and getting it wrong fails closed on every pull request.
-- ⚠️ **`yarn test:mutation` is still hook-only for a person.** Its second caller is `gates.yml`. Nobody
-  starts it by hand; to reproduce a survivor, apply the mutant in the source and run `yarn test`.
+- ⚠️ **A package whose mutants cannot all be killed on a runner says so by declaring `test:mutation:ci`,
+  and that is the second half of the same contract.** `gates.yml` prefers it where it exists, falls back
+  to `test:mutation`, and runs neither where there is no Stryker config. ⚠️ A CI config may only drop what
+  a datastore has to kill: it spreads the real config so thresholds, `related`, concurrency and
+  `ignorePatterns` cannot drift, and it throws if a pattern it removes has been renamed. Lowering
+  `thresholds.break` in either config is the forbidden move, not this one.
+- ⚠️ **`yarn test:mutation` is still hook-only for a person, and so is `test:mutation:ci`.** Their callers
+  are `.githooks/pre-push` and `gates.yml`. Nobody starts either by hand; to reproduce a survivor, apply
+  the mutant in the source and run `yarn test`.
 - ⚠️ **Sequencing, and why the floors here are deliberately conservative.** Adding required status checks
   changes what Scorecard measures — `Branch-Protection` rises the moment the rule is applied, and `CI-Tests`
   stops being `-1` once a check has reported on a merged pull request. Both of those happen *after* this
