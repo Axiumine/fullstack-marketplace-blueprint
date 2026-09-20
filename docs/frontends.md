@@ -172,13 +172,15 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
 A dashboard app that is **not** a repo of its own — it is a subdirectory tracked by the parent
 workspace (ADR-025). Three consequences before editing it:
 
-- **Its gates live in the parent's `.githooks/`.** `pre-commit` runs `yarn test:cov` and Qodana scoped
-  to staged non-`*.md` paths under `marketplace-services-status/`; `pre-push` runs `test:cov` → `test:mutation` →
-  Qodana **unscoped**, because a push carries `--no-verify` commits and merge commits that `pre-commit`
-  never saw.
+- **Its gates live in the parent's `.githooks/`.** `pre-commit` runs `yarn typecheck`, `yarn test:cov`
+  and Qodana scoped to staged non-`*.md` paths under `marketplace-services-status/`; `pre-push` runs
+  `typecheck` → `test:cov` → `test:mutation` → Qodana **unscoped**, because a push carries `--no-verify`
+  commits and merge commits that `pre-commit` never saw.
 - **No `lint` script** — it is not one of the thirteen eslint/prettier packages. `tsc` runs as the first
   half of its own `test:cov` (`yarn build && vitest run --coverage`), so a type error fails the coverage
-  gate before a single test executes. **Read the first error in that output, not the last.**
+  gate before a single test executes. **Read the first error in that output, not the last.** That build
+  reads `src/` alone, which is why `yarn typecheck` (`tsconfig.test.json`) exists beside it: it is the
+  only thing on the platform that reads this package's `test/` tree as TypeScript.
 - **Its own Qodana Cloud project (`xPKXD`) and its own token.** Do not point it at another repo's token
    — the reports would land in that project and corrupt its baseline.
 

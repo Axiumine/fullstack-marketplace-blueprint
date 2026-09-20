@@ -390,7 +390,8 @@ key. Its [`README.md`](../README.md) also carries the boot order for the whole p
 ```bash
 # any backend service (cd into it)
 yarn dev            # tsc && tsx watch src/index.mts
-yarn build          # yarn clean && tsc && tsc-alias
+yarn build          # yarn clean && tsc && tsc-alias — emits src/ only, never reads test/
+yarn typecheck      # tsc -p tsconfig.test.json — src/ + test/ + the vitest configs, no emit
 yarn start          # node dist/index.mjs
 ./dev.sh            # nvm + tmpfs-backed node_modules + yarn dev
 
@@ -399,6 +400,7 @@ yarn build          # ESM only — build:all / prepare:all are BROKEN (missing t
 yarn upload         # npm publish — the ONLY way an edit reaches a consumer (ADR-047). No local deploy exists
 yarn test           # unit          yarn test:cov
 yarn test:contract  # verifies package.json exports map
+yarn typecheck      # tsc -p tsconfig.test.json — the gate; test:types is a suite, not a gate
 yarn test:int  yarn test:types  yarn test:mutation  yarn test:all
 
 # marketplace-db-setup
@@ -411,6 +413,7 @@ yarn dev            # vite on http://127.0.0.1:3043, GraphQL paths proxied to 40
 yarn codegen        # regenerate src/gql/ from schema/*.graphql
 yarn build          # codegen && tsc --noEmit && vite build
 yarn lint           # eslint --fix + prettier --write   (lint:check for CI)
+yarn typecheck      # tsc --noEmit — the root tsconfig already includes test/
 yarn test  test:cov  test:mutation   # gated at 100 / 100
 
 # marketplace-user (customer app)

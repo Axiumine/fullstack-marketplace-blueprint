@@ -413,16 +413,42 @@ if ! node_satisfies; then
 fi
 
 if ! command -v yarn > /dev/null 2>&1; then
-	gate_block 'yarn not found in PATH — cannot run the coverage gate.' \
+	gate_block 'yarn not found in PATH — cannot run the type or coverage gates.' \
 		'npm i -g yarn@1.22.22'
 fi
 
 cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
 
 # No lint gate, and that is not an oversight: marketplace-services-status is the one package
-# here with no eslint.config.js and no .prettierrc. Its type check is not
-# separate either — `test:cov` is `yarn build && vitest run --coverage`, so tsc
-# runs first and a type error fails this gate before a single test does.
+# here with no eslint.config.js and no .prettierrc.
+#
+# The type check IS separate, since 2026-09-20. `test:cov` is
+# `yarn build && vitest run --coverage`, and `yarn build` reads `tsconfig.json`,
+# whose `rootDir` is `./src` — so tsc ran first but never read a line of `test/`,
+# and vitest strips types rather than checking them. Seven type errors lived in
+# that gap. `yarn typecheck` is `tsconfig.test.json`: the same options over src/,
+# test/, systemd/generate.mjs and the vitest configs, with no emit.
+echo "pre-commit: $APP — type-checking (yarn typecheck)…"
+
+if ! yarn typecheck; then
+	cat >&2 << 'EOF'
+
+pre-commit: BLOCKED — marketplace-services-status does not type-check.
+
+`yarn typecheck` is `tsc -p tsconfig.test.json`: src/, test/, systemd/generate.mjs
+and the vitest configs, with no emit. `yarn build` sees src/ only, so this is the
+only gate that reads the tests as TypeScript.
+
+Fix the errors above. Do NOT relax tsconfig.json, and do not narrow the include
+in tsconfig.test.json.
+
+Bypass once (pre-push still gates): git commit --no-verify
+EOF
+	exit 1
+fi
+
+echo "pre-commit: $APP — types clean."
+
 echo "pre-commit: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
 
 if ! yarn test:cov; then

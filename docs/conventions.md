@@ -46,6 +46,27 @@ not `undefined`.
 `*.js` in flat config means the config file's own directory only, never `**/*.js` — that scoping is what
 keeps a root-JS block off the minified Qodana report.
 
+## ⚠️ Two tsconfigs per package — the build one emits, the test one checks (MC-31, R62)
+
+Same shape as the section above, one tool over: the build config of the nine services, of
+`marketplace-common` and of `marketplace-services-status` is `rootDir: ./src`, so `tsc` never opened
+`test/`, and vitest transpiles without checking. Nothing was red; 160 errors were sitting in the test
+trees of those eleven packages.
+
+`tsconfig.test.json` is the second config: `noEmit`, `rootDir: "."`, `include` over `src/`, `test/` and
+the vitest configs, and it **extends** the build config rather than restating its options — a copied
+`strict` block is a block that drifts, and the point is to check the tests under exactly the strictness
+the source is checked under. `yarn typecheck` runs it, both hooks gate on it, and
+`./scripts/audit-check.sh` §20 checks that all fourteen TypeScript packages still carry script, config,
+`include` and both hook calls.
+
+The three apps need no second config: vite emits, so their root `tsconfig.json` was never a build config
+and already includes `test`. `marketplace-db-setup` has no TypeScript and `marketplace-nginx` ships no
+JavaScript, so neither is in the fourteen.
+
+⚠️ **The gate proves what `include` names compiles, not that a new file is inside `include`.** A test
+file outside `src/`, `test/` and the named vitest configs is read by nothing again.
+
 ## Node and package manager
 
 - **`engines.node` is `^24.18.0` in all fifteen packages** (the parent workspace has no `package.json`).

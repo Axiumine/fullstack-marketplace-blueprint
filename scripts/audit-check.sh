@@ -7,7 +7,7 @@
 # Everything a single repo can prove about itself is a lint rule or a unit test inside that repo, and
 # `docs/testing.md` §The mechanical checks lists which command runs which. What is left over is the set
 # of claims that span two repos — and no test on this platform spans two repos, by construction. This
-# script is that leftover, and nothing else: nineteen checks that would otherwise be nineteen things somebody
+# script is that leftover, and nothing else: twenty checks that would otherwise be twenty things somebody
 # has to remember to run by hand, which is precisely how the phase-5 audit was conducted and what this
 # script exists to stop repeating.
 #
@@ -728,6 +728,86 @@ elif ! node ./scripts/runnable-source-check.mjs > /dev/null 2>&1; then
 	fail 'a file a package.json runs is gated by nothing and declared nowhere - run node ./scripts/runnable-source-check.mjs'
 else
 	pass 'every runnable source file is gated by coverage.include or declared by name, and the check fires when one is not'
+fi
+
+echo
+echo '20. Every TypeScript package type-checks its test tree, and both of its hooks run it'
+
+# RISK_REGISTER R62, docs/testing.md MC-31. The build config of the nine services, of
+# `marketplace-common` and of `marketplace-services-status` is `rootDir: ./src`, so `yarn build` never
+# opened `test/`, and vitest strips types rather than checking them. Between the two, a test file's
+# types were read by nothing at all — 160 errors had accumulated behind that, every one of them an
+# assertion that passes while proving something other than what it says.
+#
+# Four things per package, because any one alone is invisible. The script, so there is something to
+# run. Both hooks, because a gate in one of the two is a type error that lands and is found later by
+# somebody else. And the config the script names, reaching `test/`: a `typecheck` that compiles `src/`
+# twice is the exact hole this check exists to close, and it reads as green everywhere else.
+TYPECHECK_TEST_CONFIG=(
+	BEs/marketplace-common
+	BEs/dev/marketplace-dev-admin-authenticated-authorization
+	BEs/dev/marketplace-dev-admin-authenticated-resource
+	BEs/dev/marketplace-dev-authenticated-authorization
+	BEs/dev/marketplace-dev-authenticated-logout
+	BEs/dev/marketplace-dev-authenticated-resource
+	BEs/dev/marketplace-dev-public-authorization
+	BEs/dev/marketplace-dev-public-resource
+	BEs/dev/marketplace-dev-user-authenticated-authorization
+	BEs/dev/marketplace-dev-user-authenticated-resource
+)
+
+# The three apps need no second config: their root `tsconfig.json` is not a build config — vite emits,
+# not tsc — so it already includes `test` and `yarn typecheck` is a bare `tsc --noEmit` over it.
+TYPECHECK_ROOT_CONFIG=(
+	marketplace-admin
+	marketplace-shopowner
+	marketplace-user
+)
+
+check_typecheck() {
+	local label="$1" dir="$2" hooks="$3" config="$4" invocation="$5"
+
+	if ! grep -q '"typecheck"' "$dir/package.json" 2> /dev/null; then
+		fail "$label — no typecheck script: nothing on this platform reads its test/ tree as TypeScript (R62)"
+		return
+	fi
+
+	if ! grep -qF "$invocation" "$dir/package.json"; then
+		fail "$label — typecheck script is not \`$invocation\`: it may be compiling something other than $config"
+	fi
+
+	if [ ! -f "$dir/$config" ]; then
+		fail "$label — $config is missing, so yarn typecheck cannot be reading test/"
+	elif ! grep -q '"test' "$dir/$config"; then
+		fail "$label — $config includes no test/ path: the gate runs and proves nothing about the test tree"
+	fi
+
+	if ! grep -q 'yarn typecheck' "$hooks/.githooks/pre-commit" 2> /dev/null; then
+		fail "$label — pre-commit does not run yarn typecheck: a type error lands, and the push finds it hours later"
+	fi
+
+	if ! grep -q 'yarn typecheck' "$hooks/.githooks/pre-push" 2> /dev/null; then
+		fail "$label — pre-push does not run yarn typecheck: the gate is advisory, which is no gate"
+	fi
+}
+
+TYPECHECK_BEFORE="$FAILED"
+
+for repo in "${TYPECHECK_TEST_CONFIG[@]}"; do
+	check_typecheck "$repo" "$repo" "$repo" tsconfig.test.json 'tsc -p tsconfig.test.json'
+done
+
+for repo in "${TYPECHECK_ROOT_CONFIG[@]}"; do
+	check_typecheck "$repo" "$repo" "$repo" tsconfig.json 'tsc --noEmit'
+done
+
+# `marketplace-services-status` is a directory of the parent repo, not a sub-repo (ADR-025), so the
+# hooks that gate it are the parent's own — and its pre-commit is the only one of the two that is
+# scoped to staged paths under it.
+check_typecheck 'marketplace-services-status' marketplace-services-status . tsconfig.test.json 'tsc -p tsconfig.test.json'
+
+if [ "$FAILED" -eq "$TYPECHECK_BEFORE" ]; then
+	pass 'all fourteen TypeScript packages type-check src/ and test/ together, gated by both hooks'
 fi
 
 echo

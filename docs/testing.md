@@ -118,8 +118,9 @@ the report is absent.
 | MC-28 | every public catalogue query answers with published, undeleted rows only — driven against a real MongoDB seeded with a draft shop, a soft-deleted shop, a draft item, a soft-deleted item, a soft-deleted category and a **published item under an unpublished shop**, and asserting that none of them is ever an answer | `yarn test:integration` | `marketplace-dev-public-resource/test/integration/publicCatalogueLiveness.itest.mts` — nine queries, twenty-one assertions, each proved by planting a dropped-value fault at its composition site, and the nine are asserted to be the whole public read surface, so a tenth query fails this file until it is seeded a draft of its own |
 | MC-29 | every service reaches exactly the collections the role written for it in `marketplace-docker-DBs/init/roles.js` would grant — every model a service's `src/` imports is in its row, every collection its row grants is one it imports a model for, the service declared to hold no connection holds none, every `BEs/dev/marketplace-dev-*` directory is in one of the two lists, and no service reaches MongoDB through `connection.db`, `db.collection(…)` or `getSiblingDB` at all | `./scripts/audit-check.sh` §18 (blocking) | `node ./scripts/service-role-check.mjs` over the real sources, proved in both directions first by `./scripts/service-role-check-selftest.sh` — nine cases on a three-service `mktemp -d` tree, including the three ways a source can be unreadable, which exit 2 rather than passing |
 | MC-30 | every source file a package.json hands to a runtime is inside its own package's coverage gate — every path `node`, `tsx`, `ts-node` or `ts-node-dev` is given in a `scripts` entry, plus `main` and `bin`, is matched by a `coverage.include` glob of that package or named by exact path in its `coverage-exempt.txt` or in `scripts/runnable-exempt.txt`, and both directions fail: a runnable file named nowhere is a file the 100% threshold said nothing about, and a name for a file that is gated now is a stale line holding the hole open | `./scripts/audit-check.sh` §19 (blocking) | `node ./scripts/runnable-source-check.mjs` over the real fifteen packages, proved in both directions first by `./scripts/runnable-source-check-selftest.sh` — nine cases on a two-package `mktemp -d` git tree, including the three ways a half can be unread, which exit 2 rather than passing |
+| MC-31 | every file a package ships is read as TypeScript by something — `src/`, `test/` and the vitest configs in one `tsc --noEmit` program, not just the subtree the build emits from | `git push` (`git commit` for `marketplace-services-status`) | `yarn typecheck` — `tsconfig.test.json` in the eleven packages whose build config is `rootDir: ./src` (the nine services, `marketplace-common`, `marketplace-services-status`), the root `tsconfig.json` in the three apps, which already include `test` — cross-checked by `./scripts/audit-check.sh` §20, four things per package: the script, the config it names, that config's `include` reaching `test/`, and both hooks calling it |
 
-⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Eighteen of its nineteen
+⚠️ **`./scripts/audit-check.sh` exists because no test on this platform spans two repos.** Nineteen of its twenty
 checks are claims about *sixteen* repos agreeing — a key built in the wrong one, a lint block missing from
 one, a boundary suite absent from one, a coverage gate quietly dropped from one, a repo whose hooks were
 never armed, a secret rule one repo has and the others do not, a third party reached from one repo's source
@@ -206,6 +207,19 @@ while no service reaches MongoDB another way, so a `db.collection(…)`, a `conn
 it — the day one appears, every row in that table is a guess and this is what says so. `rbac-probe.sh`
 remains the other half and answers a different question: whether the accounts, once real, actually
 refuse what the table says they refuse.
+
+⚠️ **MC-31 is the youngest check here and it was the largest hole: 160 type errors, in code whose job
+is to prove the rest of this page.** The build config of every service, of `marketplace-common` and of
+`marketplace-services-status` is `rootDir: ./src` — `yarn build` never opened `test/` — and vitest strips
+types rather than checking them, so a test file's types were read by **nothing at all** until 2026-09-20.
+Nothing was failing: the suites were green, the coverage was 100%, the mutation score was 100. What the
+errors were is the point — `TS2493` on a tuple index past its end (31 of them), `TS18048`/`TS2532` on a
+value the assertion below it dereferenced anyway, `TS2345`/`TS2322` on a fixture shaped unlike the thing
+it stood in for. Every one of those is an assertion that passes while proving something other than what
+it says, and the type checker is the only reader that can see it. The gate is `tsconfig.test.json`,
+`noEmit` with `rootDir: "."`, extending the build config rather than restating it, so the test tree is
+checked under the same strictness as the source and the build config keeps emitting exactly `src/`. All 160 were
+fixed in the test sources — no `any`, no `@ts-expect-error`, no relaxed option, no excluded file (RISK_REGISTER R62).
 
 ### Still manual, and why
 

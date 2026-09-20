@@ -35,9 +35,16 @@ names the tests that should have failed, and it costs nobody the machine.
   matches: today the nine stylesheets, each named in `coverage-exempt.txt` with its reason. A new
   file there takes the run red, and the answer is a test or a named line, never a wider glob.
 - **The parent workspace's hooks are what gate this directory.** `pre-commit` is scoped to staged,
-  non-markdown paths under `marketplace-services-status/` and runs `yarn test:cov` then Qodana; `pre-push` runs
-  unscoped — `semgrep:ci` → `test:cov` → `test:mutation` → Qodana — because `pre-commit` never fires
-  for a merge commit and never saw a `--no-verify` one.
+  non-markdown paths under `marketplace-services-status/` and runs `yarn typecheck` then `yarn test:cov`
+  then Qodana; `pre-push` runs unscoped — `semgrep:ci` → trivy → `typecheck` → `test:cov` →
+  `test:mutation` → Qodana — because `pre-commit` never fires for a merge commit and never saw a
+  `--no-verify` one.
+- ⚠️ **`yarn build` type-checks `src/` and nothing else.** `tsconfig.json` has `rootDir: ./src`, so
+  until 2026-09-20 `test/` was read as TypeScript by nothing at all — vitest strips types — and seven
+  errors were sitting there. `yarn typecheck` is `tsconfig.test.json`: the same options over `src/`,
+  `test/`, `systemd/generate.mjs` and the vitest configs, `noEmit`, with `module`/`moduleResolution`
+  set to what vitest actually runs (`ESNext`/`bundler`) and `allowJs` for the two JavaScript files the
+  tests import.
 - **Semgrep is a push gate, and push-only.** It was in no hook at all until 2026-08-13 — `yarn semgrep`
   was a manual step nobody was obliged to run. `pre-push` now runs `yarn semgrep:ci` (the `--error`
   variant) first, because at ~3 s it is the cheapest gate here by an order of magnitude. Push is also
