@@ -131,9 +131,9 @@ GATED_REPOS=(
 	marketplace-services-status
 )
 
-# The three files allowed to build a Redis key, all of them in `marketplace-common`. A service that
+# The five files allowed to build a Redis key, all of them in `marketplace-common`. A service that
 # builds its own key can neither be found by the logout service nor deleted by a revocation.
-KEY_BUILDERS='^BEs/marketplace-common/src/others/(sessionKeys|assertUnderRateLimit|assertHashFieldTTLSupport)\.mts:'
+KEY_BUILDERS='^BEs/marketplace-common/src/others/(sessionKeys|assertUnderRateLimit|assertHashFieldTTLSupport|retentionKeys|registrationKeys)\.mts:'
 
 srcDirs() {
 	printf '%s\n' BEs/marketplace-common/src BEs/dev/*/src marketplace-*/src marketplace-services-status/src
@@ -146,7 +146,7 @@ STRAY_KEYS="$(grep -rn --include='*.mts' --include='*.ts' -F '${process.env.REDI
 	grep -Ev "$KEY_BUILDERS" || true)"
 
 if [ -z "$STRAY_KEYS" ]; then
-	pass 'no key built outside the three builder files'
+	pass 'no key built outside the five builder files'
 else
 	fail 'a Redis key is built outside marketplace-common/src/others:'
 	printf '      %s\n' "$STRAY_KEYS"
@@ -166,7 +166,9 @@ while IFS= read -r segment; do
 done < <(grep -rhoE '\$\{process\.env\.REDIS_KEY\}[a-z:-]+' \
 	BEs/marketplace-common/src/others/sessionKeys.mts \
 	BEs/marketplace-common/src/others/assertUnderRateLimit.mts \
-	BEs/marketplace-common/src/others/assertHashFieldTTLSupport.mts 2>/dev/null |
+	BEs/marketplace-common/src/others/assertHashFieldTTLSupport.mts \
+	BEs/marketplace-common/src/others/retentionKeys.mts \
+	BEs/marketplace-common/src/others/registrationKeys.mts 2>/dev/null |
 	sed 's/${process.env.REDIS_KEY}//' | sort -u)
 
 if [ -z "$UNDOCUMENTED" ]; then

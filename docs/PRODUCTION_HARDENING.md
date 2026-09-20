@@ -143,8 +143,8 @@ reads are the swap points; the eleventh is your Redis configuration.
 
 **Who needs it.** All nine services **and** `BEs/marketplace-db-setup`, byte-identical — ten files. Consumed
 inside `marketplace-common` by `sessionKeys.mts`, `assertTier.mts`, `resolveAuthorizationSession.mts`,
-`assertUnderRateLimit.mts` and `assertHashFieldTTLSupport.mts`, and by
-`BEs/marketplace-db-setup/lib/keygrip.js` when it writes the keygrip record.
+`assertUnderRateLimit.mts`, `assertHashFieldTTLSupport.mts`, `retentionKeys.mts` and `registrationKeys.mts`,
+and by `BEs/marketplace-db-setup/lib/keygrip.js` when it writes the keygrip record.
 
 ### Invariant a swap must not break
 
