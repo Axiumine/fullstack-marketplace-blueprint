@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import Router from 'koa-router';
+import Router from '@koa/router';
 import serve from 'koa-static';
 // ⚠️ Named imports, not `import WebSocket from 'ws'`. The default import resolves differently in
 // the two module systems this file is loaded under: the CJS build gets index.js, whose export
@@ -321,9 +321,6 @@ export function createHttpApp(config: AppConfig, monitor: Monitor): Koa {
     await next();
   });
 
-  // Stryker disable next-line StringLiteral: koa-router compiles '' and '/' to the same matcher —
-  // verified against this version, both serve GET / and 404 every other path — so no request can
-  // tell an emptied path apart from this one.
   router.get('/', async (ctx) => {
     // No `ctx.type = 'html'`: Koa's body setter infers html from a string body that starts with
     // '<', which every renderHtml() output does, and the content-type assertion in the page test

@@ -29,9 +29,9 @@
     "prepare": "yarn run hooks:install"
   },
   "dependencies": {
+    "@koa/router": "^15.7.0",
     "dotenv": "^17.0.1",
     "koa": "^3.2.1",
-    "koa-router": "^14.0.0",
     "koa-static": "^5.0.0",
     "ws": "^8.14.2"
   },
@@ -39,7 +39,6 @@
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/koa": "^3.0.3",
-    "@types/koa-router": "^7.4.4",
     "@types/koa-static": "^4.0.2",
     "@types/node": "^26",
     "@types/ws": "^8.5.5",
