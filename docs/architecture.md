@@ -331,7 +331,8 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
 ### What each `dataCollection` category replaced
 
 The blanket flag was a two-value shortcut, and the SDK still maps it internally — `@sentry/core`,
-`utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0**. The middle columns are what
+`utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0** and byte-identical at
+**10.75.0**. The middle columns are what
 the nine services resolved to before this hardening pass, so the table is the migration path as well as the record:
 
 | Category | Flag absent or `false` | Flag `true` | Configured here |
@@ -362,6 +363,18 @@ risk **R42**). `node-core` joins the two because
 it owns `httpServerIntegration`, where the request-body default lives and where the option the services pass
 is really read; it ships on its own version line. The exact version rather than the major, because the
 sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
+
+⚠️ **10.75.0 is the one bump this section has admitted, and the reading is why.** The guard fired on
+Dependabot's 10.69.0 → 10.75.0 on 2026-09-20, and the pin moved only after both releases' published
+tarballs were compared file by file — not after a changelog. Every file the table and the claims above rest
+on is byte-identical between them: `defaultPiiToCollectionOptions.js`, `filtering-snippets.js`, `DEFAULTS`
+and the base-selection line of `resolveDataCollectionOptions.js`, `@sentry/core`'s
+`integrations/requestdata.js`, and `@sentry/node-core`'s `httpServerIntegration`,
+`httpServerSpansIntegration` and `http/index`. The one change inside the audited surface is additive:
+`httpHeaders` now also accepts a boolean or an allow/deny object as shorthand for both directions, and the
+`{ request: false, response: false }` the services pass still resolves through `??` to both `false`.
+**No `dataCollection` category was added** — the change that would have mattered most here, since an
+omitted category is an enabled one, so a new one would have arrived collecting.
 
 ### What the logs actually contain — measured, 2026-08-11
 

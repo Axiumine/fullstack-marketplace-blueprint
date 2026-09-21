@@ -92,12 +92,14 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   `axios` in `marketplace-dev-public-resource`, `js-yaml` in `marketplace-user`. ⚠️ **A `resolutions`
   entry is global to the tree it sits in**, so keep them to patch-level fixes with a named reason, and
   never use one to satisfy a peer range.
-- ⚠️ **`@sentry/node` is the exact `10.69.0`, with no caret, in the nine services and in
+- ⚠️ **`@sentry/node` is the exact `10.75.0`, with no caret, in the nine services and in
   `marketplace-common`.** `test/sentryVersionGuard.test.mts` asserts that exact version because
   `src/instrument.mts` rests on SDK internals read at it (`RISK_REGISTER` R42), and on 2026-09-20 a
-  lockfile refresh moved the SDK to 10.75.0 and put ten suites red. The range now says what the guard
+  lockfile refresh moved the SDK off its pin and put ten suites red. The range now says what the guard
   says. A bump is a manifest edit somebody reads — or a Dependabot pull request somebody reads — never a
-  side effect of `yarn upgrade`.
+  side effect of `yarn upgrade`. ⚠️ **10.75.0 is the first version this arrangement has admitted**, and it
+  was admitted by comparing both releases' tarballs file by file; the comparison is in the guard's own
+  header comment, so the next bump starts from something rather than from nothing.
 
 ## marketplace-common plumbing
 
