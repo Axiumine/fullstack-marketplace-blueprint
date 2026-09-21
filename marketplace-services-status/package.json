@@ -46,7 +46,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "jsdom": "^30.0.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.2.2",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
   "resolutions": {
