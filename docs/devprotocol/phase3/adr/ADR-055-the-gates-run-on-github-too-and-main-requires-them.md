@@ -150,6 +150,20 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   which is the sequencing note in §Compliance.
 - The gates become reproducible by someone who is not at this workstation. Until now the only way to know
   whether the fleet was green was to have the clone, the Docker daemon, the images and the Qodana token.
+- ⚠️ **The first run of this pipeline found two pre-existing defects that no local gate could ever have
+  reported, which is the strongest argument for it in this document.** Eight of the sixteen repositories
+  failed their first `gates` run, in two ways, and the workflow caused neither. `marketplace-db-setup` failed
+  `Gate 1 - SAST` because its `.githooks/pre-push` carried five gates and no semgrep step at all: the
+  `semgrep/` ruleset, the vendored packs and the `semgrep:ci` script had been sitting in that repo uncalled,
+  so CI ran the repo's own SAST for the first time and reported a finding the hook had never shown anybody.
+  Seven of the nine services failed `Gate 6 - unit suite` in `test/restrictedSyntax.test.mts` with a
+  `RangeError: Index out of range` out of `simple-import-sort`: typescript-estree's `inferSingleRun` treats
+  `CI=true` as a one-off run and builds a plain program from `tsconfig`, whose source files are read **from
+  disk**, so the fixture text handed to `lintText` was discarded in favour of the borrowed `SRC_PATH` file's
+  own contents and the rules ran over one file's AST against another's text. Green on this workstation, red
+  on every runner, and undetectable here by construction. Both are fixed — a sixth gate in db-setup's hook,
+  and `disallowAutomaticSingleRunInference` where each `ESLint` instance is built — and both are exactly the
+  class of defect a second, differently-shaped environment exists to find.
 
 ### Negative
 
@@ -188,6 +202,25 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   catches both on the next push from a clone, which for a repository in maintenance may be weeks later. This
   is the residue R63 keeps, and it is bounded by the same work R39 carries as CI/CD: a datastore bring-up
   with generated credentials and the sibling checkout the migrations are replayed from.
+- ⚠️ **`marketplace-db-setup` was in that same position without being counted in it, and the first pull
+  request run is what said so.** Its `test/migrations.test.mjs` replays the real migrations against the
+  real replica set and skips itself when none answers, so on a runner the suite reported five files green
+  and the coverage report still landed twenty statements and six functions short of the 100% threshold —
+  the required check red for something the commit under it had not done. The cause was the detector: it
+  grepped `vitest.config.mts` for a `name: 'integration'` project, and db-setup's config is
+  `vitest.config.mjs` and names no projects at all. It now reads a declared `test:unit` instead, which is
+  a declaration rather than an inference, and db-setup declares one.
+- ⚠️ **Fixing that surfaced the same defect one gate later, in the mutation gate, and this one is
+  structural rather than a bad detector.** db-setup's `mutate` covers `migrations/**`, and a migration is
+  replayed by migrate-mongo against a real database or not at all: with the coverage gate corrected the
+  run reached Gate 7 and reported 85.68 against a break threshold of 100, with 60 survivors nobody
+  introduced — 56 of them in `20260301000600-seed-demo.js`, the rest in `lib/encryption.js` and one
+  lifecycle migration. No narrowing of the *test* set fixes that, because the mutants are in files whose
+  only killers need the database. So db-setup declares `test:mutation:ci`, pointing at
+  `stryker.ci.config.mjs`: the real config spread, with the database-only patterns dropped from `mutate`
+  and `lib/encryption.js` excluded whole rather than by a line range that would silently stop meaning what
+  it says. 582 mutants remain and the first run killed every one of them with no database present. The
+  break threshold is 100 in both configs, and `pre-push` still runs the full one.
 - The runner is Ubuntu with a Docker daemon and the workstation is Debian with the same images pinned by
   digest, so semgrep and trivy are genuinely the same scan. The rest — node from `.nvmrc`, yarn from
   `packageManager` via corepack — is the same version but not the same machine, and a test that depends on
@@ -196,11 +229,23 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
 
 ## Compliance
 
+- ⚠️ **A package that cannot measure coverage on a runner says so by declaring `test:unit`.** That script
+  is the contract `gates.yml` reads: where it exists the job runs it and the 100%-on-four-metrics gate
+  stays local, where it does not the job runs `yarn test:cov` in full. Adding a suite that needs a
+  datastore to a package with no `test:unit` re-arms exactly the failure of 2026-09-20 — green suite,
+  short report, red required check — so the suite and the script land together or not at all.
 - ⚠️ **The check is named `gates` and nothing may rename it.** The job id, the job name and the
   `required_status_checks.contexts` entry on sixteen repositories are the same string. Changing it is a
   three-place change, and getting it wrong fails closed on every pull request.
-- ⚠️ **`yarn test:mutation` is still hook-only for a person.** Its second caller is `gates.yml`. Nobody
-  starts it by hand; to reproduce a survivor, apply the mutant in the source and run `yarn test`.
+- ⚠️ **A package whose mutants cannot all be killed on a runner says so by declaring `test:mutation:ci`,
+  and that is the second half of the same contract.** `gates.yml` prefers it where it exists, falls back
+  to `test:mutation`, and runs neither where there is no Stryker config. ⚠️ A CI config may only drop what
+  a datastore has to kill: it spreads the real config so thresholds, `related`, concurrency and
+  `ignorePatterns` cannot drift, and it throws if a pattern it removes has been renamed. Lowering
+  `thresholds.break` in either config is the forbidden move, not this one.
+- ⚠️ **`yarn test:mutation` is still hook-only for a person, and so is `test:mutation:ci`.** Their callers
+  are `.githooks/pre-push` and `gates.yml`. Nobody starts either by hand; to reproduce a survivor, apply
+  the mutant in the source and run `yarn test`.
 - ⚠️ **Sequencing, and why the floors here are deliberately conservative.** Adding required status checks
   changes what Scorecard measures — `Branch-Protection` rises the moment the rule is applied, and `CI-Tests`
   stops being `-1` once a check has reported on a merged pull request. Both of those happen *after* this
@@ -210,6 +255,27 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   already conservative by the time the protection rule exists. A second raise is owed, not optional, and its
   order is: this landed, a run reported on `main`, the protection rule applied — then re-measure all sixteen
   and raise every floor to the measured value. Never lower one.
+- ⚠️ **That second raise was performed on 2026-09-20, and it moved one number in one repository — the
+  prediction in the bullet above was wrong about both halves.** `Branch-Protection` did **not** rise when the
+  rule was applied: it reads `3` in all sixteen, with the reason `branch protection is not maximal on
+  development and all release branches`. Scorecard's higher tiers for that check want required reviewers,
+  dismissal of stale approvals and administrator enforcement — which is precisely the stricter protection the
+  platform owner did not ask for, and `enforce_admins=false` is a recorded decision of ADR-054. So `3` is this
+  platform's ceiling for that check while that decision stands, not a step on the way to something higher.
+  `CI-Tests` did **not** stop being `-1` either, for a duller reason: its measurement needs merged pull
+  requests to look at, and its reason is `no pull request found`. Every commit here has arrived by a push from
+  this workstation. The one genuine change was the parent's `Pinned-Dependencies`, **6 → 7**, earned by the
+  SHA-pinned `uses:` lines this ADR's own workflows added; its aggregate stayed `6.4`. The other fifteen
+  matched their committed floors exactly, in every check and in the aggregate — which is the more useful
+  reading of the exercise: re-measuring found no regression anywhere, and the floors landed with ADR-054's
+  merge were already the measured truth rather than a conservative guess.
+- ⚠️ **`CI-Tests` turning from `-1` into a real number will move every aggregate, and that is not a
+  regression.** The aggregate is weighted over the checks that scored `>= 0`, so the first merged pull request
+  in a repository adds a check to the average and recomputes it. The direction should be upwards — `gates` now
+  reports on every pull request, which is the thing that check looks for — but a push blocked by an aggregate
+  that fell on the day `CI-Tests` appeared is the floor gate working on a changed measurement, not a broken
+  control. Re-measure, confirm the per-check values only rose, and raise the aggregate floor to what was
+  measured. Do not reach for `SKIP_SCORECARD=1`.
 - ⚠️ **Do not add `cache: yarn`, and do not add a Qodana token as a repository secret.** Both are recorded
   decisions with a stated reason, and both look like obvious improvements from a distance.
 - ⚠️ **Do not move this workflow to a self-hosted runner on this workstation.** A `pull_request` trigger

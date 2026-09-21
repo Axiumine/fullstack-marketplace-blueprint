@@ -93,8 +93,8 @@ and mutation rule exactly — a push that needs a threshold lowered needs a cont
 **4. The gate is third, or second, never last, and it says out loud what it is not.** Every other gate
 reads the working tree. This one asks the GitHub API about the repository *as GitHub holds it right now*
 and cannot see the commits being pushed — there is no mode that makes it. It therefore sits directly after
-the other supply-chain gates (semgrep and trivy; trivy alone in `marketplace-db-setup`; the configuration
-suite in `marketplace-nginx`) and ahead of the expensive honest gates, so that a posture regression costs
+the other supply-chain gates (semgrep and trivy — trivy alone in `marketplace-db-setup` until its semgrep
+step landed on 2026-09-20; the configuration suite in `marketplace-nginx`) and ahead of the expensive honest gates, so that a posture regression costs
 six seconds rather than ten minutes of mutation testing. Its banner and its block message both state the
 limit rather than implying a diff was graded.
 
