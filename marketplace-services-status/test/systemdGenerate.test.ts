@@ -414,6 +414,43 @@ describe('the nvm directory', () => {
   });
 });
 
+describe('the WORKSPACE_ROOT override', () => {
+  // services.json's own header requires this generator and config.ts to never disagree on
+  // workspaceRoot; config.ts's own test (config.test.ts) proves the same two cases there.
+  let savedWorkspaceRoot: string | undefined;
+
+  beforeEach(() => {
+    savedWorkspaceRoot = process.env.WORKSPACE_ROOT;
+  });
+
+  afterEach(() => {
+    if (savedWorkspaceRoot === undefined) delete process.env.WORKSPACE_ROOT;
+    else process.env.WORKSPACE_ROOT = savedWorkspaceRoot;
+  });
+
+  it("wins over services.json's own workspaceRoot, resolved to an absolute path", async () => {
+    process.env.WORKSPACE_ROOT = workspaceRoot;
+
+    // A workspaceRoot that resolves nowhere the fixture filesystem knows about: this only
+    // succeeds, and only finds BEs/dev/api's package.json, if the override wins.
+    await boot({ config: config({ workspaceRoot: '../nonexistent-bogus-root' }) });
+
+    expect(line(unit('api.service'), 'WorkingDirectory=')).toBe(
+      `WorkingDirectory=${path.join(workspaceRoot, 'BEs/dev/api')}`
+    );
+  });
+
+  it('ignores an empty WORKSPACE_ROOT rather than resolving it to the cwd', async () => {
+    process.env.WORKSPACE_ROOT = '';
+
+    await boot();
+
+    expect(line(unit('api.service'), 'WorkingDirectory=')).toBe(
+      `WorkingDirectory=${path.join(workspaceRoot, 'BEs/dev/api')}`
+    );
+  });
+});
+
 describe('a monitored service unit', () => {
   it('carries the banner, the group title and the target it is part of', async () => {
     await boot();

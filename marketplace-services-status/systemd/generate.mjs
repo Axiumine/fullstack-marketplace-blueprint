@@ -264,7 +264,14 @@ function main() {
   const config = loadConfig();
   const services = flattenServices(config);
 
-  const workspaceRootAbs = path.resolve(serviceStatusDir, config.workspaceRoot);
+  // services.json's own header says the two consumers of this file must never disagree on
+  // workspaceRoot — config.ts honors a WORKSPACE_ROOT override (for a relocated checkout, or a
+  // test), so this generator has to resolve it the same way rather than always falling back to the
+  // path baked into services.json.
+  const workspaceRootOverride = process.env.WORKSPACE_ROOT;
+  const workspaceRootAbs = workspaceRootOverride
+    ? path.resolve(workspaceRootOverride)
+    : path.resolve(serviceStatusDir, config.workspaceRoot);
   const nvmDirAbs = expandHome(config.nvmDir);
   // The nvm bin dir for the pinned version. Units no longer invoke yarn at all, but this still
   // has to lead the unit PATH: the node_modules/.bin shims are `#!/usr/bin/env node` scripts,
