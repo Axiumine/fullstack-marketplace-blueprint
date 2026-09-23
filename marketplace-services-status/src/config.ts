@@ -96,6 +96,13 @@ function expectNullableNumber(obj: Record<string, unknown>, key: string, service
   // hands back for any literal too large to represent (1e999) and would otherwise sail through
   // `typeof value === 'number'` straight into a URL as "http://127.0.0.1:Infinity".
   if (!Number.isFinite(value)) fail(servicesJsonPath, pointer, `must be a finite number, got ${describeType(value)}`);
+  // A finite number that is not a real TCP port — -1, 1.5, 70000 — used to reach `net.Socket#connect`
+  // unchecked, which throws synchronously for an out-of-range port and turns probeTcp's documented
+  // "never throws" contract into a rejection. `monitor.refreshNow()` runs before the HTTP server
+  // binds, so that one rejection took the whole status page down instead of marking one service down.
+  if (!Number.isInteger(value) || value < 0 || value > 65535) {
+    fail(servicesJsonPath, pointer, `must be an integer in [0, 65535] or null, got ${describeType(value)}`);
+  }
   return value;
 }
 

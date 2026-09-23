@@ -351,6 +351,17 @@ check_rules() {
 		DRIFTED=1
 	fi
 
+	# The other direction of the same drift, for the one rule this platform has decided is universal
+	# rather than repo-specific: `requirepass`/`masterauth` is how the shared Redis credential is
+	# spelled in a config file, and unlike the npm/KEYGRIP/env-key rules (deliberately absent from
+	# `marketplace-nginx`, which tracks no JavaScript and no env file — see its own hook) a Redis
+	# conf snippet or README fragment can land in any of the sixteen. The credential-flag check just
+	# above already asserts this shape for one universal rule; this is the second.
+	if ! grep -qF -- '(requirepass|masterauth)' "$dir/.githooks/pre-commit"; then
+		fail "$label — no requirepass/masterauth secret rule, so a live Redis credential pasted into a tracked file commits clean"
+		DRIFTED=1
+	fi
+
 	if [ "$(grep '^SECRET_PATH' "$dir/.githooks/pre-commit")" != "$CANON_PATH" ]; then
 		fail "$label — its SECRET_PATH is not the one the parent carries, so the two hooks refuse different files"
 		DRIFTED=1
