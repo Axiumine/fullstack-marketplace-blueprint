@@ -475,3 +475,9 @@ migrations, in the same piece of work.** A builder carries one shape per collect
 what the migration that calls it *would* create — which the databases already created from the old shape
 do not know about. There is no database on this platform that cannot be dropped and replayed, and that
 licence is what buys the single-shape rule. Read `lib/schemas/README.md` before editing it.
+
+**One authorized exception, 2026-09-23:** `20260829000000-account-lifecycle-fields.js` had its `down()`
+edited in place — not a new migration — to fix a rollback bug (B4) that threw and corrupted rollback for
+a currently-suspended account; `up()` is unchanged. Done with the user's explicit approval. The same piece
+of work gave `lib/schemas/company.js`'s `publicName` a `minLength` of 1 (closing the "published implies
+linkable" guard against an empty string), and every database was rebuilt per the rule above.
