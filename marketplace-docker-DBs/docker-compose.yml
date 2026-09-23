@@ -61,6 +61,12 @@ services:
     command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27018']
     ports: ['127.0.0.1:27018:27018']
     volumes: [mdb2:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --port, '27018', --eval, "db.adminCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
 
   mdb3:
     <<: *mongod
@@ -68,6 +74,12 @@ services:
     command: [mongod, --replSet, rs0, --keyFile, /etc/mongo/keyfile, --bind_ip_all, --port, '27019']
     ports: ['127.0.0.1:27019:27019']
     volumes: [mdb3:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --port, '27019', --eval, "db.adminCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
 
   # Opt-in: `./up.sh --with-redis`. The nine services keep their sessions here, so the platform does
   # not boot without one — but a dev who already has a Redis wants this container to stay down.
