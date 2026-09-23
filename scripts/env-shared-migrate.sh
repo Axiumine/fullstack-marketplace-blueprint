@@ -106,8 +106,12 @@ PROJECTS=(BEs/dev/*/ BEs/marketplace-common BEs/marketplace-db-setup marketplace
 # concatenated into a single word. `scripts/env-diff.sh` carried that bug for months.
 key_names() { grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z_0-9]*[[:space:]]*=' "$1" | tr -d ' \t=' | sort -u; }
 
-# Raw text after the FIRST `=` of the first assignment of $2 in file $1. Never printed by this script.
-value_of() { sed -nE "s/^[[:space:]]*$2[[:space:]]*=//p" "$1" | head -n 1; }
+# Raw text after the FIRST `=` of the LAST assignment of $2 in file $1 — the one that actually loads,
+# the same last-assignment-wins rule `env-fingerprint-sweep.sh`'s own value_of() already implements.
+# `head -n 1` here used to read the FIRST of two duplicate `KEY=` lines, which could disagree with the
+# effective one and get `strip --apply` to remove both, including the truly-effective last line, on
+# the strength of a value nothing actually loads. Never printed by this script.
+value_of() { sed -nE "s/^[[:space:]]*$2[[:space:]]*=//p" "$1" | tail -n 1; }
 
 has_key() { grep -qE "^[[:space:]]*$2[[:space:]]*=" "$1"; }
 
