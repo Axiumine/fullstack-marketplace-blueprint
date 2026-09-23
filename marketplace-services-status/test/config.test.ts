@@ -213,6 +213,26 @@ describe('loadConfig: services.json shape', () => {
       withServices(service({ port: '4027' })),
       '#groups[0].services[0].port: must be a number or null, got string "4027"'
     ],
+    [
+      'a negative port',
+      withServices(service({ port: -1 })),
+      '#groups[0].services[0].port: must be an integer in [0, 65535] or null, got number -1'
+    ],
+    [
+      'a port past the top of the TCP range',
+      withServices(service({ port: 70000 })),
+      '#groups[0].services[0].port: must be an integer in [0, 65535] or null, got number 70000'
+    ],
+    [
+      'a port one past the top of the TCP range',
+      withServices(service({ port: 65536 })),
+      '#groups[0].services[0].port: must be an integer in [0, 65535] or null, got number 65536'
+    ],
+    [
+      'a fractional port',
+      withServices(service({ port: 4027.5 })),
+      '#groups[0].services[0].port: must be an integer in [0, 65535] or null, got number 4027.5'
+    ],
     ['an empty host', withServices(service({ host: '' })), '#groups[0].services[0].host: must be a non-empty string when present, got string ""'],
     [
       'a healthPath that is a number',
@@ -245,6 +265,14 @@ describe('loadConfig: services.json shape', () => {
     files.set(PRIMARY, JSON.stringify(withServices(service({ port: 0 }))).replace('"port":0', '"port":1e999'));
 
     expect(() => loadConfig()).toThrow('#groups[0].services[0].port: must be a finite number, got number Infinity');
+  });
+
+  // The two ends of a real TCP port range, both accepted: a bad `<`/`>` boundary in either direction
+  // would refuse one of these two exactly-valid values.
+  it.each([0, 65535])('accepts %i as a valid port', (port) => {
+    write(withServices(service({ port })));
+
+    expect(loadConfig().services[0].port).toBe(port);
   });
 
   it('refuses two groups with the same id', () => {
