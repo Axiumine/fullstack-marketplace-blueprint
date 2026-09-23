@@ -143,7 +143,12 @@ for repo in "${REPOS[@]}"; do
 	while IFS=$'\t' read -r sha line; do
 		[ -n "$sha" ] || continue
 
-		paths="$(printf '%s\n' "$NAMES" | awk -v s="$sha" '$1 == s { $1 = ""; sub(/^ /, ""); print }')"
+		# `git rev-list --objects` prints "<sha> <path>" for a blob or a named tree, but a bare
+		# "<sha>" with no second field for a commit or a tag — and a bare-sha match is still a
+		# match: the object IS reachable, it is only that this listing names no path for it
+		# (a secret pasted into a commit message, not into a tracked file). Requiring a non-empty
+		# path to call something reachable treated every one of those as dangling instead.
+		paths="$(printf '%s\n' "$NAMES" | awk -v s="$sha" '$1 == s { if (NF > 1) { $1 = ""; sub(/^ /, ""); print } else print "(no path — matched inside the commit/tag object itself)" }')"
 
 		if [ -z "$paths" ]; then
 			DANGLING_HITS=$((DANGLING_HITS + 1))
