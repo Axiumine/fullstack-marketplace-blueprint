@@ -42,22 +42,31 @@ PROBE_DB='dbMarketplaceRbacProbe'
 PROBE_USER='marketplaceRbacProbe'
 PROBE_PWD="$(openssl rand -hex 24)"
 
+# Values reach mongosh as JS literals because mongosh exposes no `process` and therefore no
+# environment. Escape backslash first, then the quote — the other order double-escapes. Identical to
+# up.sh's own jsq(), which this script does not source (it runs standalone).
+jsq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")"; }
+
 # One mongosh pass. $1 is the phase, $2/$3 the account it authenticates as. The script arrives on
 # stdin — a password in argv is visible to every process on the host.
+#
+# Every value below goes through jsq() rather than a raw printf %s inside a quoted literal: $user
+# and $secret carry the root credentials from .env, and a `'` or a `\` in one — a realistic generator
+# output — used to produce a malformed mongosh script instead of an authentication attempt.
 probe_pass() {
 	local phase="$1" authdb="$2" user="$3"
 	local secret="$4"
 
 	{
 		printf 'const CFG = {\n'
-		printf "\tphase: '%s',\n" "$phase"
-		printf "\tprobeDb: '%s',\n" "$PROBE_DB"
-		printf "\tprobeUser: '%s',\n" "$PROBE_USER"
-		printf "\tprobePwd: '%s'\n" "$PROBE_PWD"
+		printf '\tphase: %s,\n' "$(jsq "$phase")"
+		printf '\tprobeDb: %s,\n' "$(jsq "$PROBE_DB")"
+		printf '\tprobeUser: %s,\n' "$(jsq "$PROBE_USER")"
+		printf '\tprobePwd: %s\n' "$(jsq "$PROBE_PWD")"
 		printf '}\n'
-		printf "db = db.getSiblingDB('%s')\n" "$authdb"
-		printf "if (!db.auth('%s', '%s').ok) {\n" "$user" "$secret"
-		printf "\tprint('rbac-probe: authentication failed as %s')\n" "$user"
+		printf 'db = db.getSiblingDB(%s)\n' "$(jsq "$authdb")"
+		printf 'if (!db.auth(%s, %s).ok) {\n' "$(jsq "$user")" "$(jsq "$secret")"
+		printf '\tprint(%s)\n' "$(jsq "rbac-probe: authentication failed as $user")"
 		printf '\tquit(2)\n'
 		printf '}\n'
 		cat init/roles.js
