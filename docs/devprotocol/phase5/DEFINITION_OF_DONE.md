@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-30
+**Version:** 1.7
+**Date:** 2026-10-17
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.7 - 2026-10-17: **the indentation item of §2.2 says two spaces, not tabs**, and the ADR-024 line in the build/gate item names what of it still
+stands. The platform owner ruled on 2026-10-17 that the whole platform indents with two spaces
+([`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md)). No other item added, removed or weakened.
 v1.6 - 2026-08-30: **the `marketplace-common` checklist item is a release, not a deploy.** The platform
 owner ruled that an edit there reaches a consumer by being published and by nothing else, and deleted the
 sync script ([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)); the
@@ -53,8 +56,8 @@ document is that doctrine in checklist form.
 ### 2.2 Code quality
 - [ ] `yarn lint:check` clean over the WHOLE tree — tests, configs, yaml included, not just `src/`. See the
   lint gate in `BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:121-141`.
-- [ ] Indentation is tabs, enforced by eslint `indent: ['error','tab']` **and** prettier `useTabs: true`
-  together (ADR-024) — a file reindented with spaces fails both identically.
+- [ ] Indentation is two spaces, owned by prettier (`useTabs: false`, `tabWidth: 2`) with eslint never contradicting it
+  (ADR-058, narrowing ADR-024) — a file reindented with tabs fails `prettier --check`. Shell and git hooks are the tab-indented exception.
 - [ ] Type-check clean: `tsc --noEmit` (frontends) or the `yarn build` half of `test:cov` (backend services
   and `marketplace-services-status`, whose `test:cov` is literally `yarn build && vitest run --coverage` —
   `marketplace-services-status/.githooks` reasoning documented at `.githooks/pre-push:112-119` of this parent repo).
@@ -158,7 +161,8 @@ document is that doctrine in checklist form.
 - [ ] Build/gate change checked against ADR-047 (`marketplace-common` reaches a consumer only as a
   published release — superseding the bridge half of ADR-015),
   ADR-016 (100/100 everywhere), ADR-017 (Qodana in both hooks), ADR-023 (per-repo integration DB naming),
-  ADR-024 (tabs + eslint + prettier together), ADR-025 (`marketplace-services-status` gated by parent hooks), ADR-026
+  ADR-024 (whole-tree lint, eslint + prettier together), ADR-058 (two spaces), ADR-025 (`marketplace-services-status` gated by parent hooks),
+  ADR-026
   (`engines.node` pin).
 - [ ] Infra change checked against ADR-001 (polyrepo), ADR-022 (wildcard bind except SSR loopback), ADR-028
   (GraphQL is the whole API, 3 REST endpoints only).

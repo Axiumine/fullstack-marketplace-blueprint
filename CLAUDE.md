@@ -91,8 +91,9 @@ read it before proposing a refactor of anything below.
 - **Migrations are immutable** — never edit an applied one, add a new one. `$jsonSchema` shapes are
   shared from `marketplace-db-setup/lib/schemas/`; a change there means rebuilding every database that
   has run these migrations, in the same piece of work.
-- **Indentation is tabs**, enforced by eslint and prettier together — except `marketplace-services-status`,
-  which has neither and is **two spaces** throughout (platform owner, 2026-10-17; `docs/conventions.md`).
+- **Indentation is two spaces** (ADR-058, platform owner, 2026-10-17), set by prettier in the thirteen gated repos;
+  `marketplace-services-status` has no formatter and follows it by hand. Shell scripts, git hooks, `marketplace-db-setup`
+  and the nginx confs stay tab-indented, because bash `<<-` heredocs strip tabs only (`docs/conventions.md`).
 - ⚠️ **Everything is English, with no exception** — domain names, identifiers, UI text, routes, comments,
   test fixtures, migrations. One word of a second language is a regression, not a style nit: the same
   name has to spell identically across a migration, a `$jsonSchema`, a model, a resolver, a GraphQL field

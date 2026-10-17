@@ -1,7 +1,11 @@
 # ADR-054 — the supply-chain score is published by a workflow and floored in `pre-push`
 # Marketplace
 
-**Status:** accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome, below; the owner has not yet reviewed that choice)
+**Status:** accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by
+ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome, below; the owner has not yet reviewed that choice);
+and two dated notes of the same day that supersede nothing — the documented exception route for an unpatched, dev-only advisory
+([`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md)) and the lapse of the YAML tab exception
+([`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md))
 **Date:** 2026-09-20
 **Deciders:** platform owner, in the instruction that opened the work — *"we need to integrate this in all
 our repositories: https://scorecard.dev/"* — and in four scoping answers given the same day: the mechanism
@@ -10,6 +14,9 @@ is *"Action + local gate"*, the scope is *"wire + full remediation"*, the GitHub
 **Supersedes:** —
 **Superseded by:** [`ADR-056`](./ADR-056-the-license-file-is-the-pristine-gpl-text.md), **in part, 2026-10-17** — one clause of §Compliance: `License` is no
 owner decision, because the licence was always GPL-3.0 and only the `LICENSE` file's shape kept GitHub from recognising it. The `Fuzzing` clause is not ADR-056's: it was changed by the same piece of work as a dated outcome in §Compliance, and merging that change is the owner's acceptance of it. Everything else here stands.
+[`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) and
+[`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md) supersede nothing here: each is a dated note in §Compliance, and the ratchet is
+untouched.
 
 ---
 
@@ -221,6 +228,15 @@ fight the `codeql.yml` this change ships.
   regression. The floor is measured and enforced locally; `publish_results` publishes what CI can see. Do
   not "fix" the disagreement by putting a personal access token in a repository secret — that trades a
   cosmetic number for a long-lived credential in sixteen public repositories.
-- YAML forbids tabs, so the workflow and Dependabot files are indented with spaces. This is the one
-  documented exception to ADR-024, which is about eslint and prettier over JavaScript and TypeScript; the
-  same prettier run still formats these files, and `yarn lint:check` passes in all thirteen linted repos.
+- YAML forbids tabs, so the workflow and Dependabot files are indented with spaces — and since 2026-10-17
+  so is everything else the formatter reaches ([`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md)),
+  so this is no longer an exception to anything. The same prettier run still formats these files, and
+  `yarn lint:check` passes in all thirteen linted repos.
+- **The documented exception route for an unpatched, dev-only transitive advisory (2026-10-17,
+  [`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md)).** When an
+  advisory has no patched release and every trail to it starts in `devDependencies`, a root `osv-scanner.toml`
+  with a reason and an `ignoreUntil` within ninety days, plus an ADR, is the way to keep `Vulnerabilities=10` honest
+  without lowering it. It is not a second route round the ratchet: no number in any `.scorecard-floor` is lowered,
+  `SKIP_SCORECARD=1` stays for outages (ADR-057 §Decision 6 records the one bounded use that landed the first file:
+  twelve pushes, one per repository), and the ADR is not a general licence for further advisories. ADR-057 records
+  the first use — `braces` 3.0.3, GHSA-vfj7-8cjw-p6xm, expiring 2027-01-15.

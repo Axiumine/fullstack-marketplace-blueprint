@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.8
-**Date:** 2026-08-30
+**Version:** 1.9
+**Date:** 2026-10-17
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
+v1.9 - 2026-10-17: the inherited CON-11 short name read *English+tabs+node*; it reads *English+two-space+node*, following `phase3/CONSTRAINTS.md`
+v1.11 and [`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md). No constraint was added.
 v1.8 - 2026-08-30: **BCON-05's landing order and BCON-07's mechanism follow
 [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md).** The platform owner
 ruled that an edit to `marketplace-common` reaches a consumer by being published and by nothing else, and
@@ -43,7 +45,7 @@ Already settled. Do NOT restate body, point at source.
 
 | What | Where settled |
 |---|---|
-| CON-01..CON-11 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common ships as a published release, SSR/CSR split, English+tabs+node) | `phase3/CONSTRAINTS.md` §2 |
+| CON-01..CON-11 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common ships as a published release, SSR/CSR split, English+two-space+node) | `phase3/CONSTRAINTS.md` §2 |
 | DCON-01..DCON-09 (validator authoritative, additionalProperties false, soft-delete-not-hard-remove, 7 global unique index list, itemCategory depth cap in resolver admin-only, ObjectId coercion into pipeline, updatePipeline per-call, bare Boolean return + 2 named exceptions, no role field anywhere) | `phase4/CONSTRAINTS.md` §3 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3/4 could not redesign | `phase3/CONSTRAINTS.md` §4, `phase4/CONSTRAINTS.md` §4-5 |

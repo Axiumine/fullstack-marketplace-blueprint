@@ -1,11 +1,18 @@
 # ADR-024 — Tabs everywhere, enforced by eslint and prettier together, over the whole tree
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-10-17** — the tabs clause only
 **Date:** 2026-08-07
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md), **in part, 2026-10-17** — the tabs clause: **indentation is two
+spaces, `useTabs` is `false` and `tabWidth` is 2 in all thirteen `.prettierrc` files, and eslint's tab rule is no longer in force anywhere.**
+The whole-tree `lint`/`lint:check` scope, `.prettierignore`, the `npx eslint --print-config` check, the byte-identical `.prettierrc` files
+and the rule that eslint and prettier must not disagree about indentation stand.
+
+⚠️ **Two halves of this ADR are in force and one is history.** In force: the lint scope over the whole tree with its exclusions in `.prettierignore`,
+the print-config check on every new `files` block, and prettier and eslint agreeing on a single indentation. History: that the single indentation is a
+tab. The body below describes the tab era and is read as that: the thirteen repositories now indent with two spaces.
 
 ---
 

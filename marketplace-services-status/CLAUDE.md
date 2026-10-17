@@ -32,7 +32,7 @@ every pull request — two callers, both automated, and a hand is neither.
 
 ## Hard rules and traps
 
-- **Indentation is two spaces throughout, not the tree's tabs.** The package has no eslint or prettier (ADR-025), so nothing enforces it; a file you add here follows it by hand, and `docs/conventions.md`'s tab rule does not reach it.
+- **Indentation is two spaces throughout, like the rest of the workspace (ADR-058).** The package has no eslint or prettier (ADR-025), so nothing enforces it; a file you add here follows it by hand.
 - ⚠️ **A service `id` *is* its systemd unit name.** `${id}.service` is synthesised in `config.ts`; no
   `unit` field is ever read from `services.json`. Renaming an `id` silently retargets which real unit
   `start`/`stop`/`restart` acts on.
