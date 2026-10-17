@@ -107,7 +107,7 @@ function buildExecCommand({ repoAbs, service }) {
         'services.json names a script that repo does not define.'
     );
   }
-  // Mask the one operator we do handle before looking for the ones we do not — testing for a
+  // Mask the one shell token we do handle before looking for the ones we do not — testing for a
   // lone '&' against the raw string matches the second '&' of every '&&' and rejects everything.
   // Stryker disable next-line StringLiteral: withoutChain is read only by the character-class
   // test below, which asks "is any of ;|&$`(){}<> present anywhere", not "what replaced '&&'" —

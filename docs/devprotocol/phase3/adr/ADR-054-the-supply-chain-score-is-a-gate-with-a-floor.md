@@ -1,14 +1,15 @@
 # ADR-054 — the supply-chain score is published by a workflow and floored in `pre-push`
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome, below; the owner has not yet reviewed that choice)
 **Date:** 2026-09-20
 **Deciders:** platform owner, in the instruction that opened the work — *"we need to integrate this in all
 our repositories: https://scorecard.dev/"* — and in four scoping answers given the same day: the mechanism
 is *"Action + local gate"*, the scope is *"wire + full remediation"*, the GitHub settings are to be
 *"applied"* rather than handed over as a plan, and the threshold is *"floor at achieved score"*.
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-056`](./ADR-056-the-license-file-is-the-pristine-gpl-text.md), **in part, 2026-10-17** — one clause of §Compliance: `License` is no
+owner decision, because the licence was always GPL-3.0 and only the `LICENSE` file's shape kept GitHub from recognising it. The `Fuzzing` clause is not ADR-056's: it was changed by the same piece of work as a dated outcome in §Compliance, and merging that change is the owner's acceptance of it. Everything else here stands.
 
 ---
 
@@ -187,16 +188,26 @@ fight the `codeql.yml` this change ships.
   by the platform owner and pushed, the workflows do not exist as far as the API is concerned and the
   floors cannot be raised past the baselines committed here. The order is: merge, push, wait for the first
   workflow run, re-measure all sixteen, raise every floor to the measured value in one commit per repo.
-- ⚠️ **Six checks are owner decisions, not engineering work, and are recorded here so that nobody
-  implements one silently.** Packaging and Signed-Releases would replace the manual nine-step `yarn upload`
-  release of ADR-037 and ADR-047 with a workflow — a reversal of two accepted ADRs, not a chore.
-  License 9→10 needs relicensing to an OSI/FSF-recognised text, and note that the README already claims
-  GPL-3.0-or-later while GitHub classifies the repository as *Other*. Branch-Protection above the applied
-  tier and any real Code-Review credit need a genuine second maintainer. Contributors needs contributors
-  from outside organisations and is the reason the true ceiling is ~9.7 rather than 10.
-  CII-Best-Practices needs a `bestpractices.dev` registration. Fuzzing credit for JavaScript exists only
-  for `fast-check` — Jazzer.js and ClusterFuzzLite earn nothing — so it is a real property-testing effort,
-  estimated at two to four weeks fleet-wide, or a stub that games the detector.
+- ⚠️ **Four decisions, covering six checks, are the owner's and not engineering work, and are recorded here
+  so that nobody implements one silently.** Packaging and Signed-Releases would replace the manual nine-step
+  `yarn upload` release of ADR-037 and ADR-047 with a workflow — a reversal of two accepted ADRs, not a chore.
+  Branch-Protection above the applied tier and any real Code-Review credit need a genuine second maintainer.
+  Contributors needs contributors from outside organisations and is the reason the true ceiling is ~9.7
+  rather than 10. CII-Best-Practices needs a `bestpractices.dev` registration and a level earned on it (project 15609 is
+  registered and linked from the README; the level reached is not recorded here).
+- **Fuzzing is earned by property tests, in the parent's own tree only.** Scorecard v5.5.0 credits a
+  JavaScript or TypeScript tree for a static `from 'fast-check'` (or `require('fast-check')`) in one of its
+  `.js`, `.jsx`, `.ts` or `.tsx` files; Jazzer.js earns nothing. The parent carries three `fast-check`
+  property suites over real code in `marketplace-services-status` — `test/guards.property.test.ts`,
+  `test/systemd.property.test.ts` and `test/config.property.test.ts`, with their shared generators in
+  `test/support/arbitraries.ts` — and a local Scorecard run over that tree scores `Fuzzing` 10 against 0 on a
+  control tree without them (2026-10-17). The published score moves only once the change is on `main` and the
+  Scorecard workflow has re-run, and `Fuzzing=` in `.scorecard-floor` rises in a commit after that, per the
+  sequencing above. The fifteen sub-repos are graded on their own trees, carry no such suite and stay at 0;
+  `marketplace-nginx` ships no JavaScript to fuzz. ClusterFuzzLite is detected too — v5.5.0 accepts a
+  `.clusterfuzzlite/Dockerfile` that has a non-comment line — and a stub there would earn the credit while
+  testing nothing, which is the metric gamed rather than the control built. The property suites are the
+  honest control; their traps are in `marketplace-services-status/REPO.md` §Property tests.
 - ⚠️ **`gcr.io/openssf/scorecard` is dead** — the project's billing is disabled and it answers 403 — and
   most published examples still name it. The live image is `ghcr.io/ossf/scorecard`. Note that
   `ghcr.io/ossf/scorecard-cli` and the `:stable` tag do not exist either.

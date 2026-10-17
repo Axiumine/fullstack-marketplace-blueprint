@@ -18,7 +18,8 @@ import {
   isTrustedOrigin,
   main,
   printBanner,
-  ServerParts
+  ServerParts,
+  stripIpv6Brackets
 } from '../src/server';
 import { Monitor } from '../src/monitor';
 import { AppConfig, GroupDescriptor, ServiceDescriptor, ServiceState } from '../src/types';
@@ -294,6 +295,32 @@ describe('isPlainObject', () => {
   });
 });
 
+describe('stripIpv6Brackets', () => {
+  it.each([
+    ['the IPv6 loopback', '[::1]', '::1'],
+    ['a longer literal', '[2001:db8::1]', '2001:db8::1'],
+    // One character inside is still a bracketed value: the guard is "starts with [ and ends with ]", not a length.
+    ['a single character between the brackets', '[a]', 'a'],
+    // Exactly one pair goes: stripping every bracket, or looping until none is left, would turn this into another name.
+    ['a doubly bracketed value', '[[::1]]', '[::1]'],
+    ['a name that holds no brackets', 'status.example', 'status.example'],
+    ['an already bare literal', '::1', '::1'],
+    ['the empty string', '', ''],
+    // Nothing between the brackets is not a literal, so it is not unwrapped into the empty name.
+    ['an empty pair', '[]', '[]'],
+    ['a lone opening bracket', '[', '['],
+    ['a lone closing bracket', ']', ']'],
+    // Both ends or neither: one bracket alone belongs to the name, and taking it off would equate two different hosts.
+    ['an opening bracket and no closing one', '[::1', '[::1'],
+    ['a closing bracket and no opening one', '::1]', '::1]'],
+    ['text before the opening bracket', 'x[::1]', 'x[::1]'],
+    ['text after the closing bracket', '[::1]x', '[::1]x'],
+    ['a pair in the middle of a name', 'a[b]c', 'a[b]c']
+  ])('reads %s', (_label, host, expected) => {
+    expect(stripIpv6Brackets(host)).toBe(expected);
+  });
+});
+
 describe('hostnameOnly', () => {
   it.each([
     ['a bare name', 'status.lan', 'status.lan'],
@@ -394,12 +421,90 @@ describe('isTrustedOrigin', () => {
     ['a trusted origin over https', 'https://status.example', true],
     ['a trusted origin spelled in capitals', 'http://STATUS.EXAMPLE', true],
     ['a foreign origin', 'https://evil.example', false],
+    // The parser lowercases the host of http and https only. A scheme no browser puts in an Origin keeps its capitals
+    // on the host, and that is refused rather than folded onto a trusted name.
+    ['an opaque host in capitals', 'foo://STATUS.EXAMPLE', false],
     ['a bare hostname, which is not a URL', 'evil.example', false],
     // What a sandboxed iframe and a file:// page send. It parses as nothing and is trusted by nothing.
     ['the null origin', 'null', false],
     ['an empty string', '', false]
   ])('reads %s as %s', (_label, origin, expected) => {
     expect(isTrustedOrigin(origin, hosts)).toBe(expected);
+  });
+
+  /*
+   * ⚠️ URL#hostname keeps the brackets of an IPv6 literal ('[::1]'), and the set holds the literal bare ('::1'). Until
+   * the brackets were taken off, an Origin of http://[::1]:2901 matched nothing while the Host header of the same page
+   * was admitted, so every POST from a page loaded at the IPv6 loopback got a fail-closed 403.
+   */
+  describe('an IPv6 literal', () => {
+    it.each([
+      ['the IPv6 loopback with a port', 'http://[::1]:2901', true],
+      ['the IPv6 loopback without one', 'http://[::1]', true],
+      ['the IPv6 loopback over https', 'https://[::1]:2901', true],
+      ['the IPv6 loopback in a Referer, with a path', 'http://[::1]:2901/page?x=1', true],
+      // The parser writes a literal one way, so the same address spelt long is the same host once parsed. A browser
+      // only ever sends the short form; the long one can come from a script, and names the same loopback.
+      ['the IPv6 loopback spelt long', 'http://[0:0:0:0:0:0:0:1]:2901', true],
+      ['the neighbouring address', 'http://[::2]:2901', false],
+      ['the unspecified address', 'http://[::]:2901', false],
+      ['an IPv4-mapped loopback, which is another literal', 'http://[::ffff:127.0.0.1]:2901', false],
+      ['a literal that was never listed', 'http://[2001:db8::1]:2901', false],
+      ['an unclosed literal', 'http://[::1:2901', false],
+      ['text glued to the closing bracket', 'http://[::1]x', false],
+      ['a literal without its brackets, which is no authority', 'http://::1', false],
+      // The host is what follows the last '@': a trusted literal in the userinfo names nothing, a trusted one after it does.
+      ['the loopback literal only in the userinfo', 'http://[::1]:2901@evil.example', false],
+      ['a foreign name only in the userinfo', 'http://evil.example@[::1]:2901', true],
+      ['the loopback literal only in the path', 'http://evil.example/[::1]', false],
+      ['the loopback literal followed by a trailing dot', 'http://[::1].:2901', false],
+      ['the loopback name with a trailing dot', 'http://localhost.:2901', false],
+      ['the trusted domain with a trailing dot', 'http://status.example.', false]
+    ])('reads %s', (_label, origin, expected) => {
+      expect(isTrustedOrigin(origin, hosts)).toBe(expected);
+    });
+
+    // The literal is trusted when, and only when, the bare form is in the set — which makes it the set that decides,
+    // not the brackets. Hand-built sets, because buildTrustedHosts always holds '::1'.
+    it.each([
+      ['a set without the literal', new Set(['status.example', '127.0.0.1']), 'http://[::1]:2901', false],
+      ['a set holding only the bare literal', new Set(['::1']), 'http://[::1]:2901', true],
+      ['an empty set', new Set<string>(), 'http://[::1]:2901', false],
+      // The set is bare by contract. An entry that still carries its brackets is not the literal, and must not match it.
+      ['a set holding the bracketed spelling', new Set(['[::1]']), 'http://[::1]:2901', false],
+      ['a set holding only the IPv4 loopback', new Set(['127.0.0.1']), 'http://[::1]:2901', false],
+      ['a set holding another literal', new Set(['fe80::1']), 'http://[fe80::1]:2901', true],
+      ['the same set, asked about the loopback', new Set(['fe80::1']), 'http://[::1]:2901', false],
+      ['a set holding a literal in lowercase, asked in capitals', new Set(['fe80::abcd']), 'http://[FE80::ABCD]', true],
+      ['a set holding a name, asked about a literal', new Set(['status.example']), 'http://[status.example]', false]
+    ])('reads %s', (_label, set, origin, expected) => {
+      expect(isTrustedOrigin(origin, set)).toBe(expected);
+    });
+
+    // The same address as a Host header and as an Origin has to get the same answer, or the page is served and then
+    // refuses its own POSTs. Both sides are the same set; only the way the address is written differs.
+    it.each([
+      ['the IPv6 loopback with a port', '[::1]:2901', 'http://[::1]:2901', true],
+      ['the IPv6 loopback without one', '[::1]', 'http://[::1]', true],
+      ['another trusted literal, in capitals', '[FE80::1]:2901', 'http://[FE80::1]:2901', true],
+      ['a literal that is not trusted', '[::2]:2901', 'http://[::2]:2901', false],
+      ['the IPv4 loopback', '127.0.0.1:2901', 'http://127.0.0.1:2901', true],
+      ['a foreign name', 'evil.example:2901', 'http://evil.example:2901', false]
+    ])('gives the Host header and the Origin of %s one answer', (_label, hostHeader, origin, expected) => {
+      const set = buildTrustedHosts({ domain: 'status.example', host: '127.0.0.1', allowedHosts: ['fe80::1'] });
+
+      expect(assertTrustedHost(hostHeader, set).allowed).toBe(expected);
+      expect(isTrustedOrigin(origin, set)).toBe(expected);
+    });
+
+    it('lets assertSameOrigin accept an Origin from the IPv6 loopback, and refuse it from another literal', () => {
+      expect(assertSameOrigin('http://[::1]:2901', undefined, hosts, false)).toEqual({ allowed: true, reason: 'same-origin' });
+      expect(assertSameOrigin(undefined, 'http://[::1]:2901/page', hosts, false)).toEqual({ allowed: true, reason: 'same-origin' });
+      expect(assertSameOrigin('http://[::2]:2901', undefined, hosts, true)).toEqual({
+        allowed: false,
+        reason: 'Origin/Referer host is not served here'
+      });
+    });
   });
 });
 

@@ -19,24 +19,27 @@ image: jetbrains/qodana-js:2026.2
 
 # ── SCA: third-party license audit (Ultimate Plus) ────────────────────────────
 # Scans Yarn deps and surfaces license conflicts as problems. The project is
-# proprietary (package.json "UNLICENSED"), so Qodana's default compatibility
-# matrix already flags copyleft dependencies.
+# GPL-3.0-or-later (package.json "license", LICENSE next to it), and Qodana's
+# compatibility matrix is evaluated against that.
 raiseLicenseProblems: true
 
 # `keys` is THIS project's license, `allowed` the dependency licenses accepted
-# against it. `keys` must carry the key Qodana derives, NOT the package.json
-# string: it maps "UNLICENSED" to PROPRIETARY-LICENSE, and the finding text says
-# so verbatim. Putting "UNLICENSED" here matches no project and the rule silently
-# does nothing.
+# against it. `keys` must carry the key Qodana derives, NOT an arbitrary
+# package.json string: Qodana maps "UNLICENSED" to PROPRIETARY-LICENSE, and the
+# finding text says so verbatim. Putting the literal "UNLICENSED" here matches no
+# project and the rule silently does nothing.
 #
 # This panel is never distributed: it runs as a systemd user unit on the hosts it
 # monitors, and the only thing that leaves the machine is HTML over a private
-# nginx vhost. The GPL's distribution trigger is never pulled. Accepted by the
-# project owner, on the same reasoning as the three frontends.
+# nginx vhost. The GPL's distribution trigger is never pulled. The `allowed` list
+# was accepted by the project owner on that reasoning, before the project itself
+# became GPL-3.0-or-later, and is unchanged.
 # ⚠️ Two keys, not one. This project declares GPL-3.0-or-later in package.json since the LICENSE
 # file landed, and Qodana derives the project key from that field — a rule keyed only on
 # PROPRIETARY-LICENSE now matches nothing, and a rule that matches no project does not fail: it
-# silently does nothing while the audit still reports green. `allowed` below is unchanged.
+# silently does nothing while the audit still reports green. PROPRIETARY-LICENSE stays as the
+# fallback key, the one Qodana derives if the manifest is ever read as UNLICENSED; it does not
+# mean the project is proprietary. `allowed` below is unchanged.
 licenseRules:
   - keys: ['GPL-3.0-or-later', 'PROPRIETARY-LICENSE']
     allowed:

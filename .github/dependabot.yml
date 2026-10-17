@@ -71,10 +71,19 @@ updates:
     # marketplace-docker-DBs is a plain directory of this repo, not a submodule (ADR-025),
     # so its Dockerfile is this repo's to keep current.
     #
-    # ⚠️ This entry is inert today, on purpose. That Dockerfile reads
-    # `FROM mongo:${MONGO_TAG}`, and Dependabot cannot resolve a tag that comes from a
-    # build argument — it will find nothing to bump until the tag is written literally.
-    # The entry is here so that the day the tag is inlined, it is already covered.
+    # ⚠️ This entry is inert today, on purpose. The digest sits on the Dockerfile's FROM line,
+    # `FROM mongo:${MONGO_TAG}@sha256:...`, and Dependabot's Dockerfile parser does not
+    # resolve a build argument inside a tag: it reads no tag and no digest from that line and
+    # skips it. The digest is therefore a hand-bump; the procedure is in the comment above
+    # that FROM line in the Dockerfile.
+    #
+    # ⚠️ The day the tag is written literally, this entry starts proposing bumps of a database
+    # image, and it needs an `ignore` rule first: tags for mongo 8.3 and 9.0 already exist, so
+    # without one it would propose a new major or minor series, which is a data-format and
+    # compatibility decision and not a routine bump. Add, under this entry:
+    #   ignore:
+    #     - dependency-name: 'mongo'
+    #       update-types: ['version-update:semver-major', 'version-update:semver-minor']
     #
     # ⚠️ The pinned semgrep, trivy and scorecard images live inside package.json scripts
     # and .githooks/pre-push as shell strings. No Dependabot ecosystem can see a version

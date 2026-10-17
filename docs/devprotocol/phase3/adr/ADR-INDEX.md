@@ -2,10 +2,43 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.34
-**Date:** 2026-09-20
+**Version:** 1.35
+**Date:** 2026-10-17
 **Author:** adr-agent
 **Changelog:**
+v1.35 - 2026-10-17: **[ADR-056](./ADR-056-the-license-file-is-the-pristine-gpl-text.md) added, `accepted` — the
+`LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README.** The Scorecard scan
+scored `License` **9** on 2026-10-10 and the published scan of 2026-10-17 still does.
+[ADR-054](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md) had put the missing point on the owner's
+list as a relicensing. It is not one. The licence was always GPL-3.0; GitHub's `licensee` could not recognise the
+file, because ADR-015's nine-line preamble — an identity line, the copyright, the GPL's own three-paragraph
+notice — left it 88.81% similar against a threshold of 98, so the API answered `NOASSERTION` for the parent and
+all fifteen sub-repos. The body underneath has matched the FSF's text word for word all along. `LICENSE` is now
+`gnu.org/licenses/gpl-3.0.txt` byte for byte (674 lines, sha256 `3972dc97…6986`), and the line that named the
+directory, the copyright and the notice move to each README's `## License`. ⚠️ **Landed for all eighteen
+copies**: the parent, `marketplace-docker-DBs/` and `marketplace-services-status/` ride in the parent's one commit,
+and the fifteen sub-repos are one commit each, merged to their `main` and pushed, with the fifteen pointer bumps
+(ADR-031) in that same parent commit. One `sha256sum` agrees on all eighteen and GitHub answers `GPL-3.0` for the
+fifteen sub-repos. ⚠️ **`.scorecard-floor` is untouched**: `License=10` is raised
+in its own commit, after GitHub reports `GPL-3.0` on `main` and a fresh measurement shows it. ADR-056 supersedes
+**ADR-015 in part** (the clause that the copies are identical below their first line; the licence, the
+eighteen locations and the reason for the two plain-directory copies stand) and **ADR-054 in part** (one clause
+of §Compliance, which listed the check as an owner decision). Its acceptance is the owner's merge of this change
+into `main`, which the owner instructed and which flips its status to `accepted`.
+
+The same entry records an outcome in ADR-054 §Compliance that supersedes nothing: **`Fuzzing` is implemented
+for the parent's tree** by three `fast-check` property suites over real code in `marketplace-services-status`,
+with shared generators. A static `from 'fast-check'` import is what Scorecard v5.5.0 detects, and a local run
+scores `Fuzzing` 10 against 0 on a control tree without the suites; the published score moves only once the
+change is on `main` and the workflow has re-run. The fifteen sub-repos are unchanged. A stub
+`.clusterfuzzlite/Dockerfile` would be detected too, and is refused as the metric gamed rather than the control
+built. With `License` and `Fuzzing` out, ADR-054's owner-decision bullet goes from six decisions to four.
+
+The two old ADRs follow §1's rule: each header names ADR-056 as its successor, ADR-015's clause is rewritten as
+the fact it now is (all eighteen copies in the target shape), and ADR-054's bullet no longer lists
+`License`. One row in §2 added and two re-worded, one name in §3's **Build and quality gates** line, one row in
+§4, and §1's count — now **six** supersessions.
+
 v1.34 - 2026-09-20: **[ADR-055](./ADR-055-the-gates-run-on-github-too-and-main-requires-them.md) added — the
 gates run on GitHub too, and `main` requires them.** The platform owner's *"do 1+2+3"* made the third item
 *"close R63"*, the hole ADR-054 opened and recorded as unfixable by configuration: a merge performed in the
@@ -285,30 +318,32 @@ v1.15 - 2026-08-28, later the same day: **ADR-040 added — the secrets-manager 
 ADRs are immutable once accepted. Never edit one. To change a decision, write a new ADR and set its
 `Supersedes` field, then flip the old one's `Superseded by`.
 
-⚠️ **A statement that has become false is deleted, and the page rewritten as though it had been correct
-from the start** — platform owner, 2026-08-30. No `~~struck~~` sentence, no *"this was true until"* note,
-no paragraph explaining what an earlier paragraph used to say. **This is not licence to revise a
-decision** — the rule above is untouched, and a decision changes only by a new ADR. It is about *facts*: a
-fact that stopped being true is simply made true, and a decision that was superseded is written in the past
-tense with its successor named in the header. A reader needs what holds now and which ADR holds it; the
-record of the change is in this index's changelog and in the `Supersedes`/`Superseded by` fields, where it
-can be read without wading through the version that is wrong. Every ADR below is `accepted`, and five
-supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part (the
-topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
-narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main
-body and its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the
-widest of them**: ADR-046 supersedes **ADR-041, ADR-042 and ADR-045, each in part**, on one ruling of the
-owner's — the thirty days are an undo window — so three decisions taken that morning were narrowed that
-afternoon by the person who took them rather than by a later reading. Nothing in the three is withdrawn:
-closure still stamps, a registration still lives in Redis until the link is clicked, an inactive owner
-still goes off-air. What changed is that `deleted` can be cleared. §2 says so in all nine rows. ⚠️ **A fifth landed on
-2026-08-30 and is the only one that reverses rather than narrows**: ADR-047 supersedes **ADR-015 and
-ADR-037, each in part**, deleting `deploy-local.sh` — the bridge ADR-015 built while nothing was on a
-registry and ADR-037 deliberately kept afterwards. Nothing about the registry, the publisher or the gates
-is withdrawn; what changed is that there is no longer a second way for code to reach a consumer. Every other
-decision stands as written, and none contradicts another. Where two ADRs touch
-the same subject they divide it rather than overlap: ADR-001 decides that the platform is sixteen
-independent histories, ADR-031 decides what the parent workspace records about the fifteen it contains.
+⚠️ **A statement that has become false is deleted, and the page rewritten as though it had been correct from the
+start** — platform owner, 2026-08-30. No `~~struck~~` sentence, no *"this was true until"* note, no paragraph
+explaining what an earlier paragraph used to say. **This is not licence to revise a decision** — the rule above
+is untouched, and a decision changes only by a new ADR. It is about *facts*: a fact that stopped being true is
+simply made true, and a decision that was superseded is written in the past tense with its successor named in
+the header. A reader needs what holds now and which ADR holds it; the record of the change is in this index's
+changelog and in the `Supersedes`/`Superseded by` fields, where it can be read without wading through the
+version that is wrong. Every ADR below is `accepted`, and six supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part
+(the topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
+narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main body and
+its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the widest of them**:
+ADR-046 supersedes **ADR-041, ADR-042 and ADR-045, each in part**, on one ruling of the owner's — the thirty
+days are an undo window — so three decisions taken that morning were narrowed that afternoon by the person who
+took them rather than by a later reading. Nothing in the three is withdrawn: closure still stamps, a
+registration still lives in Redis until the link is clicked, an inactive owner still goes off-air. What changed
+is that `deleted` can be cleared. §2 says so in all nine rows. ⚠️ **A fifth landed on 2026-08-30 and is the only
+one that reverses rather than narrows**: ADR-047 supersedes **ADR-015 and ADR-037, each in part**, deleting
+`deploy-local.sh` — the bridge ADR-015 built while nothing was on a registry and ADR-037 deliberately kept
+afterwards. Nothing about the registry, the publisher or the gates is withdrawn; what changed is that there is
+no longer a second way for code to reach a consumer. ⚠️ **A sixth is dated 2026-10-17 and corrects
+rather than reverses**: ADR-056 supersedes **ADR-015 and ADR-054, each in part** — the first on the clause that
+the `LICENSE` copies are identical below their first line, the second on the clause that called `License` 9→10 a
+relicensing. The licence is unchanged; the files that carry it become the FSF's text byte for byte. Every other
+decision stands as written, and none contradicts another. Where two ADRs touch the same subject they divide it
+rather than overlap: ADR-001 decides that the platform is sixteen independent histories, ADR-031 decides what
+the parent workspace records about the fifteen it contains.
 
 ⚠️ **One exception exists, and it is the owner's rather than the convention's: ADR-011 carries an
 amendment dated 2026-08-26.** The rule above assumes a superseding ADR is the safer record, and here it
@@ -349,7 +384,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-012 | itemCategory depth capped at two, in the resolver, admin-only writes | accepted | 2026-08-05 | — | — | Catalogue |
 | ADR-013 | English-only naming, with no carve-out | accepted | 2026-08-04 | — | — | Data model |
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
-| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part twice** — 2026-08-26, the publication half; 2026-08-30, the bridge half. The GPL-3.0-or-later licence decision is what still stands here | 2026-08-04 | — | ADR-037 and ADR-047, each in part | Build and quality gates |
+| ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part three times** — 2026-08-26, the publication half; 2026-08-30, the bridge half; 2026-10-17, the clause that the `LICENSE` copies are identical below their first line. The GPL-3.0-or-later licence decision is what still stands here | 2026-08-04 | — | ADR-037, ADR-047 and ADR-056, each in part | Build and quality gates |
 | ADR-016 | 100% coverage on all four metrics + 100 mutation score, everywhere | accepted | 2026-08-06 | — | — | Build and quality gates |
 | ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-018 | SSR public routes, CSR-only /account/*, cache bypasses on session cookie | accepted | 2026-08-05 | — | — | Frontend |
@@ -388,8 +423,9 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted | 2026-08-31 | — | — | Infrastructure and delivery |
-| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted | 2026-09-20 | — | — | Build and quality gates |
+| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
 | ADR-055 | The gates run on GitHub too, and `main` requires them | accepted | 2026-09-20 | — | — | Build and quality gates |
+| ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -404,7 +440,7 @@ ADR-050
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049, ADR-051, ADR-052
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
-ADR-037, ADR-047, ADR-054, ADR-055
+ADR-037, ADR-047, ADR-054, ADR-055, ADR-056
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039, ADR-053
 
@@ -474,6 +510,7 @@ ADR-037, ADR-047, ADR-054, ADR-055
 | Add `familyId`, the session cap, or any other field to the account index's value | platform owner, 2026-08-13 — `phase5/SESSION_TERMINATION.md` §3.1 | the agreed value is `{ tier, mintedAt }` and nothing else. `familyId` and the cap are **state that token rotation already maintains on the session hash**, and duplicating them here would mean two writers keeping one truth in step across every rotation. Nothing device- or network-derived is in the set either, so the standing GDPR decision needs no exception for this key. ⚠️ **One of the two original reasons for `tier` turned out to be wrong once built**: the key a revocation rebuilds is `${REDIS_KEY}${field}` and needs no tier at all, because the tier is in the *index key's own name*. `tier` stays on the second reason alone — a row the admin session console can render without parsing a key name — and the pair was agreed as a pair, so re-litigating either half re-opens both |
 | Make `keygripRetire` retryable — reorder it to sweep before the compare-and-set, or have a second call finish an unfinished one | [ADR-034](./ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31 (second that day) | sweeping first logs the whole platform out while leaving the suspect key in the keyring, which is the worst of both, and a second `keygripRetire` on a retired id answers **404** because the key really is gone — that answer is right and making it wrong would mean keeping retired keys around to be retried against. The half that is safe to repeat is the sweep, so the sweep is what got its own mutation: **`keygripResweep`**, no arguments, no record read, no CAS, therefore no 404, no 409 and no race with a rotation. A resweep that carried a list of missed accounts was refused with it — that list is personal data on an error path, and it is stale the moment anybody signs back in |
 | Exempt the retiring admin's own session from `keygripRetire`'s sweep, or narrow the sweep to "only the sessions that key signed" | [ADR-034](./ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31 | neither is computable and the first is backwards. **Nothing anywhere records which key signed which cookie** — a cookie carries a signature, not a key id — so the narrow sweep has no query behind it. The exemption keeps alive the one session most likely to be the attacker's, since an admin account is a thing that leaks too, and it is the same shape as the credential-change *revoke all but me* this table already refuses. A retirement is the incident lever: it ends every session or it is not worth clicking |
+| Put the copyright, the directory's name, an SPDX line or the GPL's "how to apply" notice back into `LICENSE` — or add a `NOTICE`, `COPYING` or `COPYRIGHT` beside it — so the file "says whose it is" | [ADR-056](./ADR-056-the-license-file-is-the-pristine-gpl-text.md) | `licensee` accepts a file as a licence only at 98% similarity to the canonical text, and nine lines of header scored 88.81% — GitHub answered `NOASSERTION` and Scorecard's `License` stayed at 9. One copyright line alone clears the threshold by tenths of a percent (98.49% to 98.89%), which is a bet on a matcher this workspace does not run, and `COPYING`, `COPYRIGHT` and `LICENSE-*` are themselves licence-file candidates that can turn the answer back into *Other*. The identity line, copyright and notice live in each README's `## License`, which also names no licence but GPL-3.0-or-later. Violation looks like `sha256sum LICENSE` returning anything but `3972dc97…6986`, or `gh api repos/Axiumine/<repo>/license --jq .license.spdx_id` returning `NOASSERTION` |
 
 ## 5. Gaps
 
