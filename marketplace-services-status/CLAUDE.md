@@ -11,7 +11,7 @@ change here commits under the parent's rules.
 | Need | File |
 |---|---|
 | what it monitors, install, boot policy, the route table, the env table, security posture, troubleshooting, adding a service | [`README.md`](./README.md) |
-| why the gates are shaped this way, and the line-level invariants mutation testing protects | [`REPO.md`](./REPO.md) |
+| why the gates are shaped this way, the property suites (fast-check), and the line-level invariants mutation testing protects | [`REPO.md`](./REPO.md) |
 | the generated units, why nothing except the monitor is enabled, why `ExecStart` is not `yarn dev` | [`systemd/README.md`](./systemd/README.md) |
 | the three custom rules, what is vendored and why | [`semgrep/README.md`](./semgrep/README.md) |
 | why it has no git repo of its own and how the parent gates it | [`../docs/devprotocol/phase3/adr/ADR-025-services-status-gated-by-parent-hooks.md`](../docs/devprotocol/phase3/adr/ADR-025-services-status-gated-by-parent-hooks.md) |
@@ -32,6 +32,7 @@ every pull request — two callers, both automated, and a hand is neither.
 
 ## Hard rules and traps
 
+- **Indentation is two spaces throughout, not the tree's tabs.** The package has no eslint or prettier (ADR-025), so nothing enforces it; a file you add here follows it by hand, and `docs/conventions.md`'s tab rule does not reach it.
 - ⚠️ **A service `id` *is* its systemd unit name.** `${id}.service` is synthesised in `config.ts`; no
   `unit` field is ever read from `services.json`. Renaming an `id` silently retargets which real unit
   `start`/`stop`/`restart` acts on.

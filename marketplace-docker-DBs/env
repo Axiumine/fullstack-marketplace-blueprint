@@ -8,7 +8,11 @@
 # One value, one line. A newline inside a quoted value ends the value there and dotenv reads the
 # tail as its own variable: docs/workflow.md §Environment files.
 
-# Image tags. Pin them when you want a rebuild to be reproducible.
+# Image tags. MONGO_TAG names the MongoDB series and is checked, not trusted: the Dockerfile pins the base image by
+# digest, the digest wins over any tag, and the build fails when the series of this tag disagrees with the mongod
+# inside it (the series only: a bare 8 or an 8.0.34-noble suffix passes without selecting a different image).
+# Change the series by changing this AND the digest in the Dockerfile together. REDIS_TAG is a plain tag: pin it
+# when you want a rebuild to be reproducible.
 # ⚠️ REDIS_TAG must stay at 7.4 or higher: the session index needs hash-field TTLs (HEXPIRE),
 # which exist in no release before 7.4.0 — README.md §Redis. Lowering it is a breaking change.
 MONGO_TAG=8.0

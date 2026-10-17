@@ -17,6 +17,8 @@ docs onto one line.
 `marketplace-db-setup` has neither prettier nor eslint, deliberately: its content is applied migrations,
 which are immutable, so a formatter that rewrites them is the wrong tool.
 
+`marketplace-services-status` is an exception too: it is not one of the thirteen gated repos and has no eslint or prettier (ADR-025), so the tab rule does not reach it, and by the platform owner's ruling of 2026-10-17 it is two-space throughout — a file added there follows that.
+
 ## Lint scripts
 
 `lint` formats, `lint:check` verifies, **both over the whole tree** — `eslint --fix . && prettier

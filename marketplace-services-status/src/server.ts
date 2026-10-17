@@ -79,16 +79,31 @@ function firstQueryValue(value: string | string[] | undefined): string | undefin
 
 const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-// Host header may be "hostname" or "hostname:port"; IPv6 literals arrive bracketed
-// ("[::1]:2901"). Strips down to a bare hostname so it compares 1:1 with URL#hostname, which
-// never includes brackets or a port.
+// The trusted set holds an IPv6 literal bare ("::1"), but both inputs hand it over bracketed: a
+// Host header as "[::1]:2901", and URL#hostname as "[::1]" (it never carries a port, yet it keeps
+// the brackets of an IPv6 literal). This removes the one enclosing pair, and only when the string
+// starts with "[" and ends with "]", so a name is never turned into a different name. It is the
+// single place that knows the bare form, shared by hostnameOnly() and isTrustedOrigin() so the Host
+// and the Origin of the same address are looked up under the same key.
+//
+// A real URL#hostname is bracketed at both ends or at neither, so the anchors (and `.+`, which
+// refuses "[]") only matter to a caller handing it arbitrary text: they keep "x[::1]" and "[::1]x"
+// from being read as one.
 //
 // The closing bracket is unescaped on purpose: outside a character class `]` is an ordinary
 // literal in JS regex, so `\]` is a redundant escape and Qodana's RegExpRedundantEscape flags it
 // at HIGH, which is a hard 0-threshold failure here. The opening `\[` genuinely needs its escape.
+export function stripIpv6Brackets(host: string): string {
+  return /^\[.+]$/.test(host) ? host.slice(1, -1) : host;
+}
+
+// Host header may be "hostname" or "hostname:port"; IPv6 literals arrive bracketed
+// ("[::1]:2901"). Strips down to the bare hostname the trusted set holds: no port, no brackets,
+// lowercase. isTrustedOrigin() reaches the same form from URL#hostname via stripIpv6Brackets().
+// The `]` is unescaped here for the same reason as above.
 export function hostnameOnly(hostHeader: string): string {
-  const bracketed = hostHeader.match(/^\[(.+)](?::\d+)?$/);
-  if (bracketed) return bracketed[1].toLowerCase();
+  const bracketed = hostHeader.match(/^(\[.+])(?::\d+)?$/);
+  if (bracketed) return stripIpv6Brackets(bracketed[1]).toLowerCase();
   const colonIndex = hostHeader.lastIndexOf(':');
   if (colonIndex > -1 && /^\d+$/.test(hostHeader.slice(colonIndex + 1))) return hostHeader.slice(0, colonIndex).toLowerCase();
   return hostHeader.toLowerCase();
@@ -147,7 +162,11 @@ export function isTrustedOrigin(originOrReferer: string, trustedHosts: ReadonlyS
     // are the only schemes a browser puts in Origin or Referer. Case survives parsing only on an
     // opaque host ('foo://EXAMPLE.com'), which is not a browser origin and is refused here — the
     // trusted set is lowercase throughout, DOMAIN, HOST and ALLOWED_HOSTS included.
-    return trustedHosts.has(new URL(originOrReferer).hostname);
+    //
+    // URL#hostname keeps the brackets of an IPv6 literal ('[::1]'), the set does not ('::1'): without
+    // the strip an Origin of http://[::1]:PORT matched nothing, while the Host header of the same
+    // page was accepted, so every POST from it got a fail-closed 403.
+    return trustedHosts.has(stripIpv6Brackets(new URL(originOrReferer).hostname));
   } catch {
     return false; // unparsable Origin/Referer is never trusted
   }

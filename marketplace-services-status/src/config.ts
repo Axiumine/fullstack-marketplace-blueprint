@@ -9,7 +9,7 @@ import { AppConfig, GroupDescriptor, ServiceDescriptor, SystemctlScope } from '.
 
 /**
  * services.json lives at the project root (marketplace-services-status/), one level above src/. At runtime
- * __dirname is dist/ (compiled, `yarn start`) or src/ (tsx/ts-node-dev, `yarn dev`) — both are
+ * __dirname is dist/ (compiled, `yarn start`) or src/ (tsx, `yarn dev`) — both are
  * exactly one level below the project root today, so '../services.json' resolves correctly in
  * both. The '../../services.json' candidate is a safety net, not the expected path: it only
  * matters if a future tsconfig change nests the compiled output one level deeper (e.g. an

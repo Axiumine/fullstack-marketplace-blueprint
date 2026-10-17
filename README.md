@@ -1,6 +1,7 @@
 # Marketplace — workspace root
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Axiumine/fullstack-marketplace-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/Axiumine/fullstack-marketplace-blueprint)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15609/badge)](https://www.bestpractices.dev/projects/15609)
 
 > [!WARNING]
 > **Work in progress — this software is not tested yet.** It has never run outside a developer
@@ -485,4 +486,22 @@ a mutant; lowering `thresholds.break` never is.
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](./LICENSE).
+GPL-3.0-or-later — see [LICENSE](./LICENSE), the unmodified text of the GNU General Public License,
+version 3. The copyright notice is below rather than in that file: GitHub's licence detector needs `LICENSE`
+to match the FSF's text closely, and a long header on it would drop the match below the detector's threshold
+([ADR-056](./docs/devprotocol/phase3/adr/ADR-056-the-license-file-is-the-pristine-gpl-text.md)).
+
+marketplace workspace root for <https://github.com/Axiumine/fullstack-marketplace-blueprint>
+
+Copyright (c) 2026 Giovanni Manzoni <dev@giovannimanzoni.com>
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not,
+see <https://www.gnu.org/licenses/>.

@@ -14,7 +14,7 @@ parent workspace, so a change here commits under the parent's rules.
 | Redis version floor, hash-field TTLs, the `redis.conf` password story | [`README.md`](./README.md) §Redis |
 | the CSFLE master-key wiring | [`README.md`](./README.md) §CSFLE |
 | why the master key is one file for every repo | [`ADR-029`](../docs/devprotocol/phase3/adr/ADR-029-pii-at-rest-explicit-csfle.md) |
-| logging-rotation history and other reference detail this file used to carry | [`REPO.md`](./REPO.md) |
+| logging-rotation history, the mongod digest pin and other reference detail this file used to carry | [`REPO.md`](./REPO.md) |
 
 Scripts: `./up.sh [--with-redis]` · `./shell.sh [root\|dev\|owner]` · `./down.sh [--purge]` ·
 `./rbac-probe.sh`. `up.sh` is idempotent (README §Quick start) — re-running it is the normal way to
@@ -42,6 +42,14 @@ reversible from here — ask before running it, and never as a step in a larger 
 ⚠️ **The compose project name is `marketplace-dbs` and it prefixes the volumes and the network.**
 Changing it does not migrate them: compose stops seeing the old volumes and the cluster comes back
 empty. Rename only with a purge planned, or move the volumes by hand first.
+
+⚠️ **The mongod base image is pinned by digest in the `Dockerfile`, and `MONGO_TAG` alone cannot move it.**
+Docker resolves tag-plus-digest by the digest, so a different `MONGO_TAG` would label the pinned image, not
+replace it; a `RUN` guard (series only, a tripwire and not proof) fails the build instead. A newer patch is a
+hand-edit of the digest (`docker buildx imagetools inspect mongo:8.0`), because Dependabot cannot resolve a tag
+held in an `ARG`. Always re-read the digest yourself: the Scorecard viewer shows the digest as of its last scan,
+not today's. The next `./up.sh` after a bump recreates the three mongod containers, and nothing sequences them,
+so the replica set can be briefly without a primary. Detail: [`REPO.md`](./REPO.md).
 
 ⚠️ **Every container needs the `logging: *logging` anchor (20 MiB × 5 files).** Docker's default
 never rotates — see [`REPO.md`](./REPO.md) for the incident that this anchor exists to prevent.

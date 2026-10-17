@@ -1,7 +1,7 @@
 # ADR-015 — marketplace-common is consumed by published package name, is not published, and deploy-local.sh bridges the gap
 # Marketplace
 
-**Status:** accepted, **superseded in part 2026-08-26** — the publication half only
+**Status:** accepted, **superseded in part three times** — 2026-08-26, the publication half; 2026-08-30, the bridge half; 2026-10-17, the shape of the `LICENSE` copies
 **Date:** 2026-08-04
 **Deciders:** platform owner
 **Supersedes:** —
@@ -9,6 +9,8 @@
 2026-08-26, which is the trigger §Risks names below, and ADR-037 owns everything about the registry.
 [`ADR-047`](./ADR-047-a-common-change-ships-as-a-published-release.md), **in part, 2026-08-30** — the `deploy-local.sh` bridge: **the script is deleted and a change ships by
 publishing a release.**
+[`ADR-056`](./ADR-056-the-license-file-is-the-pristine-gpl-text.md), **in part, 2026-10-17** — the shape of the `LICENSE` copies: **each is the canonical GPL-3.0 text and nothing
+else; the identity line, the copyright and the notice live in the README next to it.** The licence, the eighteen locations and the reason for the two plain-directory copies stand.
 
 ⚠️ **Two halves of this ADR are in force and one is history.** In force: `marketplace-common` is consumed
 by its real scoped package name, `@axiumine/marketplace-common`, in every consumer's `package.json`; and
@@ -86,7 +88,10 @@ scoped package defaults to `restricted`, so that key is what makes a public publ
 
 **Licensing follows from the repositories being public, not from the publish.** The whole platform is
 **GPL-3.0-or-later**: the full text sits in **eighteen** copies — all sixteen repos plus `marketplace-services-status/`
-and `marketplace-docker-DBs/` — byte-identical below line 1, which names what it sits in. All fifteen manifests that
+and `marketplace-docker-DBs/` — and the shape of every copy is the FSF's text and nothing else
+([`ADR-056`](./ADR-056-the-license-file-is-the-pristine-gpl-text.md)). All eighteen are that shape: the parent's,
+`marketplace-docker-DBs/`'s, `marketplace-services-status/`'s and the fifteen sub-repos', which one `sha256sum` confirms.
+All fifteen manifests that
 exist declare `"license": "GPL-3.0-or-later"`: the fourteen sub-repos with a `package.json`, plus
 `marketplace-services-status`. `marketplace-nginx` and the parent have none.
 
