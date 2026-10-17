@@ -2,11 +2,14 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.11
-**Date:** 2026-08-30
+**Version:** 1.12
+**Date:** 2026-10-17
 **Author:** nfr-agent
 **Depends on:** PDR.md ✅ · SYSTEM_CONTEXT.md ✅
-**Changelog:** v1.11 - 2026-08-30, later the same day: **NFR-CO02 and open question 6 gain the two things
+**Changelog:** v1.12 - 2026-10-17: **NFR-CS01 follows [`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md): indentation is two spaces, not
+tabs.** The platform owner ruled on 2026-10-17 that the whole platform indents with two spaces. The requirement keeps its point — one authority,
+never mixed enforcement — and changes its value. No other requirement was added, removed or re-scored.
+v1.11 - 2026-08-30, later the same day: **NFR-CO02 and open question 6 gain the two things
 that moved on the erasure and transparency limbs, neither of which changes a score or a status.** An admin
 can close a customer account from 2026-08-30 (%s) —
 open question 6 had recorded the counterpart as absent twice in one paragraph — and the platform owner ruled
@@ -134,7 +137,7 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 | NFR-MA05 | No threshold may ever be lowered to accommodate a failing gate — the fix is a test, never a config edit | [`CLAUDE.md`](../../../CLAUDE.md) §Rules that apply to every task: "**Never lower a coverage or mutation threshold, and never remove a gate.**" Reinforced per-service: `marketplace-db-setup`'s `vitest.config.mjs` comment: "Never lower these numbers. See COVERAGE.md" |
 | NFR-MA06 | Every commit and push must pass `lint:check` (ESLint + Prettier, unwritten) and `tsc --noEmit` before coverage/mutation run | `.githooks/pre-push` header: `# 1. lint — eslint + prettier --check over the whole tree (yarn lint:check)` — `BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:3`; `marketplace-db-setup` is the one repo without a lint config, argued in its own hook header |
 | NFR-MA07 | A vitest project declaring an `integration` suite with zero matching test files must be treated as a red flag, not a pass | `marketplace-dev-user-authenticated-resource` collected zero `*.itest.mts` and reported success at 100% coverage/100 mutation for its whole life until 2026-08-07 — [`docs/testing.md`](../../testing.md) §Traps that make a green run lie. First real run found every customer address delete answering 500 (`Mongoose 9` array-update rejection + a pipeline-update ObjectId/string cast mismatch). **Count the test files, not the checkmarks** |
-| NFR-CS01 | Indentation must be tabs, enforced by both ESLint and Prettier in agreement — never mixed enforcement | `indent: ['error','tab']` and `"useTabs": true` in the byte-identical `.prettierrc` across 13 linted repos; running only one used to reindent against the other (`docs/conventions.md` §Formatting) |
+| NFR-CS01 | Indentation must be two spaces, owned by Prettier with ESLint never contradicting it — never mixed enforcement | `"useTabs": false` and `"tabWidth": 2` in the byte-identical `.prettierrc` across 13 linted repos; ESLint's `indent` is off or 2, because the shared package's tab rule is re-armed by any block that spreads its rules; shell and git hooks stay tab-indented (`docs/conventions.md` §Formatting, ADR-058) |
 | NFR-CS02 | All identifiers, routes, UI text, comments, test fixtures and migrations must be English, with no exception | [`CLAUDE.md`](../../../CLAUDE.md) §Two naming rules, ADR-013, `UBIQUITOUS_LANGUAGE.md` §19. The `en-GB` date locale and the `english` stemming on the two text indexes are market choices, not names. Reintroducing vocabulary that presumes a specific product domain, or a non-English identifier, is a regression, not a style nit |
 | NFR-CS03 | An `eslint.config.js` block added for a new file glob must resolve to the shared rule set, not silently lint zero rules | `npx eslint --print-config <file>` should report ~400 rules; a path matching no `files` glob checks nothing and exits 0 — this exact gap left every backend test file and vitest config unlinted until closed (`docs/conventions.md` §Lint scripts) |
 

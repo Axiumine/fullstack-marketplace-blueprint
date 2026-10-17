@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-08-30
+**Version:** 1.10
+**Date:** 2026-10-17
 **Author:** c4-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.10 - 2026-10-17: the constraints bullet under §Rules said tabs; it says two spaces, per
+[`ADR-058`](./adr/ADR-058-indentation-is-two-spaces-not-tabs.md). No container changed.
 v1.6 - 2026-08-27: The `price` row in §8 said the four commerce concepts were "unbuilt, undesigned", which invited a reader to supply the missing design. ADR-038 (2026-08-27) refuses it outright, so the row says permanently and cites it alongside ADR-009.
 v1.1 - 2026-08-25: the 4024 row described an Admin service that never touched `user`. It gained
 `usersActiveTbl` and `userUpdateStatus`; the row now says so, and says what the admin still cannot do
@@ -293,8 +295,8 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 - `itemCategory` writes exist **only** in `marketplace-dev-admin-authenticated-resource` — the depth-2 cap
   is enforced in that resolver, not in the `$jsonSchema`. Adding a write path anywhere else silently
   removes the cap.
-- English only — domain names, UI text, routes, comments (CON-11). Tabs, not spaces, enforced by eslint
-  and prettier together. Node `^24.18.0` with the caret kept, `yarn` everywhere.
+- English only — domain names, UI text, routes, comments (CON-11). Two spaces, not tabs, set by prettier and
+  never contradicted by eslint (ADR-058). Node `^24.18.0` with the caret kept, `yarn` everywhere.
 - Never edit an applied migration under `BEs/marketplace-db-setup/migrations/` — add a new one.
 - No `Shop` collection, ever — a shop *is* a `company` (CON-02). No `role` field or permission enum on any
   collection or session (CON-01).

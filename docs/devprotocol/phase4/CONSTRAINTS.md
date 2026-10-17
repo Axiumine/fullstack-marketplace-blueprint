@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.3
-**Date:** 2026-08-27
+**Version:** 1.4
+**Date:** 2026-10-17
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit
+v1.4 - 2026-10-17: the inherited CON-11 short name read *English+tabs+node*; it reads *English+two-space+node*, following `phase3/CONSTRAINTS.md`
+v1.11 and [`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md). No constraint was added.
 v1.3 - 2026-08-27: the four commerce concepts in §6 are **permanently out of scope**, not merely unbuilt, and §8's no-`price` bullet says the same — it is not a this-phase restriction and there is no later phase that lifts it — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`. BC-11 is `WILL NOT BUILD`. **No constraint changed and none was relaxed**: DDD_AGGREGATES, ERD and API_CONTRACTS still may not draw an aggregate, a node or a contract for any of them, and 6 collections stays 6 — now permanently rather than for this phase.
 v1.1 - 2026-08-25: DCON-05 restated. Its second sentence read "Write path for `itemCategory` exists ONLY in Admin tier" and its trigger fired on any design showing another tier writing the collection — which now describes shipped code. The three mutations are still Admin-only; `holdItemCategory` on the ShopOwner tier writes `__v` and nothing else, to close a write-skew window. The constraint now says which of the two it is, so the trigger stops firing on the exception it should permit.
 v1.2 - 2026-08-26: same annotation as phase 5's — the inherited "GDPR call" row now says the call was made on 2026-08-26 and where. No constraint changed.
@@ -27,7 +29,7 @@ Already settled. Do NOT restate body, point at source.
 
 | What | Where settled |
 |---|---|
-| CON-01..CON-12 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common ships as a published release, SSR/CSR split, English+tabs+node, admin-only fields listed-and-linted rather than translated) | `phase3/CONSTRAINTS.md` §2 |
+| CON-01..CON-12 (role=collection, shop=company, opaque token, tier assert, single logout, 3-authz-stay-3, migration immutable, 100/100 gate, common ships as a published release, SSR/CSR split, English+two-space+node, admin-only fields listed-and-linted rather than translated) | `phase3/CONSTRAINTS.md` §2 |
 | Vocabulary lock (actor names, auth vocab, per-collection field vocab, banned terms, registration-field definitions, planned-commerce-vocab) | `phase3/CONSTRAINTS.md` §3, full source `phase2/UBIQUITOUS_LANGUAGE.md` |
 | Architectural invariants Phase 3 could not redesign (6 collections, ownership chain, defaultAddress pointer shape, shared REDIS_KEY, 3 authz deployables, no barrel in common, quality gate regime, SSR/CSR, migration immutability, BC-01/03 + BC-01/07 conformist boundaries) | `phase3/CONSTRAINTS.md` §4 |
 | Out of scope (order/cart/delivery/payment, price on item, nginx install, forge publish, GDPR call — ⚠️ the GDPR call was **made** on 2026-08-26, out of phase as intended: in scope, `phase1/NFR.md` §2.7) | `phase3/CONSTRAINTS.md` §5 |

@@ -2,10 +2,50 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.35
+**Version:** 1.36
 **Date:** 2026-10-17
 **Author:** adr-agent
 **Changelog:**
+v1.36 - 2026-10-17, later the same day: **[ADR-057](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) and
+[ADR-058](./ADR-058-indentation-is-two-spaces-not-tabs.md) added, both `accepted`, both the platform owner's decisions of the working
+session.** **ADR-057 — an unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`.** GHSA-vfj7-8cjw-p6xm (CVE-2026-93687, CVSS
+8.7, published 2026-09-18) says `braces` up to and including 3.0.3 exhausts the stack on deeply nested patterns, and there is no patched release:
+npm's `latest` is 3.0.3 and the advisory's `last_affected` is 3.0.3. It is locked at 3.0.3 in twelve repositories — the nine services and the
+three frontends — and reachable only through `devDependencies`, per a dependency-path check in each. Scorecard's `Vulnerabilities` check
+therefore reads 9 against a committed floor of 10, and ADR-054's `pre-push` gate refuses every push. The owner's *"do An osv-scanner.toml with
+ignoreUntil plus an ADR"* puts a root `osv-scanner.toml` in each of the twelve with one entry and `ignoreUntil = 2027-01-15`, ninety days out.
+⚠️ **It is an accepted risk, not a fix**: the advisory stays in the lockfile and `braces` 3.0.3 stays installed. Scorecard v5.5.0 honours the
+file (checked locally with the pinned image, 10 with it and 9 without), so the number rises because the advisory is filtered, which the ADR
+says in as many words. ⚠️ **The expiry is deliberate**: after 2027-01-15 the check and the floor gate fail again, and that failure is the
+review — a patched release, a repeat of the dev-only trail check, and the owner's renew-or-fix call. The options refused are doing nothing,
+`SKIP_SCORECARD=1` on every push, lowering the floor, a `resolutions` pin to a fork and removing `braces` from the toolchain (it comes with
+`fast-glob`, `micromatch` and `chokidar`). ⚠️ **`SKIP_SCORECARD=1` was used once per repository — twelve pushes — to land the first file**,
+because the floor gate grades the remote `main`, which cannot hold the file until it is pushed; ADR-057 records it as the one exception
+to ADR-054's *never for a finding*. A violation is an entry without `ignoreUntil` or `reason`, a date more than ninety days out, a
+production-path advisory, or any advisory but this one without a new ADR. **ADR-054 is not superseded**: its §Compliance gains a dated note naming
+this as the documented exception route, and its ratchet is untouched.
+
+**ADR-058 — indentation is two spaces, and the tabs clause of ADR-024 is withdrawn.** The owner's *"WE NEED TO USE 2 SPACES"* about
+`marketplace-services-status`, then *"Sub-repo CLAUDE.md files: convert and fix to two spaces !"*, and, asked how far, *"Whole platform to two
+spaces"*. The thirteen prettier-gated repositories — nine services, `marketplace-common`, three frontends — now carry a byte-identical
+`.prettierrc` with `useTabs: false` and `tabWidth: 2`, and `.editorconfig` says `indent_style = space`. ADR-058 supersedes **ADR-024 in part, the
+tabs clause only**; the tree-wide lint scope, `.prettierignore`, the print-config check and one indentation authority stand, and
+`marketplace-services-status`, already two-space by the owner's earlier ruling, stops being an exception. ⚠️ **Out of scope and still tab-indented, each
+for a reason**: shell scripts and git hooks (bash `<<-` heredocs strip leading tabs only), `marketplace-db-setup` (no formatter on purpose,
+immutable migrations), the `marketplace-nginx` configuration and `marketplace-docker-DBs` shell. ⚠️ **The shared eslint package still ships
+`indent: ['error','tab']`**: prettier's config switches it off for `src/**`, but each repository's test block re-armed it, so the nine services and
+`marketplace-common` set `indent: 'off'` in it, and the three frontends carry their own rule at 2 (four services were first committed at 2 and moved to
+`'off'` in a follow-up so the ten agree).
+The reformat is leading whitespace only (`git diff -w` is empty except the configuration, the regenerated `src/gql/*/gql.ts` of the frontends and one
+secret-scan placeholder), thirteen commits over about 1,370 files; the cost is permanent blame noise, and a `.git-blame-ignore-revs` per
+repository is a possible follow-up that has not been created.
+
+The living statements that said tabs were rewritten as the fact they now are: `CLAUDE.md`, `docs/conventions.md`, `NFR-CS01`, the PDR constraint row,
+`C4_CONTAINER`, `CON-11` and the two later constraint tables that quote it, the Definition of Done, and `marketplace-services-status`'s own
+documents. ADR-024's header names ADR-058, ADR-054's §Compliance bullet on the YAML exception is rewritten (and ADR-055's one sentence with it),
+and ADR-054 gains the note for ADR-057. One row each in §2 for ADR-057 and ADR-058, the ADR-024 row re-worded, both names in §3's **Build and quality
+gates** line, one row each in §4, one bullet in §5 for the 2027-01-15 review, and §1's count — now **seven** supersessions.
+
 v1.35 - 2026-10-17: **[ADR-056](./ADR-056-the-license-file-is-the-pristine-gpl-text.md) added, `accepted` — the
 `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README.** The Scorecard scan
 scored `License` **9** on 2026-10-10 and the published scan of 2026-10-17 still does.
@@ -325,10 +365,10 @@ is untouched, and a decision changes only by a new ADR. It is about *facts*: a f
 simply made true, and a decision that was superseded is written in the past tense with its successor named in
 the header. A reader needs what holds now and which ADR holds it; the record of the change is in this index's
 changelog and in the `Supersedes`/`Superseded by` fields, where it can be read without wading through the
-version that is wrong. Every ADR below is `accepted`, and six supersessions exist — ADR-037 supersedes ADR-015 *in part*, ADR-039 supersedes ADR-032, also in part
-(the topology it recorded as *owed* is now written, while the rule it made about network boundaries survives in
-narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main body and
-its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the widest of them**:
+version that is wrong. Every ADR below is `accepted`, and seven supersessions exist — ADR-037 supersedes ADR-015 *in part*,
+ADR-039 supersedes ADR-032, also in part (the topology it recorded as *owed* is now written, while the rule it made about network
+boundaries survives in narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main body
+and its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the widest of them**:
 ADR-046 supersedes **ADR-041, ADR-042 and ADR-045, each in part**, on one ruling of the owner's — the thirty
 days are an undo window — so three decisions taken that morning were narrowed that afternoon by the person who
 took them rather than by a later reading. Nothing in the three is withdrawn: closure still stamps, a
@@ -340,7 +380,10 @@ afterwards. Nothing about the registry, the publisher or the gates is withdrawn;
 no longer a second way for code to reach a consumer. ⚠️ **A sixth is dated 2026-10-17 and corrects
 rather than reverses**: ADR-056 supersedes **ADR-015 and ADR-054, each in part** — the first on the clause that
 the `LICENSE` copies are identical below their first line, the second on the clause that called `License` 9→10 a
-relicensing. The licence is unchanged; the files that carry it become the FSF's text byte for byte. Every other
+relicensing. The licence is unchanged; the files that carry it become the FSF's text byte for byte. ⚠️ **A seventh is dated
+the same day and is the owner's ruling rather than a correction**: ADR-058 supersedes **ADR-024 in part**, the tabs clause only — indentation is
+two spaces in the thirteen gated repositories — while ADR-024's tree-wide lint scope, `.prettierignore` and print-config check stand. ADR-057,
+dated the same day, supersedes nothing: it is a new route, and ADR-054 gains a header line and a dated note in §Compliance, without being superseded. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch the same subject they divide it
 rather than overlap: ADR-001 decides that the platform is sixteen independent histories, ADR-031 decides what
 the parent workspace records about the fifteen it contains.
@@ -393,7 +436,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-021 | preferGetMethod stays false (csrfPrevention everywhere) | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-022 | Nine services bind wildcard; SSR server binds loopback | accepted | 2026-08-07 | — | — | Infrastructure and delivery |
 | ADR-023 | Per-repo integration database, named identically in three variables | accepted | 2026-08-07 | — | — | Build and quality gates |
-| ADR-024 | Tabs everywhere, eslint + prettier together, tree-wide | accepted | 2026-08-07 | — | — | Build and quality gates |
+| ADR-024 | Tabs everywhere, eslint + prettier together, tree-wide | accepted, **superseded in part 2026-10-17** — the tabs clause only (`useTabs: true`, `indent: ['error','tab']`); the whole-tree lint scope, `.prettierignore`, the print-config check and one indentation authority stand | 2026-08-07 | — | ADR-058, in part | Build and quality gates |
 | ADR-025 | marketplace-services-status has no repo of its own, gated by parent hooks | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-027 | One frontend app per tier, not one app that switches on role | accepted | 2026-08-05 | — | — | Frontend |
@@ -423,9 +466,11 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted | 2026-08-31 | — | — | Infrastructure and delivery |
-| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
+| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and two dated notes that supersede nothing — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
 | ADR-055 | The gates run on GitHub too, and `main` requires them | accepted | 2026-09-20 | — | — | Build and quality gates |
 | ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |
+| ADR-057 | An unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`, not skipped and not hidden | accepted | 2026-10-17 | — | — | Build and quality gates |
+| ADR-058 | Indentation is two spaces, and the tabs clause of ADR-024 is withdrawn | accepted | 2026-10-17 | ADR-024, in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -440,7 +485,7 @@ ADR-050
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049, ADR-051, ADR-052
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
-ADR-037, ADR-047, ADR-054, ADR-055, ADR-056
+ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039, ADR-053
 
@@ -511,6 +556,8 @@ ADR-037, ADR-047, ADR-054, ADR-055, ADR-056
 | Make `keygripRetire` retryable — reorder it to sweep before the compare-and-set, or have a second call finish an unfinished one | [ADR-034](./ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31 (second that day) | sweeping first logs the whole platform out while leaving the suspect key in the keyring, which is the worst of both, and a second `keygripRetire` on a retired id answers **404** because the key really is gone — that answer is right and making it wrong would mean keeping retired keys around to be retried against. The half that is safe to repeat is the sweep, so the sweep is what got its own mutation: **`keygripResweep`**, no arguments, no record read, no CAS, therefore no 404, no 409 and no race with a rotation. A resweep that carried a list of missed accounts was refused with it — that list is personal data on an error path, and it is stale the moment anybody signs back in |
 | Exempt the retiring admin's own session from `keygripRetire`'s sweep, or narrow the sweep to "only the sessions that key signed" | [ADR-034](./ADR-034-keygrip-keys-live-in-redis-wrapped-under-a-kek.md) §Amendment 2026-08-31 | neither is computable and the first is backwards. **Nothing anywhere records which key signed which cookie** — a cookie carries a signature, not a key id — so the narrow sweep has no query behind it. The exemption keeps alive the one session most likely to be the attacker's, since an admin account is a thing that leaks too, and it is the same shape as the credential-change *revoke all but me* this table already refuses. A retirement is the incident lever: it ends every session or it is not worth clicking |
 | Put the copyright, the directory's name, an SPDX line or the GPL's "how to apply" notice back into `LICENSE` — or add a `NOTICE`, `COPYING` or `COPYRIGHT` beside it — so the file "says whose it is" | [ADR-056](./ADR-056-the-license-file-is-the-pristine-gpl-text.md) | `licensee` accepts a file as a licence only at 98% similarity to the canonical text, and nine lines of header scored 88.81% — GitHub answered `NOASSERTION` and Scorecard's `License` stayed at 9. One copyright line alone clears the threshold by tenths of a percent (98.49% to 98.89%), which is a bet on a matcher this workspace does not run, and `COPYING`, `COPYRIGHT` and `LICENSE-*` are themselves licence-file candidates that can turn the answer back into *Other*. The identity line, copyright and notice live in each README's `## License`, which also names no licence but GPL-3.0-or-later. Violation looks like `sha256sum LICENSE` returning anything but `3972dc97…6986`, or `gh api repos/Axiumine/<repo>/license --jq .license.spdx_id` returning `NOASSERTION` |
+| Add a second advisory to an `osv-scanner.toml`, move `ignoreUntil` out without a review, use `SKIP_SCORECARD=1` on routine pushes, lower `Vulnerabilities=10`, or pin `braces` to a fork — to get the Scorecard floor gate past `braces` | [ADR-057](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) | the advisory has no patched release, so the only honest choices are a dated, reasoned acceptance or a red gate. A bypass hides every other check the gate grades, a lowered floor hides the next advisory, a fork is an unreviewed supply-chain input adopted to defend a development tool, and `braces` cannot be removed because `fast-glob`, `micromatch` and `chokidar` bring it. The file is for this identifier, dev-only, with a reason and a date within ninety days; a second advisory is a new ADR. Violation looks like an `[[IgnoredVulns]]` entry without `ignoreUntil` or `reason`, a date more than ninety days out, a production-path trail, or a number lowered in a `.scorecard-floor` |
+| Put tabs back in a `.prettierrc` or an eslint `indent` rule — or convert the shell scripts and hooks, `marketplace-db-setup` or the nginx configs to spaces "for consistency" | [ADR-058](./ADR-058-indentation-is-two-spaces-not-tabs.md) | the first is the owner's reversed ruling and the second half breaks things silently: a bash `<<-` heredoc strips leading **tabs** only, so a spaced script keeps its indentation inside the heredoc body and fails at run time, and `marketplace-db-setup` holds applied migrations that are immutable and has no formatter on purpose. The shared eslint package still ships a tab rule; a block that spreads `sharedTsBlock.rules` without an override re-arms it and `yarn lint` starts undoing prettier. Violation looks like `"useTabs": true`, a tab-resolving `indent` in `npx eslint --print-config`, or a reindented migration |
 
 ## 5. Gaps
 
@@ -548,6 +595,11 @@ Decisions this platform still owes an ADR, once taken:
 - **Where the sixteen repos get published**, and under which org. No ADR yet — it is explicitly the user's undecided call (see [`docs/workflow.md`](../../../workflow.md), *Repo layout*). ⚠️ **This is git hosting, not the npm registry.** [`ADR-037`](./ADR-037-marketplace-common-is-published-to-npm.md) decides where one *package* ships — `@axiumine/marketplace-common` to npmjs — and closes nothing here; the two were conflated once, in what is now [`phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md`](../../phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md) §6, which cited this bullet for a question ADR-015 §Risks had owned all along. Do not delete this bullet on the strength of ADR-037. ⚠️ **Asymmetric since 2026-09-06, which is information and not an answer.** `git ls-remote origin` returns no refs in fifteen of the sixteen repos and returns `refs/heads/main` plus every tag from `v1.0.0` in `marketplace-common`, whose history had to be pushed for the package to be published. The call is still open and still the platform owner's; its price is no longer the same for every repo (`phase5/RISK_REGISTER.md` R36). ⚠️ **The asymmetry is gone since 2026-09-20 and the bullet still stands.** All sixteen repositories are now public on GitHub under `Axiumine`, every one with `main` as its default branch and real history behind it, so R36's fifteen-empty-remotes premise is retired and `git ls-remote origin` returns refs everywhere. That is a state of affairs, not a decision: no ADR records the org, the visibility or the one-repo-per-service layout as chosen, and [`ADR-054`](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md) now **depends** on all three — its badges, its workflows and its `pre-push` floor gate all resolve `github.com/Axiumine/<repo>` and grade that repository's default branch. Moving the org or making a repo private breaks a gate, which is a reason to write the ADR down, not a substitute for it.
 - **Production topology — closed 2026-08-28 by [`ADR-039`](./ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)**, which answers the four questions [`ADR-032`](./ADR-032-production-topology-owed.md) had recorded as *owed*: **Cloudflare** is the outermost hop and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); **one application host** carries nginx, the nine services, the SSR renderer and both SPAs' static output; **a cloud security group** closes every port but 443 to Cloudflare's ranges, which is what ADR-022's wildcard bind sits behind; and **Redis and MongoDB run on a separate host on a private LAN segment** the platform owner has declared **trusted**. ⚠️ **Two of the three findings this gap bounded do not move**: service-port reachability and the floodable `refresh` keep their controls, **R46** closes, and **R45 stays open at 🟢 Low** — the Redis leg is still plaintext `redis://`, now crossing a segment declared trusted rather than a network nobody had described. What is not closed left this bullet for **R39**: node counts, sizing, supervision, secrets provisioning, CI/CD and backups. The edge itself was always written down: `marketplace-nginx/` carries a vhost per hostname — apex, `shopowner.`, `admin.` — terminating TLS for all three and proxying eleven loopback upstreams (the nine backend services, the SSR renderer and Nominatim) while serving both SPAs and the SSR app's static output off disk. `marketplace-nginx/test/run.sh` exercises it in a container: `nginx -t` plus every behavioural assertion in `test/suite.sh`, including that both session cookies come back `Secure` from every endpoint that mints one. What no ADR records is where that instance *runs*: which host, whether anything sits in front of it, how the service ports are closed to everything but it — the nine bind the wildcard address by decision (ADR-022) — and where Redis and MongoDB sit relative to them, `marketplace-docker-DBs/` being dev-only by its own decision. Three audit findings are bounded by that answer and by nothing else: every service port answers wherever its host answers (`phase3/SECURITY_AUTH.md` §2), `refresh` is floodable with distinct garbage tokens (`phase5/RISK_REGISTER.md` R52), and the Redis leg is plaintext `redis://` (R45). ⚠️ **ADR-032's rule survives in narrowed form**: a boundary may be cited as a second layer for the legs ADR-039 describes, never as the whole argument for a control being closed. ⚠️ **One of the six items this bullet handed to R39 changed shape on 2026-09-20 without closing**: there is CI now, in the narrowest possible sense — `.github/workflows/scorecard.yml` in all sixteen repos and `codeql.yml` in the fifteen that ship JavaScript ([`ADR-054`](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)). Both **measure**; neither **gates**. No lint, type-check, test, coverage, mutation or Qodana run is reproduced there, so R39's CI/CD item stays open, and the bullet below says what that leaves unguarded.
 - **Server-side enforcement of the gate layer — largely closed 2026-09-20 by [`ADR-055`](./ADR-055-the-gates-run-on-github-too-and-main-requires-them.md).** Every gate this platform has — semgrep, trivy, the supply-chain floor, lint, type-check, 100% coverage on four metrics, 100 mutation score, Qodana — lives in `.githooks/` and runs because `core.hooksPath` and a `prepare` script wired it into a real clone ([`ADR-017`](./ADR-017-hooks-via-hookspath-and-prepare.md), [`ADR-016`](./ADR-016-hundred-percent-coverage-and-mutation.md)); nothing on the server side ran any of them, so a Dependabot pull request merged from the browser passed through no gate at all, and [`ADR-054`](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md) §Risks recorded it as unfixable by configuration — no `dependabot.yml` field reaches it. What reaches it is a workflow: `gates.yml` in all sixteen repos runs the hooks' own scripts in the hooks' own order on `pull_request` and on `push` to `main`, and `required_status_checks` on `main` in all sixteen names its `gates` job, so the browser merge now passes **six of the eight** gates and the procedural control at the top of the `dependabot.yml` files is the backstop rather than the whole of it. ⚠️ **What is left of this bullet is three gates and one setting.** Qodana needs an Ultimate Plus token this workspace will not put in a runner; the supply-chain floor grades the repository's state on GitHub rather than a diff, so per-pull-request it would say nothing new; and in the **nine services** the `integration` vitest project — and with it the coverage measurement — needs a MongoDB replica set with provisioned users, a Redis ACL and a sibling checkout for the migrations, none of which a runner has, so CI runs `yarn test:unit` there instead. Branch protection stays at the same deliberately low tier — force pushes and deletions blocked, `enforce_admins` false, no required reviews — because a solo maintainer with required reviews and no second maintainer cannot merge his own work; that is the accepted trade and it scores below Scorecard's maximum on purpose. **The hooks therefore stay authoritative rather than becoming a mirror of CI**, which is the ruling this bullet said was owed. Provisioning datastores on a runner is what remains, and it is the same item R39 carries as CI/CD.
+- **The `braces` advisory review, due 2027-01-15 — owed by
+  [`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md).** The twelve `osv-scanner.toml` files expire
+  that day, and the Scorecard `Vulnerabilities` check and the `pre-push` floor gate fail again unless the owner has either moved to a patched
+  `braces` and deleted the files or renewed them for at most ninety more days with a dated note. Nothing reminds anyone before the gate does; that
+  is by design, and it is why the item is listed here.
 
 v1.17 - 2026-08-28, later the same day: **ADR-040 amended in place, hours after acceptance, at the platform
 owner's instruction — the second exception to §1's immutability rule after ADR-011, and the first taken by

@@ -281,8 +281,9 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
 - ⚠️ **Do not move this workflow to a self-hosted runner on this workstation.** A `pull_request` trigger
   plus a self-hosted runner plus a public repository is arbitrary code execution from any fork, and it is
   the reason the faithful reproduction — Qodana included — was refused.
-- YAML forbids tabs, so this workflow is indented with spaces, under the same documented exception to
-  ADR-024 that ADR-054 recorded for `scorecard.yml`.
+- YAML forbids tabs, so this workflow is indented with spaces — like everything else the formatter reaches since
+  [`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md), which retired the exception to ADR-024 that ADR-054
+  had recorded for `scorecard.yml`.
 - The procedure at the top of every `.github/dependabot.yml` — fetch, check out, install, let the hooks run
   — is **no longer the only thing between a Dependabot pull request and `main`**, but it is still the only
   way Qodana and the scorecard floor see that branch. It stays, with its reason narrowed to those two.

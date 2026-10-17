@@ -2,10 +2,13 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.10
-**Date:** 2026-08-27
+**Version:** 1.11
+**Date:** 2026-10-17
 **Author:** pdr-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.11 - 2026-10-17: **the indentation row of §6 says two spaces.** The platform owner ruled on 2026-10-17 that the whole platform indents with two
+spaces ([`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md)); the row named tabs and the eslint rule that enforced them.
+Nothing else changed.
 v1.8 - 2026-08-27: **open question 3 closes as moot and §4 Out of scope stops saying "yet".** The platform owner decided that cart, order, delivery and payment are permanently out of scope — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`. The scope diagram's **Unbuilt** subgraph is renamed and its `blocks` edge removed: customer identity was never blocking anything, it was waiting on a decision that has now gone the other way. The `item.price` half of question 3 closes with it, display-only price included (ADR-009 §Note 2026-08-27). **No built scope, surface or requirement changed** — this document described the commerce absence correctly throughout and still does; the word `yet` is what left it.
 v1.1 - 2026-08-25: the catalogue paragraph's depth-cap citation was two versions stale — the guard now runs inside a transaction and takes a session — and "writes exist only in the Admin-tier resource service" is narrowed to the mutations, `holdItemCategory` having added one deliberate field-level exception.
 v1.10 - 2026-08-30: **§4's registry bullet, §5's two rows, §7 walkthroughs 1 and 7, and §8 question 5's
@@ -157,7 +160,7 @@ graph TD
 | `marketplace-common` consumed by package name | Published on `registry.npmjs.org` ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)), and the registry is the whole mechanism rather than a floor under a local copy ([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit reaches nobody |
 | Migrations immutable | never edit an applied migration; `$jsonSchema` shapes live in `BEs/marketplace-db-setup/lib/schemas/`, shared across migrations that restate them — a schema change means a full rebuild of every DB that ran the migrations |
 | English-only naming, no exception | Identifiers, routes, UI text, comments, fixtures and migrations. The `en-GB` locale the SPAs format dates with is a market choice, not a name |
-| Tabs, not spaces | eslint `indent: ['error','tab']` AND prettier `useTabs: true` in all 13 linted repos — running only one used to reindent against the other |
+| Two spaces, not tabs | prettier `useTabs: false`, `tabWidth: 2` in all 13 linted repos, byte-identical; eslint never contradicts it (ADR-058). Shell and git hooks stay on tabs |
 | MongoDB `$jsonSchema` + `additionalProperties: false` | every one of the 6 collections; no field slips through unvalidated |
 | Redis is a cluster | multi-key `DEL` throws `CROSSSLOT` — integration test cleanup must delete one key per call |
 | Secrets never printed | 4 enforcement layers (`permissions.deny`, `no-secret-leak` PreToolUse hook, `pre-commit` guard in the 15 gated repos, 2-level `.gitignore`) — `.claude/SECRETS.md`; `.env`/`.env.*`/`.npmrc`/`.yarnrc`/keys never read, only `env`/`npmrc` placeholder templates are safe |

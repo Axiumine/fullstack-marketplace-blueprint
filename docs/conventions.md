@@ -1,15 +1,26 @@
 # Code conventions
 
-## Formatting — tabs, tree-wide (ADR-024)
+## Formatting — two spaces, tree-wide (ADR-058, ADR-024)
 
-**Indentation is tabs**, enforced by eslint (`indent: ['error','tab']`) *and* prettier
-(`"useTabs": true`) so the two cannot disagree.
+**Indentation is two spaces**, set by prettier (`"useTabs": false`, `"tabWidth": 2`) and mirrored by every `.editorconfig`
+(`indent_style = space`). Prettier is the one authority: ADR-024's rule that eslint and prettier must never disagree about
+indentation stands, and ADR-058 changed its value from a tab to two spaces.
 
 The thirteen `.prettierrc` files are byte-identical: no semicolons, single quotes,
-`"trailingComma": "none"`, `printWidth: 129`, `proseWrap: "never"`, `useTabs: true`. So are the thirteen
+`"trailingComma": "none"`, `printWidth: 129`, `proseWrap: "never"`, `useTabs: false`, `tabWidth: 2`. So are the thirteen
 `.prettierignore` files bar per-repo lines — `marketplace-user` adds `src/routeTree.gen.ts`, which its
 build generates. **Keep it that way**: when they differed per repo, a snippet moved between two of them
 failed `yarn lint` on the commas alone.
+
+⚠️ **The shared eslint package still ships `indent: ['error','tab']`.** `@axiumine/eslint-config-be` switches it off for `src/**`
+through its trailing prettier entry, but a `test/**/*.mts` or `vitest.*.mts` block that spreads `sharedTsBlock.rules` after it
+re-arms the rule, and `eslint --fix` then rewrites prettier's spaces back into tabs. Each repository therefore overrides it in
+its own `eslint.config.js` — `indent: 'off'` in all ten backend repos (nine services and `marketplace-common`), and an own rule at 2 in the three
+frontends. **When you add a block that spreads `sharedTsBlock.rules`, override `indent` in it too.**
+
+⚠️ **In the three frontends, `src/gql/*/gql.ts` is generated and keyed by the exact text of each embedded GraphQL document.**
+Reindenting those documents leaves the keys stale — `typecheck` fails, and at runtime the lookup misses. After any reformat
+of them run `yarn codegen` and stage `src/gql` in the same commit.
 
 Markdown is ignored on purpose — `proseWrap: "never"` flattens every hand-wrapped paragraph in these
 docs onto one line.
@@ -17,7 +28,13 @@ docs onto one line.
 `marketplace-db-setup` has neither prettier nor eslint, deliberately: its content is applied migrations,
 which are immutable, so a formatter that rewrites them is the wrong tool.
 
-`marketplace-services-status` is an exception too: it is not one of the thirteen gated repos and has no eslint or prettier (ADR-025), so the tab rule does not reach it, and by the platform owner's ruling of 2026-10-17 it is two-space throughout — a file added there follows that.
+`marketplace-services-status` is two-space like the rest, by the platform owner's ruling of 2026-10-17. It is not one of the
+thirteen gated repos and has no eslint or prettier (ADR-025), so nothing enforces it: a file added there follows it by hand.
+
+**Still tab-indented, on purpose:** shell scripts and git hooks (a bash `<<-` heredoc strips leading tabs and nothing else, so
+converting one breaks it), `marketplace-db-setup`, the `marketplace-nginx` configuration and the shell in `marketplace-docker-DBs`.
+Files prettier ignores or has no parser for — `package.json` where it is ignored, `.gitnexusrc`, the `*.fixture` lint inputs and
+the contents of template literals — keep what they had. Markdown code fences in older documents may still show tabs.
 
 ## Lint scripts
 
