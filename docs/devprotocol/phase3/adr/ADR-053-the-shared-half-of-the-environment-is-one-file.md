@@ -1,7 +1,7 @@
 # ADR-053 — the shared half of the environment is one file, loaded by direnv
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted; a dated note of 2026-10-18 in §Negative gives the systemd-unit case its recipe (nothing superseded)
 **Date:** 2026-08-31
 **Deciders:** platform owner, in the instruction that opened the work — *"1 + 2 with direnv"*, where 2 is
 *"a layered shared env file for the ~15 identical keys"* and direnv is the named mechanism.
@@ -150,6 +150,12 @@ reads it.**
 - **Nothing outside a hooked shell sees it.** Any future launcher — a unit file, CI, a container — needs
   the names supplied its own way. This is the cost of choosing a shell mechanism over a generator, and it
   was chosen knowing it.
+  *2026-10-18:* the unit-file launcher exists since `marketplace-services-status`, and starting the stack from
+  its page failed in exactly this way — nine backends dead at boot with `Missing required environment variable`,
+  their units still `active (running)` under `tsx watch`. The names are supplied by a per-machine systemd
+  drop-in that points `EnvironmentFile=` at the shared file (and fixes `REDIS_IS_CLUSTER` to the string `1`);
+  the recipe and its caveats are in `SETUP.md` §7c. It is not a generator and not a repo change, so the cost
+  above stands as chosen.
 - **A shared value cannot be experimented with in one repo.** Pointing a single service at a scratch Redis
   now means removing the key from the layer or exporting it by hand for that shell. That is the same
   property as "cannot drift", seen from the other side.
