@@ -332,7 +332,7 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
 
 The blanket flag was a two-value shortcut, and the SDK still maps it internally — `@sentry/core`,
 `utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0** and byte-identical at
-**10.75.0**. The middle columns are what
+**10.75.0** and at **10.76.2**. The middle columns are what
 the nine services resolved to before this hardening pass, so the table is the migration path as well as the record:
 
 | Category | Flag absent or `false` | Flag `true` | Configured here |
@@ -357,24 +357,52 @@ branches use 7 to match the ContextLines integration: stack context is unchanged
 ⚠️ **The version is pinned by a test, not by a comment.** Every claim above was read out of `node_modules`
 at 10.69.0, none of it is a documented API contract, and the flag is removed outright in v11.
 `test/sentryVersionGuard.test.mts` in each of the nine services and in `marketplace-common` asserts the
-installed `@sentry/node`, `@sentry/core` and `@sentry/node-core` against that exact version and fails on any
-bump, naming this section in its failure message (*the next Sentry major will not silently reopen this*,
-risk **R42**). `node-core` joins the two because
-it owns `httpServerIntegration`, where the request-body default lives and where the option the services pass
-is really read; it ships on its own version line. The exact version rather than the major, because the
+installed `@sentry/node`, `@sentry/core`, `@sentry/node-core`, `@sentry/opentelemetry` and
+`@sentry/server-utils` against that exact version and fails on any bump, naming this section in its failure
+message (*the next Sentry major will not silently reopen this*, risk **R42**). `node-core` joins `node` and
+`core` because it owns `httpServerIntegration`, where the request-body default lives and where the option the
+services pass is really read; it ships on its own version line. `opentelemetry` and `server-utils` joined at
+10.76.2: `@sentry/node` pins both exactly, so they move in lockstep with it, and the `opentelemetry` change of
+that bump is URL filtering of the same kind as `node-core`'s. Each is code the reading covers at the pinned
+version, so each is asserted. The exact version rather than the major, because the
 sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
 
-⚠️ **10.75.0 is the one bump this section has admitted, and the reading is why.** The guard fired on
-Dependabot's 10.69.0 → 10.75.0 on 2026-09-20, and the pin moved only after both releases' published
-tarballs were compared file by file — not after a changelog. Every file the table and the claims above rest
-on is byte-identical between them: `defaultPiiToCollectionOptions.js`, `filtering-snippets.js`, `DEFAULTS`
+⚠️ **Two bumps have been admitted, and each was admitted on a reading, not on a changelog.** The guard's header
+comment holds both comparisons, so the next bump starts from them.
+
+**10.69.0 → 10.75.0, 2026-09-20.** The guard fired on Dependabot's bump, and the pin moved only after both
+releases' published tarballs were compared file by file. Every file the table and the claims above rest
+on was byte-identical between them: `defaultPiiToCollectionOptions.js`, `filtering-snippets.js`, `DEFAULTS`
 and the base-selection line of `resolveDataCollectionOptions.js`, `@sentry/core`'s
 `integrations/requestdata.js`, and `@sentry/node-core`'s `httpServerIntegration`,
-`httpServerSpansIntegration` and `http/index`. The one change inside the audited surface is additive:
+`httpServerSpansIntegration` and `http/index`. The one change inside the audited surface was additive:
 `httpHeaders` now also accepts a boolean or an allow/deny object as shorthand for both directions, and the
 `{ request: false, response: false }` the services pass still resolves through `??` to both `false`.
 **No `dataCollection` category was added** — the change that would have mattered most here, since an
 omitted category is an enabled one, so a new one would have arrived collecting.
+
+**10.75.0 → 10.76.2, 2026-10-18.** The second reading came out differently: **two files of the audited
+surface are not byte-identical this time**, and the bump is admitted anyway because what changed only narrows.
+From 10.75.2 the SDK wires `dataCollection.urlQueryParams` into every URL it collects — `event.request.url`, the
+server span's `url.full`, `http.url` and `http.target`, the outgoing `url.query` and `http.query` — through new
+`filterCollectedUrl` and `filterUrlQuery` modules. The two files are `@sentry/core`'s `integrations/requestdata.js` and
+`@sentry/node-core`'s `httpServerSpansIntegration`. With `urlQueryParams: false`, which every service sets, the
+query string is removed from values 10.75.0 sent raw; the filter falls back to the unfiltered behaviour only when no
+client exists, and `include.query_string` can now also be forced on by an explicit `requestDataIntegration` option,
+which no service sets. Still byte-identical: `DEFAULTS` and the base-selection line of
+`resolveDataCollectionOptions`, `defaultPiiToCollectionOptions`, `filtering-snippets`, `types/datacollection`,
+`utils/request`, `filterCookies`, and `node-core`'s `httpServerIntegration` and `http/index`. **No `dataCollection`
+category was added.** `@sentry/opentelemetry` and `@sentry/server-utils` move with `@sentry/node`, which is why the
+guard asserts five packages. The tarballs of all five matched the registry's integrity hashes.
+
+That reading of the tarballs was made by three independent auditors and challenged by two skeptics, and then it was measured:
+[`report/sentry-10-76-2-url-query-capture.md`](./report/sentry-10-76-2-url-query-capture.md) replays one request through
+the services' `Sentry.init` options under both releases with seven planted sentinels. **At 10.75.0 the query string still
+shipped despite `urlQueryParams: false`** — the inbound `token=…&user=…` in the server transaction's `http.query`, the
+outgoing `?apikey=…` in the client span's `url.query` and `http.query` and in two breadcrumbs. **At 10.76.2 those five
+fields are gone, and nothing was added.** The other URL fields carried no query in this probe at either version. The
+`Authorization` header, the cookie, the body and the forwarding address are in no envelope at either version. The
+measurement is one route shape; the reading remains the evidence for the files no probe ran.
 
 ### What the logs actually contain — measured, 2026-08-11
 

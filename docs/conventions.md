@@ -111,14 +111,18 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   `axios` in `marketplace-dev-public-resource`, `js-yaml` in `marketplace-user`. ⚠️ **A `resolutions`
   entry is global to the tree it sits in**, so keep them to patch-level fixes with a named reason, and
   never use one to satisfy a peer range.
-- ⚠️ **`@sentry/node` is the exact `10.75.0`, with no caret, in the nine services and in
+- ⚠️ **`@sentry/node` is the exact `10.76.2`, with no caret, in the nine services and in
   `marketplace-common`.** `test/sentryVersionGuard.test.mts` asserts that exact version because
   `src/instrument.mts` rests on SDK internals read at it (`RISK_REGISTER` R42), and on 2026-09-20 a
   lockfile refresh moved the SDK off its pin and put ten suites red. The range now says what the guard
   says. A bump is a manifest edit somebody reads — or a Dependabot pull request somebody reads — never a
   side effect of `yarn upgrade`. ⚠️ **10.75.0 is the first version this arrangement has admitted**, and it
-  was admitted by comparing both releases' tarballs file by file; the comparison is in the guard's own
-  header comment, so the next bump starts from something rather than from nothing.
+  was admitted by comparing both releases' tarballs file by file; **10.76.2 is the second**, admitted the same
+  way and then measured, although two files of the audited surface changed (the change only narrows what is
+  sent). The comparisons are in the guard's own header comment, which holds both, so the next bump starts from
+  something rather than from nothing. The guard asserts five packages: `@sentry/node`, `core`, `node-core`,
+  `opentelemetry` and `server-utils`, the last two because `@sentry/node` pins them exactly
+  (`docs/architecture.md` §Observability).
 
 ## marketplace-common plumbing
 
