@@ -2,10 +2,17 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.36
-**Date:** 2026-10-17
+**Version:** 1.37
+**Date:** 2026-10-18
 **Author:** adr-agent
 **Changelog:**
+v1.37 - 2026-10-18: **ADR-054 amended by a dated note, nothing superseded: `CI-Tests` is not floored.** Thirteen sub-repository floors were raised from -1 to 10 on 2026-10-18
+after a scan that measured 10; the check answers -1 (*no pull request found*) whenever direct pushes scroll the last merged pull request out of its window, and
+`marketplace-admin` and `marketplace-user` were refused a push for it with nothing broken. The owner decided to fix the floors, and the thirteen were put back to -1
+(the parent's never left it). A measured 10 still passes against -1. It is the one value ever lowered in a floor file, it restores what the file said before the raise,
+and ADR-054 §Compliance now says so and asks the same question before raising any other check that can return -1 for an emptied window. The parent's aggregate floor
+is the aggregate without `CI-Tests` (7.3). No row moves; ADR-054's status line names the note.
+
 v1.36 - 2026-10-17, later the same day: **[ADR-057](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) and
 [ADR-058](./ADR-058-indentation-is-two-spaces-not-tabs.md) added, both `accepted`, both the platform owner's decisions of the working
 session.** **ADR-057 — an unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`.** GHSA-vfj7-8cjw-p6xm (CVE-2026-93687, CVSS
@@ -466,7 +473,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted | 2026-08-31 | — | — | Infrastructure and delivery |
-| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and two dated notes that supersede nothing — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
+| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and three dated notes that supersede nothing (the last, 2026-10-18: `CI-Tests` is not floored) — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
 | ADR-055 | The gates run on GitHub too, and `main` requires them | accepted | 2026-09-20 | — | — | Build and quality gates |
 | ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |
 | ADR-057 | An unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`, not skipped and not hidden | accepted | 2026-10-17 | — | — | Build and quality gates |
