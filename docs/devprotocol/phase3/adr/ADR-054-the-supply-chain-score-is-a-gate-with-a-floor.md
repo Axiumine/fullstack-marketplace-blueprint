@@ -5,7 +5,7 @@
 ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome, below; the owner has not yet reviewed that choice);
 and two dated notes of the same day that supersede nothing — the documented exception route for an unpatched, dev-only advisory
 ([`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md)) and the lapse of the YAML tab exception
-([`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md))
+([`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md)); and a dated note of 2026-10-18 that `CI-Tests` is not floored (§Compliance, last bullet)
 **Date:** 2026-09-20
 **Deciders:** platform owner, in the instruction that opened the work — *"we need to integrate this in all
 our repositories: https://scorecard.dev/"* — and in four scoping answers given the same day: the mechanism
@@ -240,3 +240,15 @@ fight the `codeql.yml` this change ships.
   `SKIP_SCORECARD=1` stays for outages (ADR-057 §Decision 6 records the one bounded use that landed the first file:
   twelve pushes, one per repository), and the ADR is not a general licence for further advisories. ADR-057 records
   the first use — `braces` 3.0.3, GHSA-vfj7-8cjw-p6xm, expiring 2027-01-15.
+- **`CI-Tests` is not a ratchet, and its floor stays at `-1` (2026-10-18).** The check looks at the repository's most recent commits, finds the
+  pull requests that merged them, and scores how many ran a CI test; with no merged pull request in that window it answers `-1` with the reason
+  *no pull request found*. This workspace merges by pushing from a workstation after the hooks have run, so a merged pull request, when there is one,
+  is a Dependabot merge or one merged on GitHub, and the next direct pushes scroll it out of the window. On 2026-10-18 thirteen sub-repository floors
+  were raised from `-1` to `10` after a scan that measured `10`, and `marketplace-admin` and `marketplace-user` were then refused a push by their own
+  Scorecard gate: `CI-Tests` had fallen to `-1` between the scan and the push, with nothing broken. Restoring the signal meant merging a pull request on
+  GitHub, and doing that to keep a number up is the metric gamed rather than a control restored. **The owner decided to fix the floors**
+  (*"I think we need to fix Sub-repo CI-Tests floors"*), and the thirteen were put back to `-1`; the parent's stayed at `-1` throughout. A measured `10` still
+  passes against `-1`, so a repository that does merge through pull requests loses nothing. This is the one value in a floor file ever lowered, it
+  restores what the file said before the raise, and the rule above is unchanged: any other check that can return `-1` because its evidence window emptied,
+  not because the control weakened, is raised only with the same question asked first. The parent's aggregate floor is the aggregate **without** `CI-Tests`
+  (7.33, floored to 7.3), for the same reason.
