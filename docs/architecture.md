@@ -315,6 +315,15 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
   spelling, deletes `event.request.data` outright, and clears `message` and `data.arguments` from every
   breadcrumb. The SDK's own sensitive-key filtering is a second layer and a minor-version implementation
   detail — never a reason to shorten the scrubber's list.
+  ⚠️ **Since `marketplace-common` 4.6.2 (2026-10-18) the list also removes `http.query` and `url.query`**, the
+  bare query string as a span or breadcrumb attribute, from every bag the scrubber walks. Until then it did
+  not: at `@sentry/node` 10.75.0 the SDK shipped both keys despite `urlQueryParams: false` and the scrubber
+  passed them. 10.76.2 gates them SDK-side, so the two entries are the second layer of exactly the kind the
+  paragraph above describes, and the guarantee no longer depends on the SDK version. The URL-valued keys
+  (`url`, `url.full`, `http.url`, `http.target`) are unchanged and keep their path. The nine services and
+  the three browser frontends moved to 4.6.2 in their lockfiles on the same day; the frontends wire the same
+  scrubber on both hooks through the `./others/sentryBeforeSend` subpath export, so the two keys apply there too,
+  though none of the browser envelopes of the 2026-08-11 capture recorded either.
 - ⚠️ **The request body is stopped at capture time, not at send time** (*the request body never reaches
   Sentry*). `dataCollection.httpBodies`
   reaches the `http.request.body.data` span attribute and nothing else; the event field is written by the
@@ -404,6 +413,20 @@ fields are gone, and nothing was added.** The other URL fields carried no query 
 `Authorization` header, the cookie, the body and the forwarding address are in no envelope at either version. The
 measurement is one route shape; the reading remains the evidence for the files no probe ran.
 
+**`marketplace-common` 4.6.2, 2026-10-18.** The probe also showed that the scrubber, at 4.6.1, passed the five
+fields untouched, so the release that followed removes `http.query` and `url.query` itself and corrects the
+JSDoc that had said `urlQueryParams: false` gates only `event.request.query_string` (the corrected comments ship in
+`dist/`, since `removeComments` is off). The nine services and the three frontends lock it. One running
+service was then measured, not a replay: `marketplace-dev-public-resource` at `@sentry/node` 10.76.2 and
+`marketplace-common` 4.6.2, with the same seven sentinels sent as a query string, headers, a cookie and a body,
+against a local collector. **No sentinel is in any of its ten envelopes**, on an error event and on transactions,
+and no key matching `/query/i` exists; a positive control through the `Host` header shows the search is not blind.
+⚠️ **What that run does not show:** which layer removed a value (only what reached the wire was read), anything about
+the other eight services, or an outgoing call with a query string — so 4.6.2's own two entries are covered by
+`marketplace-common`'s unit tests and not by this run, since at 10.76.2 the SDK no longer emits those keys. The shipped
+configuration sets no `tracesSampleRate` and sent no transaction until one was exported in the launching shell. See
+[`report/sentry-10-76-2-url-query-capture.md`](./report/sentry-10-76-2-url-query-capture.md) §7.
+
 ### What the logs actually contain — measured, 2026-08-11
 
 Two investigations ran against the running Dev stack and produced findings. **Read them before trusting the
@@ -424,7 +447,7 @@ rest of this section**, because they correct two of its claims.
   Sentry event and read it*) — one real event, built and
   transmitted by the real transport into a local collector.
 
-⚠️ **Three corrections this section owed to that second finding. Two are closed, the third is open:**
+⚠️ **Three corrections this section owed to that second finding. All three are closed:**
 
 - ✅ **`httpBodies: []` does not keep the request body out of an event.** It gates the
   `http.request.body.data` *span* attribute only. `@sentry/core` 10.69.0 hard-wires `include.data = true`
@@ -441,14 +464,18 @@ rest of this section**, because they correct two of its claims.
   every event type and covers every bag that carries data*): both hooks
   carry the same function, the three keys joined the list along with both `user-agent` header spellings, and
   the fixture was rebuilt from the captured transaction's 28 attributes.
-- ⚠️ **The three frontends are not in that latent position.** All three set `tracesSampleRate: 0.1`
-  (`src/instrument.ts:46`) and none configures `beforeSend` or `beforeSendTransaction`; `sentryBeforeSend`
-  is a `marketplace-common` export and no frontend depends on that package, so **no scrubber runs on any
-  frontend event**. What a browser transaction carries is unmeasured — `@sentry/react` has no
-  `httpServerSpansIntegration`, so the key list above does not transfer for the frontends — see *what a
-  frontend actually sends is measured, and scrubbed* in
-  [`phase5/TELEMETRY_EGRESS_HARDENING.md`](./devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4
-  (built 2026-08-11).
+- ✅ **The three frontends wire the same scrubber.** All three set `tracesSampleRate: 0.1`
+  (`src/instrument.ts`), and when this section was first written none configured `beforeSend` or
+  `beforeSendTransaction` and none depended on `marketplace-common`, so no scrubber ran on any frontend event.
+  **Fixed 2026-08-11** (*what a frontend actually sends is measured, and scrubbed* in
+  [`phase5/TELEMETRY_EGRESS_HARDENING.md`](./devprotocol/phase5/TELEMETRY_EGRESS_HARDENING.md) §4): each app
+  declares `@axiumine/marketplace-common` and passes `sentryBeforeSend`, imported from the
+  `./others/sentryBeforeSend` subpath export, as **both** `beforeSend` and `beforeSendTransaction` — one
+  implementation, not three — and all three now take 4.6.2 in their lockfiles with the services. `@sentry/react`
+  has no `httpServerSpansIntegration`, so the node key list above does not transfer as such: a browser event
+  carries the address bar instead (`urlQueryParams: false` does not stop that), which the scrubber truncates to
+  its path at the first `?` or `#` (`report/sentry-event-capture.md` §9, measured at 10.69.0 on
+  `marketplace-user` and `marketplace-admin`; `marketplace-shopowner` was not captured).
 
 ## Resolver layout (per resource service)
 
