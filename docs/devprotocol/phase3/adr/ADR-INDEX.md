@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.37
+**Version:** 1.38
 **Date:** 2026-10-18
 **Author:** adr-agent
 **Changelog:**
+v1.38 - 2026-10-18, later the same day: **ADR-053 gets a dated note, nothing superseded: how a systemd unit receives the shared environment.** ADR-053 already said that nothing outside a
+direnv-hooked shell sees the shared file and that a unit file would need the names supplied its own way. Starting the stack from the `marketplace-services-status` page showed what that
+costs: nine backends exit at boot on `Missing required environment variable` while `tsx watch` keeps their units `active (running)`. The recipe is a per-machine systemd drop-in naming
+the file, with `REDIS_IS_CLUSTER` fixed to the exact string `1`; it is in `SETUP.md` §7c and `marketplace-services-status/systemd/README.md`, and ADR-053's §Negative points at it.
+Not a repo or generator change; no row moves.
+
 v1.37 - 2026-10-18: **ADR-054 amended by a dated note, nothing superseded: `CI-Tests` is not floored.** Thirteen sub-repository floors were raised from -1 to 10 on 2026-10-18
 after a scan that measured 10; the check answers -1 (*no pull request found*) whenever direct pushes scroll the last merged pull request out of its window, and
 `marketplace-admin` and `marketplace-user` were refused a push for it with nothing broken. The owner decided to fix the floors, and the thirteen were put back to -1
@@ -472,7 +478,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-050 | The scrub stops at the account collections | accepted | 2026-08-30 | — | — | Data model |
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
-| ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted | 2026-08-31 | — | — | Infrastructure and delivery |
+| ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted, with a dated note of 2026-10-18 on systemd units (SETUP.md §7c) | 2026-08-31 | — | — | Infrastructure and delivery |
 | ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and three dated notes that supersede nothing (the last, 2026-10-18: `CI-Tests` is not floored) — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
 | ADR-055 | The gates run on GitHub too, and `main` requires them | accepted | 2026-09-20 | — | — | Build and quality gates |
 | ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |

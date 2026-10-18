@@ -456,6 +456,39 @@ are already the `ENDPOINT` constants each service exports, and the vite proxy ta
 right port. Leave `VITE_TURNSTILE_SITE_KEY` empty — with no server-side secret configured,
 `guardPublicLogin` passes a missing token through outside production, so the two halves agree on "off".
 
+### 7c. Units started by systemd — the control page — do not see the shared layer
+
+`.env.shared` reaches a process only through direnv, so it reaches a terminal and nothing else
+([`ADR-053`](./docs/devprotocol/phase3/adr/ADR-053-the-shared-half-of-the-environment-is-one-file.md) says so in §Negative). The nine backend
+units that `marketplace-services-status` installs, and that its page and `marketplace.target` start, are launched by systemd, not by a shell. Started
+as they are, each one dies within a second with `Missing required environment variable: …` — `KEYGRIP_KEK` in the authorization and logout services,
+`REDIS_IS_CLUSTER` in the resource services, whichever the service checks first — because the shared half of its configuration is not there and its
+own `.env` holds only what ADR-053 left behind. The unit stays `active (running)` anyway, because `tsx watch` outlives the crashed app and waits for
+a file change, so the page can show a healthy unit with no listener.
+
+Give the nine backends the layer once per machine, with a systemd drop-in. It lives in `~/.config/systemd/user/`, outside git, and names the file,
+never its contents:
+
+```bash
+# from the workspace root, after step 7a
+for unit in ~/.config/systemd/user/marketplace-dev-*.service; do
+	mkdir -p "$unit.d"
+	printf '[Service]\nEnvironmentFile=-%s/.env.shared\nEnvironment=REDIS_IS_CLUSTER=1\n' "$PWD" > "$unit.d/10-env.conf"
+done
+systemctl --user daemon-reload
+```
+
+- **Only the nine backends.** The three frontends read their own `.env` through vite and start without it.
+- **`REDIS_IS_CLUSTER=1` is the exact string `1`.** koa-utils compares against `'1'`, and `true` or `yes` silently selects the single-node branch, which then asks
+  for `REDIS_URL`. The line comes after `EnvironmentFile=` on purpose, so it wins. Leave it out if your `.env.shared` sets it to `0` for a single Redis.
+- **`EnvironmentFile=` reads plain `KEY=VALUE` lines.** A leading `export` or a `${OTHER}` reference is not understood, and the `env.shared` template uses neither.
+  The leading `-` makes a missing file silent, so a forgotten `seed` looks like the same `Missing required environment variable` failure, which is the
+  symptom to recognise.
+- **`yarn systemd:install` and `yarn systemd:uninstall` never touch a `*.service.d` directory.** The drop-ins survive a reinstall, and an uninstall leaves them behind:
+  remove them with `rm -r ~/.config/systemd/user/marketplace-dev-*.service.d` and a `daemon-reload`.
+- **The check is a listener, not `active (running)`.** After `systemctl --user start marketplace.target`, the nine backends should answer on 4024–4032 and the
+  frontends on 3043–3045; `journalctl --user -u <unit>` shows the `fatal:` line when one does not.
+
 ---
 
 ## 8. Create the schema, the demo data and the cookie-signing keys

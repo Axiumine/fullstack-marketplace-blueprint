@@ -45,6 +45,13 @@ Every monitored unit also sets `Restart=no`. A crashed dev server should stay in
 the failure and spam the journal instead. `marketplace-status.service` is the opposite:
 `Restart=on-failure`, because it's the control plane and nothing else can bring it back.
 
+## Environment: the units do not see the shared layer
+
+The shared half of the configuration is exported into a terminal by direnv (ADR-053) and reaches nothing else. A unit started from this page or from
+`marketplace.target` therefore boots without it, and a backend exits at once with `Missing required environment variable: …` while `tsx watch` keeps the unit
+`active (running)`. The nine backends need a per-machine drop-in that names the shared file; the three frontends do not. The recipe, with its caveats, is in
+[`../../SETUP.md`](../../SETUP.md) §7c. `install.sh` and `uninstall.sh` never create, change or remove a `*.service.d` directory.
+
 ## Why `ExecStart` isn't `yarn dev`
 
 Two settings exist purely so that `failed` on the page means something. Both were arrived
