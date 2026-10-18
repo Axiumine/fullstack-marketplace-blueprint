@@ -9,14 +9,14 @@
 #
 # aggregate is scorecard's own weighted score over the checks that scored >= 0.
 
-aggregate=7.2
+aggregate=7.3
 
 Binary-Artifacts=10
 Branch-Protection=3
 CI-Tests=-1
 CII-Best-Practices=2
 Code-Review=0
-Contributors=0
+Contributors=3
 Dangerous-Workflow=10
 Dependency-Update-Tool=10
 Fuzzing=10
