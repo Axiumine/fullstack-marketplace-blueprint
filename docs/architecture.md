@@ -341,7 +341,7 @@ shape (A) of the three [`SETUP.md`](../SETUP.md) §7 supports.
 
 The blanket flag was a two-value shortcut, and the SDK still maps it internally — `@sentry/core`,
 `utils/data-collection/defaultPiiToCollectionOptions.js`, read at **10.69.0** and byte-identical at
-**10.75.0** and at **10.76.2**. The middle columns are what
+**10.75.0**, at **10.76.2** and at **10.78.0**. The middle columns are what
 the nine services resolved to before this hardening pass, so the table is the migration path as well as the record:
 
 | Category | Flag absent or `false` | Flag `true` | Configured here |
@@ -376,8 +376,8 @@ that bump is URL filtering of the same kind as `node-core`'s. Each is code the r
 version, so each is asserted. The exact version rather than the major, because the
 sensitive-key filtering that arrives as a second layer is a minor-version implementation detail.
 
-⚠️ **Two bumps have been admitted, and each was admitted on a reading, not on a changelog.** The guard's header
-comment holds both comparisons, so the next bump starts from them.
+⚠️ **Three bumps have been admitted, and each was admitted on a reading, not on a changelog.** The guard's header
+comment holds all three comparisons, so the next bump starts from them.
 
 **10.69.0 → 10.75.0, 2026-09-20.** The guard fired on Dependabot's bump, and the pin moved only after both
 releases' published tarballs were compared file by file. Every file the table and the claims above rest
@@ -426,6 +426,40 @@ the other eight services, or an outgoing call with a query string — so 4.6.2's
 `marketplace-common`'s unit tests and not by this run, since at 10.76.2 the SDK no longer emits those keys. The shipped
 configuration sets no `tracesSampleRate` and sent no transaction until one was exported in the launching shell. See
 [`report/sentry-10-76-2-url-query-capture.md`](./report/sentry-10-76-2-url-query-capture.md) §7.
+
+**10.76.2 → 10.78.0, 2026-11-14.** The third reading is the plainest of the three: **nothing in the audited surface
+changed.** Two releases lie between the pins, 10.77.1 and 10.78.0; 10.77.0 was never published. Every file the claims
+above rest on is byte-identical between 10.76.2 and 10.78.0, in the esm and cjs builds and in the types where a file
+has them: `DEFAULTS` (the same hash) and the base-selection line of `resolveDataCollectionOptions`,
+`defaultPiiToCollectionOptions`, `filtering-snippets`, `filterKeyValueData`, `filterCookies`, `filterCollectedUrl`,
+`filterUrlQuery`, `filterQueryParams`, `types/datacollection`, `utils/request`, `@sentry/core`'s `requestdata`
+integration and its `data: true`, `@sentry/core`'s `server-subscription` (the `"none"` test on the body size),
+`@sentry/node-core`'s `httpServerIntegration`, `httpServerSpansIntegration` and `http/index`, and `@sentry/node`'s own
+`integrations/http.js`, the file where `maxIncomingRequestBodySize` is renamed to `maxRequestBodySize`, which the guard
+had not named before. **No `dataCollection` category or option was added**: the eleven keys of the type are the same.
+What did change is span lifecycle, client-report accounting and packaging, and none of it reads or filters a body, a
+header, a cookie, a client address or a query string. A response that closes without finishing now ends an Express layer
+span with status `cancelled`, and an aborted outgoing HTTP or undici request ends its span without the error status;
+`@sentry/core` counts dropped spans, removes one dropped-item client report from `scope`, maps the metric category to
+`trace_metric`, drops the `previous_response_id` fallback of the OpenAI conversation id, changes one SQL regex and caps
+the tunnel handler at 20 MiB, a handler `src/instrument.mts` never configures. A sampled-out error is now dropped before
+the event processors run, which cannot apply while no `sampleRate` is set. `@sentry/node-core`'s ContextLines now reads
+only files with a source extension, so `frameContextLines: 7` can only yield less context, never more, and `.mts` frames
+still match; its `modules` integration, in the cjs build only, now resolves versions on the pnpm and Bun layouts. As at
+10.76.2, `@sentry/node` pins `@sentry/core`, `@sentry/node-core`, `@sentry/opentelemetry` and `@sentry/server-utils`
+exactly, so all five packages move in lockstep: `opentelemetry` changed only in its version and a peer range,
+`server-utils` only in the Express listener above. Dependency ranges tightened and no package was added or removed —
+`@opentelemetry/api` is now `>=1.9.1 <1.10.0`, and node-core's `@opentelemetry/instrumentation` and
+`@opentelemetry/exporter-trace-otlp-http` peers stop below 0.300.0.
+
+⚠️ **Unlike the second reading, this one was not measured.** It is an audit of the published tarballs of the five
+packages at both releases and nothing more: no end-to-end replay was run, and the measurement in
+[`report/sentry-10-76-2-url-query-capture.md`](./report/sentry-10-76-2-url-query-capture.md) was not repeated, so the
+reading is the whole of the evidence. ⚠️ **The pin is per repo, and the repos do not all stand at the same one.** On
+2026-11-14 the guard asserts 10.78.0 in five of the nine services — `marketplace-dev-admin-authenticated-authorization`,
+`marketplace-dev-authenticated-logout`, `marketplace-dev-public-authorization`,
+`marketplace-dev-user-authenticated-authorization` and `marketplace-dev-user-authenticated-resource` — and still asserts
+10.76.2 in the other four and in `marketplace-common`, each of which moves only when its own guard is re-pinned.
 
 ### What the logs actually contain — measured, 2026-08-11
 
