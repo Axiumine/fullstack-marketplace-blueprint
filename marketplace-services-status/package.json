@@ -33,7 +33,7 @@
     "dotenv": "^18.0.10",
     "koa": "^3.3.0",
     "koa-static": "^5.0.0",
-    "ws": "^8.22.0"
+    "ws": "^8.22.2"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
