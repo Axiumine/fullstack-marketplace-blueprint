@@ -294,7 +294,7 @@ Mechanics, all load-bearing:
   without a passwordless sudoers rule for this exact `mount --bind` invocation, the script blocks on a
   password prompt (or fails outright in a non-interactive shell) every single run.
 - **Version comes from `.nvmrc` via `nvm use`**, not a hardcoded literal in the script — this is why the
-  version cannot drift from `engines.node` (`^24.18.0` in every `package.json`) the way a literal here
+  version cannot drift from `engines.node` (`^26.13.1` in every `package.json`) the way a literal here
   silently would.
 - Ends in `yarn run dev`, so `dev.sh` is a wrapper around §5's `dev` script, not a replacement lifecycle.
 

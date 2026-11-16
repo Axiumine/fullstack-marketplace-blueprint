@@ -11,7 +11,8 @@ content*. This ADR records the decision and what it costs, and does not argue a 
 restores `core.hooksPath` on `yarn install`. The hook wiring itself, `hooks:install`, Qodana in both hooks, the executable-bit check and the parent's
 manual step are not touched. [`ADR-026`](./ADR-026-node-engines-unified-with-caret.md) **in part** — the clause that `engines.node` is a hard exit 1
 enforced by the package manager, which was its reason for choosing `engines` over `.nvmrc`, and its description of `packageManager` as a
-`yarn@1.22.22` string. `^24.18.0`, the caret, the one-spelling rule and `engines.node` as the single source the hooks read are not touched.
+`yarn@1.22.22` string. The caret, the one-spelling rule and `engines.node` as the single source the hooks read are not touched; the value itself
+moved to `^26.13.1` the same day, by an order of the owner's that is a dated note in ADR-026 and not part of this supersession.
 **Superseded by:** —
 
 ---
@@ -41,6 +42,9 @@ Three things were measured on a scratch project under Yarn 4.18.1 on 2026-11-16 
 `prepare` script never ran and a `postinstall` ran on a fresh install and after a dependency was added but not on a repeat install of an unchanged
 tree; `engines.node: ">=99.0.0"` installed with exit 0 under Node 24.18.0; and `yarn up -R '**'` moved a lockfile pinned at `debug` 4.3.4 and
 `ms` 2.1.2, under the ranges `^4.0.0` and `^2.0.0`, to 4.4.3 and 2.1.3 while leaving `package.json` byte-identical.
+
+On the same day the owner ordered **Node 26.13.1 everywhere and Node 24 removed from the project**; the value is a dated note in ADR-026. It reaches this ADR
+for one reason: **Node 25 and later no longer bundle Corepack**, and every decision below reaches a machine through Corepack.
 
 ---
 
@@ -99,7 +103,7 @@ all fifteen in one sweep is honoured, not amended.
 `dist/` (ADR-037), and gains a guarded `postinstall`, `[ ! -d .githooks ] || yarn run hooks:install`, which is a no-op inside a consumer's
 `node_modules`, where there is no `.githooks`. `hooks:install` itself is unchanged.
 
-**5. `engines` stays and stops being enforced by the manager.** `engines.node` is still `^24.18.0` in all fifteen, and it is still the one place the
+**5. `engines` stays and stops being enforced by the manager.** `engines.node` is still one caret range in all fifteen — `^26.13.1` since the same day's order — and it is still the one place the
 hooks read the required Node from: each `pre-push` reads it, switches via nvm and blocks with the `nvm install` line when the version is missing. That
 check, and not `yarn install`, is now the enforcement; CI pins the version through `.nvmrc`.
 
@@ -115,6 +119,21 @@ entries of its own: `node-gyp@latest`, for the `binding.gyp` of `mongodb-client-
   without `-R` is the opposite**: it ignores the declared ranges and rewrites the manifest to the latest release — Yarn 1's `yarn upgrade --latest`.
   `yarn upgrade` itself is not a Yarn 4 command.
 - The `update` script is `yarn upgrade-interactive`; `yarn audit` is `yarn npm audit`, and Trivy remains the gate (`README.md`, *Test quality gates*).
+
+**8. Corepack is installed, not bundled, and pinned wherever it is installed.** Node 26 ships without it.
+
+- **On a machine:** `npm install -g corepack@0.36.0 && corepack enable`, once per Node install (`SETUP.md` §1). It is the fix line every hook prints
+  when Corepack is missing.
+- **In CI:** the parent and every package repository carry `.github/tools/package.json` and `package-lock.json`, naming `corepack` 0.36.0 and nothing
+  else. `gates.yml` copies the two files to the runner's temp directory, runs `npm ci --ignore-scripts` there, and puts the `corepack enable` shims on
+  `PATH`. The parent's copy serves `marketplace-services-status`, which has no repository of its own; `marketplace-nginx` has no `package.json` and
+  no copy.
+- **Why `npm ci` of a lockfile and not `npm install -g corepack` in the workflow.** Scorecard's `Pinned-Dependencies` check reads a workflow's install
+  commands, and a global install is a download nothing pins by integrity: it would take the check below the floor of 10 that ADR-054's ratchet holds,
+  and the `pre-push` floor gate would refuse the push. `npm ci` installs from `package-lock.json`, where every byte carries an integrity hash, so the
+  score holds.
+- **Dependabot watches the directory.** The `npm` entry of each `dependabot.yml` lists `/.github/tools` beside `/`, so a new Corepack release arrives as a
+  pull request that someone reads and the gates run on, which is the only way the pin moves.
 
 ---
 
@@ -135,6 +154,8 @@ entries of its own: `node-gyp@latest`, for the `binding.gyp` of `mongodb-client-
   unchanged `yarn install` does not re-arm `core.hooksPath`. `./scripts/bootstrap.sh` and `./scripts/audit-check.sh` §7 are now the dependable way, and
   the accidental self-heal through `marketplace-services-status` (it shares the parent's `.git`) is weaker by the same measure.
 - **`enableScripts: true` keeps every dependency's install script running**, which is Yarn 1's posture and not an improvement on it.
+- **Corepack is a dependency this platform now owns.** Two files per repository, 0.36.0 in each, and a local global install that is nobody's lockfile —
+  a machine can sit on a different Corepack than CI until someone reinstalls it.
 - **A dead mechanism stays in fifteen repositories**: the clean/smudge filter, its `git config` lines and the `pre-commit` wording about it do
   nothing under Yarn 4, and a reader has to be told so.
 - **`node-gyp@latest` is a floating tag in a lockfile.** Resolved once and pinned by the lockfile, but `yarn up -R '**'` re-resolves it, so a refresh
@@ -151,8 +172,8 @@ entries of its own: `node-gyp@latest`, for the `binding.gyp` of `mongodb-client-
 - **`enableScripts: true`** is a supply-chain surface. Trigger to revisit: an advisory about an install script in a dependency of any of the fifteen.
 - **Trivy reads the lockfile, and its parse of format 10 was not run for this ADR.** The first `pre-push` of each repository under Yarn 4 is the check;
   a gate that scans nothing looks like a gate that found nothing. Trigger to revisit: a `pre-push` that reports no packages for a lockfile that lists some.
-- **`Pinned-Dependencies` reads the workflow's install command.** Whether `--immutable` scores as `--frozen-lockfile` did is not measured here; the
-  Scorecard floor gate at the first push is what will show it.
+- **`Pinned-Dependencies` reads the workflow's install commands.** Whether `--immutable` scores as `--frozen-lockfile` did is not measured here; the
+  Scorecard floor gate at the first push is what will show it. A bare `npm install -g` added to any workflow later is the same fall that decision 8 avoids.
 - **A new package copies a Yarn 1 shape** — a `prepare` hook, an `engines` expectation, a missing `.yarnrc.yml`. Trigger to revisit: a sixteenth package
   with a `package.json` that is not on this ADR's list.
 
@@ -182,6 +203,17 @@ grep -l '"postinstall"' BEs/marketplace-common/package.json BEs/marketplace-db-s
 grep -l '"prepare"' BEs/marketplace-common/package.json BEs/marketplace-db-setup/package.json BEs/dev/*/package.json \
   marketplace-admin/package.json marketplace-shopowner/package.json marketplace-user/package.json marketplace-services-status/package.json
 
+# Corepack is pinned by a lockfile in the parent and every package repository: count 15, one version
+ls .github/tools/package-lock.json BEs/marketplace-common/.github/tools/package-lock.json BEs/marketplace-db-setup/.github/tools/package-lock.json \
+  BEs/dev/*/.github/tools/package-lock.json marketplace-admin/.github/tools/package-lock.json marketplace-shopowner/.github/tools/package-lock.json \
+  marketplace-user/.github/tools/package-lock.json | wc -l
+grep -ho '"corepack": "[^"]*"' .github/tools/package.json BEs/marketplace-common/.github/tools/package.json BEs/marketplace-db-setup/.github/tools/package.json \
+  BEs/dev/*/.github/tools/package.json marketplace-admin/.github/tools/package.json marketplace-shopowner/.github/tools/package.json \
+  marketplace-user/.github/tools/package.json | sort | uniq -c
+
+# no workflow command installs corepack any other way (comments are skipped): no output
+grep -nE '^[^#]*install -g corepack' .github/workflows/*.yml BEs/*/.github/workflows/*.yml BEs/dev/*/.github/workflows/*.yml marketplace-*/.github/workflows/*.yml
+
 # no Yarn 1 lockfile left: no output
 grep -l 'yarn lockfile v1' BEs/marketplace-common/yarn.lock BEs/marketplace-db-setup/yarn.lock BEs/dev/*/yarn.lock \
   marketplace-admin/yarn.lock marketplace-shopowner/yarn.lock marketplace-user/yarn.lock marketplace-services-status/yarn.lock
@@ -201,4 +233,5 @@ A violation looks like:
 - `\.yarnrc(\.yml)?` back in a `SECRET_PATH`, a `.yarnrc.yml` named in no hook, or a hook whose `^YARNRC_CREDENTIAL` differs from the parent's;
 - `"prepare": "yarn run hooks:install"` back in a package other than `marketplace-common` — a hook wiring Yarn 4 never runs;
 - `yarn install --frozen-lockfile` in a workflow, or `yarn upgrade` or `yarn up '**'` without `-R` in a document as the refresh;
-- `nodeLinker` removed or changed, or a `.pnp.cjs` appearing in a working tree.
+- `nodeLinker` removed or changed, or a `.pnp.cjs` appearing in a working tree;
+- `npm install -g corepack` in a workflow, a `.github/tools` that `dependabot.yml` does not list, or a Corepack version that differs between two repositories.

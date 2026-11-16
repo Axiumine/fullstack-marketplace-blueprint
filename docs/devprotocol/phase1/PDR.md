@@ -145,7 +145,7 @@ graph TD
 | A push cannot land un-linted, un-typed, or un-scanned code | `.githooks/pre-push` runs `yarn lint:check` → `test:cov` → `test:mutation` → Qodana, in that order, in the 15 gated repos — verified executable and hooked (`core.hooksPath`) this session for the 3 explicitly checked |
 | The public catalogue never full-scans on a geo query | `company.address.position_2dsphere` index — `.explain()` must show `IXSCAN`, never `COLLSCAN` (`docs/data-model.md` §Indexes) |
 | An edit to `marketplace-common` is invisible to consumers until it is published | a release carries it: bump, changelog, merge, tag, gated push, `yarn upload`, then move each consumer's range and re-install. Skipping that leaves the consumer compiling the previous **published** build with no error at the call site — and there is no local copy path to reach for, since ADR-047 deleted it |
-| Node version drift cannot silently break a push | every `pre-push` selects `engines.node` via nvm before shelling to yarn, and blocks when that version is missing; Yarn 4 does not enforce `engines` (ADR-059), so that check is the enforcement — verified `^24.18.0` in all 14 `package.json` files this session |
+| Node version drift cannot silently break a push | every `pre-push` selects `engines.node` via nvm before shelling to yarn, and blocks when that version is missing; Yarn 4 does not enforce `engines` (ADR-059), so that check is the enforcement — `engines.node` is `^26.13.1` in all 14 `package.json` files (ADR-026, dated note) |
 
 ---
 
@@ -155,7 +155,7 @@ graph TD
 |---|---|
 | Polyrepo, no atomic cross-repo commit | 1 logical change = N separate commits, one per affected repo — no tooling catches a cross-repo mistake automatically |
 | Shallow history | history starts here; the working trees predate the first commit in each repo, so `git log` explains little |
-| Node `^24.18.0`, selected by every `pre-push` | `.nvmrc` = `24.18.0`; Yarn 4 does not enforce `engines`, so the `pre-push` node check is the enforcement — bump all 14 `package.json` in one sweep if it ever moves |
+| Node `^26.13.1`, selected by every `pre-push` | `.nvmrc` = `26.13.1`; Yarn 4 does not enforce `engines`, so the `pre-push` node check is the enforcement — bump all 14 `package.json` in one sweep if it ever moves |
 | yarn everywhere, `packageManager` pinned in all 15 packages | the same `yarn@4.18.1+sha512.…` string in every `package.json` (ADR-059). It used to be in 7 of them, with the other 8 — `marketplace-common` and the seven original backend services — resolving to whatever yarn Corepack found on `PATH` |
 | `marketplace-common` consumed by package name | Published on `registry.npmjs.org` ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md)), and the registry is the whole mechanism rather than a floor under a local copy ([`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit reaches nobody |
 | Migrations immutable | never edit an applied migration; `$jsonSchema` shapes live in `BEs/marketplace-db-setup/lib/schemas/`, shared across migrations that restate them — a schema change means a full rebuild of every DB that ran the migrations |

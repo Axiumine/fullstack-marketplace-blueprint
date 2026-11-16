@@ -1,7 +1,7 @@
 # Backend architecture
 
 Nine hand-rolled **Koa 3** servers, each mounting **Apollo Server 5** at one path via
-`@as-integrations/koa`. Entry always `src/index.mts`. ESM (`.mts` → `.mjs`), Node `^24.18.0`.
+`@as-integrations/koa`. Entry always `src/index.mts`. ESM (`.mts` → `.mjs`), Node `^26.13.1`.
 
 GraphQL is the whole API in eight of the nine. The exception is `marketplace-dev-public-resource`,
 which also mounts a `@koa/router` at `src/middleware/router/index.mts` with prefix `/check`:

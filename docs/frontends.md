@@ -44,6 +44,10 @@ editing that app.**
   the route is server-rendered and the session is browser-only module state, so the server would have to
   guess — and the sign-in button stays disabled for the length of the load, because `assign` is
   asynchronous and a second click would buy a second `LoginUser`.
+- ⚠️ **Node 26 has an experimental `globalThis.localStorage` of its own, and it shadows jsdom's.** A suite
+  that reaches `localStorage` would get Node's object rather than jsdom's. Each frontend's `vitest.config.ts`
+  sets `execArgv: ['--no-experimental-webstorage']` to turn it off; keep it there when a config is rewritten
+  or a new vitest project is added. ADR-026 records the move to Node 26.
 - Gated at **100% coverage and 100% mutation score**, plus `yarn lint:check`, `tsc --noEmit` and
   Qodana — all five in `.githooks/pre-push`, all but mutation in `.githooks/pre-commit`.
 

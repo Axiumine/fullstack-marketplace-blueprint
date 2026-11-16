@@ -395,7 +395,8 @@ any key the repos disagree on, and **you** run it, never an assistant.
 
 ## Commands
 
-Node **v24.18.0** via nvm, **yarn 4.18.1** everywhere, handed out by Corepack from each `packageManager`.
+Node **v26.13.1** via nvm, **yarn 4.18.1** everywhere, handed out by Corepack from each `packageManager`. Node 26 ships
+without Corepack, so it is installed once per Node install: `npm install -g corepack@0.36.0 && corepack enable`.
 
 ⚠️ **All of this assumes a reachable MongoDB replica set** — a commit needs one, not only a test run,
 because coverage is a pre-commit gate. The platform's own cluster is external and does not travel

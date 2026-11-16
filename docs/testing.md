@@ -261,6 +261,10 @@ another grep:
   indistinguishable from a suite that ran, while the repo still shows 100% coverage and a 100 mutation
   score. **Count the files, not the checkmarks.** Reference points: eight services carry 3–5
   `*.itest.mts`; `marketplace-dev-user-authenticated-authorization` carries 1.
+- ⚠️ **Under Node 26 a jsdom suite can read the wrong `localStorage`.** Node's own experimental
+  `globalThis.localStorage` shadows jsdom's, so the three frontends' `vitest.config.ts` set
+  `execArgv: ['--no-experimental-webstorage']`; keep the line when a config is rewritten
+  (`docs/frontends.md` §Traps common to all three).
 - ⚠️ **v8 coverage only reports files it saw *loaded*, and `coverage.include` is the only thing that
   changes that.** Leave it null and the provider lists nothing a test did not `import`: a file no suite
   requires is absent from the report rather than sitting at 0%, so a 100% threshold passes vacuously

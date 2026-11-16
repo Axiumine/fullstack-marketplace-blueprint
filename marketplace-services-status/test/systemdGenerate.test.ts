@@ -66,7 +66,7 @@ const service = (patch: Record<string, unknown> = {}): Record<string, unknown> =
 
 const config = (patch: Record<string, unknown> = {}): Record<string, unknown> => ({
   workspaceRoot: '..',
-  nodeVersion: '24.18.0',
+  nodeVersion: '26.13.1',
   nvmDir: '~/.nvm',
   unitTarget: 'marketplace.target',
   monitorUnit: 'marketplace-status.service',
@@ -307,7 +307,7 @@ describe('the exact content of a generated unit file', () => {
         '[Service]\n' +
         'Type=simple\n' +
         `WorkingDirectory=${repoAbs}\n` +
-        'Environment=PATH=/home/tester/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin\n' +
+        'Environment=PATH=/home/tester/.nvm/versions/node/v26.13.1/bin:/usr/local/bin:/usr/bin:/bin\n' +
         'Environment=NODE_ENV=development\n' +
         '# from BEs/dev/api/package.json scripts.dev: vite\n' +
         "ExecStart=/bin/sh -c 'exec vite'\n" +
@@ -360,7 +360,7 @@ describe('the exact content of a generated unit file', () => {
         '[Service]\n' +
         'Type=simple\n' +
         `WorkingDirectory=${repoDir}\n` +
-        'Environment=PATH=/home/tester/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin\n' +
+        'Environment=PATH=/home/tester/.nvm/versions/node/v26.13.1/bin:/usr/local/bin:/usr/bin:/bin\n' +
         'Environment=NODE_ENV=production\n' +
         '# from marketplace-services-status/package.json scripts.start: node dist/server.js\n' +
         "ExecStart=/bin/sh -c 'exec node dist/server.js'\n" +
@@ -393,7 +393,7 @@ describe('the nvm directory', () => {
     await boot({ config: config({ nvmDir: '~' }) });
 
     expect(pathLine(unit('api.service'))).toBe(
-      'Environment=PATH=/home/tester/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin'
+      'Environment=PATH=/home/tester/versions/node/v26.13.1/bin:/usr/local/bin:/usr/bin:/bin'
     );
   });
 
@@ -401,7 +401,7 @@ describe('the nvm directory', () => {
     await boot();
 
     expect(pathLine(unit('api.service'))).toBe(
-      'Environment=PATH=/home/tester/.nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin'
+      'Environment=PATH=/home/tester/.nvm/versions/node/v26.13.1/bin:/usr/local/bin:/usr/bin:/bin'
     );
   });
 
@@ -409,7 +409,7 @@ describe('the nvm directory', () => {
     await boot({ config: config({ nvmDir: '/opt/nvm' }) });
 
     expect(pathLine(unit('api.service'))).toBe(
-      'Environment=PATH=/opt/nvm/versions/node/v24.18.0/bin:/usr/local/bin:/usr/bin:/bin'
+      'Environment=PATH=/opt/nvm/versions/node/v26.13.1/bin:/usr/local/bin:/usr/bin:/bin'
     );
   });
 });

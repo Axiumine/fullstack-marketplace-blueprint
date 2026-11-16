@@ -213,13 +213,13 @@ Technical story: safe specifically because it never re-reads a tier-specific col
 - All three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) point their
   logout call at port 4030 — traces NFR-AV02.
 
-### `engines.node` is `^24.18.0` in every repo with a `package.json`, enforced by `pre-push`   `built`
+### `engines.node` is `^26.13.1` in every repo with a `package.json`, enforced by `pre-push`   `built`
 Technical story: Yarn 4 does not enforce `engines`, so `pre-push` selects the
 pinned node via nvm before the first gate runs and blocks when it is missing.
 **domains:** infra, testing
 **Acceptance criteria:**
 - `BEs/dev/marketplace-dev-user-authenticated-resource/package.json:30-31` carries
-  `"engines": { "node": "^24.18.0" }` — spot-checked on disk, matches [`docs/conventions.md`](../../conventions.md) §Node and package manager.
+  `"engines": { "node": "^26.13.1" }` — spot-checked on disk, matches [`docs/conventions.md`](../../conventions.md) §Node and package manager.
 - `.githooks/pre-push` reads `engines.node` and switches via nvm before shelling to yarn in every repo
   that has one — traces NFR-PO01.
 

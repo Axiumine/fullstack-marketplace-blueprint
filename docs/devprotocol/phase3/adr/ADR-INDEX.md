@@ -2,10 +2,12 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.39
+**Version:** 1.40
 **Date:** 2026-11-16
 **Author:** adr-agent
 **Changelog:**
+v1.40 - 2026-11-16, later the same day: **ADR-026 gets a dated note, nothing superseded: the unified `engines.node` value is `^26.13.1`; ADR-059 gains a Corepack decision.** The platform owner ordered Node 26.13.1 everywhere and Node 24 removed from the project. [ADR-026](./ADR-026-node-engines-unified-with-caret.md) keeps its decision — one caret-included spelling, `engines.node` as the one source the hooks read — and its header now says the value is `^26.13.1`, `.nvmrc` is `26.13.1`, and its `^24.18.0` body and §Compliance are read as `^26.13.1`. ⚠️ **ADR-059, unmerged, is amended directly rather than noted**: Node 25 and later no longer bundle Corepack, so its §Decision 8 records that Corepack is installed and pinned — locally by `npm install -g corepack@0.36.0 && corepack enable`, in CI by `npm ci` of `.github/tools/package-lock.json` in each repository, **not** by a bare `npm install -g corepack`, which is an unpinned download that would take Scorecard's `Pinned-Dependencies` below the floor of 10 ADR-054 holds — with Dependabot watching `/.github/tools`. §1's count of supersessions does not move, because no ADR is superseded by the note. The ADR-026 row's status cell names the note, one row is added to §4 against a bare global Corepack install in a workflow, and §1's sentence on ADR-026 no longer quotes the value.
+
 v1.39 - 2026-11-16: **[ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) added, `accepted` — the package manager is Yarn 4.18.1 with `nodeLinker: node-modules` in all fifteen packages, and a committed
 `.yarnrc.yml` is refused by content, not by path.** The owner's sweep moves `packageManager` from `yarn@1.22.22` to one `yarn@4.18.1+sha512.…` string; each package commits a
 `.yarnrc.yml` of three settings (`nodeLinker: node-modules`, `enableScripts: true`, `enableTelemetry: false`) and no registry setting or credential, which belong in
@@ -411,8 +413,8 @@ the same day and is the owner's ruling rather than a correction**: ADR-058 super
 two spaces in the thirteen gated repositories — while ADR-024's tree-wide lint scope, `.prettierignore` and print-config check stand. ADR-057,
 dated the same day, supersedes nothing: it is a new route, and ADR-054 gains a header line and a dated note in §Compliance, without being superseded. ⚠️ **An eighth is dated
 2026-11-16 and concerns a tool rather than a policy**: ADR-059 supersedes **ADR-017 and ADR-026, each in part** — the first on the `prepare` mechanism only, the second on the
-clause that the package manager hard-gates `engines` — while ADR-017's `core.hooksPath` wiring and Qodana in both hooks, and ADR-026's `^24.18.0`, caret and single
-spelling, stand; ADR-055 gains a dated note and is not superseded. Every other
+clause that the package manager hard-gates `engines` — while ADR-017's `core.hooksPath` wiring and Qodana in both hooks, and ADR-026's caret and single
+spelling, stand (its value moved to `^26.13.1` the same day, a dated note); ADR-055 gains a dated note and is not superseded. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch the same subject they divide it
 rather than overlap: ADR-001 decides that the platform is sixteen independent histories, ADR-031 decides what
 the parent workspace records about the fifteen it contains.
@@ -467,7 +469,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-023 | Per-repo integration database, named identically in three variables | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-024 | Tabs everywhere, eslint + prettier together, tree-wide | accepted, **superseded in part 2026-10-17** — the tabs clause only (`useTabs: true`, `indent: ['error','tab']`); the whole-tree lint scope, `.prettierignore`, the print-config check and one indentation authority stand | 2026-08-07 | — | ADR-058, in part | Build and quality gates |
 | ADR-025 | marketplace-services-status has no repo of its own, gated by parent hooks | accepted | 2026-08-07 | — | — | Build and quality gates |
-| ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted, **superseded in part 2026-11-16** — the clause that the package manager hard-gates `engines` (Yarn 4 does not read it; the `pre-push` node check is the enforcement); `^24.18.0`, the caret and the one spelling stand | 2026-08-07 | — | ADR-059, in part | Build and quality gates |
+| ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted, **superseded in part 2026-11-16** — the clause that the package manager hard-gates `engines` (Yarn 4 does not read it; the `pre-push` node check is the enforcement); the caret and the one spelling stand; **dated note 2026-11-16** — the unified value is `^26.13.1`, by the owner's order, nothing superseded | 2026-08-07 | — | ADR-059, in part | Build and quality gates |
 | ADR-027 | One frontend app per tier, not one app that switches on role | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-028 | GraphQL is the whole API; three REST endpoints serve email verify only | accepted | 2026-08-05 | — | — | Infrastructure and delivery |
 | ADR-029 | PII at rest: explicit CSFLE, deterministic on the five lookup keys | accepted | 2026-08-08 | — | — | Data model |
@@ -591,6 +593,7 @@ ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058, ADR-059
 | Turn on Plug'n'Play, drop `nodeLinker: node-modules` from a `.yarnrc.yml`, or let a `.pnp.cjs` into a working tree | [ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) | vitest, Stryker, `tsc` with `paths` and the production start scripts all read `node_modules`; under PnP each needs an integration of its own, and a clone that lost the setting installs under PnP by default and fails in the suites rather than at install. Violation looks like `nodeLinker` absent or different in a `.yarnrc.yml`, or `.pnp.*` in a tree |
 | Put a registry token, an auth line or the LAN mirror into a committed `.yarnrc.yml`, or put `.yarnrc.yml` back into `SECRET_PATH` | ADR-059 | the file is committed on purpose and refused by content: `YARNRC_CREDENTIAL` stops `npmAuthToken`, `npmAuthIdent`, `npmPassword`, `_auth`, `_authToken` and `_password` in the staged blob. A project-level `npmRegistryServer` overrides the mirror in `~/.yarnrc.yml` for everyone who clones, and a token there is the leak `.npmrc` was always refused for; naming the file in the path rule makes it uncommittable, which puts the linker setting back to one file per clone. Credentials and the mirror (`npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http` host) live in `~/.yarnrc.yml`. Violation looks like a key beyond the three in a `.yarnrc.yml`, or `\.yarnrc(\.yml)?` in a hook |
 | Hang the hook wiring on `prepare` again, or lean on `engines` to stop a wrong Node at `yarn install` | ADR-059 | Yarn 4 does not run the root `prepare` on install and does not read `engines`: the first leaves a clone unarmed with no output, the second lets a wrong Node surface under whichever gate runs first, which is the failure ADR-026 existed to stop. `postinstall` and the `pre-push` node check are what hold the two now. Violation looks like `"prepare": "yarn run hooks:install"` in any package but `marketplace-common` |
+| Install Corepack in a workflow with a bare `npm install -g corepack` | [ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) | Node 25 and later do not bundle it. A global install is a download nothing pins by integrity, so Scorecard's `Pinned-Dependencies` scores it down and the `pre-push` floor gate (ADR-054) refuses the push; `npm ci` of `.github/tools/package-lock.json` pins every byte, and Dependabot watches `/.github/tools` so the version moves by a pull request. Violation looks like `install -g corepack` in a workflow command, or a repository without `.github/tools` |
 
 ## 5. Gaps
 

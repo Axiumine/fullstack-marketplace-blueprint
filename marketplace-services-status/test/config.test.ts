@@ -77,7 +77,7 @@ const group = (patch: Json = {}): Json => ({
 
 const root = (patch: Json = {}): Json => ({
   workspaceRoot: '..',
-  nodeVersion: '24.18.0',
+  nodeVersion: '26.13.1',
   nvmDir: '~/.nvm',
   unitTarget: 'marketplace.target',
   monitorUnit: 'marketplace-status.service',

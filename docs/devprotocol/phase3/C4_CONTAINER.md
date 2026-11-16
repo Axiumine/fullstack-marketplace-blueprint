@@ -157,7 +157,7 @@ monitoring (`marketplace-services-status`).
 
 ## 3. Container descriptions
 
-### Backend services — 9 deployables, Koa 3 + Apollo Server 5, entry `src/index.mts`, Node `^24.18.0`, ESM
+### Backend services — 9 deployables, Koa 3 + Apollo Server 5, entry `src/index.mts`, Node `^26.13.1`, ESM
 
 | Container | Port | Tier | Technology | Responsibility |
 |---|---|---|---|---|
@@ -296,7 +296,7 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
   is enforced in that resolver, not in the `$jsonSchema`. Adding a write path anywhere else silently
   removes the cap.
 - English only — domain names, UI text, routes, comments (CON-11). Two spaces, not tabs, set by prettier and
-  never contradicted by eslint (ADR-058). Node `^24.18.0` with the caret kept, `yarn` everywhere.
+  never contradicted by eslint (ADR-058). Node `^26.13.1` with the caret kept, `yarn` everywhere.
 - Never edit an applied migration under `BEs/marketplace-db-setup/migrations/` — add a new one.
 - No `Shop` collection, ever — a shop *is* a `company` (CON-02). No `role` field or permission enum on any
   collection or session (CON-01).

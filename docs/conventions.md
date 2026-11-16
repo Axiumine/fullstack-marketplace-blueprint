@@ -88,8 +88,9 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
 
 ## Node and package manager
 
-- **`engines.node` is `^24.18.0` in all fifteen packages** (the parent workspace has no `package.json`).
-  Keep the caret: semver reads `24.18` as `24.18.x` and bare `24.18.0` as that one release. ⚠️ **Yarn 4
+- **`engines.node` is `^26.13.1` in all fifteen packages** (the parent workspace has no `package.json`),
+  `.nvmrc` says `26.13.1`, and Node 24 is gone from the project (the owner's order of 2026-11-16, ADR-026).
+  Keep the caret: semver reads `26.13` as `26.13.x` and bare `26.13.1` as that one release. ⚠️ **Yarn 4
   does not read `engines`**: `yarn install` and `yarn dev` run under any Node and say nothing. The field
   is what each `pre-push` reads to select the pinned Node through nvm — it blocks with the `nvm install`
   line when that version is missing — and CI takes the version from `.nvmrc`; that hook check is the
@@ -100,6 +101,14 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   divergent yarn would be least visible, since they are also the pair that publishes and consumes an
   unregistered package by name. A new package copies the line verbatim; a yarn bump changes all fifteen
   in one sweep, exactly like `engines.node`. ADR-059 records the move from Yarn 1.22.22.
+- ⚠️ **Node 26 ships without Corepack, so Corepack is installed, and pinned.** Node 25 and later no longer
+  bundle it. On a machine: `npm install -g corepack@0.36.0 && corepack enable`, once per Node install —
+  the fix line the hooks print says the same. In CI: each repository carries
+  `.github/tools/package.json` and `package-lock.json` naming `corepack` 0.36.0, and `gates.yml` installs it
+  with `npm ci`, outside the checkout, with scripts off. Never a bare `npm install -g corepack` in a workflow:
+  it is an unpinned download, and Scorecard's `Pinned-Dependencies` would fall below its floor of 10
+  (ADR-054). Dependabot watches `/.github/tools`, so the version moves by a pull request someone reads.
+  A new repository copies the directory with its lockfile.
 - **Each of the fifteen commits a `.yarnrc.yml` holding three settings and a comment, and nothing else**:
   `nodeLinker: node-modules` (vitest, Stryker, `tsc` with `paths` and the production start scripts read
   `node_modules`, so Plug'n'Play is not used), `enableScripts: true` (Yarn 4.18 does not run a dependency's

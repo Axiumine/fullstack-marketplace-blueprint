@@ -27,17 +27,18 @@ and three frontends.
 
 | Need | Version | Why |
 |---|---|---|
-| Node | **v24.18.0** exactly | pinned in `.nvmrc` and in every `package.json`'s `engines`. Yarn 4 does not enforce `engines`, so nothing stops `yarn install` under a different node: the git hooks check it at push, and `node -v` below is how you check it before |
+| Node | **v26.13.1** exactly | pinned in `.nvmrc` and in every `package.json`'s `engines`. Yarn 4 does not enforce `engines`, so nothing stops `yarn install` under a different node: the git hooks check it at push, and `node -v` below is how you check it before |
 | nvm | any | the git hooks select the pinned node through it, and block with the `nvm install` line if it is missing |
-| yarn | **4.18.1**, through Corepack | every `package.json` pins it in `packageManager`, and `corepack enable` (once per node install) makes `yarn` resolve to that binary instead of a global Yarn 1, which refuses the project. `npm` is not used anywhere here |
+| yarn | **4.18.1**, through Corepack 0.36.0 | every `package.json` pins yarn in `packageManager`, and `corepack enable` (once per node install) makes `yarn` resolve to that binary instead of a global Yarn 1, which refuses the project. ⚠️ **Node 26 ships without Corepack**, so it is installed first: `npm install -g corepack@0.36.0 && corepack enable`. `npm` installs nothing else here |
 | Docker Engine | 24+ with Compose v2 | the database cluster, and the Qodana scan the commit gate runs |
 | `openssl` | any | mints the replica-set keyfile, the CSFLE master key and the cookie signing keys |
 | a Qodana Cloud token | — | **only if you intend to commit.** Qodana is a pre-commit gate in fourteen repos and blocks when the token is missing rather than skipping |
 
 ```bash
-nvm install 24.18.0 && nvm use 24.18.0
-node -v          # must print v24.18.0
-corepack enable  # once per node install: yarn then resolves to each repo's pinned 4.18.1
+nvm install 26.13.1 && nvm use 26.13.1
+node -v          # must print v26.13.1
+npm install -g corepack@0.36.0 && corepack enable   # once per node install: Node 26 ships without corepack,
+                                                    # and yarn then resolves to each repo's pinned 4.18.1
 docker compose version
 ```
 

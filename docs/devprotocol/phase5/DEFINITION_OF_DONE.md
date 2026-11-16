@@ -62,7 +62,7 @@ document is that doctrine in checklist form.
   and `marketplace-services-status`, whose `test:cov` is literally `yarn build && vitest run --coverage` —
   `marketplace-services-status/.githooks` reasoning documented at `.githooks/pre-push:112-119` of this parent repo).
 - [ ] No `ignoreStatic` added to any `stryker.config.mjs` to silence a survivor, ever (`docs/testing.md` §Mutation testing traps; BCON-02).
-- [ ] `engines.node` reads `^24.18.0` in every touched `package.json` — bumping it means bumping all 14
+- [ ] `engines.node` reads `^26.13.1` in every touched `package.json` — bumping it means bumping all 14
   repos that have one, in one sweep, caret included (ADR-026).
 
 ### 2.3 Error handling
@@ -124,7 +124,7 @@ document is that doctrine in checklist form.
 - [ ] NFR-SC03 (🟠 High) — one Redis key per `del` call; Redis is a cluster and a multi-key `del` throws
   CROSSSLOT (BCON-08). `yarn lint:check` refuses the three batched spellings for you (MC-22); what it
   cannot see is a key list held in a variable, which is the shape to look for by hand.
-- [ ] NFR-PO01 (🟠 High) — `engines.node` identical (`^24.18.0`) across every repo touched; Yarn 4 does not
+- [ ] NFR-PO01 (🟠 High) — `engines.node` identical (`^26.13.1`) across every repo touched; Yarn 4 does not
   enforce it, so `pre-push`'s node check is what catches a mismatch.
 - [ ] NFR-AV03–AV05 (🟠 High) — services bind wildcard (`httpServer.listen({ port })`, no host), except
   `marketplace-user/serve.mjs:34` (`const HOSTNAME = '127.0.0.1'`), which binds loopback deliberately; the
