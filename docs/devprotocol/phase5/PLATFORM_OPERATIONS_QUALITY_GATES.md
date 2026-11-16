@@ -69,7 +69,7 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
 | `BEs/marketplace-db-setup/migrations/` (immutable) + `lib/schemas/*.js` builders | Editing an applied migration | Immutability rule — a new shape is a new migration, not an edit |
 | Each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`/`vitest.config.mts` thresholds | Lowering any threshold to unblock a story | BCON-02, NFR-MA05 — the fix is always a test |
 | `marketplace-services-status` (`server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`, `config.ts`) | Any repo of its own for `marketplace-services-status` | Deliberately tracked by the parent — no repo to give it |
-| `core.hooksPath` wiring + each repo's `"prepare"` script | Forge-side branch protection | Where these repos get published is the platform owner's open call (`docs/workflow.md` §Repo layout) |
+| `core.hooksPath` wiring + each repo's `"postinstall"` script | Forge-side branch protection | Where these repos get published is the platform owner's open call (`docs/workflow.md` §Repo layout) |
 
 ## 3. Build state
 
@@ -213,9 +213,9 @@ Technical story: safe specifically because it never re-reads a tier-specific col
 - All three frontends (`marketplace-admin`, `marketplace-shopowner`, `marketplace-user`) point their
   logout call at port 4030 — traces NFR-AV02.
 
-### `engines.node` is `^24.18.0` in every repo with a `package.json`, hard-gated   `built`
-Technical story: a mismatch is `exit 1` under yarn classic, not a warning, and `pre-push` selects the
-pinned node via nvm before the first gate runs.
+### `engines.node` is `^24.18.0` in every repo with a `package.json`, enforced by `pre-push`   `built`
+Technical story: Yarn 4 does not enforce `engines`, so `pre-push` selects the
+pinned node via nvm before the first gate runs and blocks when it is missing.
 **domains:** infra, testing
 **Acceptance criteria:**
 - `BEs/dev/marketplace-dev-user-authenticated-resource/package.json:30-31` carries
@@ -240,7 +240,7 @@ pinned node via nvm before the first gate runs.
   **release** that carries an edit to a consumer — it is what `git push --follow-tags` runs before
   `yarn upload` can happen at all. BCON-07 still applies with the same teeth: a green gate in common is not
   a shipped change until the version is published *and* each consumer's range has moved (ADR-047).
-- Parent workspace's own `core.hooksPath` has no `package.json`/`prepare` script to restore it after a
+- Parent workspace's own `core.hooksPath` has no `package.json`/`postinstall` script to restore it after a
   fresh clone — `git config core.hooksPath .githooks` must be run by hand there, unlike the 14 sub-repos that are
   packages.
 

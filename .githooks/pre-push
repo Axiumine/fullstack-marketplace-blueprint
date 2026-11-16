@@ -27,7 +27,7 @@
 # reaches a remote, and it is the one no pre-commit scan has ever inspected.
 #
 # ⚠️ This repo has no package.json, so nothing restores `core.hooksPath` for it.
-# The fourteen sub-repos that are packages each carry a `prepare` script that
+# The fourteen sub-repos that are packages each carry a `postinstall` script that
 # does; here it is a manual `git config core.hooksPath .githooks` after a fresh
 # clone, or this hook and the secret guard in pre-commit are both simply off.
 #
@@ -66,11 +66,11 @@ if [ ! -d "$APP_DIR" ]; then
 		"git checkout $APP"
 fi
 
-# `engines.node` is a HARD gate under yarn classic — a mismatch exits 1 with
-# `The engine "node" is incompatible with this module`, not a warning — and this
-# machine's default node may be older than the pin. Read the requirement from the
-# app's package.json rather than from this repo, which has none, so bumping the
-# engine in one place cannot leave the hook testing on a version nothing uses.
+# Yarn 4 does not enforce `engines.node` — yarn classic exited 1 on a mismatch, and nothing
+# else took over — so this check is the enforcement, and this machine's default node may
+# be older than the pin. Read the requirement from the app's package.json rather than from
+# this repo, which has none, so bumping the engine in one place cannot leave the hook
+# testing on a version nothing uses.
 REQUIRED_NODE="$(node -p "require('$APP_DIR/package.json').engines.node" 2> /dev/null | tr -d '^~>= ')"
 
 # An empty value here means node is not on PATH at all, which is a different
@@ -105,13 +105,13 @@ if ! node_satisfies; then
 fi
 
 if ! node_satisfies; then
-	gate_block "node $(node -v 2> /dev/null || echo '(not found)') does not satisfy engines.node ^$REQUIRED_NODE, and nvm could not switch — yarn refuses to run at all, so none of the gates below could report anything." \
+	gate_block "node $(node -v 2> /dev/null || echo '(not found)') does not satisfy engines.node ^$REQUIRED_NODE, and nvm could not switch — the gates below would all run on the wrong runtime, so none of what they reported could be trusted." \
 		"nvm install $REQUIRED_NODE && nvm use $REQUIRED_NODE"
 fi
 
 if ! command -v yarn > /dev/null 2>&1; then
 	gate_block 'yarn not found in PATH — every gate below shells out to yarn.' \
-		'npm i -g yarn@1.22.22'
+		'corepack enable'
 fi
 
 cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
@@ -219,9 +219,10 @@ fi
 # profile file and in no scan log this workspace has ever produced. A security
 # check that cannot report is indistinguishable from a passing one.
 #
-# Not `yarn audit`: yarn 1 aborts the entire run over the unpublished
-# @axiumine/marketplace-common, and `npm audit` needs a package-lock.json this
-# workspace does not have. Trivy reads yarn.lock natively.
+# Not `yarn audit`: under yarn 1 it aborted the entire run over the unpublished
+# @axiumine/marketplace-common (`yarn npm audit` under Yarn 4 was not tried), and
+# `npm audit` needs a package-lock.json this workspace does not have. Trivy reads
+# yarn.lock natively, Yarn 4 format included.
 #
 # ⚠️ It suppresses devDependencies by default, and that is the property that makes
 # this gate keepable rather than the one everybody learns to bypass: an advisory
@@ -554,7 +555,7 @@ In order:
   1. Read the check that fell and its reason, above. The same result with the
      documentation for every check is at
      https://scorecard.dev/viewer/?uri=<owner>/<repo>
-  2. Restore the control that regressed. A dependency advisory is `yarn upgrade`;
+  2. Restore the control that regressed. A dependency advisory is `yarn up`;
      a workflow that came unpinned needs its SHA back; branch protection lives on
      GitHub, not in this tree.
   3. Raise the floor only when a check genuinely improved and you want the new

@@ -1,7 +1,7 @@
 # ADR-055 — the gates run on GitHub too, and `main` requires them
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, with a dated note of 2026-11-16 that supersedes nothing — §Decision 5's install command (below)
 **Date:** 2026-09-20
 **Deciders:** platform owner, in the instruction *"do 1+2+3"* given the same day ADR-054 landed, whose third
 item was *"close R63"* — the hole ADR-054 opened deliberately and recorded in its own §Risks.
@@ -112,6 +112,11 @@ cache is state one pull request writes and the next reads, which is the one inpu
 contributor could choose. A cold install costs well under a minute against the public registry — the
 committed lockfiles carry `registry.npmjs.org` URLs, because `scripts/lockfile-registry-filter.sh` rewrites
 the local proxy out on the way into git, so no runner configuration is needed.
+
+⚠️ **Dated note, 2026-11-16 — nothing superseded.** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) moves the platform to
+Yarn 4.18.1, and the install is now **`yarn install --immutable`**: the same refusal to rewrite `yarn.lock`, under its Yarn 4 name. The reasoning above stands, the
+absent `cache: yarn` included. One clause is now a statement about the past: a Yarn 4 lockfile carries no registry URL, so what keeps a runner from needing
+configuration is that there is nothing in the file to rewrite, and not the filter.
 
 **6. `marketplace-nginx` runs its one gate and the parent runs the gates of
 `marketplace-services-status`.** nginx carries no `package.json`, so `test/run.sh` — `nginx -t` against the

@@ -2,10 +2,23 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.38
-**Date:** 2026-10-18
+**Version:** 1.39
+**Date:** 2026-11-16
 **Author:** adr-agent
 **Changelog:**
+v1.39 - 2026-11-16: **[ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) added, `accepted` — the package manager is Yarn 4.18.1 with `nodeLinker: node-modules` in all fifteen packages, and a committed
+`.yarnrc.yml` is refused by content, not by path.** The owner's sweep moves `packageManager` from `yarn@1.22.22` to one `yarn@4.18.1+sha512.…` string; each package commits a
+`.yarnrc.yml` of three settings (`nodeLinker: node-modules`, `enableScripts: true`, `enableTelemetry: false`) and no registry setting or credential, which belong in
+`~/.yarnrc.yml`. ⚠️ **Five things Yarn 1 did unasked stop**: `prepare` is never run on install (the hook wiring moves to `postinstall`, which runs on a fresh or a changed
+install and not on an unchanged one), `engines` is not enforced (the `pre-push` node check is the enforcement now), lockfiles carry no registry URL (the registry filter is
+inert and kept, and retiring it is a follow-up), dependency install scripts need `enableScripts: true`, and `.yarnrc` is ignored. ⚠️ **ADR-059 supersedes ADR-017 and ADR-026,
+each in part**: the first on the `prepare` mechanism only, the second on the clause that the package manager hard-gates `engines`; `core.hooksPath`, Qodana in both hooks,
+`^24.18.0` and the caret stand. **ADR-055 gains a dated note and is not superseded**: its §Decision 5 now reads `yarn install --immutable`. In the secret guard `SECRET_PATH` no
+longer names `.yarnrc.yml`, and a new `YARNRC_CREDENTIAL` rule — identical in the sixteen hooks and compared by `audit-check.sh` §8 — refuses a staged one that carries a registry
+credential key. The refresh that re-resolves without widening is `yarn up -R '**'` (run on a scratch project under 4.18.1), and `yarn upgrade` is gone. One row each in §2 for
+ADR-059 and the three it touches, a number in §3's **Build and quality gates** line, three rows in §4, one bullet in §5 for the two follow-ups, and §1's count — now **eight**
+supersessions.
+
 v1.38 - 2026-10-18, later the same day: **ADR-053 gets a dated note, nothing superseded: how a systemd unit receives the shared environment.** ADR-053 already said that nothing outside a
 direnv-hooked shell sees the shared file and that a unit file would need the names supplied its own way. Starting the stack from the `marketplace-services-status` page showed what that
 costs: nine backends exit at boot on `Missing required environment variable` while `tsx watch` keeps their units `active (running)`. The recipe is a per-machine systemd drop-in naming
@@ -378,7 +391,7 @@ is untouched, and a decision changes only by a new ADR. It is about *facts*: a f
 simply made true, and a decision that was superseded is written in the past tense with its successor named in
 the header. A reader needs what holds now and which ADR holds it; the record of the change is in this index's
 changelog and in the `Supersedes`/`Superseded by` fields, where it can be read without wading through the
-version that is wrong. Every ADR below is `accepted`, and seven supersessions exist — ADR-037 supersedes ADR-015 *in part*,
+version that is wrong. Every ADR below is `accepted`, and eight supersessions exist — ADR-037 supersedes ADR-015 *in part*,
 ADR-039 supersedes ADR-032, also in part (the topology it recorded as *owed* is now written, while the rule it made about network
 boundaries survives in narrowed form), and ADR-041 supersedes ADR-011 in part: its 2026-08-26 Amendment only, leaving the main body
 and its refusal of Option C standing word for word. ⚠️ **A fourth landed the same day and is the widest of them**:
@@ -396,7 +409,10 @@ the `LICENSE` copies are identical below their first line, the second on the cla
 relicensing. The licence is unchanged; the files that carry it become the FSF's text byte for byte. ⚠️ **A seventh is dated
 the same day and is the owner's ruling rather than a correction**: ADR-058 supersedes **ADR-024 in part**, the tabs clause only — indentation is
 two spaces in the thirteen gated repositories — while ADR-024's tree-wide lint scope, `.prettierignore` and print-config check stand. ADR-057,
-dated the same day, supersedes nothing: it is a new route, and ADR-054 gains a header line and a dated note in §Compliance, without being superseded. Every other
+dated the same day, supersedes nothing: it is a new route, and ADR-054 gains a header line and a dated note in §Compliance, without being superseded. ⚠️ **An eighth is dated
+2026-11-16 and concerns a tool rather than a policy**: ADR-059 supersedes **ADR-017 and ADR-026, each in part** — the first on the `prepare` mechanism only, the second on the
+clause that the package manager hard-gates `engines` — while ADR-017's `core.hooksPath` wiring and Qodana in both hooks, and ADR-026's `^24.18.0`, caret and single
+spelling, stand; ADR-055 gains a dated note and is not superseded. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch the same subject they divide it
 rather than overlap: ADR-001 decides that the platform is sixteen independent histories, ADR-031 decides what
 the parent workspace records about the fifteen it contains.
@@ -442,7 +458,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-014 | Migrations immutable, `$jsonSchema` shapes shared in lib/schemas/ | accepted | 2026-08-04 | — | — | Data model |
 | ADR-015 | marketplace-common: package-name consumption, unpublished, deploy-local.sh bridges | accepted, **superseded in part three times** — 2026-08-26, the publication half; 2026-08-30, the bridge half; 2026-10-17, the clause that the `LICENSE` copies are identical below their first line. The GPL-3.0-or-later licence decision is what still stands here | 2026-08-04 | — | ADR-037, ADR-047 and ADR-056, each in part | Build and quality gates |
 | ADR-016 | 100% coverage on all four metrics + 100 mutation score, everywhere | accepted | 2026-08-06 | — | — | Build and quality gates |
-| ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted | 2026-08-07 | — | — | Build and quality gates |
+| ADR-017 | Hooks via core.hooksPath + prepare script, Qodana in pre-commit and pre-push | accepted, **superseded in part 2026-11-16** — the mechanism only: the root `prepare` script is a `postinstall` under Yarn 4, which never runs `prepare` on install; `core.hooksPath`, Qodana in both hooks and the executable-bit check stand | 2026-08-07 | — | ADR-059, in part | Build and quality gates |
 | ADR-018 | SSR public routes, CSR-only /account/*, cache bypasses on session cookie | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-019 | New urql client per SSR request, un-prefixed PUBLIC_RESOURCE_URL | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-020 | Route files as one-line createFileRoute, behaviour in routeOptions | accepted | 2026-08-05 | — | — | Frontend |
@@ -451,7 +467,7 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-023 | Per-repo integration database, named identically in three variables | accepted | 2026-08-07 | — | — | Build and quality gates |
 | ADR-024 | Tabs everywhere, eslint + prettier together, tree-wide | accepted, **superseded in part 2026-10-17** — the tabs clause only (`useTabs: true`, `indent: ['error','tab']`); the whole-tree lint scope, `.prettierignore`, the print-config check and one indentation authority stand | 2026-08-07 | — | ADR-058, in part | Build and quality gates |
 | ADR-025 | marketplace-services-status has no repo of its own, gated by parent hooks | accepted | 2026-08-07 | — | — | Build and quality gates |
-| ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted | 2026-08-07 | — | — | Build and quality gates |
+| ADR-026 | engines.node = ^24.18.0 everywhere, caret included | accepted, **superseded in part 2026-11-16** — the clause that the package manager hard-gates `engines` (Yarn 4 does not read it; the `pre-push` node check is the enforcement); `^24.18.0`, the caret and the one spelling stand | 2026-08-07 | — | ADR-059, in part | Build and quality gates |
 | ADR-027 | One frontend app per tier, not one app that switches on role | accepted | 2026-08-05 | — | — | Frontend |
 | ADR-028 | GraphQL is the whole API; three REST endpoints serve email verify only | accepted | 2026-08-05 | — | — | Infrastructure and delivery |
 | ADR-029 | PII at rest: explicit CSFLE, deterministic on the five lookup keys | accepted | 2026-08-08 | — | — | Data model |
@@ -480,10 +496,11 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted, with a dated note of 2026-10-18 on systemd units (SETUP.md §7c) | 2026-08-31 | — | — | Infrastructure and delivery |
 | ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and three dated notes that supersede nothing (the last, 2026-10-18: `CI-Tests` is not floored) — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
-| ADR-055 | The gates run on GitHub too, and `main` requires them | accepted | 2026-09-20 | — | — | Build and quality gates |
+| ADR-055 | The gates run on GitHub too, and `main` requires them | accepted, with a dated note of 2026-11-16 that supersedes nothing — §Decision 5's install is `yarn install --immutable` under Yarn 4 (ADR-059) | 2026-09-20 | — | — | Build and quality gates |
 | ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |
 | ADR-057 | An unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`, not skipped and not hidden | accepted | 2026-10-17 | — | — | Build and quality gates |
 | ADR-058 | Indentation is two spaces, and the tabs clause of ADR-024 is withdrawn | accepted | 2026-10-17 | ADR-024, in part | — | Build and quality gates |
+| ADR-059 | The package manager is Yarn 4.18.1 with the `node-modules` linker, and `.yarnrc.yml` is committed and refused by content | accepted | 2026-11-16 | ADR-017 and ADR-026, each in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -498,7 +515,7 @@ ADR-050
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049, ADR-051, ADR-052
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
-ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058
+ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058, ADR-059
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039, ADR-053
 
@@ -571,6 +588,9 @@ ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058
 | Put the copyright, the directory's name, an SPDX line or the GPL's "how to apply" notice back into `LICENSE` — or add a `NOTICE`, `COPYING` or `COPYRIGHT` beside it — so the file "says whose it is" | [ADR-056](./ADR-056-the-license-file-is-the-pristine-gpl-text.md) | `licensee` accepts a file as a licence only at 98% similarity to the canonical text, and nine lines of header scored 88.81% — GitHub answered `NOASSERTION` and Scorecard's `License` stayed at 9. One copyright line alone clears the threshold by tenths of a percent (98.49% to 98.89%), which is a bet on a matcher this workspace does not run, and `COPYING`, `COPYRIGHT` and `LICENSE-*` are themselves licence-file candidates that can turn the answer back into *Other*. The identity line, copyright and notice live in each README's `## License`, which also names no licence but GPL-3.0-or-later. Violation looks like `sha256sum LICENSE` returning anything but `3972dc97…6986`, or `gh api repos/Axiumine/<repo>/license --jq .license.spdx_id` returning `NOASSERTION` |
 | Add a second advisory to an `osv-scanner.toml`, move `ignoreUntil` out without a review, use `SKIP_SCORECARD=1` on routine pushes, lower `Vulnerabilities=10`, or pin `braces` to a fork — to get the Scorecard floor gate past `braces` | [ADR-057](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) | the advisory has no patched release, so the only honest choices are a dated, reasoned acceptance or a red gate. A bypass hides every other check the gate grades, a lowered floor hides the next advisory, a fork is an unreviewed supply-chain input adopted to defend a development tool, and `braces` cannot be removed because `fast-glob`, `micromatch` and `chokidar` bring it. The file is for this identifier, dev-only, with a reason and a date within ninety days; a second advisory is a new ADR. Violation looks like an `[[IgnoredVulns]]` entry without `ignoreUntil` or `reason`, a date more than ninety days out, a production-path trail, or a number lowered in a `.scorecard-floor` |
 | Put tabs back in a `.prettierrc` or an eslint `indent` rule — or convert the shell scripts and hooks, `marketplace-db-setup` or the nginx configs to spaces "for consistency" | [ADR-058](./ADR-058-indentation-is-two-spaces-not-tabs.md) | the first is the owner's reversed ruling and the second half breaks things silently: a bash `<<-` heredoc strips leading **tabs** only, so a spaced script keeps its indentation inside the heredoc body and fails at run time, and `marketplace-db-setup` holds applied migrations that are immutable and has no formatter on purpose. The shared eslint package still ships a tab rule; a block that spreads `sharedTsBlock.rules` without an override re-arms it and `yarn lint` starts undoing prettier. Violation looks like `"useTabs": true`, a tab-resolving `indent` in `npx eslint --print-config`, or a reindented migration |
+| Turn on Plug'n'Play, drop `nodeLinker: node-modules` from a `.yarnrc.yml`, or let a `.pnp.cjs` into a working tree | [ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) | vitest, Stryker, `tsc` with `paths` and the production start scripts all read `node_modules`; under PnP each needs an integration of its own, and a clone that lost the setting installs under PnP by default and fails in the suites rather than at install. Violation looks like `nodeLinker` absent or different in a `.yarnrc.yml`, or `.pnp.*` in a tree |
+| Put a registry token, an auth line or the LAN mirror into a committed `.yarnrc.yml`, or put `.yarnrc.yml` back into `SECRET_PATH` | ADR-059 | the file is committed on purpose and refused by content: `YARNRC_CREDENTIAL` stops `npmAuthToken`, `npmAuthIdent`, `npmPassword`, `_auth`, `_authToken` and `_password` in the staged blob. A project-level `npmRegistryServer` overrides the mirror in `~/.yarnrc.yml` for everyone who clones, and a token there is the leak `.npmrc` was always refused for; naming the file in the path rule makes it uncommittable, which puts the linker setting back to one file per clone. Credentials and the mirror (`npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http` host) live in `~/.yarnrc.yml`. Violation looks like a key beyond the three in a `.yarnrc.yml`, or `\.yarnrc(\.yml)?` in a hook |
+| Hang the hook wiring on `prepare` again, or lean on `engines` to stop a wrong Node at `yarn install` | ADR-059 | Yarn 4 does not run the root `prepare` on install and does not read `engines`: the first leaves a clone unarmed with no output, the second lets a wrong Node surface under whichever gate runs first, which is the failure ADR-026 existed to stop. `postinstall` and the `pre-push` node check are what hold the two now. Violation looks like `"prepare": "yarn run hooks:install"` in any package but `marketplace-common` |
 
 ## 5. Gaps
 
@@ -613,6 +633,11 @@ Decisions this platform still owes an ADR, once taken:
   that day, and the Scorecard `Vulnerabilities` check and the `pre-push` floor gate fail again unless the owner has either moved to a patched
   `braces` and deleted the files or renewed them for at most ninety more days with a dated note. Nothing reminds anyone before the gate does; that
   is by design, and it is why the item is listed here.
+- **Two Yarn 4 follow-ups, owed by [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md).** Neither blocks anything. ⚠️ **The lockfile registry filter is inert and still wired**:
+  `scripts/lockfile-registry-filter.sh` (byte-identical in fifteen repositories), its clean/smudge `git config` lines, the `.gitattributes` line and the `pre-commit`
+  wording about it do nothing under Yarn 4, whose lockfiles carry no registry URL; retiring the lot is one pass over fifteen repositories and has not been done.
+  ⚠️ **`enableScripts: true` runs every dependency's install script**, as Yarn 1 did; the one the migration found it needed is `mongodb-client-encryption`'s, so a
+  per-package allow-list is possible and has not been written.
 
 v1.17 - 2026-08-28, later the same day: **ADR-040 amended in place, hours after acceptance, at the platform
 owner's instruction — the second exception to §1's immutability rule after ADR-011, and the first taken by

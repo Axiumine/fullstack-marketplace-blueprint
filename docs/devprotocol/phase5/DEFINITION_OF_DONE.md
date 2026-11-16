@@ -124,8 +124,8 @@ document is that doctrine in checklist form.
 - [ ] NFR-SC03 (🟠 High) — one Redis key per `del` call; Redis is a cluster and a multi-key `del` throws
   CROSSSLOT (BCON-08). `yarn lint:check` refuses the three batched spellings for you (MC-22); what it
   cannot see is a key list held in a variable, which is the shape to look for by hand.
-- [ ] NFR-PO01 (🟠 High) — `engines.node` identical (`^24.18.0`) across every repo touched; a mismatch is
-  `exit 1` under yarn classic, not a warning.
+- [ ] NFR-PO01 (🟠 High) — `engines.node` identical (`^24.18.0`) across every repo touched; Yarn 4 does not
+  enforce it, so `pre-push`'s node check is what catches a mismatch.
 - [ ] NFR-AV03–AV05 (🟠 High) — services bind wildcard (`httpServer.listen({ port })`, no host), except
   `marketplace-user/serve.mjs:34` (`const HOSTNAME = '127.0.0.1'`), which binds loopback deliberately; the
   push gate blocks rather than warns on any missing prerequisite.

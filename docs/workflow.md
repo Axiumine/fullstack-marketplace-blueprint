@@ -66,7 +66,7 @@ In an existing checkout, or after a clone that forgot `--recurse-submodules`:
 ```bash
 git submodule update --init --recursive
 git submodule foreach 'git switch main'    # ⚠️ not optional — see below
-git config core.hooksPath .githooks                          # parent: no package.json, no prepare
+git config core.hooksPath .githooks                          # parent: no package.json, no postinstall
 git -C marketplace-nginx config core.hooksPath .githooks     # same reason (ADR-025, ADR-030)
 git config push.recurseSubmodules check                      # refuse to push a pointer to an unpushed commit
 ```
@@ -179,8 +179,14 @@ free before that push and expensive after.
 reads `.git/hooks/` unless told otherwise; a repo without that setting runs no gate at all and says
 nothing about it.
 
-- The fourteen sub-repos that are packages carry `"prepare": "git config core.hooksPath .githooks ||
-  true"` in `package.json`, so `yarn install` restores it.
+- The fourteen sub-repos that are packages carry `"postinstall": "yarn run hooks:install"` in
+  `package.json` (the three frontends: `patch-package && yarn run hooks:install`), and `hooks:install`
+  sets `core.hooksPath` to `.githooks`. ⚠️ **Yarn 4 never runs `prepare` on install, and runs the root
+  `postinstall` only on a fresh install or one that changed the dependencies** — an unchanged
+  `yarn install` re-arms nothing, so `./scripts/bootstrap.sh` and `audit-check.sh` §7 are the dependable
+  way, not the install. `marketplace-common` keeps its `prepare`, because `npm publish` runs it to build
+  `dist/`, and carries a `postinstall` guarded by `[ ! -d .githooks ]`, which does nothing inside a
+  consumer's `node_modules`. ADR-059 records the move off `prepare`.
 - ⚠️ **Two repos have no `package.json` and so no such mechanism: this parent workspace and
   `marketplace-nginx`.** After a fresh clone of either, run **`./scripts/bootstrap.sh`** from the
   workspace root — it arms all sixteen, and is safe to re-run on a workspace already in use — or, in the
@@ -191,8 +197,8 @@ nothing about it.
   ADR index lists it among the decisions not re-opened.
 - ⚠️ **One accidental self-heal exists in the parent and is not a mechanism to rely on.**
   `marketplace-services-status` is a package tracked *by this repo* rather than a submodule of it, so it
-  shares the parent's `.git`; a `yarn install` there runs its `"prepare"` and arms the **parent's**
-  `core.hooksPath`, because a relative `core.hooksPath` resolves against the worktree root the hooks run
+  shares the parent's `.git`; a fresh or changed `yarn install` there runs its `"postinstall"` and arms the
+  **parent's** `core.hooksPath`, because a relative `core.hooksPath` resolves against the worktree root the hooks run
   in. `SETUP.md` §11 marks that install optional and no other setup step reaches it, so a workspace can
   easily be used for weeks without it ever running.
 - **`./scripts/audit-check.sh` §7 is the only thing that can report an unarmed repo** (MC-15). It cannot
@@ -215,9 +221,10 @@ nothing about it.
 - **Check the hook is executable.** Git skips a non-executable hook with only a hint, so the gate
   vanishes silently.
 - **Every `pre-push` selects the pinned node first**, reading `engines.node` from that repo's
-  `package.json` and switching via nvm. Yarn's `engines` check is a hard exit 1, so without it a push
-  from a shell on the machine default node dies before the first gate, *under that gate's banner*. If
-  nvm is missing or the version is not installed, the hook blocks with the `nvm install` line.
+  `package.json` and switching via nvm. Yarn 4 does not enforce `engines`, so this check is the
+  enforcement: without it a push from a shell on the machine default node fails under whichever gate runs
+  first, *under that gate's banner*. If nvm is missing or the version is not installed, the hook blocks
+  with the `nvm install` line.
 - **Both scans pass `SKIP_TESTS=1`** so `qodana.sh` reuses the `coverage/lcov.info` the preceding gate
   just wrote, instead of regenerating it with `yarn test:cov || true` — which swallows the exit code.
 - Bypass Qodana alone with `SKIP_QODANA=1`; coverage and mutation still gate. A missing prerequisite —
@@ -237,7 +244,11 @@ Gate policy in full: [`README.md`](../README.md), *Test quality gates*.
 
 **Never read, echo, copy or commit a secret-bearing file** — `.env`, `.env.*`, `.npmrc`, `.yarnrc`,
 `.netrc`, `*.pem`, ssh keys. `env` and `npmrc` (no leading dot) are the committed placeholder templates
-and are safe to read.
+and are safe to read. ⚠️ **`.yarnrc.yml` is the exception to the dot rule, in the other direction**: every
+package commits one, it holds three settings and no credential (`docs/conventions.md` §Node and package
+manager), and the `pre-commit` guard refuses a staged one that names a registry credential key. The
+secret-bearing Yarn file is the machine's own `~/.yarnrc.yml`, where credentials and the LAN mirror
+live. Claude's `permissions.deny` still denies reading `.yarnrc.yml`, so the owner places and stages it.
 
 Anything printed to a terminal here is sent to the model API **and** written in plaintext to
 `~/.claude/projects/<slug>/*.jsonl`, so `cat .env` leaks permanently and cannot be un-sent.
@@ -384,7 +395,7 @@ any key the repos disagree on, and **you** run it, never an assistant.
 
 ## Commands
 
-Node **v24.18.0** via nvm, **yarn** everywhere.
+Node **v24.18.0** via nvm, **yarn 4.18.1** everywhere, handed out by Corepack from each `packageManager`.
 
 ⚠️ **All of this assumes a reachable MongoDB replica set** — a commit needs one, not only a test run,
 because coverage is a pre-commit gate. The platform's own cluster is external and does not travel

@@ -13,6 +13,12 @@ Denies the `Read` tool on `**/.env`, `**/.env.*`, `**/.envrc`, `**/.npmrc`, `**/
 `**/.yarnrc.yml`, `**/.netrc`, `**/.pgpass`, `**/*.pem`, `**/*.p12`, `**/id_rsa`, `**/id_ed25519`,
 `~/.ssh/**`. Cheap, declarative, and independent of hooks — it still holds if hooks are disabled.
 
+⚠️ **`**/.yarnrc.yml` stays on the list although every package now commits one** (ADR-059): the file holds
+three settings and no credential by rule (layer 3), but the same name is the machine's own
+`~/.yarnrc.yml`, where registry credentials and the LAN mirror live. The consequence is that an agent cannot
+read a package's `.yarnrc.yml` — the owner places and stages it — and the hook of layer 2 blocks a command
+that names the file together with a reader.
+
 Does **not** cover shell access, which is why layer 2 exists.
 
 ## 2. `no-secret-leak` PreToolUse hook — `~/.claude/hooks/no-secret-leak.cjs`
@@ -49,6 +55,18 @@ high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----
 a 40+ char non-placeholder `KEYGRIP_KEY_*`, a `KEYGRIP_KEK`, a
 `QODANA_TOKEN`/`SOCKETLABS_SERVER_APIKEY`/`REDIS_PASSWORD` literal ≥16 chars, or a
 mongodb URI with a ≥10 char password.
+
+⚠️ **`.yarnrc.yml` is allowed by path and refused by content** (ADR-059). Each package commits one, holding
+`nodeLinker`, `enableScripts` and `enableTelemetry`, so `SECRET_PATH` says `\.yarnrc` and no longer
+`\.yarnrc(\.yml)?`: a bare `.yarnrc`, the Yarn 1 file, at the root or nested, is still refused. A second rule,
+`YARNRC_CREDENTIAL`, runs on the **whole staged blob** of any `.yarnrc.yml`, at any depth, and refuses it when a line opens with
+`npmAuthToken`, `npmAuthIdent`, `npmPassword`, `_auth`, `_authToken` or `_password` as a key, at any indent and in
+either quoting. It matches key names, not values; the value scans above still run over its added lines like any
+other file's. Credentials and the LAN mirror — `npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http`
+host — belong in `~/.yarnrc.yml`, which no repository holds, and the same file is why a project-level
+`npmRegistryServer` is not committed: it would override the mirror for everyone. `./scripts/audit-check.sh` §8
+compares `^YARNRC_CREDENTIAL` across the sixteen hooks with the equality it applies to `SECRET_PATH` and runs it
+against five lines it must refuse and three it must not.
 
 ⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034): base64 of 32
 bytes is 43 characters plus one `=`, and every `env` template assigns it empty, so the rule cannot fire on
@@ -100,8 +118,9 @@ the live-looking credentials in `marketplace-db-setup/setup/mongodb.js` still bl
 
 Tracked at `.githooks/pre-commit` in **all sixteen repos** (counted 2026-08-09: 16 hook files, 16
 carrying check 0), each setting `core.hooksPath=.githooks`. The 14 repos that have a `package.json` set
-it from their `prepare` script, so installing dependencies arms the guard and a fresh clone is protected
-without anyone remembering to install it by hand.
+it from their `postinstall` script, so a fresh or changed install arms the guard and a clone is protected
+without anyone remembering to arm it by hand — Yarn 4 never runs `prepare`, and an unchanged install runs
+nothing, so `./scripts/bootstrap.sh` is the dependable way.
 
 `marketplace-nginx` was the sixteenth to get one, later the same day: it holds no `package.json`, so it
 has no lint, coverage, mutation or Qodana gate to hang the guard off, and for a few hours it carried
@@ -109,7 +128,7 @@ has no lint, coverage, mutation or Qodana gate to hang the guard off, and for a 
 repo where a staged credential was caught by nothing. Its `pre-commit` is now the secret guard and
 nothing else.
 
-⚠️ This parent workspace has no `package.json`, so nothing runs `prepare` here. The hook file is tracked
+⚠️ This parent workspace has no `package.json`, so nothing runs a `postinstall` here. The hook file is tracked
 and travels with the clone, but after cloning the parent you must arm it once by hand:
 
 ```bash

@@ -1,11 +1,18 @@
 # ADR-017 — Git hooks are enabled by core.hooksPath, restored by a prepare script, and Qodana runs in both pre-commit and pre-push
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-11-16** — the `prepare` mechanism only
 **Date:** 2026-08-07
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md), **in part, 2026-11-16** — the mechanism: **Yarn 4 never runs
+`prepare` on install, so the hook wiring is the root `postinstall` script** (`yarn run hooks:install`) in every package but one, and runs on a fresh or a
+changed install, not on an unchanged one. `marketplace-common` keeps `prepare`, because `npm publish` still runs it to build, and gains a guarded
+`postinstall`. `core.hooksPath`, `hooks:install`, Qodana in both hooks, the executable-bit check and the parent's manual step stand.
+
+⚠️ **Two halves of this ADR are in force and one is history.** In force: the gate is armed by `core.hooksPath`, the parent workspace and
+`marketplace-nginx` arm it by hand, and Qodana runs in both hooks. History: that a `prepare` script re-arms it on every `yarn install`. The body below
+describes the Yarn 1 era and is read as that.
 
 ---
 

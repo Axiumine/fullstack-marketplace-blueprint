@@ -27,9 +27,9 @@ and three frontends.
 
 | Need | Version | Why |
 |---|---|---|
-| Node | **v24.18.0** exactly | pinned in `.nvmrc` and in every `package.json`'s `engines`. Yarn's engines check is a hard exit 1, so a different node fails the first command rather than the tenth |
+| Node | **v24.18.0** exactly | pinned in `.nvmrc` and in every `package.json`'s `engines`. Yarn 4 does not enforce `engines`, so nothing stops `yarn install` under a different node: the git hooks check it at push, and `node -v` below is how you check it before |
 | nvm | any | the git hooks select the pinned node through it, and block with the `nvm install` line if it is missing |
-| yarn | classic or berry | `npm` is not used anywhere here |
+| yarn | **4.18.1**, through Corepack | every `package.json` pins it in `packageManager`, and `corepack enable` (once per node install) makes `yarn` resolve to that binary instead of a global Yarn 1, which refuses the project. `npm` is not used anywhere here |
 | Docker Engine | 24+ with Compose v2 | the database cluster, and the Qodana scan the commit gate runs |
 | `openssl` | any | mints the replica-set keyfile, the CSFLE master key and the cookie signing keys |
 | a Qodana Cloud token | — | **only if you intend to commit.** Qodana is a pre-commit gate in fourteen repos and blocks when the token is missing rather than skipping |
@@ -37,6 +37,7 @@ and three frontends.
 ```bash
 nvm install 24.18.0 && nvm use 24.18.0
 node -v          # must print v24.18.0
+corepack enable  # once per node install: yarn then resolves to each repo's pinned 4.18.1
 docker compose version
 ```
 
@@ -80,8 +81,8 @@ five things:
 ```bash
 git submodule update --init --recursive                      # ⚠️ only for a submodule never initialised
 git submodule foreach 'git switch main'                      # ⚠️ only for one on a detached HEAD
-git config core.hooksPath .githooks                          # parent: no package.json, no prepare hook
-git submodule foreach 'git config core.hooksPath .githooks'  # marketplace-nginx has no prepare hook either
+git config core.hooksPath .githooks                          # parent: no package.json, no postinstall hook
+git submodule foreach 'git config core.hooksPath .githooks'  # marketplace-nginx has no postinstall hook either
 git config push.recurseSubmodules check
 ```
 
@@ -94,8 +95,9 @@ feature branch mid-task is left exactly where it is — running `bootstrap.sh` n
 None of those `git config` lines can be committed — local config is per-worktree — so they survive exactly
 as long as the checkout does. Without them the parent runs no gate at all and says nothing about it, and
 neither does `marketplace-nginx`. The other fourteen repos re-arm themselves from `package.json`'s
-`prepare` script on `yarn install`; those two have no `package.json` and, by decision, never will
-(ADR-025, ADR-030). **`./scripts/audit-check.sh` §7 tells you afterwards whether all sixteen are armed** —
+`postinstall` script on a fresh or changed `yarn install` — Yarn 4 never runs `prepare`, and an unchanged
+install runs nothing, so `bootstrap.sh` is the dependable way and the install is not; those two have no
+`package.json` and, by decision, never will (ADR-025, ADR-030). **`./scripts/audit-check.sh` §7 tells you afterwards whether all sixteen are armed** —
 it is the only way to find out, because in an unarmed repo the hook that would complain is the one that
 is off (RISK_REGISTER R09).
 
@@ -761,7 +763,7 @@ and are gate removals — use them only when you have decided to.
 | a session is never found although login succeeded | `REDIS_KEY` differs between two services. It must be byte-identical in all nine |
 | a bogus key name in `grep -oE '^[A-Za-z_0-9]+' .env` | a wrapped value on the line above it |
 | the migration suite drops the wrong database | it refuses to — `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env` |
-| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `prepare` script), or the hook is not executable — git skips a non-executable hook with only a hint. `./scripts/audit-check.sh` §7 names every repo in either state across all sixteen; `./scripts/bootstrap.sh` fixes the first, `chmod +x` the second |
+| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `postinstall` script, and an unchanged `yarn install` runs none), or the hook is not executable — git skips a non-executable hook with only a hint. `./scripts/audit-check.sh` §7 names every repo in either state across all sixteen; `./scripts/bootstrap.sh` fixes the first, `chmod +x` the second |
 
 ---
 

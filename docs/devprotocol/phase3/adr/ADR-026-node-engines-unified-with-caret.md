@@ -1,11 +1,17 @@
 # ADR-026 — engines.node is ^24.18.0 in every package.json, caret included
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-11-16** — the clause that the package manager hard-gates `engines`
 **Date:** 2026-08-07
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md), **in part, 2026-11-16** — the clause that `engines.node` is a hard exit 1
+enforced by yarn, which was this ADR's reason for choosing `engines` over `.nvmrc`, and the `yarn@1.22.22` string it describes: **Yarn 4.18.1 does not read
+`engines`, and `packageManager` is `yarn@4.18.1+sha512.…` in all fifteen.** The enforcement is now each `pre-push`'s own node check, which reads
+`engines.node`, and `.nvmrc` in CI. `^24.18.0`, the caret, the single spelling and `engines.node` as the one source the hooks read stand.
+
+⚠️ **Two halves of this ADR are in force and one is history.** In force: the string `^24.18.0` in every `package.json`, caret included, and `engines.node`
+as the place the hooks read the required Node from. History: that yarn enforces it. The body below describes the Yarn 1 era and is read as that.
 
 ---
 

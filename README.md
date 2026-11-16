@@ -214,11 +214,11 @@ queries no advisory feed and reports zero on every repo, while the class that do
 log this workspace has ever produced. A check that cannot report is indistinguishable from a passing one,
 which is the same failure the fifteen unrun `semgrep/` directories were.
 
-Not `yarn audit`, and ⚠️ **the reason changed on 2026-08-27.** This paragraph said yarn 1 aborts the
+Not the package manager's own audit, and ⚠️ **the reason changed on 2026-08-27.** This paragraph said yarn 1 aborts the
 whole run over the unpublished `@axiumine/marketplace-common`. It does not any more — the package is
-published (`ADR-037`), and `yarn audit` in `marketplace-dev-public-resource` now completes: **734 packages
-audited, 80 advisories**, or **268 and 28** with `--groups dependencies`. It is still not the gate, for
-the reason that outlived the 404: it has no way to suppress devDependencies short of that flag, and
+published (`ADR-037`), and `yarn audit` in `marketplace-dev-public-resource` then completed under Yarn 1: **734 packages
+audited, 80 advisories**, or **268 and 28** with `--groups dependencies`. Yarn 4 renames the command `yarn npm audit`
+and gives it `--environment` for the same narrowing; that has not been re-measured here (`ADR-059`) and it is still not the gate.
 `npm audit` wants a `package-lock.json` nothing here has. Trivy reads `yarn.lock` natively, in a pinned
 container, and **suppresses devDependencies by default** — which is the property that makes the gate
 keepable rather than the one everybody learns to bypass: an advisory in something only `yarn build` loads
@@ -302,11 +302,12 @@ longer blocks**: this paragraph said it did, because that project did not exist 
 `SKIP_QODANA=1` went from a standing workaround back to the one-shot bypass it is described as below. The
 hook still fails closed if the token goes missing — it prints the fixing command and exits 1, by design.
 And this repo has **no
-`package.json`**, so it has no `"prepare"` script to re-run `git config core.hooksPath .githooks` — the
-fourteen sub-repos that are packages restore that setting on every `yarn install`, and this one has no
+`package.json`**, so it has no `"postinstall"` script to re-run `git config core.hooksPath .githooks` — the
+fourteen sub-repos that are packages restore that setting on a fresh or changed `yarn install` (Yarn 4 never runs
+`prepare`, and an unchanged install runs nothing), and this one has no
 such install to hang it off. ⚠️ **One path does restore it and is worth knowing rather than relying on**:
 `marketplace-services-status` is a package *inside this repo* rather than a submodule of it, so it shares
-this `.git`, and a `yarn install` there arms **this** repo's `core.hooksPath` as a side effect — but
+this `.git`, and a fresh or changed `yarn install` there arms **this** repo's `core.hooksPath` as a side effect — but
 `SETUP.md` §11 marks that step optional and nothing else in the setup reaches it. After a fresh clone of
 this directory, run `./scripts/bootstrap.sh` — it arms all sixteen repos and is safe to re-run — or all
 three gates and the secret guard are simply off. `./scripts/audit-check.sh` §7 is how you find out which

@@ -523,8 +523,8 @@ crosses this boundary now** — a version published to `registry.npmjs.org`, fet
 `yarn install` against its own `yarn.lock`. An edit under `BEs/marketplace-common/src/` reaches no service
 until a release carries it and that consumer's range moves; the reason the script went is that the state it
 produced had no version, no integrity hash and no lockfile entry, so it existed on one machine and no other.
-The install path itself is unchanged and stays deliberately plain: the only lifecycle script any of the 16
-repos defines is `prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an
+The install path itself is unchanged and stays deliberately plain: the only install-time lifecycle script any of the 16
+repos defines is `postinstall` (`marketplace-common` also keeps a `prepare`, which `npm publish` runs to build), which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an
 unrelated clean/smudge filter for the `yarn.lock` registry host. **`yarn install` is authoritative
 everywhere and can now undo nothing** — the collision this section used to describe cannot occur.
 

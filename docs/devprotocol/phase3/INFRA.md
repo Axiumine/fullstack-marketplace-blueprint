@@ -500,7 +500,7 @@ The entire delivery/quality-gate mechanism is **local git hooks**, wired via `co
   `pre-commit`, so no secret guard.
 
 `core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos that is a package
-self-arms it via a `"prepare": "git config core.hooksPath .githooks || true"` script that `yarn install`
+self-arms it via a `"postinstall": "yarn run hooks:install"` script that a fresh or changed `yarn install`
 runs. **Two repos have no `package.json` and so nothing re-arms them after a fresh clone — this parent
 workspace and `marketplace-nginx`**; both must be set by hand
 (`git config core.hooksPath .githooks`).

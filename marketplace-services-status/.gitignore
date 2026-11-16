@@ -10,6 +10,12 @@ reports/
 .env
 dist/
 .yarnrc
+# Yarn 4: local install state and cache. The project .yarnrc.yml, unlike .yarnrc above,
+# is committed on purpose and holds no credential; the negation keeps a global ignore
+# of that name from hiding it.
+.yarn/
+.pnp.*
+!.yarnrc.yml
 .npmrc
 uploads/
 TODO
