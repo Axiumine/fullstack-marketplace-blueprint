@@ -142,6 +142,12 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   `axios` in `marketplace-dev-public-resource`, `js-yaml` in `marketplace-user`. ⚠️ **A `resolutions`
   entry is global to the tree it sits in**, so keep them to patch-level fixes with a named reason, and
   never use one to satisfy a peer range.
+- ⚠️ **The one exception to "patch-level": `minimatch`, pinned to `^11.0.8` by descriptor (2026-11-16).**
+  GHSA-g3hv-75wg-m249 is fixed only in 11.0.1, and typescript-eslint and Stryker — at their latest — still ask
+  for `^10.2`/`~10.2.4`, so ADR-057 step 1 applies: a patched release exists, pin to it. The keys name each
+  `minimatch@npm:^10…`/`~10…` descriptor the lockfile holds, never bare `minimatch`, because
+  `@eslint/eslintrc` needs `minimatch@^3.1.5` and v3's API is a different one. Delete the entries once both
+  upstreams ask for 11.x; a new `^10` descriptor appearing in a refresh needs its own key, or the advisory returns.
 - ⚠️ **`@sentry/node` is an exact version, with no caret, in the nine services and in
   `marketplace-common`: `10.78.0` in five services, `10.76.2` in the other four and in `marketplace-common`
   (2026-11-14).** `test/sentryVersionGuard.test.mts` asserts that exact version because
