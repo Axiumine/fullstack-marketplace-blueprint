@@ -146,6 +146,17 @@ no longer mentions a filter or `git config yarnlock-registry.mirror`. **A mirror
 `http` host, in `~/.yarnrc.yml` (`SETUP.md` §1, *A LAN package mirror*). A lockfile resolved through it stays host-free, as measured on the owner's machine, and
 `marketplace-common`'s publish is unaffected: `yarn upload` pins `--registry=https://registry.npmjs.org/`.
 
+⚠️ **Dated note, 2026-11-16 — Decision 2's `enableScripts: true` becomes `enableScripts: false` plus an allow-list; nothing else superseded.** The Decision 2
+bullet, the *`enableScripts: true` keeps every dependency's install script running* negative and the *`enableScripts: true` is a supply-chain surface* risk describe the
+state at acceptance and are left as written. Each package's `.yarnrc.yml` now says `enableScripts: false`: Yarn 4 runs no dependency's install script and prints
+`YN0004` for each one it skips. **The allow-list is `package.json` `dependenciesMeta`**: `"<package>": { "built": true }` re-enables that one package's build, and
+every other package stays skipped (measured on 4.18.1). ⚠️ **The rule: a dependency with an install script stays off unless it is added to `dependenciesMeta`, and the
+reason goes in the body of the commit that adds it.** Today the list is one entry, `mongodb-client-encryption`, in `marketplace-common`, `marketplace-db-setup` and the
+nine services except `marketplace-dev-authenticated-logout`, which does not depend on it: its install script fetches the native binding the encrypted-field code loads.
+Left off because nothing needs them: `esbuild` (falls back to `@esbuild/linux-x64`), `unrs-resolver`, `@apollo/protobufjs` and `postinstall-postinstall`. The project's own
+`postinstall` (the hook wiring, and `patch-package` in the three frontends) still runs, because Yarn does not gate a workspace's scripts on `enableScripts`. Trigger to revisit: a
+`YN0004` for a package whose missing script breaks a gate, or an advisory against an allow-listed install script.
+
 ---
 
 ## Consequences

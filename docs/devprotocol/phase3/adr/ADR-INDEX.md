@@ -2,10 +2,15 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.41
+**Version:** 1.42
 **Date:** 2026-11-16
 **Author:** adr-agent
 **Changelog:**
+v1.42 - 2026-11-16, last: **ADR-059 gains a dated note, nothing superseded: `enableScripts` is `false` with a per-package allow-list.** Each package's `.yarnrc.yml` now says
+`enableScripts: false`, and `package.json` `dependenciesMeta` re-enables one package's build with `{ "built": true }`. ⚠️ **The rule: a dependency with an install script stays
+off unless it is added there, with the reason in the commit body.** The list is `mongodb-client-encryption` alone (its install script fetches the native binding), in
+`marketplace-common`, `marketplace-db-setup` and the nine services except `marketplace-dev-authenticated-logout`; `esbuild`, `unrs-resolver`, `@apollo/protobufjs` and
+`postinstall-postinstall` stay off. The §5 Yarn 4 follow-up is closed. No decision, status or supersession changed.
 v1.41 - 2026-11-16, later still: **ADR-059, ADR-037 and ADR-055 gain dated notes, nothing superseded: the lockfile registry filter is retired.** The follow-up ADR-059 named is done in the
 fifteen packages: `scripts/lockfile-registry-filter.sh`, the `.gitattributes` line, the `hooks:install` call to it and `marketplace-db-setup`'s `coverage-exempt.txt` entry are deleted, each
 clone's `filter.yarnlock-registry.*` and `yarnlock-registry.mirror` keys are unset, and the `gates.yml` comment is reworded (the fourteen copies stay byte-identical). ⚠️ **The `pre-commit`
@@ -642,11 +647,11 @@ Decisions this platform still owes an ADR, once taken:
   that day, and the Scorecard `Vulnerabilities` check and the `pre-push` floor gate fail again unless the owner has either moved to a patched
   `braces` and deleted the files or renewed them for at most ninety more days with a dated note. Nothing reminds anyone before the gate does; that
   is by design, and it is why the item is listed here.
-- **One Yarn 4 follow-up still open, owed by [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md); its sibling closed on 2026-11-16.** It blocks nothing.
-  ⚠️ **The lockfile registry filter is retired** (2026-11-16, dated note in ADR-059): `scripts/lockfile-registry-filter.sh`, the `.gitattributes` line and the `hooks:install` call
-  are gone from the fifteen packages, and the `pre-commit` backstop stays as a gate with only its wording changed. A LAN mirror is per machine, in `~/.yarnrc.yml` (`SETUP.md` §1).
-  ⚠️ **`enableScripts: true` runs every dependency's install script**, as Yarn 1 did; the one the migration found it needed is `mongodb-client-encryption`'s, so a
-  per-package allow-list is possible and has not been written.
+- **Both Yarn 4 follow-ups owed by [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) closed on 2026-11-16 (dated notes in ADR-059).** Nothing is owed.
+  ⚠️ **The lockfile registry filter is retired**: `scripts/lockfile-registry-filter.sh`, the `.gitattributes` line and the `hooks:install` call are gone from the fifteen
+  packages, and the `pre-commit` backstop stays as a gate with only its wording changed. A LAN mirror is per machine, in `~/.yarnrc.yml` (`SETUP.md` §1).
+  ⚠️ **`enableScripts: false` with an allow-list**: a dependency's install script runs only if `package.json` `dependenciesMeta` marks it `{ "built": true }`, which today is
+  `mongodb-client-encryption` alone.
 
 v1.17 - 2026-08-28, later the same day: **ADR-040 amended in place, hours after acceptance, at the platform
 owner's instruction — the second exception to §1's immutability rule after ADR-011, and the first taken by

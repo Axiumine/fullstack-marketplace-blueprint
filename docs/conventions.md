@@ -111,14 +111,18 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
   A new repository copies the directory with its lockfile.
 - **Each of the fifteen commits a `.yarnrc.yml` holding three settings and a comment, and nothing else**:
   `nodeLinker: node-modules` (vitest, Stryker, `tsc` with `paths` and the production start scripts read
-  `node_modules`, so Plug'n'Play is not used), `enableScripts: true` (Yarn 4.18 does not run a dependency's
-  install script by default, and `mongodb-client-encryption` fetches its native binding in one) and
-  `enableTelemetry: false`. ⚠️ **No `npmRegistryServer` and no credential in it**: a project-level registry
+  `node_modules`, so Plug'n'Play is not used), `enableScripts: false` (no dependency's install script runs;
+  the allow-list is the next bullet) and `enableTelemetry: false`. ⚠️ **No `npmRegistryServer` and no credential in it**: a project-level registry
   overrides the mirror in `~/.yarnrc.yml` for everyone who clones. Credentials and the LAN mirror —
   `npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http` host — live in `~/.yarnrc.yml`, which no
   repository holds. The `pre-commit` guard lets the file through by path and refuses a staged one whose
   blob names a credential key (`.claude/SECRETS.md`). Each `.gitignore` carries `.yarn/`, `.pnp.*` and
   `!.yarnrc.yml`, because a global git ignore may match the file.
+- **A dependency's install script stays off unless it is allow-listed.** Every `.yarnrc.yml` says `enableScripts: false`, so Yarn 4 skips each
+  dependency's install script and prints `YN0004`. The allow-list is `package.json` `dependenciesMeta`: `"<package>": { "built": true }` re-enables that
+  one package, and the reason goes in the body of the commit that adds it. Today that is `mongodb-client-encryption` alone — its install script fetches the
+  native binding — in `marketplace-common`, `marketplace-db-setup` and the nine services except `marketplace-dev-authenticated-logout`. `esbuild` (it falls back
+  to `@esbuild/linux-x64`), `unrs-resolver`, `@apollo/protobufjs` and `postinstall-postinstall` stay off. The project's own `postinstall` still runs (ADR-059).
 - **Yarn 1 habits that no longer work.** `yarn install --immutable` replaces `--frozen-lockfile` (the
   `gates.yml` install); `yarn upgrade` is gone (see below); `yarn audit` is `yarn npm audit`; a `.yarnrc` is
   ignored; and no `prepare` runs on install — `docs/workflow.md` §Git hooks says what replaced it. A Yarn 4
