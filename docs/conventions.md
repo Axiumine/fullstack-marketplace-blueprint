@@ -122,8 +122,10 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
 - **Yarn 1 habits that no longer work.** `yarn install --immutable` replaces `--frozen-lockfile` (the
   `gates.yml` install); `yarn upgrade` is gone (see below); `yarn audit` is `yarn npm audit`; a `.yarnrc` is
   ignored; and no `prepare` runs on install — `docs/workflow.md` §Git hooks says what replaced it. A Yarn 4
-  lockfile carries no registry URL, so `scripts/lockfile-registry-filter.sh` has nothing to rewrite: it is
-  still wired and does nothing, and retiring it is an open follow-up (ADR-059).
+  lockfile carries no registry URL, so a LAN mirror never reaches git, and the clean/smudge filter that kept it
+  out of a Yarn 1 lockfile was retired on 2026-11-16 (ADR-059): the `pre-commit` check that refuses a
+  Yarn-1-format lockfile resolved against a non-public host stays, as a gate. The mirror is per machine and
+  optional — the two keys in `SETUP.md` §1, *A LAN package mirror* — and publishing is unaffected.
 
 ## Dependency ranges, and the two exceptions to them (2026-09-20)
 

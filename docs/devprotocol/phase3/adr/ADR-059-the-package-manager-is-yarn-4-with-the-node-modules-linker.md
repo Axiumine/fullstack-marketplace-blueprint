@@ -135,6 +135,17 @@ entries of its own: `node-gyp@latest`, for the `binding.gyp` of `mongodb-client-
 - **Dependabot watches the directory.** The `npm` entry of each `dependabot.yml` lists `/.github/tools` beside `/`, so a new Corepack release arrives as a
   pull request that someone reads and the gates run on, which is the only way the pin moves.
 
+⚠️ **Dated note, 2026-11-16 — the lockfile registry filter is retired; nothing superseded.** Decision 6, the options table and the *dead mechanism*
+bullet below describe the state at acceptance and are left as written. The follow-up they name is done in the fifteen packages: `scripts/lockfile-registry-filter.sh`
+and the `yarn.lock filter=yarnlock-registry` line of `.gitattributes` are deleted, `hooks:install` is `git rev-parse … && git config core.hooksPath .githooks || true`
+with no call to the script, `marketplace-db-setup` no longer lists it in `coverage-exempt.txt`, and each clone's `filter.yarnlock-registry.*` and
+`yarnlock-registry.mirror` keys are unset. The `gates.yml` comment that named the filter now says only that nothing needs rewriting out of a Yarn 4 lockfile, and the
+fourteen copies stay byte-identical. ⚠️ **The `pre-commit` backstop is a gate and stays**: its check logic is byte-for-byte unchanged, and only its comments and its
+BLOCKED message were reworded — it refuses a Yarn-1-format `yarn.lock` resolved against a non-public host, `registry.npmjs.org` and `registry.yarnpkg.com` passing, and
+no longer mentions a filter or `git config yarnlock-registry.mirror`. **A mirror is a per-machine setting**: `npmRegistryServer`, plus `unsafeHttpWhitelist` for an
+`http` host, in `~/.yarnrc.yml` (`SETUP.md` §1, *A LAN package mirror*). A lockfile resolved through it stays host-free, as measured on the owner's machine, and
+`marketplace-common`'s publish is unaffected: `yarn upload` pins `--registry=https://registry.npmjs.org/`.
+
 ---
 
 ## Consequences

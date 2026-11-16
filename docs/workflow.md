@@ -248,7 +248,7 @@ and are safe to read. ⚠️ **`.yarnrc.yml` is the exception to the dot rule, i
 package commits one, it holds three settings and no credential (`docs/conventions.md` §Node and package
 manager), and the `pre-commit` guard refuses a staged one that names a registry credential key. The
 secret-bearing Yarn file is the machine's own `~/.yarnrc.yml`, where credentials and the LAN mirror
-live. Claude's `permissions.deny` still denies reading `.yarnrc.yml`, so the owner places and stages it.
+live (the mirror's two keys: `SETUP.md` §1, *A LAN package mirror*). Claude's `permissions.deny` still denies reading `.yarnrc.yml`, so the owner places and stages it.
 
 Anything printed to a terminal here is sent to the model API **and** written in plaintext to
 `~/.claude/projects/<slug>/*.jsonl`, so `cat .env` leaks permanently and cannot be un-sent.

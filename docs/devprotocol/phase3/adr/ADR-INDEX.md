@@ -2,10 +2,16 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.40
+**Version:** 1.41
 **Date:** 2026-11-16
 **Author:** adr-agent
 **Changelog:**
+v1.41 - 2026-11-16, later still: **ADR-059, ADR-037 and ADR-055 gain dated notes, nothing superseded: the lockfile registry filter is retired.** The follow-up ADR-059 named is done in the
+fifteen packages: `scripts/lockfile-registry-filter.sh`, the `.gitattributes` line, the `hooks:install` call to it and `marketplace-db-setup`'s `coverage-exempt.txt` entry are deleted, each
+clone's `filter.yarnlock-registry.*` and `yarnlock-registry.mirror` keys are unset, and the `gates.yml` comment is reworded (the fourteen copies stay byte-identical). ⚠️ **The `pre-commit`
+backstop is a gate and stays**, its check logic byte-for-byte unchanged and its comments and BLOCKED message reworded: it refuses a Yarn-1-format lockfile resolved against a non-public host. A
+LAN mirror is per machine, `npmRegistryServer` plus `unsafeHttpWhitelist` in `~/.yarnrc.yml` (`SETUP.md` §1), and a Yarn 4 lockfile resolved through it stays host-free. The §5 follow-up loses
+its first half; the `enableScripts` half stays open. No decision, status or supersession changed.
 v1.40 - 2026-11-16, later the same day: **ADR-026 gets a dated note, nothing superseded: the unified `engines.node` value is `^26.13.1`; ADR-059 gains a Corepack decision.** The platform owner ordered Node 26.13.1 everywhere and Node 24 removed from the project. [ADR-026](./ADR-026-node-engines-unified-with-caret.md) keeps its decision — one caret-included spelling, `engines.node` as the one source the hooks read — and its header now says the value is `^26.13.1`, `.nvmrc` is `26.13.1`, and its `^24.18.0` body and §Compliance are read as `^26.13.1`. ⚠️ **ADR-059, unmerged, is amended directly rather than noted**: Node 25 and later no longer bundle Corepack, so its §Decision 8 records that Corepack is installed and pinned — locally by `npm install -g corepack@0.36.0 && corepack enable`, in CI by `npm ci` of `.github/tools/package-lock.json` in each repository, **not** by a bare `npm install -g corepack`, which is an unpinned download that would take Scorecard's `Pinned-Dependencies` below the floor of 10 ADR-054 holds — with Dependabot watching `/.github/tools`. §1's count of supersessions does not move, because no ADR is superseded by the note. The ADR-026 row's status cell names the note, one row is added to §4 against a bare global Corepack install in a workflow, and §1's sentence on ADR-026 no longer quotes the value.
 
 v1.39 - 2026-11-16: **[ADR-059](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) added, `accepted` — the package manager is Yarn 4.18.1 with `nodeLinker: node-modules` in all fifteen packages, and a committed
@@ -636,9 +642,9 @@ Decisions this platform still owes an ADR, once taken:
   that day, and the Scorecard `Vulnerabilities` check and the `pre-push` floor gate fail again unless the owner has either moved to a patched
   `braces` and deleted the files or renewed them for at most ninety more days with a dated note. Nothing reminds anyone before the gate does; that
   is by design, and it is why the item is listed here.
-- **Two Yarn 4 follow-ups, owed by [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md).** Neither blocks anything. ⚠️ **The lockfile registry filter is inert and still wired**:
-  `scripts/lockfile-registry-filter.sh` (byte-identical in fifteen repositories), its clean/smudge `git config` lines, the `.gitattributes` line and the `pre-commit`
-  wording about it do nothing under Yarn 4, whose lockfiles carry no registry URL; retiring the lot is one pass over fifteen repositories and has not been done.
+- **One Yarn 4 follow-up still open, owed by [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md); its sibling closed on 2026-11-16.** It blocks nothing.
+  ⚠️ **The lockfile registry filter is retired** (2026-11-16, dated note in ADR-059): `scripts/lockfile-registry-filter.sh`, the `.gitattributes` line and the `hooks:install` call
+  are gone from the fifteen packages, and the `pre-commit` backstop stays as a gate with only its wording changed. A LAN mirror is per machine, in `~/.yarnrc.yml` (`SETUP.md` §1).
   ⚠️ **`enableScripts: true` runs every dependency's install script**, as Yarn 1 did; the one the migration found it needed is `mongodb-client-encryption`'s, so a
   per-package allow-list is possible and has not been written.
 

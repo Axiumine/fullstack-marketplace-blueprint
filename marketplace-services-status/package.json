@@ -25,7 +25,7 @@
     "test:mutation": "stryker run",
     "semgrep": "docker run --rm --network none -e HOME=/tmp -u \"$(id -u):$(id -g)\" -v \"$PWD\":/src -w /src semgrep/semgrep:1.172.0 semgrep scan --metrics=off --disable-version-check --config semgrep/ src",
     "semgrep:ci": "docker run --rm --network none -e HOME=/tmp -u \"$(id -u):$(id -g)\" -v \"$PWD\":/src -w /src semgrep/semgrep:1.172.0 semgrep scan --metrics=off --disable-version-check --error --sarif --output semgrep.sarif --config semgrep/ src",
-    "hooks:install": "git rev-parse --git-dir > /dev/null 2>&1 && git config core.hooksPath .githooks && ./scripts/lockfile-registry-filter.sh install || true",
+    "hooks:install": "git rev-parse --git-dir > /dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "postinstall": "yarn run hooks:install"
   },
   "dependencies": {

@@ -46,6 +46,25 @@ Not required to run the platform: nginx (step 10 is for putting it on a host), a
 (without one, registration works and the confirmation email is not delivered), a Nominatim instance (the
 address autocomplete stays empty), Cloudflare Turnstile (the widget disables itself when no key is set).
 
+### A LAN package mirror (optional, per machine)
+
+Skip this unless you run a local npm mirror such as Verdaccio. The mirror is configured in the machine's own
+`~/.yarnrc.yml`, in your home directory, and in no repository — two keys:
+
+```yaml
+npmRegistryServer: "http://<mirror-host>:4873"
+unsafeHttpWhitelist:
+  - <mirror-host>
+```
+
+`unsafeHttpWhitelist` is needed only because the mirror speaks plain `http`. Every `yarn install` then resolves
+through it, and **the lockfile stays host-free**: a Yarn 4 `yarn.lock` records `resolution: "pkg@npm:1.2.3"` and
+no registry URL, so there is nothing for a mirror to leak into git and no filter to install (the clean/smudge
+filter that did this for Yarn 1 was retired, `ADR-059`, dated note of 2026-11-16). Publishing is unaffected:
+`marketplace-common`'s `yarn upload` pins `--registry=https://registry.npmjs.org/`. ⚠️ Never put
+`npmRegistryServer` in a repository's `.yarnrc.yml`: a project value overrides your mirror for everyone who clones.
+Registry credentials belong in `~/.yarnrc.yml` too, and nowhere else.
+
 ### The `/etc/hosts` entries
 
 ```

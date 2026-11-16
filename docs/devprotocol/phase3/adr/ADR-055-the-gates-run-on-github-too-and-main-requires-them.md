@@ -116,7 +116,9 @@ the local proxy out on the way into git, so no runner configuration is needed.
 ⚠️ **Dated note, 2026-11-16 — nothing superseded.** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) moves the platform to
 Yarn 4.18.1, and the install is now **`yarn install --immutable`**: the same refusal to rewrite `yarn.lock`, under its Yarn 4 name. The reasoning above stands, the
 absent `cache: yarn` included. One clause is now a statement about the past: a Yarn 4 lockfile carries no registry URL, so what keeps a runner from needing
-configuration is that there is nothing in the file to rewrite, and not the filter.
+configuration is that there is nothing in the file to rewrite, and not the filter. The filter itself was retired from every repository on the same
+day, and the `gates.yml` comment that named it now says only that nothing needs rewriting out of a Yarn 4 lockfile; the install step and the fourteen
+byte-identical copies of the workflow are otherwise unchanged.
 
 **6. `marketplace-nginx` runs its one gate and the parent runs the gates of
 `marketplace-services-status`.** nginx carries no `package.json`, so `test/run.sh` — `nginx -t` against the
