@@ -94,6 +94,10 @@ read it before proposing a refactor of anything below.
 - **Indentation is two spaces** (ADR-058, platform owner, 2026-10-17), set by prettier in the thirteen gated repos;
   `marketplace-services-status` has no formatter and follows it by hand. Shell scripts, git hooks, `marketplace-db-setup`
   and the nginx confs stay tab-indented, because bash `<<-` heredocs strip tabs only (`docs/conventions.md`).
+- ⚠️ **Yarn 4.18.1 with the `node-modules` linker, in all fifteen packages (ADR-059).** Each package commits a
+  credential-free `.yarnrc.yml`; pre-commit refuses one that holds an auth key, and the owner's Claude settings deny
+  reading it, so the owner places and stages it. `prepare` never runs on install — hooks arm through `postinstall`.
+  A refresh within ranges is `yarn up -R '**'`; `yarn up` without `-R` rewrites the manifest to latest.
 - ⚠️ **Everything is English, with no exception** — domain names, identifiers, UI text, routes, comments,
   test fixtures, migrations. One word of a second language is a regression, not a style nit: the same
   name has to spell identically across a migration, a `$jsonSchema`, a model, a resolver, a GraphQL field

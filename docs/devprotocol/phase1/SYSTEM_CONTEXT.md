@@ -2,11 +2,16 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.6
-**Date:** 2026-08-27
+**Version:** 1.8
+**Date:** 2026-11-16
 **Author:** system-context-agent
 **Depends on:** PDR.md ✅
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree. No prior DEVPROTOCOL documents existed.
+v1.8 - 2026-11-16: §5.13's one sentence on the install path no longer names `scripts/lockfile-registry-filter.sh`: the
+clean/smudge filter for the `yarn.lock` registry host was retired from every repository
+([`ADR-059`](../phase3/adr/ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md), dated note of
+2026-11-16), because a Yarn 4 lockfile records no registry URL. The v1.4 entry below is history and is left as written.
+No boundary, actor or flow changed.
 v1.7 - 2026-08-30: **§5.13 is rewritten again and loses its subject.**
 [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md) deletes
 `deploy-local.sh`, so the gap the section was named for is closed by publishing rather than bridged: the
@@ -523,9 +528,9 @@ crosses this boundary now** — a version published to `registry.npmjs.org`, fet
 `yarn install` against its own `yarn.lock`. An edit under `BEs/marketplace-common/src/` reaches no service
 until a release carries it and that consumer's range moves; the reason the script went is that the state it
 produced had no version, no integrity hash and no lockfile entry, so it existed on one machine and no other.
-The install path itself is unchanged and stays deliberately plain: the only lifecycle script any of the 16
-repos defines is `prepare`, which wires the git hooks path and `scripts/lockfile-registry-filter.sh`, an
-unrelated clean/smudge filter for the `yarn.lock` registry host. **`yarn install` is authoritative
+The install path itself is unchanged and stays deliberately plain: the only install-time lifecycle script any of the 16
+repos defines is `postinstall` (`marketplace-common` also keeps a `prepare`, which `npm publish` runs to build), which wires the git hooks path and nothing else (the clean/smudge filter for the `yarn.lock`
+registry host that it once also wired was retired on 2026-11-16, ADR-059). **`yarn install` is authoritative
 everywhere and can now undo nothing** — the collision this section used to describe cannot occur.
 
 ### 5.14 Data flow summary

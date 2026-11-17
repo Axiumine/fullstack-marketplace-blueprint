@@ -1,11 +1,28 @@
 # ADR-026 — engines.node is ^24.18.0 in every package.json, caret included
 # Marketplace
 
-**Status:** accepted
+**Status:** accepted, **superseded in part 2026-11-16** — the clause that the package manager hard-gates `engines`; and a dated note of the same day that
+supersedes nothing — the unified value is `^26.13.1`
 **Date:** 2026-08-07
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md), **in part, 2026-11-16** — the clause that `engines.node` is a hard exit 1
+enforced by yarn, which was this ADR's reason for choosing `engines` over `.nvmrc`, and the `yarn@1.22.22` string it describes: **Yarn 4.18.1 does not read
+`engines`, and `packageManager` is `yarn@4.18.1+sha512.…` in all fifteen.** The enforcement is now each `pre-push`'s own node check, which reads
+`engines.node`, and `.nvmrc` in CI. The caret, the single spelling and `engines.node` as the one source the hooks read stand.
+
+⚠️ **Dated note, 2026-11-16 — nothing superseded: the unified value moved from `^24.18.0` to `^26.13.1`, by the platform owner's order.** Node 26.13.1 is the
+Node of the whole project and Node 24 is removed from it: `engines.node` is `^26.13.1` in all fifteen packages and `.nvmrc` says `26.13.1`. The decision
+this ADR took — one spelling, caret included, in `engines.node` — is untouched, and so is the sweep it prescribes: all fifteen moved together. Two
+consequences are recorded where they live. Node 25 and later no longer bundle Corepack, so Corepack is installed and pinned
+([`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) §Decision 8), and Node 26's own experimental
+`globalThis.localStorage` shadows jsdom's, which the three frontends' vitest configs turn off with `--no-experimental-webstorage` (`docs/frontends.md`).
+§Risks below, *Node 25 or a Node 24 EOL forces a major bump*, is the trigger this note answers. Where the body and §Compliance below say `^24.18.0`, read
+`^26.13.1`.
+
+⚠️ **Two halves of this ADR are in force and one is history.** In force: one caret-included string in every `package.json` — `^26.13.1` now — and
+`engines.node` as the place the hooks read the required Node from. History: that yarn enforces it. The body below describes the Yarn 1 era and Node 24, and is
+read as that.
 
 ---
 

@@ -67,8 +67,8 @@ yarn systemd:install
 `systemctl --user daemon-reload`, and preflights every service: it warns (does not fail) on a missing
 `.env` or a missing `node_modules` in that service's repo, and it asserts that no monitored unit is
 enabled. It refuses to run as root and checks that
-`~/.nvm/versions/node/v24.18.0/bin/yarn` exists before doing anything, printing the `nvm install
-24.18.0` line if it does not.
+`~/.nvm/versions/node/v26.13.1/bin/yarn` exists before doing anything, printing the `nvm install
+26.13.1` line if it does not.
 
 `yarn systemd:uninstall` stops `marketplace.target`, removes the generated units and reloads the daemon;
 it supports `--dry-run`.

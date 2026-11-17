@@ -33,7 +33,7 @@ election or a stepdown behaves here the way it behaves on the real cluster.
 | Docker Engine 24+ with Compose v2 | `docker compose version` must answer. The scripts fall back to a v1 `docker-compose` if that is all you have. |
 | `openssl` | mints the replica-set keyfile and the CSFLE master key |
 | three `/etc/hosts` entries | see immediately below — **without them nothing outside Docker can connect** |
-| Node v24.18.0 + yarn | to run the platform itself, not this directory |
+| Node v26.13.1 + yarn | to run the platform itself, not this directory |
 | **Redis 7.4 or newer** | a platform requirement, not a preference — see [§Redis](#redis). The container in this compose file already is; a Redis of your own has to be. |
 
 ### The `/etc/hosts` entries

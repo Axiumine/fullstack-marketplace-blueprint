@@ -161,8 +161,8 @@ function serviceUnitContent({ service, workspaceRootAbs, nodeBinDir, unitTarget 
     'Type=simple',
     `WorkingDirectory=${repoAbs}`,
     // Pinned nvm bin dir first: the node_modules/.bin shims below are `#!/usr/bin/env node`,
-    // so this is what decides which node they run under. The machine default is a different
-    // minor (24.14 vs the 24.18 in services.json), and every repo's engines is ^24.18.0.
+    // so this is what decides which node they run under. The machine default can be another
+    // version from the 26.13.1 in services.json, and every repo's engines is ^26.13.1.
     `Environment=PATH=${nodeBinDir}:/usr/local/bin:/usr/bin:/bin`,
     'Environment=NODE_ENV=development',
     `# from ${service.repo}/package.json scripts.${service.script}: ${sourceScript}`,

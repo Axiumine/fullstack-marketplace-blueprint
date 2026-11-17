@@ -88,36 +88,79 @@ file outside `src/`, `test/` and the named vitest configs is read by nothing aga
 
 ## Node and package manager
 
-- **`engines.node` is `^24.18.0` in all fifteen packages** (the parent workspace has no `package.json`).
-  Keep the caret: semver reads `24.18` as `24.18.x` and bare `24.18.0` as that one release. **`engines`
-  is a hard gate under yarn classic** — a mismatch exits 1 with `The engine "node" is incompatible with
-  this module`, not a warning. When bumping Node, bump all fifteen in one sweep.
-- **`packageManager` is in all fifteen packages**, one identical `yarn@1.22.22+sha512.…` string. Keep
+- **`engines.node` is `^26.13.1` in all fifteen packages** (the parent workspace has no `package.json`),
+  `.nvmrc` says `26.13.1`, and Node 24 is gone from the project (the owner's order of 2026-11-16, ADR-026).
+  Keep the caret: semver reads `26.13` as `26.13.x` and bare `26.13.1` as that one release. ⚠️ **Yarn 4
+  does not read `engines`**: `yarn install` and `yarn dev` run under any Node and say nothing. The field
+  is what each `pre-push` reads to select the pinned Node through nvm — it blocks with the `nvm install`
+  line when that version is missing — and CI takes the version from `.nvmrc`; that hook check is the
+  enforcement. When bumping Node, bump all fifteen in one sweep.
+- **`packageManager` is in all fifteen packages**, one identical `yarn@4.18.1+sha512.…` string. Keep
   it that way: it is what makes Corepack hand every repo the same yarn binary, and the eight that used
   to lack it — `marketplace-common` and the seven original backend services — were the ones where a
   divergent yarn would be least visible, since they are also the pair that publishes and consumes an
   unregistered package by name. A new package copies the line verbatim; a yarn bump changes all fifteen
-  in one sweep, exactly like `engines.node`.
+  in one sweep, exactly like `engines.node`. ADR-059 records the move from Yarn 1.22.22.
+- ⚠️ **Node 26 ships without Corepack, so Corepack is installed, and pinned.** Node 25 and later no longer
+  bundle it. On a machine: `npm install -g corepack@0.36.0 && corepack enable`, once per Node install —
+  the fix line the hooks print says the same. In CI: each repository carries
+  `.github/tools/package.json` and `package-lock.json` naming `corepack` 0.36.0, and `gates.yml` installs it
+  with `npm ci`, outside the checkout, with scripts off. Never a bare `npm install -g corepack` in a workflow:
+  it is an unpinned download, and Scorecard's `Pinned-Dependencies` would fall below its floor of 10
+  (ADR-054). Dependabot watches `/.github/tools`, so the version moves by a pull request someone reads.
+  A new repository copies the directory with its lockfile.
+- **Each of the fifteen commits a `.yarnrc.yml` holding three settings and a comment, and nothing else**:
+  `nodeLinker: node-modules` (vitest, Stryker, `tsc` with `paths` and the production start scripts read
+  `node_modules`, so Plug'n'Play is not used), `enableScripts: false` (no dependency's install script runs;
+  the allow-list is the next bullet) and `enableTelemetry: false`. ⚠️ **No `npmRegistryServer` and no credential in it**: a project-level registry
+  overrides the mirror in `~/.yarnrc.yml` for everyone who clones. Credentials and the LAN mirror —
+  `npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http` host — live in `~/.yarnrc.yml`, which no
+  repository holds. The `pre-commit` guard lets the file through by path and refuses a staged one whose
+  blob names a credential key (`.claude/SECRETS.md`). Each `.gitignore` carries `.yarn/`, `.pnp.*` and
+  `!.yarnrc.yml`, because a global git ignore may match the file.
+- **A dependency's install script stays off unless it is allow-listed.** Every `.yarnrc.yml` says `enableScripts: false`, so Yarn 4 skips each
+  dependency's install script and prints `YN0004`. The allow-list is `package.json` `dependenciesMeta`: `"<package>": { "built": true }` re-enables that
+  one package, and the reason goes in the body of the commit that adds it. Today that is `mongodb-client-encryption` alone — its install script fetches the
+  native binding — in `marketplace-common`, `marketplace-db-setup` and the nine services except `marketplace-dev-authenticated-logout`. `esbuild` (it falls back
+  to `@esbuild/linux-x64`), `unrs-resolver`, `@apollo/protobufjs` and `postinstall-postinstall` stay off. The project's own `postinstall` still runs (ADR-059).
+- **Yarn 1 habits that no longer work.** `yarn install --immutable` replaces `--frozen-lockfile` (the
+  `gates.yml` install); `yarn upgrade` is gone (see below); `yarn audit` is `yarn npm audit`; a `.yarnrc` is
+  ignored; and no `prepare` runs on install — `docs/workflow.md` §Git hooks says what replaced it. A Yarn 4
+  lockfile carries no registry URL, so a LAN mirror never reaches git, and the clean/smudge filter that kept it
+  out of a Yarn 1 lockfile was retired on 2026-11-16 (ADR-059): the `pre-commit` check that refuses a
+  Yarn-1-format lockfile resolved against a non-public host stays, as a gate. The mirror is per machine and
+  optional — the two keys in `SETUP.md` §1, *A LAN package mirror* — and publishing is unaffected.
 
 ## Dependency ranges, and the two exceptions to them (2026-09-20)
 
-- **A refresh re-resolves, it does not widen.** `yarn upgrade` with no arguments moves every tree to the
-  newest version each declared range already allows and rewrites `yarn.lock`; that is the whole remedy for
-  an advisory against a transitive, and it cleared every advisory in the workspace but one. Reach for a
-  range edit only when the fix is outside the range, and say so in the commit.
+- **A refresh re-resolves, it does not widen.** In a package, `yarn up -R '**'` moves every tree to the
+  newest version each declared range already allows and rewrites `yarn.lock`, leaving `package.json`
+  alone; that is the whole remedy for an advisory against a transitive (the refresh of 2026-09-20, under
+  Yarn 1, cleared every advisory in the workspace but one). Keep the quotes — a shell expands a bare `**`.
+  ⚠️ **`yarn up '**'` without `-R` is the opposite**: it ignores the declared ranges and rewrites the
+  manifest to each package's latest release. `yarn upgrade` is not a Yarn 4 command. The refresh also
+  re-resolves `node-gyp@latest`, the entry Yarn 4 adds for `mongodb-client-encryption`'s `binding.gyp`, so
+  it can move a build tool no `package.json` names. Reach for a range edit only when the fix is outside
+  the range, and say so in the commit.
 - **`resolutions` is for a transitive pinned exactly by a dependency that will not move.** All fifteen
   packages carry `"qs": "^6.15.2"`, because `typed-rest-client` inside `@stryker-mutator/core` asks for
   `qs@6.15.1` by exact version and nothing in a range refresh can reach it. Two packages carry one more —
   `axios` in `marketplace-dev-public-resource`, `js-yaml` in `marketplace-user`. ⚠️ **A `resolutions`
   entry is global to the tree it sits in**, so keep them to patch-level fixes with a named reason, and
   never use one to satisfy a peer range.
+- ⚠️ **The one exception to "patch-level": `minimatch`, pinned to `^11.0.8` by descriptor (2026-11-16).**
+  GHSA-g3hv-75wg-m249 is fixed only in 11.0.1, and typescript-eslint and Stryker — at their latest — still ask
+  for `^10.2`/`~10.2.4`, so ADR-057 step 1 applies: a patched release exists, pin to it. The keys name each
+  `minimatch@npm:^10…`/`~10…` descriptor the lockfile holds, never bare `minimatch`, because
+  `@eslint/eslintrc` needs `minimatch@^3.1.5` and v3's API is a different one. Delete the entries once both
+  upstreams ask for 11.x; a new `^10` descriptor appearing in a refresh needs its own key, or the advisory returns.
 - ⚠️ **`@sentry/node` is an exact version, with no caret, in the nine services and in
   `marketplace-common`: `10.78.0` in five services, `10.76.2` in the other four and in `marketplace-common`
   (2026-11-14).** `test/sentryVersionGuard.test.mts` asserts that exact version because
   `src/instrument.mts` rests on SDK internals read at it (`RISK_REGISTER` R42), and on 2026-09-20 a
   lockfile refresh moved the SDK off its pin and put ten suites red. The range now says what the guard
   says. A bump is a manifest edit somebody reads — or a Dependabot pull request somebody reads — never a
-  side effect of `yarn upgrade`. ⚠️ **10.75.0 is the first version this arrangement has admitted**, and it
+  side effect of `yarn up -R`. ⚠️ **10.75.0 is the first version this arrangement has admitted**, and it
   was admitted by comparing both releases' tarballs file by file; **10.76.2 is the second**, admitted the same
   way and then measured, although two files of the audited surface changed (the change only narrows what is
   sent); **10.78.0 is the third**, admitted on the tarballs alone, with nothing in the audited surface changed

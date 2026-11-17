@@ -97,6 +97,13 @@ read yet. An eight-hundred-line hand-written lockfile rewriter existed because o
 | Keep it unpublished but record the ownership answer alone | Closes `phase5/PLATFORM_OPERATIONS_QUALITY_GATES.md` §6 literally, with no irreversible act | Restates ADR-015's deferral under a new number and leaves the trap. Answers *who decides* while refusing to record *what they decided*, which is the half that changes anything |
 | The LAN Verdaccio mirror (`yarnproxy.gio.lan:4873`) as the publish target | Already running; no public exposure | Resolves on one LAN. `scripts/lockfile-registry-filter.sh` exists precisely to keep that hostname *out* of committed lockfiles because *"a committed lockfile naming a host that only resolves on one LAN breaks `yarn install` for every clone that is not on it"* — publishing there would write the same defect into the dependency itself |
 
+⚠️ **Dated note, 2026-11-16 — nothing superseded.** [`ADR-059`](./ADR-059-the-package-manager-is-yarn-4-with-the-node-modules-linker.md) moved the
+platform to Yarn 4, whose lockfile records no registry URL, and `scripts/lockfile-registry-filter.sh` — which the two rows above cite as the
+precedent and the reason — was retired from every repository the same day. The reasoning stands: a committed lockfile naming a host that resolves
+on one LAN breaks `yarn install` for every other clone, which is why the `pre-commit` check against a non-public host stays as a gate. What
+changed is how the host is kept out: a LAN mirror now lives in the machine's own `~/.yarnrc.yml` and a Yarn 4 lockfile never records it. The
+publish target is unaffected, and `yarn upload` still pins `--registry=https://registry.npmjs.org/`.
+
 ---
 
 ## Decision

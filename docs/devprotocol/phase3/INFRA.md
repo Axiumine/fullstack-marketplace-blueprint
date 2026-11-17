@@ -294,7 +294,7 @@ Mechanics, all load-bearing:
   without a passwordless sudoers rule for this exact `mount --bind` invocation, the script blocks on a
   password prompt (or fails outright in a non-interactive shell) every single run.
 - **Version comes from `.nvmrc` via `nvm use`**, not a hardcoded literal in the script — this is why the
-  version cannot drift from `engines.node` (`^24.18.0` in every `package.json`) the way a literal here
+  version cannot drift from `engines.node` (`^26.13.1` in every `package.json`) the way a literal here
   silently would.
 - Ends in `yarn run dev`, so `dev.sh` is a wrapper around §5's `dev` script, not a replacement lifecycle.
 
@@ -500,7 +500,7 @@ The entire delivery/quality-gate mechanism is **local git hooks**, wired via `co
   `pre-commit`, so no secret guard.
 
 `core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos that is a package
-self-arms it via a `"prepare": "git config core.hooksPath .githooks || true"` script that `yarn install`
+self-arms it via a `"postinstall": "yarn run hooks:install"` script that a fresh or changed `yarn install`
 runs. **Two repos have no `package.json` and so nothing re-arms them after a fresh clone — this parent
 workspace and `marketplace-nginx`**; both must be set by hand
 (`git config core.hooksPath .githooks`).

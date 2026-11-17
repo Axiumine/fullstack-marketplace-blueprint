@@ -71,24 +71,30 @@ const consumerDirs = () => {
 	})
 }
 
-// yarn v1 lockfile: an entry header naming every range that resolved to it, then an indented
-// `version "x.y.z"`. The header carries the range, which is what ties a declared `^4.2.1` to the
-// 4.2.1 the tree is supposed to hold.
+// A lockfile entry: a header naming every range that resolved to it, then an indented version line.
+// The header carries the range, which is what ties a declared `^4.2.1` to the 4.2.1 the tree is
+// supposed to hold. Both formats are read, because the sixteen repos do not change package manager in
+// one commit, and a repo that has not switched yet must not read as "resolves no such range":
+//
+//   Yarn 4 (the format every repo carries once switched):   "@scope/name@npm:^4.2.1", "@scope/name@npm:^4.2":
+//                                                           then `  version: 4.2.1`
+//   Yarn 1 (a repo not yet switched, or one that went back): "@scope/name@^4.2.1", "@scope/name@^4.2":
+//                                                           then `  version "4.2.1"`
 const lockedVersion = (repo, range) => {
 	const lockPath = join(repo, 'yarn.lock')
 	if (!existsSync(lockPath)) return undefined
 
 	const lines = readFileSync(lockPath, 'utf8').split('\n')
-	const wanted = `${PKG}@${range}`
+	const wanted = [`${PKG}@npm:${range}`, `${PKG}@${range}`]
 
 	for (let i = 0; i < lines.length; i += 1) {
 		if (lines[i].startsWith('"') === false && lines[i].startsWith(PKG) === false) continue
 		const header = lines[i].replace(/:$/, '')
 		const ranges = header.split(',').map((part) => part.trim().replace(/^"|"$/g, ''))
-		if (!ranges.includes(wanted)) continue
+		if (!wanted.some((descriptor) => ranges.includes(descriptor))) continue
 
 		for (let j = i + 1; j < lines.length && lines[j].startsWith(' '); j += 1) {
-			const match = lines[j].match(/^\s+version "(.+)"$/)
+			const match = lines[j].match(/^\s+version(?::\s+| ")([^"\s]+)"?$/)
 			if (match) return match[1]
 		}
 	}

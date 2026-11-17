@@ -20,7 +20,10 @@
 version: 2
 updates:
   - package-ecosystem: 'npm'
-    directory: '/marketplace-services-status'
+    # .github/tools holds the one CI-only dependency, corepack, installed with `npm ci`.
+    directories:
+      - '/marketplace-services-status'
+      - '/.github/tools'
     schedule:
       interval: 'weekly'
       day: 'saturday'

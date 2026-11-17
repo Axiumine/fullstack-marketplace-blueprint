@@ -11,8 +11,8 @@
 # checkout with **every gate off and nothing saying so** — the secret guard, the coverage and
 # mutation thresholds, `nginx -t`, the whole apparatus (RISK_REGISTER R09).
 #
-# Fourteen of the sixteen heal themselves: they are npm packages, and their `"prepare"` script
-# re-runs the `git config` line on every `yarn install`. Two cannot, because they have no
+# Fourteen of the sixteen heal themselves: they are npm packages, and their `"postinstall"` script
+# re-runs the `git config` line on a fresh or changed `yarn install`. Two cannot, because they have no
 # `package.json` and by decision never will — this parent workspace (ADR-025) and
 # `marketplace-nginx` (ADR-030 option D, rejected: a JavaScript toolchain invented to host one line
 # of git config is the appearance of a gate). For those two the line is typed by hand, which is

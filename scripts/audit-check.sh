@@ -268,7 +268,7 @@ echo '7. Every repo has its hooks armed, and the hook they point at can actually
 # will never set it from tracked content — a repository that could arm its own hooks would execute a
 # stranger's script on `git clone`. So a fresh checkout of any of the sixteen starts with every gate
 # off and nothing saying so (RISK_REGISTER R09), and the hook that would notice is the one that is
-# off. Fourteen repos heal on `yarn install` through `"prepare"`; this workspace and
+# off. Fourteen repos heal on `yarn install` through `"postinstall"` (Yarn 4 never runs `"prepare"`, ADR-059); this workspace and
 # `marketplace-nginx` have no `package.json` and never will (ADR-025, ADR-030 option D), so for those
 # two the value is typed by hand — `./scripts/bootstrap.sh` types it.
 #
@@ -323,6 +323,11 @@ echo '8. The secret rules have not drifted apart across the sixteen pre-commit h
 # of the sixteen is right for all sixteen, and one line is cheaper than sixteen judgements.
 CANON="$(sed "s/^SECRET_VALUE='/SECRET_VALUE+='|/" .githooks/pre-commit | grep '^SECRET_VALUE')"
 CANON_PATH="$(grep '^SECRET_PATH' .githooks/pre-commit)"
+# Yarn 4 reads its project settings from a committed `.yarnrc.yml`, so SECRET_PATH lets that name through
+# and YARNRC_CREDENTIAL refuses it by content instead: a staged `.yarnrc.yml` naming a registry credential
+# key is the same leak a committed `.npmrc` is. The same equality as the path rule, for the same reason —
+# a hook that lost this line would commit a token in the one file the path rule no longer stops.
+CANON_YARNRC="$(grep '^YARNRC_CREDENTIAL' .githooks/pre-commit)"
 DRIFTED=0
 
 check_rules() {
@@ -366,6 +371,11 @@ check_rules() {
 		fail "$label — its SECRET_PATH is not the one the parent carries, so the two hooks refuse different files"
 		DRIFTED=1
 	fi
+
+	if [ -z "$CANON_YARNRC" ] || [ "$(grep '^YARNRC_CREDENTIAL' "$dir/.githooks/pre-commit")" != "$CANON_YARNRC" ]; then
+		fail "$label — its YARNRC_CREDENTIAL is missing or not the parent's, so a .yarnrc.yml holding a token commits clean"
+		DRIFTED=1
+	fi
 }
 
 check_rules 'parent' .
@@ -395,10 +405,30 @@ while IFS= read -r assignment; do
 done <<< "$CANON_PATH"
 
 MUST_REFUSE=(.env .env.local BEs/dev/svc/.env setup/mongodb.js marketplace-nginx/tls/origin.pem
-	secrets/redis.conf a/b/id_ed25519 certs/server.key store/keys.jks)
+	secrets/redis.conf a/b/id_ed25519 certs/server.key store/keys.jks .npmrc .yarnrc BEs/dev/svc/.yarnrc)
 MUST_PASS=(env npmrc BEs/dev/svc/env docs/environment.md setup/mongodb.test.js
-	src/setup/mongodbClient.mts scripts/env-fingerprint-sweep.sh package.json)
+	src/setup/mongodbClient.mts scripts/env-fingerprint-sweep.sh package.json
+	.yarnrc.yml marketplace-services-status/.yarnrc.yml)
 BEHAVIOUR=0
+
+# The content rule that replaced `.yarnrc.yml` in the path rule, held to the same two lists: every
+# credential key Yarn 4 reads is refused at any indent and in either quoting, and the two settings the
+# committed file exists for — or a comment that merely names a key — are not.
+yarnrc_rule="${CANON_YARNRC#YARNRC_CREDENTIAL=}"
+yarnrc_rule="${yarnrc_rule#\'}"
+yarnrc_rule="${yarnrc_rule%\'}"
+YARNRC_REFUSE=('npmAuthToken: x' '    npmAuthToken: "x"' 'npmAuthIdent: a:b' '"npmPassword": x' '  _auth: x')
+YARNRC_PASS=('nodeLinker: node-modules' 'enableTelemetry: false' '# npmAuthToken belongs in ~/.yarnrc.yml')
+
+for l in "${YARNRC_REFUSE[@]}"; do
+	printf '%s\n' "$l" | grep -Eq "$yarnrc_rule" ||
+		{ fail "YARNRC_CREDENTIAL no longer refuses a .yarnrc.yml line: $l"; BEHAVIOUR=1; }
+done
+
+for l in "${YARNRC_PASS[@]}"; do
+	printf '%s\n' "$l" | grep -Eq "$yarnrc_rule" &&
+		{ fail "YARNRC_CREDENTIAL refuses a .yarnrc.yml line that holds no credential: $l"; BEHAVIOUR=1; }
+done
 
 for p in "${MUST_REFUSE[@]}"; do
 	printf '%s\n' "$p" | grep -Eq "$path_rule" ||
@@ -413,7 +443,7 @@ done
 [ "$BEHAVIOUR" -ne 0 ] && DRIFTED=1
 
 [ "$DRIFTED" -eq 0 ] &&
-	pass "all 16 hooks scan for the same rules, all 16 have the credential-flag rule, and the shared path rule refuses ${#MUST_REFUSE[@]} paths and passes ${#MUST_PASS[@]}"
+	pass "all 16 hooks scan for the same rules, all 16 have the credential-flag rule, the shared path rule refuses ${#MUST_REFUSE[@]} paths and passes ${#MUST_PASS[@]}, and the .yarnrc.yml content rule refuses ${#YARNRC_REFUSE[@]} lines and passes ${#YARNRC_PASS[@]}"
 
 echo
 echo '9. No secret is sitting in a history that a push would publish'
