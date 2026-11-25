@@ -44,7 +44,7 @@ v1.1 - *A seller registers themselves and waits for an admin*, in [`../phase5/SH
 
 ## 1. Purpose
 
-Single authoritative vocabulary for Marketplace, a 16-repo polyrepo. Every term here is canonical — code, config, docs, conversation must match it. A term not here does not yet exist in the domain; propose an addition before using one. **The vocabulary is English, everywhere and without exception** — collections, fields, identifiers, function names, UI strings, routes, comments, test fixtures, migrations. A term in any other language is not a style nit here, it is a term that does not exist. Platform has no `role` field, no permission enum anywhere (`CLAUDE.md` §Terminology) — role IS which MongoDB collection a session authenticated against. That single fact drives half this glossary: three near-identical account shapes (`admin`, `shopOwner`, `user`), one per tier, never merged into one "account" concept with a role flag. Built brownfield — reverse-engineered from the working tree, not from a spec that predates the code. Prescriptive throughout: states what the platform requires, not merely what the code happens to do today.
+Single authoritative vocabulary for Marketplace, a 17-repo polyrepo. Every term here is canonical — code, config, docs, conversation must match it. A term not here does not yet exist in the domain; propose an addition before using one. **The vocabulary is English, everywhere and without exception** — collections, fields, identifiers, function names, UI strings, routes, comments, test fixtures, migrations. A term in any other language is not a style nit here, it is a term that does not exist. Platform has no `role` field, no permission enum anywhere (`CLAUDE.md` §Terminology) — role IS which MongoDB collection a session authenticated against. That single fact drives half this glossary: three near-identical account shapes (`admin`, `shopOwner`, `user`), one per tier, never merged into one "account" concept with a role flag. Built brownfield — reverse-engineered from the working tree, not from a spec that predates the code. Prescriptive throughout: states what the platform requires, not merely what the code happens to do today.
 
 ---
 
@@ -508,11 +508,11 @@ These five fields on `company` all look like "some official string about the bus
 ## 13. Platform / infra vocabulary
 
 ### Polyrepo
-**Definition:** 15 independent sub-repos + 1 parent workspace repo tracking only workspace files and one submodule gitlink per sub-repo. NOT a monorepo — no shared tooling spans repos, and one logical change = N separate commits and N separate pushes, plus one parent commit bumping the pointers (ADR-031).
+**Definition:** 16 independent sub-repos + 1 parent workspace repo tracking only workspace files and one submodule gitlink per sub-repo. NOT a monorepo — no shared tooling spans repos, and one logical change = N separate commits and N separate pushes, plus one parent commit bumping the pointers (ADR-031).
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### Parent workspace
-**Definition:** the directory the fifteen sub-repos are checked out under — `fullstack-marketplace-blueprint` by default, wherever a clone puts it; <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online. A 16th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the fifteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
+**Definition:** the directory the sixteen sub-repos are checked out under — `fullstack-marketplace-blueprint` by default, wherever a clone puts it; <https://github.com/Axiumine/fullstack-marketplace-blueprint> when read online. A 17th git repo, father of all Marketplace repos, exists so the whole platform can be seen and changed in one session. It tracks the sixteen sub-repos as **submodules** (ADR-031): a gitlink pinning one commit SHA each, listed in `.gitmodules`, so one `git clone --recurse-submodules` reconstructs the whole workspace. The sub-repos' files stay tracked by the sub-repos and never by the parent.
 **Used in:** [`docs/workflow.md`](../../workflow.md) §This directory is the parent workspace.
 
 ### Release (`marketplace-common`)

@@ -23,7 +23,7 @@ themselves and waits for an admin* ([`phase5/SHOPOWNER_ONBOARDING_APPROVAL.md`](
 
 ## 1. Purpose
 
-One system, one box: Marketplace — multi-tenant marketplace platform, 16-repo polyrepo, ground truth is
+One system, one box: Marketplace — multi-tenant marketplace platform, 17-repo polyrepo, ground truth is
 [`CLAUDE.md`](../../../CLAUDE.md) plus `docs/` at the workspace root. This document draws the box and everything around it: human actors,
 external systems, what crosses the boundary. Detail on each interface contract already lives in
 [`docs/devprotocol/phase1/SYSTEM_CONTEXT.md`](../phase1/SYSTEM_CONTEXT.md) §5 — this document references it and stays consistent with

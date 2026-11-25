@@ -1,11 +1,10 @@
 # Marketplace
 
 Multi-tenant marketplace: customers order from many independent shops, each shop run by its owner, the
-platform vendor operating it. **This directory is the parent workspace of sixteen independent git
-repos — work from here, not from inside one repo.** The fifteen sub-repos are tracked here as submodules
-(ADR-031): the parent pins a commit per sub-repo and nothing more. ⚠️ **`marketplace-services-status` is
-not one of the fifteen** — it is a plain directory of the parent repo, gated by the parent's own hooks
-(ADR-025, which considered giving it a repo and rejected it).
+platform vendor operating it. **This directory is the parent workspace of seventeen independent git
+repos — work from here, not from inside one repo.** The sixteen sub-repos are tracked here as submodules
+(ADR-031): the parent pins a commit per sub-repo and nothing more. `marketplace-services-status` is one of
+the sixteen, with its own hooks and gates (ADR-060).
 
 Three human roles — `Admin`, `ShopOwner`, `User` — each with its own collection and service pair.
 `Company` (the shop) and `Item`/`ItemCategory` complete the six collections. Full detail, including the
@@ -26,7 +25,6 @@ Load the file that matches the task. Do not guess from this page alone.
 | vitest layout, integration + mutation traps | [`docs/testing.md`](./docs/testing.md) |
 | repos, git rules, cloning the workspace, secrets, `.env`, commands | [`docs/workflow.md`](./docs/workflow.md) |
 | lint, formatting, engines, package plumbing | [`docs/conventions.md`](./docs/conventions.md) |
-| GitNexus MCP + CLI | [`docs/gitnexus.md`](./docs/gitnexus.md) |
 | no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | [`marketplace-docker-DBs/CLAUDE.md`](./marketplace-docker-DBs/CLAUDE.md) |
 | taking this blueprint past a workstation — the three shared secrets, their swap points, what a swap must not break | [`docs/PRODUCTION_HARDENING.md`](./docs/PRODUCTION_HARDENING.md) |
 | gate policy — which layer blocks what | [`README.md`](./README.md) |
@@ -38,7 +36,7 @@ read it before proposing a refactor of anything below.
 
 ## Rules that apply to every task
 
-- **Never commit on `main`.** Branch first — `git switch -c <type>/<slug>` — in all sixteen repos;
+- **Never commit on `main`.** Branch first — `git switch -c <type>/<slug>` — in all seventeen repos;
   merging into `main` is the user's decision alone.
 - **`marketplace-common` is the only repo that may be committed, merged, pushed and published without
   asking. Every other repo is push-on-request, always.**
@@ -56,12 +54,6 @@ read it before proposing a refactor of anything below.
 - ⚠️ **`git submodule update` leaves sub-repos on a detached HEAD.** Run
   `git submodule foreach 'git switch main'` before editing anything — a commit made there is reachable
   from nothing and looks normal until the next checkout drops it.
-- ⚠️ **`marketplace-services-status` is a directory of the parent repo, not a sub-repo** (ADR-025). It has
-  no `.git` of its own, so `git -C marketplace-services-status switch -c …` silently branches **the
-  parent**, a commit made "in it" is a parent commit, and `git submodule foreach` skips it entirely. Its
-  changes ride in the parent's commit — there is no N+1 pointer bump for it. Its gates are the parent's
-  `.githooks/pre-commit` (scoped to staged non-`*.md` paths under it) and `pre-push` (unscoped, seven
-  gates: `semgrep:ci` → trivy → scorecard floor → `typecheck` → `test:cov` → `test:mutation` → Qodana).
 - ⚠️ **Never lower a number in a `.scorecard-floor`** (ADR-054). Each repo's `pre-push` measures its OpenSSF
   Scorecard posture and blocks if the aggregate or any single check fell below the committed floor — a ratchet,
   exactly like coverage and mutation. Raise a floor when a check genuinely improved; a push that needs one
@@ -70,7 +62,8 @@ read it before proposing a refactor of anything below.
   commits being pushed, and the only one that needs the network.
 - ⚠️ **A Dependabot pull request merged in the browser has passed six of the eight gates, and not the other
   two.** `.github/workflows/gates.yml` runs semgrep, trivy, lint, types, coverage and mutation on every pull
-  request, and `main` requires that check (ADR-055) — so the browser path is no longer ungated, as it was
+  request (`marketplace-services-status` has no lint; the parent's runs its `scripts/*-selftest.sh`), and
+  `main` requires that check (ADR-055) — so the browser path is no longer ungated, as it was
   under ADR-054. What CI still cannot run is Qodana (no token), the Scorecard floor (its own workflow, and it
   grades the repo rather than a diff) and, in the nine services only, the integration project and with it the
   coverage measurement (they need MongoDB, Redis and the sibling `marketplace-db-setup` checkout). Green is
@@ -79,8 +72,8 @@ read it before proposing a refactor of anything below.
 - **Never lower a coverage or mutation threshold, and never remove a gate.** Everything is at 100% on all
   four coverage metrics and mutation score 100. A commit that needs a threshold lowered needs a test.
 - ⚠️ **Never start the mutation gate by hand**, in any of the fifteen packages that carry a
-  `stryker.config.*` — fourteen sub-repos (every one but `marketplace-nginx`, which ships no JavaScript)
-  plus `marketplace-services-status`. `yarn test:mutation` has exactly two callers, `.githooks/pre-push` and
+  `stryker.config.*` — every sub-repo but `marketplace-nginx`, which ships no JavaScript.
+  `yarn test:mutation` has exactly two callers, `.githooks/pre-push` and
   `.github/workflows/gates.yml` (ADR-055), and a hand is neither. ⚠️ `marketplace-db-setup` declares a
   second script, `test:mutation:ci` (`stryker.ci.config.mjs`: the same config minus the patterns only a
   real database can kill), whose one caller is `gates.yml`. Same rule, and its break threshold is also 100. To reproduce a survivor, apply the mutant
@@ -113,5 +106,3 @@ read it before proposing a refactor of anything below.
 - ⚠️ **Three human roles, and their names are `admin`, shop owner and customer** — platform owner's ruling
   of 2026-08-29. The word *operator* is not one of them and appears nowhere; a shop owner is never "the
   admin", and there is no "superadmin".
-- **Run `impact({target, repo})` before editing a symbol and `detect_changes()` before committing**;
-  `repo:` is mandatory and must be a `marketplace*` registry name.

@@ -238,7 +238,7 @@ that is corrected — so the edge-access-log story is a prerequisite rather than
   discoverable that way. It does **not** stop a caller who sets SNI and `Host` to a name the edge serves —
   and those names are public by construction, every Let's Encrypt issuance being recorded in Certificate
   Transparency. Untargeted scanning is blocked; a targeted bypass of the WAF, the bot rules and everything
-  Cloudflare meters is not. Nothing else in the sixteen repos restricts it: `ssl_verify_client`,
+  Cloudflare meters is not. Nothing else in the seventeen repos restricts it: `ssl_verify_client`,
   `ssl_client_certificate`, `allow`/`deny` and any `ufw`/`iptables`/`nftables` reference all return zero hits.
   **The real-client-address story is unaffected either way** — `set_real_ip_from` scoped to Cloudflare's ranges ignores a direct
   caller's `CF-Connecting-IP`. The Authenticated-Origin-Pulls story closes the targeted half.
@@ -291,7 +291,7 @@ verified **so that** anything on the path cannot silently read or rewrite it.
   exported object, its `transportOptions` wiring and the tests that assert it all go, not only the assignment
 - Every `src/instrument.mts` initialises only for a non-empty `DSN` and passes no `transportOptions`, matching
   the shape the three frontends already use (`marketplace-user/env:79-81`)
-- **No environment variable in any of the sixteen repos can switch verification off.** A collector behind an
+- **No environment variable in any of the seventeen repos can switch verification off.** A collector behind an
   untrusted certificate is reached by trusting its CA — `NODE_EXTRA_CA_CERTS`, or an explicit `caCerts` whose
   value is a *path* read at boot. A boolean toggle — `NODE_TLS_REJECT_UNAUTHORIZED`, `INSECURE`,
   `SENTRY_INSECURE_TLS` — fails review by name, because a copied `.env` carries it into a real deployment with

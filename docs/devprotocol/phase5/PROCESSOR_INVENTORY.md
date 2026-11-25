@@ -2,11 +2,11 @@
 # Marketplace
 
 **Status:** engineering record - the legal column is deliberately unanswered, see §1
-**Version:** 1.0
-**Date:** 2026-09-06
+**Version:** 1.1
+**Date:** 2026-11-25
 **Author:** risk-agent
 **Source:** [`RISK_REGISTER.md`](./RISK_REGISTER.md) R25 · [`phase1/NFR.md`](../phase1/NFR.md) NFR-CO02 and open question 6
-**Changelog:** v1.0 - 2026-09-06: first inventory. Written because R25 said *a call is owed* on three named vendors and nobody had written down where the calls are, which made the decision more expensive than the decision deserved. Two flows that no document named turned up while deriving it: the OpenStreetMap **embed iframe** in the admin and shop-owner panels, which sends a shop's exact coordinates and the staff member's IP to `openstreetmap.org` on every address view, and **Turnstile**, which reaches `challenges.cloudflare.com` from all three frontends and again from the backend verifier - so Cloudflare is a live processor today rather than only at the edge in production.
+**Changelog:** v1.1 - 2026-11-25: §3 retitled from *receive nothing* to *receive no platform user's data*, because the status page's stylesheet host does receive the developer's own request. `cheatsheetseries.owasp.org` listed there: a link in a source comment. v1.0 - 2026-09-06: first inventory. Written because R25 said *a call is owed* on three named vendors and nobody had written down where the calls are, which made the decision more expensive than the decision deserved. Two flows that no document named turned up while deriving it: the OpenStreetMap **embed iframe** in the admin and shop-owner panels, which sends a shop's exact coordinates and the staff member's IP to `openstreetmap.org` on every address view, and **Turnstile**, which reaches `challenges.cloudflare.com` from all three frontends and again from the backend verifier - so Cloudflare is a live processor today rather than only at the edge in production.
 
 ## 1. What this is, and what it is not
 
@@ -42,18 +42,21 @@ PMTiles archive (`VITE_PMTILES_URL`, default `/map/basemap.pmtiles`) rather than
 `protomaps.com` and `openstreetmap.org/copyright` links in its footer are the licence attribution those two
 ask for, and nothing fetches them.
 
-## 3. Hosts that appear in source and receive nothing
+## 3. Hosts that appear in source and receive no platform user's data
 
 Kept here because the check in §5 reads this file, and because the next reader should not have to re-derive
 why each one is harmless.
 
 | Host | Why it is not a processor |
 |---|---|
+| `cheatsheetseries.owasp.org` | the OWASP page a comment in `marketplace-common/src/others/assertPasswordByteLength.mts` cites for bcrypt's input limit. A comment; nothing requests it |
 | `schema.org` | the `@context` identifier in the JSON-LD `marketplace-user` renders. A URI used as a name; nothing dereferences it |
 | `www.sitemaps.org` | the XML namespace of the sitemap. Also a name |
 | `the-guild.dev` | the documentation link graphql-codegen writes into the banner of every generated `src/gql/*/gql.ts`. A comment |
 | `www.openstreetmap.org/copyright`, `protomaps.com` | attribution links in a footer and under a map. The user's browser reaches them only if the user clicks |
 | `127.0.0.1`, `example.it`, `www.example.it`, `evil.example`, `https://host` | test fixtures and local development. `evil.example` is a redirect-rejection fixture and must stay unreachable |
+| `internal.invalid` | the URL base `marketplace-services-status/src/server.ts` hands to `new URL()`, used only to parse the request path. `.invalid` is a reserved TLD and it is never dereferenced |
+| `cdnjs.cloudflare.com` | the Font Awesome stylesheet the local status page links (`marketplace-services-status/src/server.ts`). The developer's own browser fetches it, so that developer's IP address reaches the CDN; no platform user's data crosses it. A local development tool, not served to customers |
 
 ## 4. What this inventory cannot see
 
@@ -71,7 +74,7 @@ production.
 
 ## 5. The check, and how to add a processor
 
-`./scripts/audit-check.sh` §11 (MC-21) reads every tracked source file in the fifteen sub-repos, extracts
+`./scripts/audit-check.sh` §11 (MC-21) reads every tracked source file in the sixteen sub-repos, extracts
 each absolute `http://` or `https://` host literal, and fails when one of them is named nowhere in this
 file. It is a drift guard, not a compliance check: it stops a seventh third party appearing between register
 reviews, and it cannot see anything in §4.
@@ -88,7 +91,7 @@ The three obligations of RISK_REGISTER R25 are unchanged by this document, becau
    sends marketing, and contract (Art 6(1)(b)) covers the account relationship on its face - but that
    reading is offered, not adopted.
 2. **Controller identity (Art 13)** - blocked on the owner alone. It needs a legal entity's registered name
-   and address, which exist nowhere in these sixteen repos and must not be invented.
+   and address, which exist nowhere in these seventeen repos and must not be invented.
 3. **Processor agreements (Art 28)** - the six rows of §2, with their column empty.
 
 Erasure, portability and retention are built and are not on this list:

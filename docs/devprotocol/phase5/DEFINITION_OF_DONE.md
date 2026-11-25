@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-10-17
+**Version:** 1.8
+**Date:** 2026-11-25
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-11-25: **the `detect_changes()` item is removed with the tool it named.** The platform owner removed GitNexus from the workspace, so nothing can run it.
 v1.7 - 2026-10-17: **the indentation item of §2.2 says two spaces, not tabs**, and the ADR-024 line in the build/gate item names what of it still
 stands. The platform owner ruled on 2026-10-17 that the whole platform indents with two spaces
 ([`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md)). No other item added, removed or weakened.
@@ -60,9 +61,9 @@ document is that doctrine in checklist form.
   (ADR-058, narrowing ADR-024) — a file reindented with tabs fails `prettier --check`. Shell and git hooks are the tab-indented exception.
 - [ ] Type-check clean: `tsc --noEmit` (frontends) or the `yarn build` half of `test:cov` (backend services
   and `marketplace-services-status`, whose `test:cov` is literally `yarn build && vitest run --coverage` —
-  `marketplace-services-status/.githooks` reasoning documented at `.githooks/pre-push:112-119` of this parent repo).
+  reasoning documented at `marketplace-services-status/.githooks/pre-push:578-587`).
 - [ ] No `ignoreStatic` added to any `stryker.config.mjs` to silence a survivor, ever (`docs/testing.md` §Mutation testing traps; BCON-02).
-- [ ] `engines.node` reads `^26.13.1` in every touched `package.json` — bumping it means bumping all 14
+- [ ] `engines.node` reads `^26.13.1` in every touched `package.json` — bumping it means bumping all 15
   repos that have one, in one sweep, caret included (ADR-026).
 
 ### 2.3 Error handling
@@ -161,7 +162,7 @@ document is that doctrine in checklist form.
 - [ ] Build/gate change checked against ADR-047 (`marketplace-common` reaches a consumer only as a
   published release — superseding the bridge half of ADR-015),
   ADR-016 (100/100 everywhere), ADR-017 (Qodana in both hooks), ADR-023 (per-repo integration DB naming),
-  ADR-024 (whole-tree lint, eslint + prettier together), ADR-058 (two spaces), ADR-025 (`marketplace-services-status` gated by parent hooks),
+  ADR-024 (whole-tree lint, eslint + prettier together), ADR-058 (two spaces), ADR-060 (`marketplace-services-status` a sub-repo with its own gates, superseding ADR-025),
   ADR-026
   (`engines.node` pin).
 - [ ] Infra change checked against ADR-001 (polyrepo), ADR-022 (wildcard bind except SSR loopback), ADR-028
@@ -205,7 +206,7 @@ document is that doctrine in checklist form.
 ## 5. Sprint DoD
 - [ ] Every repo touched this sprint has its work on a branch created BEFORE the first edit
   (`git switch -c <type>/<slug>`) — never a bare commit landing on `main`, which is the checked-out branch
-  in every one of the 16 repos (`docs/workflow.md` §Git rules, "Never commit on main. Ever.").
+  in every one of the 17 repos (`docs/workflow.md` §Git rules, "Never commit on main. Ever.").
 - [ ] One logical change = N separate commits, one per affected repo — no atomic cross-repo commit exists on
   this platform (BCON-05).
 - [ ] Any `marketplace-common` change a call site needs is **published** in the SAME piece of work, and
@@ -217,17 +218,15 @@ document is that doctrine in checklist form.
   merge, never "later" (`docs/workflow.md` §Git rules, "Delete the local branch the moment it is
   merged").
 - [ ] `git push` run ONLY on explicit user request, per repo — `marketplace-common` is the sole
-  standing-permission exception; every other repo (13 sub-repos, this parent, `@axiumine/koa-utils`) is
+  standing-permission exception; every other repo (15 sub-repos, this parent, `@axiumine/koa-utils`) is
   push-on-request, always (`docs/workflow.md` §Git rules).
-- [ ] `detect_changes()` run before any commit to confirm the diff's blast radius matches what the sprint
-  intended (GitNexus §Always Do).
-- [ ] A doc-only commit does not skip a gate scoped away from it on purpose. The parent
-  `.githooks/pre-commit:107-114` deliberately scopes the `marketplace-services-status` build/coverage gate to staged
-  paths under `marketplace-services-status/` that are not `*.md` — a docs-only commit here legitimately triggers
-  nothing further, and that is correct, not a bypass:
+- [ ] A doc-only commit does not skip a gate scoped away from it on purpose.
+  `marketplace-services-status/.githooks/pre-commit` deliberately scopes its type, coverage and Qodana gates
+  to commits staging a path that is not `*.md` — a docs-only commit there passes the guards and legitimately
+  triggers nothing further, and that is correct, not a bypass:
   ```bash
-  # .githooks/pre-commit:107-114
-  if ! printf '%s\n' "$staged_all" | grep -E "^$APP/" | grep -qvE '\.md$'; then
+  # marketplace-services-status/.githooks/pre-commit:355-357
+  if ! printf '%s\n' "$staged_all" | grep -v '^$' | grep -qvE '\.md$'; then
   	exit 0
   fi
   ```
@@ -251,8 +250,9 @@ document is that doctrine in checklist form.
   LOCAL git hook (`.githooks/pre-commit`, `.githooks/pre-push`), fired only if `core.hooksPath` is set and
   the hook file is executable (`100755`). ⚠️ **Done still means the hooks fired on this machine**: a direct
   push to `main` runs no server-side check, because `enforce_admins` is false by decision. What changed is
-  the one path the hooks could never see — `.github/workflows/gates.yml` in all 16 repos runs six of the
-  eight gates on every pull request and `main` requires that check
+  the one path the hooks could never see — `.github/workflows/gates.yml` runs up to six of the
+  eight gates on every pull request (the parent's runs its cross-repo check self-tests, ADR-060) and `main`
+  requires that check in all 17 repos
   ([`ADR-055`](../phase3/adr/ADR-055-the-gates-run-on-github-too-and-main-requires-them.md)), so a pull
   request merged in the browser is gated where it used to pass nothing. ⚠️ **Three gates are not in that
   six** and a green check is not a substitute for them: Qodana, the Scorecard floor, and — in the nine
@@ -274,7 +274,7 @@ document is that doctrine in checklist form.
   sees; and Qodana Cloud files every report under the branch git HEAD reports (no `--branch` flag), so a
   repo gated only at `pre-commit` can never produce a `main`-tagged report or a stable "new problems"
   baseline (`BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:194-215`; same
-  reasoning restated for `marketplace-services-status` at this parent's `.githooks/pre-push:207-216`).
+  reasoning restated at `marketplace-services-status/.githooks/pre-push:700-709`).
 
 ---
 

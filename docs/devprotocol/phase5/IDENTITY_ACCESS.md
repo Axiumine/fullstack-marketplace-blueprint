@@ -516,7 +516,7 @@ them unused, or the next person provisioning a machine will populate two variabl
 - `.githooks/pre-commit` check 0 is untouched: it proves a file is well-formed, which is still needed for
   every other value in it
 **Traces:** ADR-034; R02, R04, R05b
-**Evidence:** `git grep KEYGRIP_KEY_` across the sixteen repos returns the seed script's adoption path
+**Evidence:** `git grep KEYGRIP_KEY_` across the seventeen repos returns the seed script's adoption path
 (`marketplace-db-setup/lib/keygrip.js`, its `env` block and its test), the pre-commit guard's own pattern
 list, the eslint rules that refuse the names, and prose that says they are gone — no template, no
 `REQUIRED_ENV_VARS`, no `src/**` read. `eslint.config.js` in the five signing services carries

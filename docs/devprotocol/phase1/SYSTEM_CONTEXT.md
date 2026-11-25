@@ -51,11 +51,12 @@ verified this session; a path in backticks was opened, not guessed.
 │   user SPA+SSR)        user × authz/resource       marketplace-db-setup)│
 │                         + shared logout)                                │
 │                                                                           │
-│  marketplace-services-status (parent-tracked monitor, no repo of its own)           │
+│  marketplace-services-status (local systemd monitor, repo of its own)     │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-16 git working trees total (`docs/workflow.md` §Repo layout), per
+17 git working trees total (`docs/workflow.md` §Repo layout;
+[ADR-060](../phase3/adr/ADR-060-services-status-is-a-sub-repo.md)), per
 [`docs/devprotocol/phase1/PDR.md`](./PDR.md) §1, no `git` command run to re-verify (HARD RULE — never run git commands
 in this doc's authoring). Outside the box above = external actor or system.
 
@@ -559,7 +560,7 @@ everywhere and can now undo nothing** — the collision this section used to des
 |---|---|
 |Cart, order, delivery, payment provider|no collection, no resolver, no design anywhere on the platform, and **permanently out of scope since 2026-08-27** ([ADR-038](../phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md)) — `item.js` has no price field for exactly this reason and never gets one (`CLAUDE.md` §Build state, `PDR.md` §4 Out of scope)|
 |A payment gateway (Stripe/PayPal/etc.)|downstream of an order model that is not missing but refused — there is nothing for it to sit behind, permanently (ADR-038)|
-|GitHub / any git forge|⚠️ **wired since 2026-09-20** — all 16 repos are public under `github.com/Axiumine`, and two workflows per repo measure supply-chain posture and SAST findings without gating anything ([ADR-054](../phase3/adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)). No ADR records the org as chosen, so §7 q6 stays the platform owner's open call; what is no longer true is *no forge account is wired*|
+|GitHub / any git forge|⚠️ **wired since 2026-09-20** — all 17 repos are public under `github.com/Axiumine`, and two workflows per repo measure supply-chain posture and SAST findings without gating anything ([ADR-054](../phase3/adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)). No ADR records the org as chosen, so §7 q6 stays the platform owner's open call; what is no longer true is *no forge account is wired*|
 |A separate shop / point-of-sale collection|will not exist — a shop **is** a `company` (`CLAUDE.md` §Terminology, stated twice as a thing not to re-propose)|
 |A CDN in front of PMTiles or static assets|nginx serves `dist/client` and `/tiles/` straight off disk with immutable cache headers — no CDN wired (`marketplace-nginx/sites-available/marketplace-domain.com.conf:80-110`)|
 |A live tile-serving backend|PMTiles is one static archive read via HTTP range requests, not a server (§5.9)|
@@ -576,4 +577,4 @@ everywhere and can now undo nothing** — the collision this section used to des
 |3|Does MongoDB collection-level RBAC exist beneath the shared application connection, independent of the `assertTier` application check (§5.2)?|platform owner / DBA|**closed 2026-09-06 — verified, and the answer is no.** All eight Mongo services authenticate as one `marketplaceRwDev` account holding the built-in, database-scoped `readWrite`, so a bug in any of them reaches every collection with `assertTier` never consulted. The per-service role shape that removes that is written in `marketplace-docker-DBs/init/roles.js` and proved against the running cluster in both directions by `marketplace-docker-DBs/rbac-probe.sh`; deploying it needs eight accounts and eight passwords, which is the adopter's under [`ADR-040`](../phase3/adr/ADR-040-the-secrets-manager-vendor-choice-is-the-adopters.md). RISK_REGISTER R24|
 |4|Who creates the 4 missing Qodana Cloud projects (`marketplace-services-status`, `marketplace-user`, both `*-user-authenticated-*` services) so `SKIP_QODANA=1` can retire?|platform owner|**closed 2026-08-27 — they were never missing.** All four have their own project (`xPKXD`, `dXO5E`, `B5NEV`, `eobk1`), and `SKIP_QODANA=1` is the standing mode of no repo. Full enumeration in §5.12; `PDR.md` §8 item 8|
 |5|Does `@axiumine/marketplace-common` ever get published to a real npm registry, retiring `deploy-local.sh` (§5.13)?|platform owner|**closed — published, and the script is retired.** It resolves from `registry.npmjs.org` like any other dependency ([`ADR-037`](../phase3/adr/ADR-037-marketplace-common-is-published-to-npm.md), [`ADR-047`](../phase3/adr/ADR-047-a-common-change-ships-as-a-published-release.md)), and a published release is the only route into the nine services (§5.13). [`PDR.md`](./PDR.md) §8 item 5|
-|6|Where do the 16 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|
+|6|Where do the 17 repos get published, and under which forge org?|platform owner|open, [`PDR.md`](./PDR.md) §8 item 1|

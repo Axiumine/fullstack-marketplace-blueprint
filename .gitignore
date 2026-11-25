@@ -1,4 +1,4 @@
-# The fifteen sub-projects are deliberately NOT listed here. Each is its own
+# The sixteen sub-projects are deliberately NOT listed here. Each is its own
 # independent git repo with its own history, and its files are versioned there
 # and never here — the parent tracks each one as a submodule (ADR-031), so it
 # records a gitlink (a pinned commit SHA) and nothing else. Ignoring those paths
@@ -28,8 +28,6 @@ id_rsa
 id_ed25519
 
 TODO
-# GitNexus index storage. The committed part is .gitnexusrc at the repo root.
-.gitnexus/
 
 # Playwright MCP scratch output (page snapshots, console logs) — never source
 .playwright-mcp/
