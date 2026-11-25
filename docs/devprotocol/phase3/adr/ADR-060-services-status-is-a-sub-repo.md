@@ -44,9 +44,11 @@ and does not argue a motive beyond the owner's instruction.
 
 ### Open
 
-- ⚠️ **The parent's `Fuzzing` check.** OpenSSF Scorecard detected the `fast-check` imports in this application's tests as part of the parent's own tree.
-  They now belong to the new repository, so the parent scores 0 on that check once this change reaches `main`, below the `Fuzzing=10` in the parent's
-  `.scorecard-floor`. The floor is not changed here: that is the owner's ruling to make ([ADR-054](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)).
+- **The parent's `Fuzzing` check, ruled on 2026-11-25.** OpenSSF Scorecard detected the `fast-check` imports in this application's tests as part of the
+  parent's own tree. They now belong to the new repository, so the parent scores 0 on that check once this change reaches `main`. The platform owner
+  ruled that the parent's `.scorecard-floor` drops from `Fuzzing=10` to `Fuzzing=0`, the one exception to
+  [ADR-054](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)'s never-lower rule made here: the control moved, and the new repository's floor
+  holds it at 10.
 - The new repository's `.scorecard-floor` records its first measurement, 2026-11-25, when `main` held only the extracted history: `Dependency-Update-Tool`,
   `SAST` and `Security-Policy` read 0 and `Dangerous-Workflow`, `Pinned-Dependencies` and `Token-Permissions` read -1. Raise them once the branch that
   adds the workflows, `SECURITY.md` and the Dependabot config is merged into `main`.

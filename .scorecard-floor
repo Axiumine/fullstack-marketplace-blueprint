@@ -7,21 +7,25 @@
 # defended from now on. Never lower one: a check that fell is a control that broke,
 # and the fix is the control. -1 means the check did not apply to this repository.
 #
+# Fuzzing went from 10 to 0 on 2026-11-25 by the platform owner's ruling: the fast-check
+# suites moved with their application into marketplace-services-status (ADR-060), whose
+# own floor holds that check at 10. CI-Tests and Maintained were raised the same day.
+#
 # aggregate is scorecard's own weighted score over the checks that scored >= 0.
 
 aggregate=7.3
 
 Binary-Artifacts=10
 Branch-Protection=3
-CI-Tests=-1
+CI-Tests=10
 CII-Best-Practices=2
 Code-Review=0
 Contributors=3
 Dangerous-Workflow=10
 Dependency-Update-Tool=10
-Fuzzing=10
+Fuzzing=0
 License=10
-Maintained=0
+Maintained=10
 Packaging=-1
 Pinned-Dependencies=10
 SAST=10
