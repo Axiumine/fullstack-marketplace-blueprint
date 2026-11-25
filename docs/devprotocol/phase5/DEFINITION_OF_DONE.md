@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.7
-**Date:** 2026-10-17
+**Version:** 1.8
+**Date:** 2026-11-25
 **Author:** dod-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.8 - 2026-11-25: **the `detect_changes()` item is removed with the tool it named.** The platform owner removed GitNexus from the workspace, so nothing can run it.
 v1.7 - 2026-10-17: **the indentation item of §2.2 says two spaces, not tabs**, and the ADR-024 line in the build/gate item names what of it still
 stands. The platform owner ruled on 2026-10-17 that the whole platform indents with two spaces
 ([`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md)). No other item added, removed or weakened.
@@ -219,8 +220,6 @@ document is that doctrine in checklist form.
 - [ ] `git push` run ONLY on explicit user request, per repo — `marketplace-common` is the sole
   standing-permission exception; every other repo (15 sub-repos, this parent, `@axiumine/koa-utils`) is
   push-on-request, always (`docs/workflow.md` §Git rules).
-- [ ] `detect_changes()` run before any commit to confirm the diff's blast radius matches what the sprint
-  intended (GitNexus §Always Do).
 - [ ] A doc-only commit does not skip a gate scoped away from it on purpose.
   `marketplace-services-status/.githooks/pre-commit` deliberately scopes its type, coverage and Qodana gates
   to commits staging a path that is not `*.md` — a docs-only commit there passes the guards and legitimately

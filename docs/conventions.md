@@ -33,7 +33,7 @@ thirteen gated repos and has no eslint or prettier (ADR-060), so nothing enforce
 
 **Still tab-indented, on purpose:** shell scripts and git hooks (a bash `<<-` heredoc strips leading tabs and nothing else, so
 converting one breaks it), `marketplace-db-setup`, the `marketplace-nginx` configuration and the shell in `marketplace-docker-DBs`.
-Files prettier ignores or has no parser for — `package.json` where it is ignored, `.gitnexusrc`, the `*.fixture` lint inputs and
+Files prettier ignores or has no parser for — `package.json` where it is ignored, the `*.fixture` lint inputs and
 the contents of template literals — keep what they had. Markdown code fences in older documents may still show tabs.
 
 ## Lint scripts

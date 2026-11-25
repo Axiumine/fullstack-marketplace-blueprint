@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.4
-**Date:** 2026-10-17
+**Version:** 1.5
+**Date:** 2026-11-25
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit
+v1.5 - 2026-11-25: **the cross-link constraint names route-shaped extractors, not GitNexus**, which the platform owner removed from the workspace. No constraint was added or weakened.
 v1.4 - 2026-10-17: the inherited CON-11 short name read *English+tabs+node*; it reads *English+two-space+node*, following `phase3/CONSTRAINTS.md`
 v1.11 and [`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md). No constraint was added.
 v1.3 - 2026-08-27: the four commerce concepts in §6 are **permanently out of scope**, not merely unbuilt, and §8's no-`price` bullet says the same — it is not a this-phase restriction and there is no later phase that lifts it — `phase3/adr/ADR-038-commerce-is-permanently-out-of-scope.md`. BC-11 is `WILL NOT BUILD`. **No constraint changed and none was relaxed**: DDD_AGGREGATES, ERD and API_CONTRACTS still may not draw an aggregate, a node or a contract for any of them, and 6 collections stays 6 — now permanently rather than for this phase.
@@ -84,7 +85,7 @@ shopOwner ──idShopOwner──> company ──idCompany──> item ──idC
 | GraphQL is the whole API in 8 of 9 services | Only `marketplace-dev-public-resource` also mounts a `@koa/router` — 3 REST endpoints, all under `/check`: `GET /check/`, `GET /check/verify-email/:email/:hash`, `GET /check/verify-email-user/:email/:hash`. API_CONTRACTS design work is GraphQL-first; treat these 3 as the ONLY REST exception and do not invent more REST surface. |
 | Resolvers are the source of truth | Each service builds its schema programmatically — no service has an SDL file. |
 | Frontend `schema/*.graphql` slices are HAND-MAINTAINED and DRIFT | They are a convenience copy, not the contract. API_CONTRACTS agents must re-derive from resolver source (`src/graphQLApi/schema/` or `src/graphQLPublic/schema/` for public-resource — different root name, same shape) before designing a new operation, never trust a frontend slice as ground truth. |
-| Contract cross-link tooling does not work here | GitNexus `group sync` returns 0 cross-links on this platform — Apollo mounted via inline `if (ctx.path === ENDPOINT)` dispatch, extractor has no GraphQL model. Do not cite `route_map`/contract cross-links as evidence of a GraphQL contract; verify by reading resolver source directly. |
+| Contract cross-link tooling does not work here | Route-shaped extractors return 0 cross-links on this platform — Apollo mounted via inline `if (ctx.path === ENDPOINT)` dispatch, extractor has no GraphQL model. Do not cite `route_map`/contract cross-links as evidence of a GraphQL contract; verify by reading resolver source directly. |
 | Resolver layout per resource service | `src/graphQLApi/schema/{queries,mutations}.mts` (roots), `{queries,mutations}/<entity><Add|Update|Del|Dis>.mts` (one file per op), `types/`, `GraphQLInput/`, `interfaces/`, `frag/`. `marketplace-dev-public-resource` spells the root `src/graphQLPublic/` — same shape, different folder name. |
 | New product-type mutations go directly under `mutations/`, not a per-type subfolder | No per-product-type subfolder exists; follow `itemAdd.mts`/`itemUpdate.mts` as the pattern. |
 

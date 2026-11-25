@@ -26,7 +26,7 @@ CSFLE key, the shared secrets, migrations and demo data, the nine services, the 
 
 Start from [`CLAUDE.md`](./CLAUDE.md); it
 routes to [`docs/architecture.md`](./docs/architecture.md), [`docs/data-model.md`](./docs/data-model.md), [`docs/frontends.md`](./docs/frontends.md), [`docs/testing.md`](./docs/testing.md),
-[`docs/workflow.md`](./docs/workflow.md), [`docs/conventions.md`](./docs/conventions.md) and [`docs/gitnexus.md`](./docs/gitnexus.md), and to
+[`docs/workflow.md`](./docs/workflow.md) and [`docs/conventions.md`](./docs/conventions.md), and to
 [`docs/devprotocol/phase3/adr/ADR-INDEX.md`](./docs/devprotocol/phase3/adr/ADR-INDEX.md) for the rationale behind every decision below.
 
 **This file is the gate policy** — which layer blocks what, and what the mutation rollout found.

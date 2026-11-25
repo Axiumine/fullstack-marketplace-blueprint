@@ -71,7 +71,7 @@ fi
 
 # Vendored secret-scanner rulesets legitimately contain example secret patterns — the same exemption
 # `pre-commit` applies by path, applied here by the path the blob is stored under.
-SKIP_PATH='(^|/)(semgrep/vendor|gitleaks|trufflehog|\.gitnexus)/'
+SKIP_PATH='(^|/)(semgrep/vendor|gitleaks|trufflehog)/'
 
 REPOS=(.)
 

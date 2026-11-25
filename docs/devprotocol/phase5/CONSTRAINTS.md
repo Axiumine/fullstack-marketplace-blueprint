@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.9
-**Date:** 2026-10-17
+**Version:** 1.10
+**Date:** 2026-11-25
 **Author:** brainy-agent
 **Changelog:** v1.0 - initial retrofit.
+v1.10 - 2026-11-25: **the cross-link constraint names route-shaped extractors, not GitNexus**, which the platform owner removed from the workspace. No constraint was added or weakened.
 v1.9 - 2026-10-17: the inherited CON-11 short name read *English+tabs+node*; it reads *English+two-space+node*, following `phase3/CONSTRAINTS.md`
 v1.11 and [`ADR-058`](../phase3/adr/ADR-058-indentation-is-two-spaces-not-tabs.md). No constraint was added.
 v1.8 - 2026-08-30: **BCON-05's landing order and BCON-07's mechanism follow
@@ -87,7 +88,7 @@ How a sequence diagram on this platform must be drawn:
 | Every resource-service step asserts its own tier | `assertTier(actual, expected)` — draw it on EVERY arrow that hits a `*-authenticated-resource`/`*-authorization` service, mismatch branch = 403 not 401, missing-tier branch = reject not wildcard (CON-04). Logout is the one exception: single service, all 3 tier, matches by token content only (CON-05) — draw logout without a tier-assert step. |
 | No flow crosses two services inside one transaction | Nothing here is transactional across repos — each service owns its own Mongo connection and Redis view. A flow needing "both succeed or both roll back" across 2 services must show it as 2 separate calls with an explicit compensating/failure branch, never a dotted "transaction boundary" box spanning both. |
 | SSR vs CSR boundary is a security boundary, not a rendering detail | Public-route flows on `marketplace-user` render server-side and hit `PUBLIC_RESOURCE_URL` directly per-request (new urql client per request). `/account/*` flows are `ssr: false` — draw the browser calling the API directly, never the SSR server rendering authenticated HTML (CON-10). |
-| HTTP contract cross-link tooling gives nothing here | GitNexus `group sync` → 0 cross-link on this platform (Apollo inline dispatch, no GraphQL model in extractor). Do not cite `route_map` as evidence a flow exists — trace resolver source directly. |
+| HTTP contract cross-link tooling gives nothing here | Route-shaped extractors → 0 cross-link on this platform (Apollo inline dispatch, no GraphQL model in extractor). Do not cite `route_map` as evidence a flow exists — trace resolver source directly. |
 
 ## 5. Work-item rules
 

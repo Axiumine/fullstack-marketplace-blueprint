@@ -25,7 +25,6 @@ Load the file that matches the task. Do not guess from this page alone.
 | vitest layout, integration + mutation traps | [`docs/testing.md`](./docs/testing.md) |
 | repos, git rules, cloning the workspace, secrets, `.env`, commands | [`docs/workflow.md`](./docs/workflow.md) |
 | lint, formatting, engines, package plumbing | [`docs/conventions.md`](./docs/conventions.md) |
-| GitNexus MCP + CLI | [`docs/gitnexus.md`](./docs/gitnexus.md) |
 | no MongoDB replica set on this machine — Docker one, and the boot order of the whole platform | [`marketplace-docker-DBs/CLAUDE.md`](./marketplace-docker-DBs/CLAUDE.md) |
 | taking this blueprint past a workstation — the three shared secrets, their swap points, what a swap must not break | [`docs/PRODUCTION_HARDENING.md`](./docs/PRODUCTION_HARDENING.md) |
 | gate policy — which layer blocks what | [`README.md`](./README.md) |
@@ -107,5 +106,3 @@ read it before proposing a refactor of anything below.
 - ⚠️ **Three human roles, and their names are `admin`, shop owner and customer** — platform owner's ruling
   of 2026-08-29. The word *operator* is not one of them and appears nowhere; a shop owner is never "the
   admin", and there is no "superadmin".
-- **Run `impact({target, repo})` before editing a symbol and `detect_changes()` before committing**;
-  `repo:` is mandatory and must be a `marketplace*` registry name.

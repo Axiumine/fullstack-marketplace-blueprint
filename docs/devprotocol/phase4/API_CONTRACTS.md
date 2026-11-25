@@ -2,10 +2,11 @@
 # Marketplace
 
 **Status:** baselined - brownfield retrofit
-**Version:** 1.13
-**Date:** 2026-08-31
+**Version:** 1.14
+**Date:** 2026-11-25
 **Author:** api-contracts-agent
 **Changelog:** v1.0 - initial retrofit; reverse-engineered from the 15-repo working tree.
+v1.14 - 2026-11-25: **the cross-link bullet no longer cites the GitNexus guide**, removed with the tool by the platform owner. The finding it states is unchanged.
 v1.13 - 2026-08-31, later the same day: **`keygripResweep` added — the twenty-fourth mutation on this tier,
 and the first that exists to finish another one.** `keygripRetire` cannot be retried: it takes the key out of
 the record before it sweeps, so a second attempt answers 404 on a key that is already gone, and an admin
@@ -597,8 +598,7 @@ key. That is what lets one process serve every tier: tier-named logout mutations
   `docs/devprotocol/phase3/adr/ADR-003-opaque-tokens-redis-sessions-not-jwt.md`).
 - **HTTP contract extraction across this platform yields zero cross-links.** The nine services dispatch
   Apollo inline on `ctx.path === ENDPOINT` rather than through a router, and every frontend talks GraphQL
-  over `fetch` — both are invisible to route-shaped extractors (`docs/gitnexus.md`, "HTTP contract
-  extraction does not work on this platform"). Cross-service impact analysis on this platform is manual: no
+  over `fetch` — both are invisible to route-shaped extractors. Cross-service impact analysis on this platform is manual: no
   `route_map` or contract cross-link tool returns anything real here.
 - **No versioning scheme, no deprecation policy, no cross-service contract test.** Every service versions
   independently by whatever is on `main` at deploy time, and no test on this platform spans two services —
