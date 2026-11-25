@@ -54,6 +54,8 @@ why each one is harmless.
 | `the-guild.dev` | the documentation link graphql-codegen writes into the banner of every generated `src/gql/*/gql.ts`. A comment |
 | `www.openstreetmap.org/copyright`, `protomaps.com` | attribution links in a footer and under a map. The user's browser reaches them only if the user clicks |
 | `127.0.0.1`, `example.it`, `www.example.it`, `evil.example`, `https://host` | test fixtures and local development. `evil.example` is a redirect-rejection fixture and must stay unreachable |
+| `internal.invalid` | the URL base `marketplace-services-status/src/server.ts` hands to `new URL()`, used only to parse the request path. `.invalid` is a reserved TLD and it is never dereferenced |
+| `cdnjs.cloudflare.com` | the Font Awesome stylesheet the local status page links (`marketplace-services-status/src/server.ts`). The developer's own browser fetches it, so that developer's IP address reaches the CDN; no platform user's data crosses it. A local development tool, not served to customers |
 
 ## 4. What this inventory cannot see
 
@@ -71,7 +73,7 @@ production.
 
 ## 5. The check, and how to add a processor
 
-`./scripts/audit-check.sh` §11 (MC-21) reads every tracked source file in the fifteen sub-repos, extracts
+`./scripts/audit-check.sh` §11 (MC-21) reads every tracked source file in the sixteen sub-repos, extracts
 each absolute `http://` or `https://` host literal, and fails when one of them is named nowhere in this
 file. It is a drift guard, not a compliance check: it stops a seventh third party appearing between register
 reviews, and it cannot see anything in §4.
@@ -88,7 +90,7 @@ The three obligations of RISK_REGISTER R25 are unchanged by this document, becau
    sends marketing, and contract (Art 6(1)(b)) covers the account relationship on its face - but that
    reading is offered, not adopted.
 2. **Controller identity (Art 13)** - blocked on the owner alone. It needs a legal entity's registered name
-   and address, which exist nowhere in these sixteen repos and must not be invented.
+   and address, which exist nowhere in these seventeen repos and must not be invented.
 3. **Processor agreements (Art 28)** - the six rows of §2, with their column empty.
 
 Erasure, portability and retention are built and are not on this list:

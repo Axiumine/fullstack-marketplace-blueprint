@@ -173,13 +173,14 @@ Its own [`CLAUDE.md`](../CLAUDE.md) carries the full trap list. The five that ma
 
 ## marketplace-services-status
 
-A dashboard app that is **not** a repo of its own — it is a subdirectory tracked by the parent
-workspace (ADR-025). Three consequences before editing it:
+A dashboard app in a repo of its own, tracked here as a submodule (ADR-060; until then a directory of
+the parent workspace). Three things to know before editing it:
 
-- **Its gates live in the parent's `.githooks/`.** `pre-commit` runs `yarn typecheck`, `yarn test:cov`
-  and Qodana scoped to staged non-`*.md` paths under `marketplace-services-status/`; `pre-push` runs
-  `typecheck` → `test:cov` → `test:mutation` → Qodana **unscoped**, because a push carries `--no-verify`
-  commits and merge commits that `pre-commit` never saw.
+- **Its gates are its own `.githooks/`.** `pre-commit` runs the secret guard, then `yarn typecheck`,
+  `yarn test:cov` and Qodana, the last three only when a non-`*.md` path is staged; `pre-push` runs
+  `semgrep:ci` → trivy → scorecard floor → `typecheck` → `test:cov` → `test:mutation` → Qodana
+  **unscoped**, because a push carries `--no-verify` commits and merge commits that `pre-commit` never
+  saw.
 - **No `lint` script** — it is not one of the thirteen eslint/prettier packages. `tsc` runs as the first
   half of its own `test:cov` (`yarn build && vitest run --coverage`), so a type error fails the coverage
   gate before a single test executes. **Read the first error in that output, not the last.** That build
@@ -190,7 +191,7 @@ workspace (ADR-025). Three consequences before editing it:
 
 ⚠️ `marketplace-services-status/qodana.sh` must stay mode `100755`. At `100644` the invocation dies with
 `Permission denied` before reaching Qodana and reports as a scan failure pointing at a SARIF that was
-never created. Both parent hooks now test executability separately from existence and print the two
+never created. Both of its hooks now test executability separately from existence and print the two
 fixing commands — `chmod +x` **and** `git update-index --chmod=+x`, since the mode is tracked.
 
 ## Current suite sizes

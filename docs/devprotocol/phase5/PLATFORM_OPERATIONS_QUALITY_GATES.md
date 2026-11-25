@@ -65,10 +65,10 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
 
 | In scope | Out of scope | Why |
 |---|---|---|
-| `.githooks/pre-commit` + `.githooks/pre-push` in all 16 repos (14 sub-repos + parent carry the code gates; `marketplace-nginx` gates on its own test suite and the secret guard, ADR-030) | Any domain resolver's business logic | This context proves correctness, never implements a feature |
+| `.githooks/pre-commit` + `.githooks/pre-push` in all 17 repos (15 sub-repos carry the code gates; `marketplace-nginx` gates on its own test suite and the secret guard, ADR-030; the parent on its secret guard, cross-repo self-tests and Scorecard floor, ADR-060) | Any domain resolver's business logic | This context proves correctness, never implements a feature |
 | `BEs/marketplace-db-setup/migrations/` (immutable) + `lib/schemas/*.js` builders | Editing an applied migration | Immutability rule — a new shape is a new migration, not an edit |
 | Each repo's `qodana.yaml`/`qodana.sh`/`stryker.config.mjs`/`vitest.config.mts` thresholds | Lowering any threshold to unblock a story | BCON-02, NFR-MA05 — the fix is always a test |
-| `marketplace-services-status` (`server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`, `config.ts`) | Any repo of its own for `marketplace-services-status` | Deliberately tracked by the parent — no repo to give it |
+| `marketplace-services-status` (`server.ts`, `systemd.ts`, `monitor.ts`, `probe.ts`, `config.ts`) | Moving it back into the parent | A repo of its own, tracked as a submodule, since ADR-060, which supersedes ADR-025 |
 | `core.hooksPath` wiring + each repo's `"postinstall"` script | Forge-side branch protection | Where these repos get published is the platform owner's open call (`docs/workflow.md` §Repo layout) |
 
 ## 3. Build state
@@ -93,8 +93,8 @@ pass/fail gate signals, migration `up`/`down` pairs, service-liveness probes onl
   present) — these are what let the 100% mutation threshold go in for db-setup.
 - Decision record: [`docs/decisions/authorization-service-consolidation.md`](../../decisions/authorization-service-consolidation.md) (confirmed present) — the
   ADR-006-equivalent this context's AV01/AV02 stories trace to.
-- `.githooks/pre-commit` executability check for `qodana.sh`, confirmed at lines 237-251 (`for required
-  in qodana.yaml qodana.sh; do` … `if [ ! -x "$APP_DIR/qodana.sh" ]`).
+- `marketplace-services-status/.githooks/pre-commit` executability check for `qodana.sh`, confirmed at lines
+  507-523 (`for required in qodana.yaml qodana.sh; do` … `if [ ! -x "$APP_DIR/qodana.sh" ]`).
 
 ### 3.1 `credentialWriteRevokes.test.mts` — an enumeration test, and the Stryker trap in writing one
 
@@ -103,7 +103,7 @@ On 2026-08-13, the work that made a credential write revoke every session (see
 threshold and is easy to mistake for a convention: **each service that writes a credential carries its own
 `test/credentialWriteRevokes.test.mts`, which reads its sibling mutation sources and fails when one of them
 writes a password or a login email without calling `revokeAllSessionsForAccount`.** It is a *per-repo* file
-by necessity — there is no cross-repo harness in these sixteen repos (the same residual accepted by the
+by necessity — there is no cross-repo harness in these seventeen repos (the same residual accepted by the
 token-handling work, see
 [`token-handling-security-audit.md`](../../report/token-handling-security-audit.md) §3.4) — so adding the
 file to a service is part of giving that service a credential write, and `marketplace-dev-public-resource`
@@ -143,13 +143,12 @@ Technical story: coverage proves a line ran, mutation proves a wrong line would 
 
 ### `marketplace-services-status` gate now actually runs, closing a silent-pass hole   `built`
 **As a** platform admin, **when** `marketplace-services-status` changes, **I want** its coverage/mutation/Qodana
-gates to run from the parent's own hooks **so that** a change to code with no repo of its own is not
-merged unverified.
+gates to run from that repo's own hooks **so that** a change to it is not merged unverified.
 **domains:** testing, infra
 **Acceptance criteria:**
-- Parent `.githooks/pre-commit` runs `yarn test:cov` and Qodana scoped to staged paths under
-  `marketplace-services-status/` that are not `*.md` — confirmed hook file present at `.githooks/pre-commit`.
-- `marketplace-services-status/qodana.sh` is executable (mode `100755`, git-tracked) — `pre-commit` lines 250-251
+- `marketplace-services-status/.githooks/pre-commit` runs `yarn typecheck`, `yarn test:cov` and Qodana when a
+  staged path is not `*.md` (ADR-060; until then the parent's hooks ran these gates, ADR-025).
+- `marketplace-services-status/qodana.sh` is executable (mode `100755`, git-tracked) — `pre-commit` lines 521-523
   block with the fixing command (`chmod +x` + `git update-index --chmod=+x`) rather than silently
   reporting "Qodana failed" against a SARIF that was never created. Traces NFR-MA03, NFR-MA04.
 
@@ -241,7 +240,7 @@ pinned node via nvm before the first gate runs and blocks when it is missing.
   `yarn upload` can happen at all. BCON-07 still applies with the same teeth: a green gate in common is not
   a shipped change until the version is published *and* each consumer's range has moved (ADR-047).
 - Parent workspace's own `core.hooksPath` has no `package.json`/`postinstall` script to restore it after a
-  fresh clone — `git config core.hooksPath .githooks` must be run by hand there, unlike the 14 sub-repos that are
+  fresh clone — `git config core.hooksPath .githooks` must be run by hand there, unlike the 15 sub-repos that are
   packages.
 
 ## 6. Open questions
@@ -250,7 +249,7 @@ pinned node via nvm before the first gate runs and blocks when it is missing.
 
 - **OPEN — Platform owner. Who reviews a newly-red advisory under a pinned scanner image, and who decides
   a `.trivyignore` line?** MC-12's gate is `trivy fs` in `aquasec/trivy:0.70.0`, HIGH and CRITICAL,
-  production tree only, in the `pre-push` of the fourteen repos with a `yarn.lock` plus the parent's. The
+  production tree only, in the `pre-push` of the fifteen repos with a `yarn.lock`. The
   image is pinned; its **advisory database is not** — it is fetched at run time, so a tree nobody has
   touched can go red between two pushes. Nobody owns that event: since 2026-09-20 `gates.yml` runs the same
   trivy invocation on every pull request and every push to `main` (ADR-055), which means a red tree is now
@@ -289,7 +288,7 @@ pinned node via nvm before the first gate runs and blocks when it is missing.
   releases is a release. BCON-07 in §5 keeps its teeth for the half that did not change: a commit in
   common is not a shipped change.
   ⚠️ **This question is about the npm registry and nothing else.** It is ADR-015 §Risks' own revisit
-  trigger. [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the sixteen repos get
+  trigger. [`phase3/adr/ADR-INDEX.md`](../phase3/adr/ADR-INDEX.md) §5's *"where the seventeen repos get
   published, and under which org"* is a different gap — **git hosting**, ADR-031's territory — which is
   still open and which ADR-037 does not close; §5 carries a clause saying so, so the two cannot be
   conflated.

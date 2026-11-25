@@ -4,7 +4,7 @@ From an empty machine to a browsable marketplace with demo data. Follow the step
 depends on the one before it.
 
 Everything here is **development only**. There is no staging or production configuration anywhere in
-these sixteen repos: only a `Dev` environment exists, every port binds `127.0.0.1`, and nothing carries
+these seventeen repos: only a `Dev` environment exists, every port binds `127.0.0.1`, and nothing carries
 TLS except the nginx configuration in step 10, which is not needed to run the platform locally.
 
 **Read [`README.md`](./README.md) first if you want to know what this is.** This file assumes you already do and only
@@ -32,7 +32,7 @@ and three frontends.
 | yarn | **4.18.1**, through Corepack 0.36.0 | every `package.json` pins yarn in `packageManager`, and `corepack enable` (once per node install) makes `yarn` resolve to that binary instead of a global Yarn 1, which refuses the project. ⚠️ **Node 26 ships without Corepack**, so it is installed first: `npm install -g corepack@0.36.0 && corepack enable`. `npm` installs nothing else here |
 | Docker Engine | 24+ with Compose v2 | the database cluster, and the Qodana scan the commit gate runs |
 | `openssl` | any | mints the replica-set keyfile, the CSFLE master key and the cookie signing keys |
-| a Qodana Cloud token | — | **only if you intend to commit.** Qodana is a pre-commit gate in fourteen repos and blocks when the token is missing rather than skipping |
+| a Qodana Cloud token | — | **only if you intend to commit.** Qodana is a pre-commit gate in fifteen repos and blocks when the token is missing rather than skipping |
 
 ```bash
 nvm install 26.13.1 && nvm use 26.13.1
@@ -114,10 +114,10 @@ feature branch mid-task is left exactly where it is — running `bootstrap.sh` n
 
 None of those `git config` lines can be committed — local config is per-worktree — so they survive exactly
 as long as the checkout does. Without them the parent runs no gate at all and says nothing about it, and
-neither does `marketplace-nginx`. The other fourteen repos re-arm themselves from `package.json`'s
+neither does `marketplace-nginx`. The other fifteen repos re-arm themselves from `package.json`'s
 `postinstall` script on a fresh or changed `yarn install` — Yarn 4 never runs `prepare`, and an unchanged
 install runs nothing, so `bootstrap.sh` is the dependable way and the install is not; those two have no
-`package.json` and, by decision, never will (ADR-025, ADR-030). **`./scripts/audit-check.sh` §7 tells you afterwards whether all sixteen are armed** —
+`package.json` and, by decision, never will (ADR-060, ADR-030). **`./scripts/audit-check.sh` §7 tells you afterwards whether all seventeen are armed** —
 it is the only way to find out, because in an unarmed repo the hook that would complain is the one that
 is off (RISK_REGISTER R09).
 
@@ -328,7 +328,7 @@ Four things to know before you rely on it:
 
 - ⚠️ **One `.envrc`, at the workspace root, and never one inside a sub-repo.** direnv loads the *nearest*
   one walking up the filesystem and does not stop at a git boundary, so the root file is already in force
-  in all sixteen repos. A second one would **replace** it for that subtree, silently.
+  in all seventeen repos. A second one would **replace** it for that subtree, silently.
 - ⚠️ **The layer wins.** `dotenv` never overwrites an exported variable, so a key in `.env.shared` is
   answered there and that repo's own copy of it is dead text. Do not add a key that legitimately differs
   anywhere — it would not be a default, it would be a value that repo can no longer change.
@@ -384,7 +384,7 @@ for a deployment that terminates TLS on its Redis; the leg being cleartext here 
 spelling is off and silent, which is the one shape in which R45 looks closed and is not.
 `./scripts/env-fingerprint-sweep.sh` refuses any spelling other than those two (2026-09-06, MC-26),
 naming the file and not the value; it is the only check anywhere that looks at this flag, because the
-code that reads it lives in `@axiumine/koa-utils` rather than in these sixteen repos.
+code that reads it lives in `@axiumine/koa-utils` rather than in these seventeen repos.
 
 **`BEs/marketplace-db-setup`** assembles its URL from pieces and injects the credentials itself, so its
 connection string carries no user:
@@ -635,7 +635,7 @@ You need it the moment this is served over a network, for one reason above the o
 ⚠️ **`proxy_cookie_flags ~ secure httponly samesite=strict;` in `snippets/proxy-backend.conf` is the
 only thing on the entire platform that sets `Secure` on the session cookie.** `koa-utils` ships
 `secure: false` with a comment saying to rewrite it at the edge. Nothing else sets the flag, nothing
-fails without it, and no test in any of the sixteen repos covers it — so a deployment without nginx in
+fails without it, and no test in any of the seventeen repos covers it — so a deployment without nginx in
 front sends the session cookie marked as safe to replay over plain HTTP.
 
 There is no nginx on the maintainer's machine either. The one way to execute any of this configuration
@@ -757,7 +757,7 @@ login path reads it, and the integration suite asserts that. It is not a lockout
 With the `MONGO_TEST_*` block filled in, `yarn test` and `yarn test:cov` work in every repo.
 
 ⚠️ **A reachable MongoDB is a prerequisite for *committing*, not only for testing** — coverage is a
-pre-commit gate in fourteen repos. Everything is at 100% on all four coverage metrics and mutation score
+pre-commit gate in fifteen repos. Everything is at 100% on all four coverage metrics and mutation score
 100. A failing threshold means a missing test, never a threshold to lower.
 
 Which gate runs when: [`README.md`](./README.md) §Test quality gates. Bypasses exist (`SKIP_QODANA=1`, `--no-verify`)
@@ -783,7 +783,7 @@ and are gate removals — use them only when you have decided to.
 | a session is never found although login succeeded | `REDIS_KEY` differs between two services. It must be byte-identical in all nine |
 | a bogus key name in `grep -oE '^[A-Za-z_0-9]+' .env` | a wrapped value on the line above it |
 | the migration suite drops the wrong database | it refuses to — `buildTestMongoUrl` throws when `MONGO_TEST_DB` equals the database `MONGODB_URI` points at. Fix `.env` |
-| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `postinstall` script, and an unchanged `yarn install` runs none), or the hook is not executable — git skips a non-executable hook with only a hint. `./scripts/audit-check.sh` §7 names every repo in either state across all sixteen; `./scripts/bootstrap.sh` fixes the first, `chmod +x` the second |
+| a git hook does nothing at all | `core.hooksPath` is unset (parent and `marketplace-nginx` have no `postinstall` script, and an unchanged `yarn install` runs none), or the hook is not executable — git skips a non-executable hook with only a hint. `./scripts/audit-check.sh` §7 names every repo in either state across all seventeen; `./scripts/bootstrap.sh` fixes the first, `chmod +x` the second |
 
 ---
 

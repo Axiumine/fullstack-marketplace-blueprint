@@ -16,8 +16,8 @@ nothing in `item` / `itemCategory` presumes what is sold, and no vocabulary that
 type belongs in it. Everything is named in English — identifiers, collections, routes, UI text,
 comments.
 
-This directory is the parent workspace of all Marketplace repos (polyrepo, sixteen of them), published at
-<https://github.com/Axiumine/fullstack-marketplace-blueprint>. Since ADR-031 it tracks the fifteen
+This directory is the parent workspace of all Marketplace repos (polyrepo, seventeen of them), published at
+<https://github.com/Axiumine/fullstack-marketplace-blueprint>. Since ADR-031 it tracks the sixteen
 sub-repos as submodules with relative URLs, so `git clone --recurse-submodules` rebuilds the whole
 workspace over whichever transport you clone with — see [`docs/workflow.md`](./docs/workflow.md) §Cloning the workspace, which
 also covers the detached-HEAD trap that follows every `git submodule update`, and what is not yet pushed.
@@ -151,18 +151,21 @@ Verified present in all seven services on 2026-07-26: `thresholds` in every `vit
 every repo. The executable bit matters — git skips a non-executable hook with only a hint, so the
 gate disappears silently; `marketplace-dev-public-authorization` shipped that way once.
 
-### Where the gates fire — push and commit, in all sixteen repos
+### Where the gates fire — push and commit, in all seventeen repos
 
-All sixteen gate on **both**, but not with the same content. `marketplace-nginx` has no `package.json`,
+All seventeen gate on **both**, but not with the same content. `marketplace-nginx` has no `package.json`,
 so there is no lint, coverage, mutation or Qodana step it could run: its `pre-push` runs `test/run.sh`
 — `nginx -t` plus the behavioural suite in a throwaway container — and blocks on any failed check, and
-its `pre-commit` is the secret guard below and nothing else (ADR-030).
+its `pre-commit` is the secret guard below and nothing else (ADR-030). This workspace ships no package
+either: its `pre-commit` is that same secret guard, and its `pre-push` runs the `scripts/*-selftest.sh`
+self-tests and then the Scorecard floor (ADR-060).
 
 ### The second layer — six of the eight gates, on GitHub, since 2026-09-20
 
 **The hooks are still the authoritative layer, and they are no longer the only one.**
-`.github/workflows/gates.yml` in all sixteen repos runs the same gates against the same scripts on every
-pull request and on every push to `main`, and `main` requires the check (ADR-055). It exists for the one
+`.github/workflows/gates.yml` in all seventeen repos runs gates from the same scripts the hooks run, on
+every pull request and on every push to `main` — the parent's runs its self-tests (ADR-060) — and `main`
+requires the check (ADR-055) in all seventeen repos. It exists for the one
 path a local hook can never see: a merge performed on github.com, which is how a Dependabot pull request
 used to reach `main` having passed nothing at all.
 
@@ -170,8 +173,10 @@ What runs there, per repo class:
 
 |Repo class|Gates in CI|
 |---|---|
-|the thirteen sub-repo packages + `marketplace-services-status`|semgrep → trivy → `lint:check` → `typecheck` → `test:cov` → `test:mutation`|
-|the nine services, out of those fourteen|the same, with `test:unit` in place of `test:cov`|
+|the thirteen linted sub-repo packages|semgrep → trivy → `lint:check` → `typecheck` → `test:cov` → `test:mutation`|
+|the nine services, out of those thirteen|the same, with `test:unit` in place of `test:cov`|
+|`marketplace-services-status`|semgrep → trivy → `typecheck` → `test:cov` → `test:mutation`|
+|this workspace|`scripts/*-selftest.sh`|
 |`marketplace-nginx`|`test/run.sh`|
 
 Three things it does **not** do, and a green check is not a substitute for any of them:
@@ -204,8 +209,9 @@ which, at push time, everything being pushed is. It stays out of `pre-commit` fo
 mutation does: it needs Docker and a pinned image, and a hook paid per commit is a hook that gets
 bypassed out of habit. Bypass for a Docker outage, never for a finding: `SKIP_SEMGREP=1 git push`.
 
-**Trivy joined `pre-push` on 2026-08-13, in all fourteen repos that carry a `yarn.lock` — the fifteenth
-gated tree, `marketplace-services-status`, through the parent hook.** It is the answer to a question nothing on this
+**Trivy joined `pre-push` on 2026-08-13, in all fourteen repos that carried a `yarn.lock` — the fifteenth
+gated tree, `marketplace-services-status`, through the parent hook, being a directory here at the time; it
+has been a repo of its own, with its own hook, since ADR-060.** It is the answer to a question nothing on this
 platform was answering: semgrep and Qodana both read the code *written* here, and neither reports on the
 code *installed* here. Qodana looked like it did — `VulnerableLibrariesLocal` is armed in every
 `qodana.yaml` and runs on every commit and push — but that inspection is a ~0.03 s offline heuristic that
@@ -270,24 +276,22 @@ tell two migrations apart when they leave the same database behind. 100% on all 
 **mutation score 100 over 788 mutants**. The replay suite is push-only in spirit — it needs the database
 up — but it is what `test:cov` runs, so `pre-commit` needs Mongo reachable too.
 
-**The fifteenth gated repo is this workspace itself, and it gates `marketplace-services-status`.** The parent dir is
-a git repo like the other fourteen, but it is the only gated one that is not a package: it has no
-`package.json`, and until 2026-08-07 its `.githooks/` held a secret guard and nothing else. That left `marketplace-services-status` — a
-subdirectory here rather than a repo of its own — carrying a `qodana.yaml`, a `stryker.config.mjs` and a
-100% coverage threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the
-appearance of a gated project. Both parent hooks now close it:
+**`marketplace-services-status` gates itself, since ADR-060.** Until then it was a directory of this
+workspace, and until 2026-08-07 it carried a `qodana.yaml`, a `stryker.config.mjs` and a 100% coverage
+threshold with **nothing that ran any of them**. Three configs, zero enforcement, and the appearance of a
+gated project. ADR-025 wired this workspace's hooks to it, and ADR-060 moved those gates, none dropped,
+into the repo's own `.githooks/`:
 
 |Hook|Gates|Scope|
 |---|---|---|
-|`.githooks/pre-commit`|secret guard, then `yarn test:cov`, then Qodana|the last two only when a staged non-`.md` path is under `marketplace-services-status/`|
-|`.githooks/pre-push`|`yarn semgrep:ci` → trivy → scorecard floor → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
+|`.githooks/pre-commit`|secret guard, then `yarn typecheck`, then `yarn test:cov`, then Qodana|the last three only when a non-`.md` path is staged|
+|`.githooks/pre-push`|`yarn semgrep:ci` → trivy → scorecard floor → `yarn typecheck` → `yarn test:cov` → `yarn test:mutation` → Qodana|**unscoped** — every push, whatever it touches|
 
 The asymmetry is on purpose. `pre-commit` is per-commit and can be skipped with `--no-verify`, and a merge
 commit never fires it at all, so scoping it by path is safe only because `pre-push` re-runs everything with
 no filter on the way out. Note the missing gate: **no lint**, for the same reason as `marketplace-db-setup`
-— `marketplace-services-status` has no `lint` script. Its type check is not missing though, it is just not its own
-step: `test:cov` is `yarn build && vitest run --coverage`, so `tsc` runs first and a type error fails the
-coverage gate before a single test executes. Read the **first** error in that output, not the last.
+— `marketplace-services-status` has no `lint` script. The type check is its own step: `yarn typecheck`
+reads `test/` as well as `src/`, while the `yarn build` inside `test:cov` compiles `src/` alone.
 
 First live run of the mutation gate: **1102 killed / 1 timeout / 0 survived, score 100.00 in 52 s**
 (`config.ts` 305 mutants, `server.ts` 434, `systemd.ts` 199, `monitor.ts` 148, `probe.ts` 16). Reaching it
@@ -295,24 +299,21 @@ meant deleting eight guards no input could reach — a `typeof value === 'string
 `.toLowerCase()` the WHATWG URL parser had already applied — which is the same "delete the dead code"
 verdict `marketplace-db-setup` reached, one repo over.
 
-⚠️ **Two things about the parent hooks that nothing else here has to worry about.** Qodana's step scans
-`marketplace-services-status` and uploads to its own Cloud project, `MP Service Status` (`xPKXD`) — the
-scan artefact under `marketplace-services-status/.qodana/results/` is the proof it got there. It **no
+⚠️ **The status app's Qodana step has a Cloud project of its own.** It uploads to `MP Service Status`
+(`xPKXD`) — the scan artefact under `marketplace-services-status/.qodana/results/` is the proof it got there. It **no
 longer blocks**: this paragraph said it did, because that project did not exist when it was written, and
 `SKIP_QODANA=1` went from a standing workaround back to the one-shot bypass it is described as below. The
 hook still fails closed if the token goes missing — it prints the fixing command and exits 1, by design.
-And this repo has **no
-`package.json`**, so it has no `"postinstall"` script to re-run `git config core.hooksPath .githooks` — the
-fourteen sub-repos that are packages restore that setting on a fresh or changed `yarn install` (Yarn 4 never runs
-`prepare`, and an unchanged install runs nothing), and this one has no
-such install to hang it off. ⚠️ **One path does restore it and is worth knowing rather than relying on**:
-`marketplace-services-status` is a package *inside this repo* rather than a submodule of it, so it shares
-this `.git`, and a fresh or changed `yarn install` there arms **this** repo's `core.hooksPath` as a side effect — but
-`SETUP.md` §11 marks that step optional and nothing else in the setup reaches it. After a fresh clone of
-this directory, run `./scripts/bootstrap.sh` — it arms all sixteen repos and is safe to re-run — or all
-three gates and the secret guard are simply off. `./scripts/audit-check.sh` §7 is how you find out which
-repos are in that state, and it has to be a check rather than a gate: in an unarmed repo, the hook that
-would complain is the one that is off.
+⚠️ The repo carries no `.scorecard-floor` until it is on GitHub and has been measured, and its `pre-push`
+blocks without one.
+
+**This workspace ships no package.** It has no `package.json`, so no `"postinstall"` script re-runs
+`git config core.hooksPath .githooks` here — the fifteen sub-repos that are packages restore that setting
+on a fresh or changed `yarn install` (Yarn 4 never runs `prepare`, and an unchanged install runs nothing).
+After a fresh clone of this directory, run `./scripts/bootstrap.sh` — it arms all seventeen repos and is
+safe to re-run — or this workspace's secret guard, self-tests and Scorecard floor are simply off.
+`./scripts/audit-check.sh` §7 is how you find out which repos are in that state, and it has to be a check
+rather than a gate: in an unarmed repo, the hook that would complain is the one that is off.
 
 Lint went in last, and its absence had already cost something. `lint` and `lint:check` existed in all nine
 linted repos and no hook called either, so eslint and prettier were the only tools here whose verdict
@@ -404,8 +405,8 @@ histories interleave and neither is trustworthy. That happened here: `marketplac
 empty. Fixed 2026-08-01. To check a repo, read the `qodana.cloud/projects/<id>` line the scan prints
 and confirm the id is that repo's own — one project per repo, one distinct id each.
 
-Every sub-repo that ships code carries a `qodana.yaml` — all fourteen — and so does `marketplace-services-status`,
-scanned by this workspace's hooks rather than by one of its own. The fifteenth sub-repo,
+Every sub-repo that ships code carries a `qodana.yaml` — all fifteen — and is scanned by its own repo's
+hooks. The sixteenth sub-repo,
 `marketplace-nginx`, ships no code and so has no Qodana config; what it has instead is a `pre-push` hook
 running `test/suite.sh`, which is the gate that fits what it does ship. **Every repo is gated by
 something on push, and that is the invariant to keep.** A new repo without a config and without a hook

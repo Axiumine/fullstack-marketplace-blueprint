@@ -1,57 +1,12 @@
 # Dependabot — what raises Scorecard's Dependency-Update-Tool check, and nothing more.
 #
-# ⚠️ READ THIS BEFORE MERGING ANY DEPENDABOT PULL REQUEST — GREEN IS NOT ENOUGH.
-# Six of the eight gates run on the pull request itself since ADR-055:
-# .github/workflows/gates.yml runs semgrep, trivy, lint:check, typecheck, the test suite
-# and mutation, and `main` requires its `gates` check — so the browser merge no longer
-# passes nothing, which is what it passed under ADR-054. The other two do not run there.
-# Qodana needs a JetBrains Cloud token this workspace keeps out of CI; the Scorecard floor
-# has its own workflow and grades the repository's state on GitHub rather than a diff; and
-# in the nine services the integration vitest project — and with it the 100%-on-four-
-# metrics coverage measurement — needs the MongoDB replica set, the Redis ACL and the
-# sibling marketplace-db-setup checkout, none of which a runner has, so CI runs
-# `yarn test:unit` there instead.
-#
-# The procedure is therefore still not optional: fetch the branch, check it out,
-# `yarn install`, and let pre-commit and pre-push run for real. Merge only after they
-# pass. The hooks are the authoritative layer; the green check is the second one.
+# This repository ships no package, so it has no npm entry: GitHub Actions and the
+# database image are all there is to move. Every package's own dependencies are
+# updated in its own repository.
 #
 # ⚠️ YAML forbids tabs — see the note in .github/workflows/scorecard.yml.
 version: 2
 updates:
-  - package-ecosystem: 'npm'
-    # .github/tools holds the one CI-only dependency, corepack, installed with `npm ci`.
-    directories:
-      - '/marketplace-services-status'
-      - '/.github/tools'
-    schedule:
-      interval: 'weekly'
-      day: 'saturday'
-      time: '03:00'
-      timezone: 'Etc/UTC'
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: 'chore'
-      include: 'scope'
-    labels:
-      - 'dependencies'
-    groups:
-      # One PR for the whole toolchain rather than fifteen. The toolchain is where every
-      # advisory this platform currently carries lives, and a grouped bump is one local
-      # verification run instead of fifteen.
-      dev-toolchain:
-        dependency-type: 'development'
-        update-types:
-          - 'minor'
-          - 'patch'
-    ignore:
-      # ⚠️ Never auto-bumped. Moving a consumer's range onto a new
-      # @axiumine/marketplace-common is step 9 of the mandatory nine-step release in
-      # BEs/marketplace-common/REPO.md §Publishing a release, and it is deliberately
-      # hand-driven: the release cuts the version, then each consumer moves. A bot PR
-      # arriving out of that order would land the range move before — or instead of — the
-      # release it belongs to.
-      - dependency-name: '@axiumine/marketplace-common'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
@@ -71,7 +26,7 @@ updates:
           - '*'
 
   - package-ecosystem: 'docker'
-    # marketplace-docker-DBs is a plain directory of this repo, not a submodule (ADR-025),
+    # marketplace-docker-DBs is a plain directory of this repo, not a submodule,
     # so its Dockerfile is this repo's to keep current.
     #
     # ⚠️ This entry is inert today, on purpose. The digest sits on the Dockerfile's FROM line,

@@ -266,10 +266,10 @@ echo '7. Every repo has its hooks armed, and the hook they point at can actually
 #
 # `core.hooksPath` is local git config. It is not tracked, it does not travel with a clone, and git
 # will never set it from tracked content — a repository that could arm its own hooks would execute a
-# stranger's script on `git clone`. So a fresh checkout of any of the sixteen starts with every gate
+# stranger's script on `git clone`. So a fresh checkout of any of the seventeen starts with every gate
 # off and nothing saying so (RISK_REGISTER R09), and the hook that would notice is the one that is
-# off. Fourteen repos heal on `yarn install` through `"postinstall"` (Yarn 4 never runs `"prepare"`, ADR-059); this workspace and
-# `marketplace-nginx` have no `package.json` and never will (ADR-025, ADR-030 option D), so for those
+# off. Fifteen repos heal on `yarn install` through `"postinstall"` (Yarn 4 never runs `"prepare"`, ADR-059); this workspace and
+# `marketplace-nginx` have no `package.json` and never will (ADR-060, ADR-030 option D), so for those
 # two the value is typed by hand — `./scripts/bootstrap.sh` types it.
 #
 # The executable bit is the second half of the same silent failure: git skips a hook it cannot
@@ -303,10 +303,10 @@ while IFS= read -r path; do
 	check_armed "$path" "$path"
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
-[ "$UNARMED" -eq 0 ] && pass 'all 16 repos armed, every .githooks/pre-commit executable'
+[ "$UNARMED" -eq 0 ] && pass 'all 17 repos armed, every .githooks/pre-commit executable'
 
 echo
-echo '8. The secret rules have not drifted apart across the sixteen pre-commit hooks'
+echo '8. The secret rules have not drifted apart across the seventeen pre-commit hooks'
 
 # Each repo carries its own copy of the hook — not a symlink, not a template — so a rule added to one
 # is added to one. The parent's list is the superset by construction: every rule any repo has, it has.
@@ -320,7 +320,7 @@ echo '8. The secret rules have not drifted apart across the sixteen pre-commit h
 # the shape nobody notices: each repo refuses something, no repo refuses everything, and the hook that
 # is missing a name is the hook of the repo that most needs it. Equality rather than subset, because
 # unlike the value rules there is no repo-specific path worth having: a path rule that is right for one
-# of the sixteen is right for all sixteen, and one line is cheaper than sixteen judgements.
+# of the seventeen is right for all seventeen, and one line is cheaper than seventeen judgements.
 CANON="$(sed "s/^SECRET_VALUE='/SECRET_VALUE+='|/" .githooks/pre-commit | grep '^SECRET_VALUE')"
 CANON_PATH="$(grep '^SECRET_PATH' .githooks/pre-commit)"
 # Yarn 4 reads its project settings from a committed `.yarnrc.yml`, so SECRET_PATH lets that name through
@@ -360,7 +360,7 @@ check_rules() {
 	# rather than repo-specific: `requirepass`/`masterauth` is how the shared Redis credential is
 	# spelled in a config file, and unlike the npm/KEYGRIP/env-key rules (deliberately absent from
 	# `marketplace-nginx`, which tracks no JavaScript and no env file — see its own hook) a Redis
-	# conf snippet or README fragment can land in any of the sixteen. The credential-flag check just
+	# conf snippet or README fragment can land in any of the seventeen. The credential-flag check just
 	# above already asserts this shape for one universal rule; this is the second.
 	if ! grep -qF -- '(requirepass|masterauth)' "$dir/.githooks/pre-commit"; then
 		fail "$label — no requirepass/masterauth secret rule, so a live Redis credential pasted into a tracked file commits clean"
@@ -385,7 +385,7 @@ while IFS= read -r path; do
 	check_rules "$path" "$path"
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
-# ⚠️ Sixteen identical copies of a rule that matches nothing would pass every check above. So the rule
+# ⚠️ Seventeen identical copies of a rule that matches nothing would pass every check above. So the rule
 # is run, here, against paths this file names — the ones it must refuse and the ones it must not — and
 # a regex that stops matching is caught by the same section that catches a regex that stops being
 # copied. No file is created and none is read: `grep -E` is given the path as text, which is all the
@@ -443,7 +443,7 @@ done
 [ "$BEHAVIOUR" -ne 0 ] && DRIFTED=1
 
 [ "$DRIFTED" -eq 0 ] &&
-	pass "all 16 hooks scan for the same rules, all 16 have the credential-flag rule, the shared path rule refuses ${#MUST_REFUSE[@]} paths and passes ${#MUST_PASS[@]}, and the .yarnrc.yml content rule refuses ${#YARNRC_REFUSE[@]} lines and passes ${#YARNRC_PASS[@]}"
+	pass "all 17 hooks scan for the same rules, all 17 have the credential-flag rule, the shared path rule refuses ${#MUST_REFUSE[@]} paths and passes ${#MUST_PASS[@]}, and the .yarnrc.yml content rule refuses ${#YARNRC_REFUSE[@]} lines and passes ${#YARNRC_PASS[@]}"
 
 echo
 echo '9. No secret is sitting in a history that a push would publish'
@@ -648,9 +648,9 @@ if ! node ./scripts/common-consumer-check.mjs; then
 fi
 
 echo
-echo '15. All sixteen pre-commit hooks refuse a commit that would land on main'
+echo '15. All seventeen pre-commit hooks refuse a commit that would land on main'
 
-# RISK_REGISTER R35 (MC-25). Sixteen separate copies of one guard, and the same drift the secret rules
+# RISK_REGISTER R35 (MC-25). Seventeen separate copies of one guard, and the same drift the secret rules
 # have in §8: a repo that loses it loses it alone, and the loss looks like nothing at all — commits
 # keep working, which is the whole problem.
 #
@@ -682,7 +682,7 @@ while IFS= read -r path; do
 	check_main_guard "$path" "$path"
 done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 
-[ "$GUARD_DRIFTED" -eq 0 ] && pass 'all 16 hooks block a commit onto main, exempt an in-progress merge, and name their own escape hatch'
+[ "$GUARD_DRIFTED" -eq 0 ] && pass 'all 17 hooks block a commit onto main, exempt an in-progress merge, and name their own escape hatch'
 
 echo
 echo '16. Every shared environment value is held identically everywhere it is read'
@@ -797,6 +797,7 @@ TYPECHECK_TEST_CONFIG=(
 	BEs/dev/marketplace-dev-public-resource
 	BEs/dev/marketplace-dev-user-authenticated-authorization
 	BEs/dev/marketplace-dev-user-authenticated-resource
+	marketplace-services-status
 )
 
 # The three apps need no second config: their root `tsconfig.json` is not a build config — vite emits,
@@ -843,11 +844,6 @@ done
 for repo in "${TYPECHECK_ROOT_CONFIG[@]}"; do
 	check_typecheck "$repo" "$repo" "$repo" tsconfig.json 'tsc --noEmit'
 done
-
-# `marketplace-services-status` is a directory of the parent repo, not a sub-repo (ADR-025), so the
-# hooks that gate it are the parent's own — and its pre-commit is the only one of the two that is
-# scoped to staged paths under it.
-check_typecheck 'marketplace-services-status' marketplace-services-status . tsconfig.test.json 'tsc -p tsconfig.test.json'
 
 if [ "$FAILED" -eq "$TYPECHECK_BEFORE" ]; then
 	pass 'all fourteen TypeScript packages type-check src/ and test/ together, gated by both hooks'

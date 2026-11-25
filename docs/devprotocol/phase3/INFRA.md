@@ -128,7 +128,7 @@ graph TB
   binds `::` (every interface) on all 9 services. `marketplace-user/serve.mjs` is the one deliberate
   exception (see `serve.mjs:1-7,36,47` — binds `127.0.0.1`, has no auth of its own).
 - Nothing here is a container. No `Dockerfile`, no `docker-compose.yml`, no k8s manifest found anywhere
-  under the 16 repos — services run as bare `node`/`tsx` processes, per each `package.json` `dev`/`start`
+  under the 17 repos — services run as bare `node`/`tsx` processes, per each `package.json` `dev`/`start`
   script (§5).
 - MongoDB and Redis are **external to every repo** — no repo starts them, no repo embeds them. Their
   reachability is entirely a `.env` matter (§7 for the test-DB variant of this rule).
@@ -451,7 +451,7 @@ Two layers exist. Nothing else is wired.
   `(config.port, config.host)` from its own config, not a hardcoded literal —
   `marketplace-services-status/src/server.ts:710`.
 
-**Not present anywhere in the 16 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
+**Not present anywhere in the 17 repos:** a metrics backend (no Prometheus/Grafana/StatsD config found), a
 log aggregator (each vhost's `access_log`/`error_log` write to local files under
 `/var/log/nginx/`, one pair per hostname — `marketplace-nginx/sites-available/marketplace-domain.com.conf:74-75`
 and the same lines in the two panel vhosts — with no shipping config — `SYSTEM_CONTEXT.md` §6), and distributed tracing beyond whatever Sentry's own SDK samples. Do not describe
@@ -465,16 +465,17 @@ any of these as built.
 of which gates** — state the difference plainly rather than letting any of it imply the rest.
 
 What exists, per [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md): every one of
-the 16 repos carries `.github/workflows/scorecard.yml` (OpenSSF Scorecard on push to `main` and weekly,
-`publish_results: true`, SARIF uploaded to code scanning), and the 15 that ship JavaScript also carry
+the 17 repos carries `.github/workflows/scorecard.yml` (OpenSSF Scorecard on push to `main` and weekly,
+`publish_results: true`, SARIF uploaded to code scanning), and the 16 that ship JavaScript also carry
 `.github/workflows/codeql.yml`. Both **measure** and block nothing.
 
 What exists as a gate, per [`ADR-055`](./adr/ADR-055-the-gates-run-on-github-too-and-main-requires-them.md)
-the same day: every one of the 16 repos also carries `.github/workflows/gates.yml`, one job named `gates`,
-on `pull_request` and on `push` to `main`, and `main` in all 16 **requires** that check. It runs six of the
-eight `pre-push` gates in the 14 packages — `semgrep:ci`, trivy, `lint:check`, `typecheck`, the test suite,
-`test:mutation` — five of the seven in the parent (over `marketplace-services-status`, which has no lint
-gate to run), and `test/run.sh` in `marketplace-nginx`. ⚠️ **Three things it does not do**, each for a
+the same day: every one of the 17 repos also carries `.github/workflows/gates.yml`, one job named `gates`,
+on `pull_request` and on `push` to `main`, and `main` in all 17 **requires** that
+check. It runs six of the eight `pre-push` gates in 14 of the packages — `semgrep:ci`, trivy, `lint:check`,
+`typecheck`, the test suite, `test:mutation` — five of the seven in `marketplace-services-status`, which has
+no lint gate to run, the cross-repo check self-tests in this parent
+([ADR-060](./adr/ADR-060-services-status-is-a-sub-repo.md)), and `test/run.sh` in `marketplace-nginx`. ⚠️ **Three things it does not do**, each for a
 stated reason and none of them a lowered threshold: **Qodana** needs a JetBrains token these public repos
 will not hold; **the Scorecard floor** has its own workflow and grades the repo rather than a diff; and in
 the **nine services** the coverage run is replaced by `yarn test:unit`, because its `integration` project
@@ -492,14 +493,15 @@ The entire delivery/quality-gate mechanism is **local git hooks**, wired via `co
 
 - `.githooks/pre-commit` — lint, `tsc`, coverage (scoped to staged paths in some repos).
 - `.githooks/pre-push` — `semgrep:ci` → trivy → the Scorecard floor (ADR-054) → `lint:check` →
-  `typecheck` → `test:cov` → `test:mutation` → Qodana, in that order, in the 14 sub-repos that ship code
-  (`docs/workflow.md` §Git hooks); `marketplace-db-setup` runs a six-gate subset with no lint or type
-  step — its semgrep step landed on 2026-09-20, long after the rest, because CI ran that ruleset before any
-  hook did (ADR-055 §Positive). `marketplace-nginx`, the fifteenth, ships
+  `typecheck` → `test:cov` → `test:mutation` → Qodana, in that order, in the 15 sub-repos that ship code
+  (`docs/workflow.md` §Git hooks), `marketplace-services-status` without the lint step;
+  `marketplace-db-setup` runs a six-gate subset with no lint or type step — its semgrep step landed on 2026-09-20, long after the rest, because CI ran that ruleset before any
+  hook did (ADR-055 §Positive). `marketplace-nginx`, the sixteenth, ships
   configuration rather than code and gates on `test/run.sh` instead — one hook, `pre-push`, and no
-  `pre-commit`, so no secret guard.
+  `pre-commit`, so no secret guard. This parent ships no package: its `pre-commit` is the secret guard, and
+  its `pre-push` runs the cross-repo check self-tests and then the Scorecard floor (ADR-060).
 
-`core.hooksPath` is **local config**, not committed — every one of the 14 sub-repos that is a package
+`core.hooksPath` is **local config**, not committed — every one of the 15 sub-repos that is a package
 self-arms it via a `"postinstall": "yarn run hooks:install"` script that a fresh or changed `yarn install`
 runs. **Two repos have no `package.json` and so nothing re-arms them after a fresh clone — this parent
 workspace and `marketplace-nginx`**; both must be set by hand
@@ -580,7 +582,7 @@ every request in Topology A (§2) reaches a service directly on its own port.
 |---|---|---|
 | Linux | Primary, verified | This session's environment (`Linux 6.12.100+deb13-amd64`); `dev.sh`'s `sudo mount --bind` and `/var/ram/*` tmpfs path are Linux-specific mechanisms — no macOS/Windows equivalent exists in any repo |
 | macOS | Unverified, likely partial | Node/yarn/nvm tooling is portable, but `dev.sh` (§6) will not run as-is — no `/var/ram` tmpfs equivalent, no `mount --bind` semantics match |
-| Windows (native) | Unsupported | No `.ps1`/`.cmd`/`.bat` script anywhere in the 16 repos; `dev.sh` is bash-only |
+| Windows (native) | Unsupported | No `.ps1`/`.cmd`/`.bat` script anywhere in the 17 repos; `dev.sh` is bash-only |
 | Windows (WSL2) | Plausible, unverified | Would inherit Linux semantics inside the WSL2 VM, but nothing in this tree documents or tests it |
 
 `NFR-PO01`–`PO05` (`NFR.md` §2.5 Portability) govern Node version and module-system portability, not OS
@@ -643,7 +645,7 @@ it exists; it may not invent shape for anything undesigned. Every row below is a
 
 | # | Question | Why it's open |
 |---|---|---|
-| 1 | Where do the 16 repos get pushed, and under which org/forge? | **Answered in fact 2026-09-20, not by a decision** — all 16 are public repositories under `github.com/Axiumine`, every one with `main` as its default branch and real history behind it, and [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)'s badges, workflows and `pre-push` floor gate all resolve that path. No ADR records the choice, so the *decision* is still the user's — see the ADR index §5, which keeps the bullet open for that reason. Originally: [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
+| 1 | Where do the 17 repos get pushed, and under which org/forge? | **Answered in fact 2026-09-20, not by a decision** — all 17 are public repositories under `github.com/Axiumine`, every one with `main` as its default branch and real history behind it, and [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)'s badges, workflows and `pre-push` floor gate all resolve that path. No ADR records the choice, so the *decision* is still the user's — see the ADR index §5, which keeps the bullet open for that reason. Originally: [`docs/workflow.md`](../../workflow.md) §Repo layout, `PDR.md` §4 Out of scope. |
 | 2 | Does a CI/CD pipeline get built once a forge exists, or do the local git hooks (§10) remain the only gate? | **Still open, and now consequential.** The forge arrived and two *measuring* workflows came with it (§10, ADR-054); not one gate runs on a runner and no status check is required, so any merge made on GitHub — a Dependabot pull request above all — passes nothing. Closing this means a pipeline that runs the gates plus required checks, which needs Docker-capable runners and a cloud `QODANA_TOKEN`; the ADR index §5 carries it as its own bullet and `RISK_REGISTER.md` R39 as its CI/CD item. |
 | 3 | Which host runs the nginx in `marketplace-nginx/`, does anything sit in front of it, and how do the twelve service ports get closed to everything but it? | **Answered 2026-08-28 by [`ADR-039`](./adr/ADR-039-production-topology-cloudflare-app-host-trusted-datastore-segment.md)** — one application host carries nginx and all twelve processes; **Cloudflare** sits in front, and the origin refuses anything without its client certificate (`snippets/origin-pull.conf`, `ssl_verify_client on`); the ports are closed by a **cloud security group**, default-deny inbound, opening 443 (and 80 for the redirect) from Cloudflare's ranges alone. The security-relevant half is therefore answered too: no service port is reachable from outside that host, and a caller that does reach one still needs a session (`NFR-SE08`). |
 | 4 | Does `marketplace-admin`/`marketplace-shopowner` get an equivalent nginx vhost? | **Answered** — both do: `marketplace-nginx/sites-available/{shopowner,admin}.marketplace-domain.com.conf`, each serving its SPA off disk with four proxied endpoints. `SYSTEM_CONTEXT.md` §5.11. |

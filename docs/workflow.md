@@ -16,8 +16,8 @@ more services, and queries in the frontends.
 
 ## Repo layout
 
-Polyrepo, **not** a monorepo (ADR-001). **Sixteen independent git repos**: this parent dir plus
-fifteen sub-repos.
+Polyrepo, **not** a monorepo (ADR-001). **Seventeen independent git repos**: this parent dir plus
+sixteen sub-repos.
 
 ```
 fullstack-marketplace-blueprint/     # git repo — workspace files only
@@ -29,16 +29,16 @@ fullstack-marketplace-blueprint/     # git repo — workspace files only
 ├── marketplace-nginx/               # the edge — nginx config + its test container, no package.json
 ├── marketplace-shopowner/           # React + Vite shop-owner SPA (ShopOwner)
 ├── marketplace-user/                # TanStack Start SSR app (User + anonymous)
-└── marketplace-services-status/                 # tracked by THIS repo, not a repo of its own
+└── marketplace-services-status/     # local status panel for the platform — own repo (ADR-060)
 ```
 
-The parent tracks each of the fifteen as a **submodule** (ADR-031): a gitlink pinning one commit SHA, and
+The parent tracks each of the sixteen as a **submodule** (ADR-031): a gitlink pinning one commit SHA, and
 nothing else. **Anything written under those paths is still tracked by that sub-repo and never by the
 parent** — a submodule pins a sub-repo, it does not absorb one. `git ls-files -s BEs/marketplace-common`
 returns exactly one entry and its mode is `160000`, the gitlink; anything else under that path means a
 sub-repo's files have been committed into the parent and the boundary is broken.
 
-`.gitmodules` is the tracked list of all fifteen: path, `url = ../<repo-name>.git`, `branch = main`. The
+`.gitmodules` is the tracked list of all sixteen: path, `url = ../<repo-name>.git`, `branch = main`. The
 URL is **relative on purpose** — it resolves against whatever the parent's own `origin` is, so a clone over
 `https` fetches the submodules over `https` and a clone over `ssh` fetches them over `ssh`. An absolute URL
 would pin one transport and make a clone switch halfway through, which is how a submodule fetch ends up
@@ -67,7 +67,7 @@ In an existing checkout, or after a clone that forgot `--recurse-submodules`:
 git submodule update --init --recursive
 git submodule foreach 'git switch main'    # ⚠️ not optional — see below
 git config core.hooksPath .githooks                          # parent: no package.json, no postinstall
-git -C marketplace-nginx config core.hooksPath .githooks     # same reason (ADR-025, ADR-030)
+git -C marketplace-nginx config core.hooksPath .githooks     # same reason (ADR-060, ADR-030)
 git config push.recurseSubmodules check                      # refuse to push a pointer to an unpushed commit
 ```
 
@@ -83,19 +83,22 @@ the `branch = main` entries are recorded for.
 
 ### Current state
 
-- **All sixteen repos have a `main`, and it is normally the checked-out branch.**
-- **All sixteen have `core.hooksPath=.githooks` set and a `.githooks/` of their own**, and all sixteen
+- **All seventeen repos have a `main`, and it is normally the checked-out branch.**
+- **All seventeen have `core.hooksPath=.githooks` set and a `.githooks/` of their own**, and all seventeen
   carry both a `pre-commit` and a `pre-push` — but they do not all hold the same gates.
   `marketplace-nginx` has no `package.json`, so there is no lint, coverage, mutation or Qodana step for
   it to run: its `pre-push` runs `test/run.sh` and blocks on any failed check, and its `pre-commit` is
-  the branch guard, then the secret guard, and nothing after it (ADR-030). Those two run in
-  **all sixteen**. ⚠️ **Since 2026-09-20 there is CI: three workflows per repo, two that measure and one
-  that gates.** `scorecard.yml` and — in the fifteen that ship JavaScript — `codeql.yml` measure
-  supply-chain posture and SAST findings and block nothing (ADR-054). `gates.yml` blocks: it runs semgrep,
-  trivy, `lint:check`, `typecheck`, `test:cov` and `test:mutation` on every pull request and every push to
-  `main`, `main` requires the `gates` check in all sixteen repos, and a merge performed on GitHub therefore
-  no longer passes nothing (ADR-055). ⚠️ **It is a second layer, not the layer.** Qodana and the Scorecard
-  floor stay local-only, the nine services run `test:unit` there because their integration project needs
+  the branch guard, then the secret guard, and nothing after it (ADR-030). This parent has no
+  `package.json` either: its `pre-commit` is the same two guards, and its `pre-push` runs the
+  `scripts/*-selftest.sh` self-tests and then the Scorecard floor (ADR-060). The branch guard and the
+  secret guard run in **all seventeen**. ⚠️ **Since 2026-09-20 there is CI: three workflows per repo, two
+  that measure and one that gates.** `scorecard.yml` and — in the sixteen that ship JavaScript —
+  `codeql.yml` measure supply-chain posture and SAST findings and block nothing (ADR-054). `gates.yml`
+  blocks: it runs semgrep, trivy, `lint:check`, `typecheck`, `test:cov` and `test:mutation` on every pull
+  request and every push to `main` (`marketplace-services-status` has no lint step, and this parent's runs
+  its self-tests, ADR-060). `main` requires the `gates` check in all seventeen repos,
+  and a merge performed on GitHub therefore no longer passes nothing (ADR-055). ⚠️ **It is a second layer,
+  not the layer.** Qodana and the Scorecard floor stay local-only, the nine services run `test:unit` there because their integration project needs
   datastores no runner has, `enforce_admins` is false so a direct push to `main` is gated by the hooks
   alone, and no build or deploy pipeline exists at all.
 - **The parent's own commits now include pointer bumps.** One logical change is N+1 commits, not N: one
@@ -131,7 +134,7 @@ the package, and vice versa.
 
 ⚠️ **`./scripts/history-scan.sh` scans history for secrets, and `./scripts/audit-check.sh` §9 runs it.**
 A filename check is not enough — a live Mongo password once hid in an *unquoted* `mongosh -password`
-flag, which slips past any quoted-value regex, and that is why all sixteen `pre-commit` hooks now carry a
+flag, which slips past any quoted-value regex, and that is why all seventeen `pre-commit` hooks now carry a
 rule for a credential passed as a command-line flag (`docs/testing.md` MC-16). The scanner reads every
 object git holds — `git cat-file --batch-all-objects`, reachable **and** dangling, which a `git log`
 search misses — with the pattern list taken out of the parent's own `.githooks/pre-commit`, so there is
@@ -143,16 +146,16 @@ free before that push and expensive after.
 ## Git rules
 
 - **Never commit on `main`. Ever.** Before the first edit of any task, `git switch -c <type>/<slug>` and
-  commit there. Being on `main` is not permission to commit to it. This holds in all sixteen repos here
-  and in `@axiumine/koa-utils`, a seventeenth repo outside
-  this workspace. ⚠️ **Machine-checked since 2026-09-06, in all sixteen repos here** — every
+  commit there. Being on `main` is not permission to commit to it. This holds in all seventeen repos here
+  and in `@axiumine/koa-utils`, an eighteenth repo outside
+  this workspace. ⚠️ **Machine-checked since 2026-09-06, in all seventeen repos here** — every
   `.githooks/pre-commit` refuses a commit whose `HEAD` is `main` before it reads anything else
   (MC-25, `./scripts/audit-check.sh` §15). It exempts an in-progress merge, because finishing a
   conflicted merge into `main` by hand is a legitimate commit onto `main` and `MERGE_HEAD` exists at
   exactly that moment; an automatic `--no-ff` merge never reaches the hook at all. The escape hatch is
   `SKIP_MAIN_GUARD=1 git commit`, named rather than `--no-verify` so that taking it does not drop the
   secret guard with it — the first commit of a brand-new repo needs it, `git init` having started on
-  `main` with nowhere else to be. The seventeenth repo carries no such guard: it is outside this
+  `main` with nowhere else to be. The eighteenth repo carries no such guard: it is outside this
   workspace, and there discipline is still the only thing between a task and `main`.
 - **Merging into `main` is the user's decision alone** — do not merge, fast-forward, squash or rebase
   onto `main` unless the user says so in that message. One exception, below.
@@ -179,7 +182,7 @@ free before that push and expensive after.
 reads `.git/hooks/` unless told otherwise; a repo without that setting runs no gate at all and says
 nothing about it.
 
-- The fourteen sub-repos that are packages carry `"postinstall": "yarn run hooks:install"` in
+- The fifteen sub-repos that are packages carry `"postinstall": "yarn run hooks:install"` in
   `package.json` (the three frontends: `patch-package && yarn run hooks:install`), and `hooks:install`
   sets `core.hooksPath` to `.githooks`. ⚠️ **Yarn 4 never runs `prepare` on install, and runs the root
   `postinstall` only on a fresh install or one that changed the dependencies** — an unchanged
@@ -189,18 +192,11 @@ nothing about it.
   consumer's `node_modules`. ADR-059 records the move off `prepare`.
 - ⚠️ **Two repos have no `package.json` and so no such mechanism: this parent workspace and
   `marketplace-nginx`.** After a fresh clone of either, run **`./scripts/bootstrap.sh`** from the
-  workspace root — it arms all sixteen, and is safe to re-run on a workspace already in use — or, in the
-  parent, the secret guard and all of `marketplace-services-status`'s coverage, mutation and
-  Qodana gates are off, and in `marketplace-nginx` the edge configuration is pushed without ever being
-  validated. Neither repo will ever grow a `package.json` to host that one line: ADR-025 accepted the
-  residual for the parent, ADR-030 rejected the idea outright for `marketplace-nginx`, and the
-  ADR index lists it among the decisions not re-opened.
-- ⚠️ **One accidental self-heal exists in the parent and is not a mechanism to rely on.**
-  `marketplace-services-status` is a package tracked *by this repo* rather than a submodule of it, so it
-  shares the parent's `.git`; a fresh or changed `yarn install` there runs its `"postinstall"` and arms the
-  **parent's** `core.hooksPath`, because a relative `core.hooksPath` resolves against the worktree root the hooks run
-  in. `SETUP.md` §11 marks that install optional and no other setup step reaches it, so a workspace can
-  easily be used for weeks without it ever running.
+  workspace root — it arms all seventeen, and is safe to re-run on a workspace already in use — or, in the
+  parent, the secret guard, the self-tests and the Scorecard floor are off, and in `marketplace-nginx` the
+  edge configuration is pushed without ever being validated. Neither repo will grow a `package.json` to
+  host that one line: ADR-060 leaves the parent without a package, ADR-030 rejected the idea outright for
+  `marketplace-nginx`, and the ADR index lists it among the decisions not re-opened.
 - **`./scripts/audit-check.sh` §7 is the only thing that can report an unarmed repo** (MC-15). It cannot
   be a hook, in any repo, for the reason that makes the risk a risk: the condition it looks for is the
   condition under which no hook runs. It also catches the second silent form — a `.githooks/pre-commit`
@@ -211,7 +207,7 @@ nothing about it.
   `pre-commit` is the branch guard and the secret guard and stops there: the `main` check, check 0 and
   the two staged-secret scans, then `exit 0`, because with no `package.json` there is no lint, coverage,
   mutation or Qodana step to run.
-- **The first thing every `pre-commit` does is read the branch**, and all sixteen copies do it
+- **The first thing every `pre-commit` does is read the branch**, and all seventeen copies do it
   identically (MC-25). It is the cheapest check on the platform and the only one about the commit
   rather than its content: `main` is not a branch to commit onto (BCON-06). ⚠️ **It is a guard, not a
   lock** — `--no-verify` lifts it exactly as it lifts the secret guard, and a clone whose
@@ -272,7 +268,7 @@ else lives in the repo that reads it. Four rules follow and none of them is obvi
 
 - ⚠️ **One `.envrc`, at the workspace root, and never one inside a sub-repo.** direnv loads the *nearest*
   one walking up the filesystem and does not stop at a git boundary, so the root file already covers all
-  sixteen repos. A second one **replaces** it for that subtree rather than extending it, silently.
+  seventeen repos. A second one **replaces** it for that subtree rather than extending it, silently.
 - ⚠️ **The layer wins and cannot be overridden.** `dotenv` never overwrites an exported variable, so a key
   in `.env.shared` is answered there and the repo's own copy of it is dead text. A key that legitimately
   differs anywhere must therefore stay out — in the layer it would not be a default, it would be a value

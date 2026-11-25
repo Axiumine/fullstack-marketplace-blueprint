@@ -5,7 +5,7 @@
 # nothing else, and editing the file gives it a new name that is scanned again from scratch.
 #
 # Checked in both directions, the `coverage-exempt.txt` rule: an entry matching no object in any of the
-# sixteen fails the run. A cleared blob that has since been rewritten out of history is a line to
+# seventeen fails the run. A cleared blob that has since been rewritten out of history is a line to
 # delete, not a line to leave lying around.
 #
 # Dangling objects are NOT listed here and must not be added. They are reachable from no branch and no

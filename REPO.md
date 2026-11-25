@@ -35,7 +35,7 @@ service pair of its own → resolvers → a frontend.
 
 Everything is English, with no exception — domain names, identifiers, function names, collection and
 field names, UI text, routes, comments, test fixtures, migrations. There is no second language anywhere
-in these sixteen repos.
+in these seventeen repos.
 
 A field whose meaning is not obvious from its English name gets a comment saying exactly what it holds —
 see [`docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md`](./docs/devprotocol/phase2/UBIQUITOUS_LANGUAGE.md)

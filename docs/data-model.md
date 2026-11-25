@@ -341,7 +341,7 @@ Everything below is built by one of five files in `marketplace-common/src/others
 `assertUnderRateLimit.mts`, `assertHashFieldTTLSupport.mts`, `retentionKeys.mts` or `registrationKeys.mts`.
 **Nothing anywhere else may build a session key out of a template literal**, and nothing does:
 `marketplace-common/test/redisKeyspace.test.mts` counts the interpolations in that package and
-`./scripts/audit-check.sh` greps the other fifteen repos, since no test here spans two.
+`./scripts/audit-check.sh` greps the other sixteen repos, since no test here spans two.
 
 ⚠️ **This table is the whole keyspace, and both checks above compare against it.** A shape added to the
 code and not to this table fails `audit-check.sh` §2 by name — which is how the six rows below the rate

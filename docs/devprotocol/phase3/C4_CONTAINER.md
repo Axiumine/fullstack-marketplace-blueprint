@@ -87,7 +87,7 @@ graph TB
 
     COMMON["marketplace-common\n(published @axiumine/marketplace-common;\nreleases only — no local sync path)"]
     DBSETUP["marketplace-db-setup\n(migration runner, not deployed)"]
-    STATUS["marketplace-services-status :varies\n(monitor, parent-tracked, no own repo)"]
+    STATUS["marketplace-services-status :varies\n(monitor, its own repo)"]
     NG["nginx\n(marketplace-nginx/ — 3 vhosts, container-tested,\ninstalled on no host)"]
 
     FEU -->|"GraphQL, SSR bypasses nginx"| PR
@@ -192,7 +192,7 @@ monitoring (`marketplace-services-status`).
 |---|---|---|
 | `marketplace-common` | ESM npm-named library, `@axiumine/marketplace-common` (`BEs/marketplace-common/package.json:2`) | Shared Mongoose models, `TIER` constant and `assertTier` (`src/others/Tier.mts`, `src/others/assertTier.mts`), and the Koa/GraphQL-shaped session-resolution trio `resolveAuthorizationSession`/`findAccountForSession`/`refreshSessionTokens` consumed by the three `*-authenticated-authorization` services. Published to `registry.npmjs.org`, every consumer resolving the range its own `package.json` declares (`ADR-037`). ⚠️ **A release is the only way an edit leaves this repo** ([ADR-047](./adr/ADR-047-a-common-change-ships-as-a-published-release.md)): an unpublished edit is dead weight to all 9 services, and `yarn install` in a consumer is authoritative — it resolves the version that consumer's `yarn.lock` names and can undo nothing. There is no `deploy-local.sh` sync: the script is deleted. |
 | `marketplace-db-setup` | migrate-mongo runner, no server | Applies immutable migrations (`migrations/`) built from `$jsonSchema` builders under `lib/schemas/` (`account.js`, `collection.js`, `geo.js`, `shopOwner.js`, `company.js`, `user.js`, `item.js`, `itemCategory.js`). `yarn migrate:up`/`migrate:status`/`migrate:down`. Every database that has run these migrations is the one place collection shape is defined — resource services never define their own schema. |
-| `marketplace-services-status` | Node monitoring app, parent-tracked (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; has no git repo of its own — tracked directly by this parent workspace repo, gated by the parent's own `.githooks/pre-commit` and `.githooks/pre-push` rather than a repo-local hook. |
+| `marketplace-services-status` | Node monitoring app, a sub-repo (`marketplace-services-status/package.json:2`, name `marketplace-services-status`) | Polls the 9 backend services' health; a git repo of its own, tracked by this parent workspace as a submodule ([ADR-060](./adr/ADR-060-services-status-is-a-sub-repo.md)), gated by its own `.githooks/pre-commit` and `.githooks/pre-push`. |
 | nginx | reverse proxy, TLS terminator, HTML cache — **written and tested, installed nowhere** | Configs at `marketplace-nginx/` in the workspace root: one vhost per hostname (`marketplace-domain.com`, `shopowner.`, `admin.`), plus `conf.d/` (upstreams, rate-limit zones, cache, TLS, hardening) and `snippets/` (the proxy/cookie rewrite and the two header policies). **No nginx binary and no `/etc/nginx` exist anywhere in this workspace or on this machine**, but `marketplace-nginx/test/run.sh` runs `nginx -t` and every behavioural assertion in `test/suite.sh` against a live nginx in a container, so these are executed rather than merely deployable. They carry the `proxy_cache` bypass-on-session-cookie rule, PMTiles range requests, the auth-path rate-limit zones, and — critically — `proxy_cookie_flags ~ secure httponly samesite=strict`, the only thing on the platform that sets `Secure` on the session cookie. |
 
 ---
@@ -263,7 +263,7 @@ fullstack-marketplace-blueprint/                 # parent workspace, its own git
 │   ├── src/routeOptions/                          #      behaviour as router-free constants, testable without mounting a router
 │   ├── serve.mjs                                  #      binds loopback only — the one deliberate exception on the platform
 │   └── docs/nginx/README.md                       #      pointer only — the edge moved to marketplace-nginx/ at the workspace root
-├── marketplace-services-status/                               # WHY: monitor with no repo of its own — tracked + gated by THIS parent repo
+├── marketplace-services-status/                               # WHY: local monitor in a repo of its own, gated by its own hooks (ADR-060)
 ├── docs/
 │   ├── decisions/                                 # ADRs referenced from CLAUDE.md prose (e.g. authorization-service-consolidation.md)
 │   └── devprotocol/                               # this document set — phase1 (PDR/SYSTEM_CONTEXT/NFR), phase2 (UL/EventStorming/BoundedContext),

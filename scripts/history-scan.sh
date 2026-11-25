@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Every object in all sixteen object databases, read once, looking for a live secret.
+# Every object in all seventeen object databases, read once, looking for a live secret.
 #
 #   ./scripts/history-scan.sh
 #
@@ -23,7 +23,7 @@
 #
 # The patterns are not written here. They are read out of this workspace's own `.githooks/pre-commit`,
 # so there is one list on this platform and not two, and a rule added there is scanned for here on the
-# next run without anybody remembering to copy it. The parent's list is the superset of all sixteen —
+# next run without anybody remembering to copy it. The parent's list is the superset of all seventeen —
 # `./scripts/audit-check.sh` §8 is what keeps it that way.
 #
 # It reads. It never writes, never installs, never starts a container, and needs no service running.
@@ -175,7 +175,7 @@ done
 
 for sha in "${!ALLOW[@]}"; do
 	[ -n "${ALLOW_USED[$sha]:-}" ] && continue
-	fail "$ALLOW_FILE: ${sha:0:12} matches no object in any of the sixteen — delete the line"
+	fail "$ALLOW_FILE: ${sha:0:12} matches no object in any of the seventeen — delete the line"
 done
 
 echo

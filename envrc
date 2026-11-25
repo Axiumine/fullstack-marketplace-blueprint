@@ -8,7 +8,7 @@
 # value and nothing in it ever may be: the values live in `.env.shared`, which
 # is gitignored too and which you create from the committed `env.shared`.
 #
-# WHAT IT IS FOR — ADR-053. Fifteen of the sixteen repos ask for the same Redis
+# WHAT IT IS FOR — ADR-053. Nearly every repo asks for the same Redis
 # server, the same MongoDB cluster, the same CSFLE master key and the same
 # cookie-signing KEK, and until now each carried its own copy of every one of
 # those values in its own `.env`. Sixteen copies of one secret is sixteen places
@@ -18,7 +18,7 @@
 #
 # ⚠️ ONE FILE, AT THE WORKSPACE ROOT, AND THERE IS NO PER-REPO `.envrc`.
 # direnv walks *up the filesystem* looking for the nearest `.envrc` and does not
-# stop at a git boundary, so this single file is in force in all sixteen repos
+# stop at a git boundary, so this single file is in force in all seventeen repos
 # and in every directory below them. A second `.envrc` inside a sub-repo would
 # not add to this one — it would replace it, silently, for that subtree.
 #

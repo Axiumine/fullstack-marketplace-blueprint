@@ -7,13 +7,13 @@
 # `core.hooksPath` is local git config. It lives in `.git/config`, it is not tracked, and git will
 # never set it for you on clone — that is a deliberate security property of git, not an oversight:
 # a repository that could arm its own hooks from tracked content would execute a stranger's script
-# on `git clone`. The consequence here is that every one of the sixteen repos starts a fresh
+# on `git clone`. The consequence here is that every one of the seventeen repos starts a fresh
 # checkout with **every gate off and nothing saying so** — the secret guard, the coverage and
 # mutation thresholds, `nginx -t`, the whole apparatus (RISK_REGISTER R09).
 #
-# Fourteen of the sixteen heal themselves: they are npm packages, and their `"postinstall"` script
+# Fifteen of the seventeen heal themselves: they are npm packages, and their `"postinstall"` script
 # re-runs the `git config` line on a fresh or changed `yarn install`. Two cannot, because they have no
-# `package.json` and by decision never will — this parent workspace (ADR-025) and
+# `package.json` and by decision never will — this parent workspace (ADR-060) and
 # `marketplace-nginx` (ADR-030 option D, rejected: a JavaScript toolchain invented to host one line
 # of git config is the appearance of a gate). For those two the line is typed by hand, which is
 # what this script exists to stop being five lines of it.
@@ -102,10 +102,10 @@ done < <(git submodule --quiet foreach 'echo "$displaypath"' 2> /dev/null)
 [ "$DETACHED" -eq 0 ] && note 'none — every submodule is on a branch'
 
 echo
-echo '3. core.hooksPath, in the parent and in all fifteen submodules'
+echo '3. core.hooksPath, in the parent and in all sixteen submodules'
 
 # Relative on purpose: git resolves `core.hooksPath` against the root of the working tree the hooks
-# run in, so one value is correct in sixteen repos and keeps working from a subdirectory.
+# run in, so one value is correct in seventeen repos and keeps working from a subdirectory.
 if git config core.hooksPath .githooks; then
 	pass 'parent — core.hooksPath=.githooks'
 else
@@ -113,7 +113,7 @@ else
 fi
 
 if git submodule --quiet foreach 'git config core.hooksPath .githooks'; then
-	pass 'all fifteen submodules — core.hooksPath=.githooks'
+	pass 'all sixteen submodules — core.hooksPath=.githooks'
 else
 	fail 'at least one submodule — git config core.hooksPath failed'
 fi

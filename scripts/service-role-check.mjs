@@ -9,7 +9,7 @@
  * database-scoped, so at the datastore layer each of them can read and write every collection in
  * `dbMarketplaceDev` (RISK_REGISTER R59). The narrow shape that removes it is written down in
  * `marketplace-docker-DBs/init/roles.js` and proved by `rbac-probe.sh`, but minting eight accounts
- * with eight passwords is provisioning work outside these sixteen repos, by ADR-039 and ADR-040.
+ * with eight passwords is provisioning work outside these seventeen repos, by ADR-039 and ADR-040.
  *
  * So the table in that file is a promise about code nobody is checking against the code. Its own
  * header says as much: "A new resolver that imports a seventh model widens the service's true surface

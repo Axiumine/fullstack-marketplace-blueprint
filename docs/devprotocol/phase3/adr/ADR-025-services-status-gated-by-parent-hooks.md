@@ -1,11 +1,11 @@
 # ADR-025 — marketplace-services-status has no repo of its own and is gated by the parent workspace hooks
 # Marketplace
 
-**Status:** accepted
+**Status:** superseded
 **Date:** 2026-08-07
 **Deciders:** platform owner
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** [`ADR-060`](./ADR-060-services-status-is-a-sub-repo.md)
 
 ---
 

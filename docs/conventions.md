@@ -29,7 +29,7 @@ docs onto one line.
 which are immutable, so a formatter that rewrites them is the wrong tool.
 
 `marketplace-services-status` is two-space like the rest, by the platform owner's ruling of 2026-10-17. It is not one of the
-thirteen gated repos and has no eslint or prettier (ADR-025), so nothing enforces it: a file added there follows it by hand.
+thirteen gated repos and has no eslint or prettier (ADR-060), so nothing enforces it: a file added there follows it by hand.
 
 **Still tab-indented, on purpose:** shell scripts and git hooks (a bash `<<-` heredoc strips leading tabs and nothing else, so
 converting one breaks it), `marketplace-db-setup`, the `marketplace-nginx` configuration and the shell in `marketplace-docker-DBs`.

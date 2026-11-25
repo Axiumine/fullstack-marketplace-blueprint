@@ -48,7 +48,7 @@ in the hook itself denies rather than waves the call through. 41 cases in
 `bash leak.sh`, where `leak.sh` contains `cat .env`, is not caught. Only output-side redaction would
 close that, and no such hook point exists — so treat it as a real gap rather than a solved problem.
 
-## 3. `pre-commit` guard — installed in all sixteen repos
+## 3. `pre-commit` guard — installed in all seventeen repos
 
 Blocks a commit when a staged **path** looks like a secret file, or when staged **added lines** contain a
 high-entropy secret: real npm token (`npm_` + 36), UUID/JWT `_authToken`, `-----BEGIN … PRIVATE KEY-----`,
@@ -65,7 +65,7 @@ either quoting. It matches key names, not values; the value scans above still ru
 other file's. Credentials and the LAN mirror — `npmRegistryServer`, plus `unsafeHttpWhitelist` for an `http`
 host — belong in `~/.yarnrc.yml`, which no repository holds, and the same file is why a project-level
 `npmRegistryServer` is not committed: it would override the mirror for everyone. `./scripts/audit-check.sh` §8
-compares `^YARNRC_CREDENTIAL` across the sixteen hooks with the equality it applies to `SECRET_PATH` and runs it
+compares `^YARNRC_CREDENTIAL` across the seventeen hooks with the equality it applies to `SECRET_PATH` and runs it
 against five lines it must refuse and three it must not.
 
 ⚠️ **`KEYGRIP_KEK` is matched on its exact shape, not on entropy** (ADR-034): base64 of 32
@@ -101,7 +101,7 @@ shared layer calls an `invalid line` before exporting **none** of that file. Tra
 flagged — both readers drop it — and **0** lines in the workspace's env files are blocked by the rule
 as it landed, so nothing needed repairing first.
 
-Patterns were tuned against the whole tracked corpus of the 11 repos of that baseline (16 today, and the
+Patterns were tuned against the whole tracked corpus of the 11 repos of that baseline (17 today, and the
 patterns have not been re-tuned since) so the committed `env` and `npmrc`
 placeholder templates pass — a guard that cries wolf gets disabled. Vendored scanner rulesets
 (`semgrep/vendor/`) are skipped. Escape hatch: `git commit --no-verify`.
@@ -116,8 +116,8 @@ a secret embedded in a URI, an object literal, or any longer expression. Verifie
 corpus of that same 11-repo baseline: the only lines whose verdict changes are the two `vitest.config.mts` fixtures;
 the live-looking credentials in `marketplace-db-setup/setup/mongodb.js` still block.
 
-Tracked at `.githooks/pre-commit` in **all sixteen repos** (counted 2026-08-09: 16 hook files, 16
-carrying check 0), each setting `core.hooksPath=.githooks`. The 14 repos that have a `package.json` set
+Tracked at `.githooks/pre-commit` in **all seventeen repos** (counted 2026-08-09: 16 hook files, 16
+carrying check 0), each setting `core.hooksPath=.githooks`. The 15 repos that have a `package.json` set
 it from their `postinstall` script, so a fresh or changed install arms the guard and a clone is protected
 without anyone remembering to arm it by hand — Yarn 4 never runs `prepare`, and an unchanged install runs
 nothing, so `./scripts/bootstrap.sh` is the dependable way.
@@ -139,7 +139,7 @@ Once `hooksPath` is set, `.git/hooks/pre-commit` never runs, so the old untracke
 every repo rather than left to drift out of sync with the tracked one. Each repo holds exactly one copy.
 
 ⚠️ **They are not all byte-identical, and a fix has to be applied to each variant.** Measured
-2026-08-09 — six distinct files, because the tail of the hook differs by what a repo can actually run:
+2026-08-09, restated for ADR-060 — seven variants, because the tail of the hook differs by what a repo can actually run:
 
 |Variant|Repos|Why it differs|
 |---|---|---|
@@ -147,23 +147,24 @@ every repo rather than left to drift out of sync with the tracked one. Each repo
 |frontend|`marketplace-admin`, `-shopowner`, `-user`|adds `yarn typecheck` between lint and coverage|
 |`marketplace-common`|1|its own lint/coverage chain|
 |`marketplace-db-setup`|1|no lint — no `eslint.config.js` on that repo (`README.md`)|
-|parent workspace|this directory|scoped to `marketplace-services-status/`, no lint|
+|parent workspace|this directory|no commit tail: no package; pre-push runs script self-tests and the Scorecard floor|
+|`marketplace-services-status`|1|types → coverage → Qodana, no lint|
 |`marketplace-nginx`|1|**no tail at all** — no `package.json`, so the guard runs and the hook exits|
 
 The secret-guard body — check 0 and the two staged-secret scans, from `set -uo pipefail` to the end of
-the abort block — **is** byte-identical across the fifteen repos that carry the full version, and must
-stay that way: change one, copy that body to the other fourteen. The header comment above it is not
+the abort block — **is** byte-identical across the sixteen repos that carry the full version, and must
+stay that way: change one, copy that body to the other fifteen. The header comment above it is not
 identical, because it lists the gates each variant goes on to run.
 
 ⚠️ **`marketplace-nginx` is the exception, deliberately and in writing.** It tracks nginx configuration
 and a shell harness — no `package.json`, no env file, no JavaScript — so the npm, `.npmrc`, `KEYGRIP_*`
 and service-env-key branches can never fire there, and its copy carries only the three formats that can
 plausibly land in a conf, a snippet or the README. The narrowing is argued in the file itself; do not
-"restore" the missing rules, and do not count it when checking the other fifteen agree:
+"restore" the missing rules, and do not count it when checking the other sixteen agree:
 
 ```bash
 for r in . BEs/marketplace-common BEs/marketplace-db-setup marketplace-admin marketplace-shopowner \
-         marketplace-user BEs/dev/*/; do
+         marketplace-user marketplace-services-status BEs/dev/*/; do
   sed -n '/^set -uo pipefail$/,/^fi$/p' "$r/.githooks/pre-commit" | md5sum
 done | sort -u        # one line of output, or a repo has drifted
 ```

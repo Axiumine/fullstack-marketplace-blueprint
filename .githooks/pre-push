@@ -1,344 +1,54 @@
 #!/usr/bin/env bash
-# pre-push — the workspace's own gate, and the only one marketplace-services-status has that
-# runs after a merge.
+# pre-push — the workspace's own gate.
 #
-# This repo tracks two very different things: the workspace docs (CLAUDE.md,
-# README.md, .claude/, .agents/) and `marketplace-services-status/`, which is real
-# application code with no repo of its own. Every other package on the platform
-# lives in its own git repo and carries its own .githooks/; marketplace-services-status
-# carried a qodana.yaml, a stryker.config.mjs and a 100% coverage threshold with
-# nothing that ran any of them, which is the appearance of a gate rather than a
-# gate. This hook and the marketplace-services-status block in pre-commit are what make them
-# real.
+# This repo tracks workspace docs, the cross-repo scripts under scripts/ and the
+# submodule pointers. It ships no package: every application,
+# marketplace-services-status included (ADR-060), is a sub-repo with its own
+# .githooks/.
 #
-# Seven blocking gates, in this order:
-#   [1/7] yarn semgrep:ci    — SAST: vendored rules, pinned image, offline
-#   [2/7] trivy              — dependency advisories, HIGH+, production tree only
-#   [3/7] scorecard          — OpenSSF posture of this repo, floored in .scorecard-floor
-#   [4/7] yarn typecheck     — tsconfig.test.json: src/, test/ and the vitest configs
-#   [5/7] yarn test:cov      — tsc, the suite, and 100% on every metric
-#   [6/7] yarn test:mutation — Stryker, thresholds.break: 100
-#   [7/7] Qodana             — severity + coverage thresholds
-#
-# ⚠️ Unlike pre-commit, this one is NOT scoped by path. A push carries whatever
-# happens to be on the branch, including commits made with --no-verify and merge
-# commits, which `pre-commit` never sees at all — git runs that hook for
-# `git commit` only. The merge commit is the single revision that actually
-# reaches a remote, and it is the one no pre-commit scan has ever inspected.
+# Two blocking gates, in this order:
+#   [1/2] scripts/*-selftest.sh — the cross-repo checks still fire when they should
+#   [2/2] scorecard             — OpenSSF posture of this repo, floored in .scorecard-floor
 #
 # ⚠️ This repo has no package.json, so nothing restores `core.hooksPath` for it.
-# The fourteen sub-repos that are packages each carry a `postinstall` script that
-# does; here it is a manual `git config core.hooksPath .githooks` after a fresh
-# clone, or this hook and the secret guard in pre-commit are both simply off.
+# After a fresh clone run `./scripts/bootstrap.sh` (or
+# `git config core.hooksPath .githooks`), or this hook and the secret guard in
+# pre-commit are both simply off.
 #
-# Bypass: `SKIP_QODANA=1 git push`, `SKIP_SEMGREP=1 git push`,
-# `SKIP_TRIVY=1 git push` and `SKIP_SCORECARD=1 git push` — each turns off exactly
-# one gate and leaves the other six running. All four exist for a Docker, network or
-# GitHub outage, never for a finding.
+# Bypass: `SKIP_SCORECARD=1 git push` — for a Docker, network or GitHub outage,
+# never for a finding.
 set -uo pipefail
 
-APP='marketplace-services-status'
 ROOT="$(git rev-parse --show-toplevel)"
-APP_DIR="$ROOT/$APP"
 
-# $1 = what is wrong, $2… = the command(s) that fix it.
-#
-# A missing prerequisite blocks; it never warns and continues. A gate that steps
-# aside when it cannot run is not a gate, it is the hole this hook exists to
-# close, reopened one condition lower.
-gate_block() {
-	local reason="$1"
-	shift
-	{
-		echo
-		echo "pre-push: BLOCKED — $reason"
-		echo
-		echo 'Fix it with:'
-		echo
-		printf '    %s\n' "$@"
-		echo
-	} >&2
+# ---------------------------------------------------------------------------
+# Gate 1 — the self-tests of the cross-repo checks. Each builds a tree under
+# `mktemp -d`, plants the violation its script exists to catch, and fails if the
+# script stays quiet.
+# ---------------------------------------------------------------------------
+
+echo 'pre-push [1/2]: running the cross-repo check self-tests…'
+
+shopt -s nullglob
+selftests=("$ROOT"/scripts/*-selftest.sh)
+
+if [ "${#selftests[@]}" -eq 0 ]; then
+	echo 'pre-push: BLOCKED — no scripts/*-selftest.sh found; nothing ran, which is not a pass.' >&2
 	exit 1
-}
-
-if [ ! -d "$APP_DIR" ]; then
-	gate_block "$APP/ is missing from the worktree — nothing to gate, which is not a pass." \
-		"git checkout $APP"
 fi
 
-# Yarn 4 does not enforce `engines.node` — yarn classic exited 1 on a mismatch, and nothing
-# else took over — so this check is the enforcement, and this machine's default node may
-# be older than the pin. Read the requirement from the app's package.json rather than from
-# this repo, which has none, so bumping the engine in one place cannot leave the hook
-# testing on a version nothing uses.
-REQUIRED_NODE="$(node -p "require('$APP_DIR/package.json').engines.node" 2> /dev/null | tr -d '^~>= ')"
-
-# An empty value here means node is not on PATH at all, which is a different
-# failure from the wrong version and needs saying: without it the block below
-# prints `engines.node ^` and `nvm install  && nvm use ` — a fix line with no
-# argument.
-if [ -z "$REQUIRED_NODE" ]; then
-	gate_block "node not found in PATH — engines.node could not be read from $APP/package.json." \
-		'nvm install --lts && nvm use --lts'
-fi
-
-node_satisfies() {
-	local current
-	current="$(node -v 2> /dev/null | tr -d 'v')"
-	[ -n "$current" ] && [ -n "$REQUIRED_NODE" ] || return 1
-	# caret semantics: same major, and not older than the pin.
-	[ "${current%%.*}" = "${REQUIRED_NODE%%.*}" ] || return 1
-	[ "$(printf '%s\n%s\n' "$REQUIRED_NODE" "$current" | sort -V | head -n 1)" = "$REQUIRED_NODE" ]
-}
-
-if ! node_satisfies; then
-	# nvm.sh trips over unbound variables, so -u comes off around the source.
-	NVM_SH="${NVM_DIR:-$HOME/.nvm}/nvm.sh"
-	if [ -s "$NVM_SH" ]; then
-		echo "pre-push: node $(node -v 2> /dev/null) does not satisfy engines.node ^$REQUIRED_NODE — switching via nvm."
-		set +u
-		# shellcheck disable=SC1090
-		. "$NVM_SH" > /dev/null 2>&1 || true
-		nvm use "$REQUIRED_NODE" > /dev/null 2>&1 || true
-		set -u
-	fi
-fi
-
-if ! node_satisfies; then
-	gate_block "node $(node -v 2> /dev/null || echo '(not found)') does not satisfy engines.node ^$REQUIRED_NODE, and nvm could not switch — the gates below would all run on the wrong runtime, so none of what they reported could be trusted." \
-		"nvm install $REQUIRED_NODE && nvm use $REQUIRED_NODE"
-fi
-
-if ! command -v yarn > /dev/null 2>&1; then
-	gate_block 'yarn not found in PATH — every gate below shells out to yarn.' \
-		'npm install -g corepack@0.36.0 && corepack enable'
-fi
-
-cd "$APP_DIR" || gate_block "cannot enter $APP/." "git checkout $APP"
-
-# ---------------------------------------------------------------------------
-# Gate 1 — Semgrep (SAST). Coverage and mutation ask whether the code is tested;
-# this one asks whether it is safe. Push-only, like mutation: it needs Docker and
-# the pinned image, and a gate paid per commit is a gate that gets bypassed out
-# of habit. Push is the layer that matters anyway — it is the only one that ever
-# sees a merge commit.
-#
-# It runs FIRST because it is by far the cheapest of the four (~3 s against the
-# minutes the rest take together), so a rule violation is reported in seconds
-# rather than after a full coverage + mutation + Qodana run.
-#
-# `semgrep:ci` is the --error variant of `yarn semgrep`: exit 1 on any finding,
-# plus a SARIF at marketplace-services-status/semgrep.sarif (gitignored). Every rule is
-# vendored under marketplace-services-status/semgrep/ and the container runs --network none,
-# so the verdict is offline and reproducible — the pinned image tag is the only
-# moving part.
-#
-# ⚠️ This is NOT the same scan as gate 7. Qodana runs JetBrains inspections;
-# this runs the semgrep registry packs plus semgrep/custom.yml, whose rules are
-# this platform's own.
-#
-# Bypass: `SKIP_SEMGREP=1 git push` — for a Docker outage, never for a finding.
-# ---------------------------------------------------------------------------
-
-if [ -n "${SKIP_SEMGREP:-}" ]; then
-	echo "pre-push [1/7]: $APP — Semgrep gate skipped, SKIP_SEMGREP is set." >&2
-else
-	# An absent ruleset is not an empty one: `--config semgrep/` on a missing
-	# directory is an error, but a half-restored one would scan with whatever
-	# survived and report 0 findings, which reads exactly like a pass.
-	if [ ! -d "$APP_DIR/semgrep" ]; then
-		gate_block "$APP/semgrep/ is missing — every rule this gate runs is vendored there." \
-			"git checkout $APP/semgrep"
-	fi
-
-	if ! command -v docker > /dev/null 2>&1; then
-		gate_block 'docker not found in PATH — the scan runs inside the pinned semgrep container.' \
-			'# install Docker Engine, then push again:' \
-			'https://docs.docker.com/engine/install/'
-	fi
-
-	if ! docker info > /dev/null 2>&1; then
-		gate_block 'docker daemon not reachable.' \
-			'sudo systemctl start docker'
-	fi
-
-	# Read the tag out of the yarn script rather than hard-coding it here, the same
-	# way gate 7 reads its linter out of qodana.yaml: bumping the engine in one
-	# place must not leave this hook checking for an image no scan uses.
-	SEMGREP_IMAGE="$(grep -oE 'semgrep/semgrep:[0-9][0-9.]*' "$APP_DIR/package.json" | head -n 1 || true)"
-
-	if [ -z "$SEMGREP_IMAGE" ]; then
-		gate_block "no 'semgrep/semgrep:<version>' image found in the $APP/package.json scripts." \
-			"git checkout $APP/package.json"
-	fi
-
-	# The container would be pulled on demand. Blocking instead keeps a slow or
-	# unreachable Docker Hub from turning into a failed push: one explicit pull per
-	# image bump, versus a network flake on any push.
-	if ! docker image inspect "$SEMGREP_IMAGE" > /dev/null 2>&1; then
-		gate_block "semgrep image $SEMGREP_IMAGE is not present locally." \
-			"docker pull $SEMGREP_IMAGE"
-	fi
-
-	echo "pre-push [1/7]: $APP — running the SAST gate ($SEMGREP_IMAGE)…"
-
-	if ! yarn semgrep:ci; then
-		cat >&2 << 'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — Semgrep found something in marketplace-services-status, or the scan could not
-run.
-
-Every finding is printed above and repeated in marketplace-services-status/semgrep.sarif.
-Read the rule id first, then the code it matched:
-
-  1. A true positive is fixed in the source, never in the ruleset.
-  2. A genuine false positive gets an inline `// nosemgrep: <rule-id>` with the
-     reason written on the line above it. Never a bare `// nosemgrep`, which
-     silences every rule on that line, and never an edit to semgrep/vendor/ —
-     that is a frozen registry snapshot which vendor/refresh.sh will restore.
-
-Re-run `yarn semgrep` in marketplace-services-status/ for the readable report, then push
-again.
-────────────────────────────────────────────────────────────────────────────
-MSG
+for selftest in "${selftests[@]}"; do
+	if ! "$selftest"; then
+		echo "pre-push: BLOCKED — ${selftest#"$ROOT"/} failed." >&2
 		exit 1
 	fi
+done
 
-	echo "pre-push [1/7]: $APP — Semgrep clean."
-fi
-
-# ---------------------------------------------------------------------------
-# Gate 2 — Trivy (dependency advisories). Gate 1 asks whether the code this repo
-# wrote is safe; this one asks whether the code it installed is. Nothing else on
-# the platform answered that question. Qodana's `VulnerableLibrariesLocal` is
-# armed in every qodana.yaml, runs on every commit and push, and reports zero
-# problems everywhere — because it is a 0.03 s offline heuristic that queries no
-# advisory feed at all. `VulnerableLibrariesGlobalInspection`, the class in the
-# same image that does call vulnerability-search.jetbrains.com, appears in no
-# profile file and in no scan log this workspace has ever produced. A security
-# check that cannot report is indistinguishable from a passing one.
-#
-# Not `yarn audit`: under yarn 1 it aborted the entire run over the unpublished
-# @axiumine/marketplace-common (`yarn npm audit` under Yarn 4 was not tried), and
-# `npm audit` needs a package-lock.json this workspace does not have. Trivy reads
-# yarn.lock natively, Yarn 4 format included.
-#
-# ⚠️ It suppresses devDependencies by default, and that is the property that makes
-# this gate keepable rather than the one everybody learns to bypass: an advisory
-# in something only `yarn build` ever loads does not block a push. HIGH and
-# CRITICAL only, matching qodana.yaml's own `critical: 0 / high: 0`.
-#
-# ⚠️ --skip-dirs .stryker-tmp is load-bearing. A crashed mutation run leaves a
-# sandbox behind holding a COPY of yarn.lock as it was that day, and trivy reports
-# it as a second target with the same weight as the real one. One such sandbox in
-# this workspace still carried axios@0.21.4 and picomatch@2.3.1 after both had
-# left the actual tree — a finding about a file nobody installs from.
-#
-# The vulnerability database is a 100 MB+ download shared through the named docker
-# volume below, so only the first run on a machine pays for it, and it updates
-# itself independently of the pinned image tag: a tree that is clean today can go
-# red tomorrow with no commit in between. That is the gate working, not flaking.
-#
-# Bypass: `SKIP_TRIVY=1 git push` — for a Docker or network outage, never for a
-# finding.
-# ---------------------------------------------------------------------------
-
-if [ -n "${SKIP_TRIVY:-}" ]; then
-	echo 'pre-push [2/7]: dependency-advisory gate skipped — SKIP_TRIVY is set.' >&2
-else
-	# Same contract as gate_block above, and a near-twin of it — separate only so the
-	# bypass line can name SKIP_TRIVY. A missing prerequisite blocks; it never warns
-	# and continues.
-	trivy_block() {
-		local reason="$1"
-		shift
-		{
-			echo
-			echo '────────────────────────────────────────────────────────────────────────────'
-			echo "PUSH BLOCKED — $reason"
-			echo
-			echo 'Fix it with:'
-			echo
-			printf '    %s\n' "$@"
-			echo
-			echo 'Bypass once (every other gate still runs): SKIP_TRIVY=1 git push'
-			echo '────────────────────────────────────────────────────────────────────────────'
-		} >&2
-		exit 1
-	}
-
-	TRIVY_IMAGE='aquasec/trivy:0.70.0'
-
-	# An absent lockfile is not an empty one: trivy would find no language-specific
-	# file, report nothing and exit 0, which reads exactly like a clean tree. The one
-	# scanned here is $APP's — this repo has no package.json of its own, which is the
-	# same reason nothing restores core.hooksPath for it.
-	[ -f "$APP_DIR/yarn.lock" ] ||
-		trivy_block "$APP/yarn.lock is missing — the scan would have nothing to read and would pass." \
-			"git checkout $APP/yarn.lock"
-
-	command -v docker > /dev/null 2>&1 ||
-		trivy_block 'docker not found in PATH — the scan runs inside the pinned trivy container.' \
-			'# install Docker Engine, then push again:' \
-			'https://docs.docker.com/engine/install/'
-
-	docker info > /dev/null 2>&1 ||
-		trivy_block 'docker daemon not reachable.' \
-			'sudo systemctl start docker'
-
-	docker image inspect "$TRIVY_IMAGE" > /dev/null 2>&1 ||
-		trivy_block "trivy image $TRIVY_IMAGE is not present locally." \
-			"docker pull $TRIVY_IMAGE"
-
-	echo "pre-push [2/7]: $APP — checking dependency advisories ($TRIVY_IMAGE)…"
-
-	# --db-repository is not a preference: from here mirror.gcr.io answers 404 for
-	# the database layer and trivy treats that as fatal rather than falling back to
-	# its second source. The mount is read-only — the scan reads the tree and the
-	# cache volume, and writes nothing into the repo.
-	if ! docker run --rm \
-		-v "$APP_DIR":/src:ro \
-		-v trivy-db-cache:/root/.cache/trivy \
-		"$TRIVY_IMAGE" fs \
-		--db-repository ghcr.io/aquasecurity/trivy-db:2 \
-		--scanners vuln \
-		--skip-dirs node_modules \
-		--skip-dirs .stryker-tmp \
-		--skip-dirs .qodana \
-		--severity HIGH,CRITICAL \
-		--exit-code 1 \
-		--skip-version-check \
-		/src; then
-		cat >&2 <<'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — a HIGH or CRITICAL advisory in the production tree, or the scan
-could not run. Both exit 1; the output above says which.
-
-Every finding is printed with its CVE id, the version installed and the version
-that fixes it. In order:
-
-  1. Upgrade the dependency. If it is transitive, `yarn why <name>` names the one
-     that pulls it in, and that is the one to move.
-  2. If the package is only ever loaded by the toolchain, it belongs in
-     devDependencies — moving it there is the fix, and the scan stops seeing it.
-  3. Only when there is no upgrade path: a `.trivyignore` entry, one line per CVE
-     id, with a comment naming the risk-register row that accepted it. Reviewed,
-     per finding, dated. Never a --severity edit, never a blanket ignore.
-────────────────────────────────────────────────────────────────────────────
-MSG
-		exit 1
-	fi
-
-	echo 'pre-push [2/7]: no HIGH or CRITICAL advisory in the production tree.'
-fi
+echo 'pre-push [1/2]: self-tests passed.'
 
 # ---------------------------------------------------------------------------
-# Gate 3 — OpenSSF Scorecard (supply-chain posture). Both gates above this one read
-# the working tree: semgrep reads the source, trivy reads yarn.lock, and every gate
-# below runs the code that is about to be pushed. This one does neither — and unlike
-# all of them it is about THIS repo on GitHub, not about $APP.
+# Gate 2 — OpenSSF Scorecard (supply-chain posture). Gate 1 runs the code that is
+# about to be pushed; this one is about this repo on GitHub.
 #
 # ⚠️ The scorecard CLI in --repo mode asks the GitHub API about this repository as
 # GitHub knows it right now. It cannot see the commits being pushed, and there is
@@ -374,7 +84,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ -n "${SKIP_SCORECARD:-}" ]; then
-	echo 'pre-push [3/7]: supply-chain posture gate skipped — SKIP_SCORECARD is set.' >&2
+	echo 'pre-push [2/2]: supply-chain posture gate skipped — SKIP_SCORECARD is set.' >&2
 else
 	# Same contract as every gate above: a missing prerequisite blocks. A gate that
 	# steps aside when it cannot run is not a gate.
@@ -390,7 +100,7 @@ else
 			echo
 			printf '    %s\n' "$@"
 			echo
-			echo 'Bypass once (every other gate still runs): SKIP_SCORECARD=1 git push'
+			echo 'Bypass once (the other gate still runs): SKIP_SCORECARD=1 git push'
 			echo '────────────────────────────────────────────────────────────────────────────'
 		} >&2
 		exit 1
@@ -414,7 +124,7 @@ else
 	# otherwise cost a container run and an API call before failing.
 	command -v node > /dev/null 2>&1 ||
 		scorecard_block 'node not found in PATH — the floor comparison below is written in it.' \
-			'nvm install   # the version this repo pins is in package.json engines'
+			'nvm install   # the version this repo pins is in .nvmrc'
 
 	command -v docker > /dev/null 2>&1 ||
 		scorecard_block 'docker not found in PATH — the scan runs inside the pinned scorecard container.' \
@@ -450,7 +160,7 @@ else
 			'gh auth login' \
 			'# or, for one push:  GITHUB_AUTH_TOKEN=<token> git push'
 
-	echo "pre-push [3/7]: checking supply-chain posture of $SCORECARD_SLUG ($SCORECARD_IMAGE_TAG)…"
+	echo "pre-push [2/2]: checking supply-chain posture of $SCORECARD_SLUG ($SCORECARD_IMAGE_TAG)…"
 
 	SCORECARD_JSON="$(mktemp)"
 	if ! GITHUB_AUTH_TOKEN="$SCORECARD_TOKEN_VALUE" docker run --rm \
@@ -467,7 +177,7 @@ else
 	fi
 	unset SCORECARD_TOKEN_VALUE
 
-	# The floor comparison, inline. node, which every repo but marketplace-nginx already needs to run its own suite.
+	# The floor comparison, inline. node, which the self-tests above already need.
 	# Column 0 for the heredoc body on purpose: <<- strips every leading tab, which
 	# would flatten the script's own indentation on its way to the interpreter.
 	#
@@ -535,7 +245,7 @@ EVAL
 
 	case "$SCORECARD_VERDICT" in
 		0)
-			echo 'pre-push [3/7]: supply-chain posture at or above the floor.'
+			echo 'pre-push [2/2]: supply-chain posture at or above the floor.'
 			;;
 		3)
 			cat >&2 <<'MSG'
@@ -592,236 +302,4 @@ MSG
 	esac
 fi
 
-# ---------------------------------------------------------------------------
-# Gate 4 — types, over the test tree as well as src/.
-#
-# `tsconfig.json` compiles `src/` alone (`rootDir: ./src`), so the `yarn build`
-# inside `test:cov` has never read a line of `test/` — and vitest strips types
-# rather than checking them. Seven type errors sat in that blind spot until this
-# gate existed. `yarn typecheck` is `tsconfig.test.json`: the same options over
-# src/, test/, systemd/generate.mjs and the vitest configs, with no emit.
-#
-# There is still no lint gate anywhere in this hook, and that is not an oversight:
-# marketplace-services-status is the one package here with no eslint.config.js and no
-# .prettierrc.
-# ---------------------------------------------------------------------------
-
-echo "pre-push [4/7]: $APP — type-checking (yarn typecheck)…"
-
-if ! yarn typecheck; then
-	cat >&2 << 'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — marketplace-services-status does not type-check.
-
-`yarn typecheck` is `tsc -p tsconfig.test.json`: src/, test/, systemd/generate.mjs
-and the vitest configs, with no emit. `yarn build` sees src/ only, so this is the
-only gate that reads the tests as TypeScript.
-
-Fix the errors above. Do NOT relax tsconfig.json, and do not narrow the include
-in tsconfig.test.json.
-────────────────────────────────────────────────────────────────────────────
-MSG
-	exit 1
-fi
-
-echo "pre-push [4/7]: types clean."
-
-# ---------------------------------------------------------------------------
-# Gate 5 — build, tests, coverage.
-# ---------------------------------------------------------------------------
-
-echo "pre-push [5/7]: $APP — building, testing and holding 100% coverage (yarn test:cov)…"
-
-if ! yarn test:cov; then
-	cat >&2 << 'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — marketplace-services-status failed to build, failed its tests, or fell below
-100% coverage.
-
-`test:cov` is `yarn build && vitest run --coverage`, so read the FIRST error
-above rather than the last: a tsc failure stops the run before any test executes.
-
-vitest.config.mts gates every metric at 100. Nothing here needs live
-infrastructure — systemctl and every probe target are stubbed — so a red run is a
-real gap, never a missing service. The one suite that does reach out,
-test/security.live.test.ts, boots the server on a loopback port and talks to
-itself; if that one fails, check nothing else is holding the port.
-
-Add the missing test under test/, or delete the unreachable code. Never lower the
-threshold.
-
-Full report: marketplace-services-status/coverage/index.html
-────────────────────────────────────────────────────────────────────────────
-MSG
-	exit 1
-fi
-
-echo "pre-push [5/7]: 100% coverage held."
-
-# ---------------------------------------------------------------------------
-# Gate 6 — mutation. Coverage asks whether a line RAN; mutation asks whether a
-# test would have FAILED had that line been wrong, and the two answers diverge
-# badly — every package on this platform sat at 100% coverage with survivors.
-#
-# Push-only, like everywhere else: the run is minutes, not seconds, and paying
-# that per commit is how a hook gets bypassed out of habit.
-#
-# ⚠️ No SKIP_TESTS-style reuse is possible here: Stryker runs the suite once per
-# mutant under its own instrumentation, so nothing gate 5 produced can stand in
-# for it.
-# ---------------------------------------------------------------------------
-
-echo "pre-push [6/7]: $APP — mutation testing, gated at 100 (yarn test:mutation)…"
-
-if ! yarn test:mutation; then
-	cat >&2 << 'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — the mutation score is below 100, or Stryker failed to run.
-
-`thresholds.break: 100` in marketplace-services-status/stryker.config.mjs is what fails this.
-Never lower it, and never reach for `ignoreStatic`. Open
-marketplace-services-status/reports/mutation/mutation.html — every survivor is shown as the
-exact diff Stryker applied, which is the change no test noticed.
-
-Three things a survivor usually means, in order of likelihood:
-
-  1. An assertion is PARTIAL — it checks that something happened rather than
-     what. Freeze the whole shape instead of one field of it.
-
-  2. The mutated line is in a branch no suite enters. Reaching 100 here the first
-     time meant deleting eight such guards outright: conditions no input could
-     falsify (`typeof value === 'string'` in front of a Set#has, a
-     `.toLowerCase()` the WHATWG URL parser had already applied). Changing the
-     code is a legitimate fix; a threshold is not.
-
-  3. The mutant is genuinely EQUIVALENT. A
-     `// Stryker disable next-line <Mutator>: <reason>` is the last resort and
-     needs the reason written at the site. ⚠️ The directive must be the LEADING
-     comment of the mutant's own line — written as the last line of a multi-line
-     comment it lands on the wrong line, and placed inside a `try` it never
-     reaches the `catch`; use the `disable` … `restore` range form there.
-
-⚠️ Also check the module-load trap before believing a survivor: a top-level const
-is evaluated once per process, and Stryker switches the active mutant per test,
-so a module loaded before the switch hands every test the UNMUTATED value however
-hard the test asserts. Read `Survived` in a pure-data module as "my test never
-saw the mutant" and re-import it inside a beforeEach.
-────────────────────────────────────────────────────────────────────────────
-MSG
-	exit 1
-fi
-
-echo "pre-push [6/7]: mutation score 100 held."
-
-# ---------------------------------------------------------------------------
-# Gate 7 — Qodana. Deliberately here as well as in pre-commit, for two reasons
-# pre-commit structurally cannot cover: `git merge --no-ff` never fires
-# pre-commit, so the merge commit is the one revision no pre-commit scan sees;
-# and Qodana Cloud files every report under the branch it was produced on (the
-# CLI has no --branch flag, it reads git HEAD), while pre-commit always runs on
-# the feature branch before the commit exists — so a repo gated only there never
-# produces a main-tagged report and the "new problems" baseline has nothing
-# stable to compare against.
-# ---------------------------------------------------------------------------
-
-if [ -n "${SKIP_QODANA:-}" ]; then
-	echo 'pre-push [7/7]: Qodana gate skipped — SKIP_QODANA is set.' >&2
-	exit 0
-fi
-
-if ! command -v qodana > /dev/null 2>&1; then
-	gate_block 'the qodana CLI is not in PATH.' \
-		'# install it, then push again:' \
-		'https://github.com/JetBrains/qodana-cli#installation'
-fi
-
-if ! command -v docker > /dev/null 2>&1; then
-	gate_block 'docker not found in PATH — the CLI runs the linter in a container.' \
-		'# install Docker Engine, then push again:' \
-		'https://docs.docker.com/engine/install/'
-fi
-
-if ! docker info > /dev/null 2>&1; then
-	gate_block 'docker daemon not reachable.' \
-		'sudo systemctl start docker'
-fi
-
-for required in qodana.yaml qodana.sh; do
-	if [ ! -f "$APP_DIR/$required" ]; then
-		gate_block "$APP/$required missing." \
-			"git checkout $APP/$required"
-	fi
-done
-
-# Checked separately from existence, because the failure it catches is indistinguishable
-# from a real finding once it happens: a non-executable qodana.sh makes the invocation
-# below exit non-zero having produced no results directory at all, and the block below
-# reports that as "Qodana failed on marketplace-services-status" with a link to a report that was
-# never written. This app's copy was committed at mode 100644 while all eleven other
-# repos' are 100755 — the mode is tracked by git, so it is restored on every clone.
-if [ ! -x "$APP_DIR/qodana.sh" ]; then
-	gate_block "$APP/qodana.sh is not executable — the scan would fail as a permission error and be reported as a finding." \
-		"chmod +x $APP/qodana.sh" \
-		"git update-index --chmod=+x $APP/qodana.sh"
-fi
-
-# Track the image declared in qodana.yaml rather than hard-coding a tag here, so
-# bumping the version in one place cannot leave the hook scanning with an older
-# linter than the manual runs use.
-LINTER="$(grep -oE 'jetbrains/qodana-js:[0-9][0-9.]*' "$APP_DIR/qodana.yaml" | head -n 1 || true)"
-
-if [ -z "$LINTER" ]; then
-	gate_block "no 'jetbrains/qodana-js:<version>' image line found in $APP/qodana.yaml." \
-		'# restore the `image:` key, then push again:' \
-		"git checkout $APP/qodana.yaml"
-fi
-
-# The CLI would pull this itself. Blocking instead keeps a slow or unreachable
-# Docker Hub from turning into a failed push: one explicit pull per image bump,
-# versus a network flake on any push.
-if ! docker image inspect "$LINTER" > /dev/null 2>&1; then
-	gate_block "linter image $LINTER not present locally." \
-		"docker pull $LINTER"
-fi
-
-# Metadata check only — no value is ever read here. qodana.sh loads the token into
-# the process env without printing it, and accepts one that is already exported,
-# which is why an exported token satisfies this check with no .env present.
-if [ -z "${QODANA_TOKEN:-}" ] && { [ ! -f "$APP_DIR/.env" ] || ! grep -q '^[[:space:]]*QODANA_TOKEN=' "$APP_DIR/.env"; }; then
-	gate_block "no QODANA_TOKEN, in the environment or in $APP/.env — Qodana 2023.2+ refuses to start without one." \
-		'# create this app'"'"'s own project on https://qodana.cloud (never reuse another' \
-		'# repo'"'"'s token — reports would land in that project and corrupt its baseline), then:' \
-		"echo 'QODANA_TOKEN=<token>' >> $APP/.env"
-fi
-
-echo "pre-push [7/7]: $APP — enforcing the Qodana gate ($LINTER)…"
-
-# SKIP_TESTS=1, exactly as the fourteen gated packages pass it: qodana.sh would
-# otherwise regenerate coverage as `yarn test:cov || true`, with the exit code
-# swallowed. Gate 5 above has already written coverage/lcov.info.
-if ! SKIP_TESTS=1 "$APP_DIR/qodana.sh" --results-dir "$APP_DIR/.qodana/results"; then
-	cat >&2 << 'MSG'
-
-────────────────────────────────────────────────────────────────────────────
-PUSH BLOCKED — Qodana failed on marketplace-services-status.
-
-The gate lives in marketplace-services-status/qodana.yaml: severityThresholds critical 0 /
-high 0, plus testCoverageThresholds 100 total / 100 fresh. Findings are listed
-above, with a report link on qodana.cloud.
-
-Local SARIF: marketplace-services-status/.qodana/results/qodana.sarif.json
-
-This exit code also covers infrastructure failures (daemon died mid-scan, out of
-disk). If the report shows no findings, it was not a finding.
-
-Bypass once (the coverage and mutation gates still run): SKIP_QODANA=1 git push
-────────────────────────────────────────────────────────────────────────────
-MSG
-	exit 1
-fi
-
-echo "pre-push [7/7]: Qodana clean. Pushing."
 exit 0

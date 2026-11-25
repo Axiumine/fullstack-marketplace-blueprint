@@ -58,3 +58,7 @@
 	path = marketplace-user
 	url = ../marketplace-user.git
 	branch = main
+[submodule "marketplace-services-status"]
+	path = marketplace-services-status
+	url = ../marketplace-services-status.git
+	branch = main

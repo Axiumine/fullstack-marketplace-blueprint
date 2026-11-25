@@ -49,7 +49,7 @@ v1.9 - 2026-08-29: **retention is rebuilt from the ground down and open question
 
 ## 1. Purpose
 
-NFRs = quality constraints, not features. How the 16-repo Marketplace platform behaves, not what it does. Public catalogue hit by anonymous traffic at scale → perf/security load-bearing. 4 auth tiers sharing one Redis key prefix → security boundary is one fn (`assertTier`), not four. Every package gated at 100% coverage + 100 mutation score → maintainability is enforced, not aspirational. Getting these wrong mid-project is expensive: an NFR here is downstream of `PDR.md` scope and `SYSTEM_CONTEXT.md` boundary contracts, and every Phase 3+ doc inherits it. Retrofit mode: every requirement below states what the codebase already enforces, cited to the file that enforces it — not a wishlist.
+NFRs = quality constraints, not features. How the 17-repo Marketplace platform behaves, not what it does. Public catalogue hit by anonymous traffic at scale → perf/security load-bearing. 4 auth tiers sharing one Redis key prefix → security boundary is one fn (`assertTier`), not four. Every package gated at 100% coverage + 100 mutation score → maintainability is enforced, not aspirational. Getting these wrong mid-project is expensive: an NFR here is downstream of `PDR.md` scope and `SYSTEM_CONTEXT.md` boundary contracts, and every Phase 3+ doc inherits it. Retrofit mode: every requirement below states what the codebase already enforces, cited to the file that enforces it — not a wishlist.
 
 ---
 
@@ -79,7 +79,7 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 | NFR-AV02 | Logout must remain the one deliberate exception: a single shared service (port 4030) serving all three tiers | Its `start()` connects Redis only — no MongoDB, so no tier-specific document to re-read — tier-blindness is what makes one service safe for three tiers where authorization cannot be: minting a token requires re-reading a tier-specific collection (`docs/decisions/authorization-service-consolidation.md:35-45`). All three frontends point at 4030 (`docs/architecture.md` §Services) |
 | NFR-AV03 | Anti-bot verification (`assertTurnstile`) must fail **closed** in production when no secret is configured, and only there | `if (!secret) { if (process.env.NODE_ENV === 'production') throw throwForbiddenError(); return }` — `BEs/marketplace-common/src/others/assertTurnstile.mts:26,29-32`. A missing secret must read as "the gate is broken", not "the gate is off" |
 | NFR-AV04 | Every backend service must bind the unspecified address (`::`), not a single interface, so the integration suites and any reachable host can hit it | `httpServer.listen({ port })` with no host — `docs/architecture.md` §Ports and binding, verified for all nine; `marketplace-user/serve.mjs` is the one deliberate exception and binds `127.0.0.1` because it has no auth of its own |
-| NFR-AV05 | A push must never land code that fails lint, coverage, mutation, or a Qodana High/Critical finding | `.githooks/pre-push` runs `lint:check → test:cov → test:mutation → Qodana` in that order, in all 14 sub-repos that ship code (`docs/workflow.md` §Git hooks, `.githooks/pre-push` header comment — verified in `BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:3-6`). A missing prerequisite (docker, `qodana` CLI, `QODANA_TOKEN`) blocks and prints the fixing command; it never warns and continues |
+| NFR-AV05 | A push must never land code that fails lint, coverage, mutation, or a Qodana High/Critical finding | `.githooks/pre-push` runs `lint:check → test:cov → test:mutation → Qodana` in that order, in all 15 sub-repos that ship code, less the lint step in `marketplace-db-setup` and `marketplace-services-status` (`docs/workflow.md` §Git hooks, `.githooks/pre-push` header comment — verified in `BEs/dev/marketplace-dev-user-authenticated-resource/.githooks/pre-push:3-6`). A missing prerequisite (docker, `qodana` CLI, `QODANA_TOKEN`) blocks and prints the fixing command; it never warns and continues |
 
 ---
 
@@ -166,7 +166,7 @@ NFRs = quality constraints, not features. How the 16-repo Marketplace platform b
 | NFR-PF03–PF07 | Performance (remaining indexes) | 🟠 High | Yes, individually — a dropped index degrades one query path, not the platform |
 | NFR-SC01, SC02 | Scalability (Nominatim topology, rate limits) | 🟠 High | No — the self-hosted/public split exists specifically because OSM's 1 req/s policy cannot be renegotiated |
 | NFR-SC03 | Scalability (Redis cluster CROSSSLOT) | 🟠 High | No — a violation is a runtime exception, not a perf tradeoff |
-| NFR-PO01 | Portability (Node engine gate) | 🟠 High | No — a mismatch is `exit 1` across 14 repos simultaneously |
+| NFR-PO01 | Portability (Node engine gate) | 🟠 High | No — a mismatch is `exit 1` across 15 repos simultaneously |
 | NFR-AV03–AV05 | Availability (fail-closed, wildcard bind, push gate) | 🟠 High | AV04 partial — `marketplace-user`'s loopback bind is a deliberate, documented exception |
 | NFR-MA03, MA04, MA06, MA07 | Maintainability (gate wiring) | 🟠 High | No |
 | NFR-CS01–CS03 | Maintainability (code style) | 🟡 Medium | CS02 (English-naming) is non-negotiable on doctrine grounds; CS01/CS03 are tooling hygiene |
