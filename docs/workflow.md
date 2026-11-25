@@ -56,11 +56,6 @@ git clone --recurse-submodules https://github.com/Axiumine/fullstack-marketplace
 # the submodule URLs are relative, so they follow whichever you use.
 ```
 
-⚠️ **This does not work yet.** All sixteen repositories exist on GitHub and every one of them is
-**empty** — nothing has ever been pushed, so every SHA `.gitmodules` pins exists on no remote and the
-`--recurse-submodules` step fails on the first one it tries. The recipe becomes true on the first push,
-not before.
-
 In an existing checkout, or after a clone that forgot `--recurse-submodules`:
 
 ```bash

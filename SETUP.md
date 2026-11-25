@@ -86,10 +86,7 @@ git clone --recurse-submodules https://github.com/Axiumine/fullstack-marketplace
 cd fullstack-marketplace-blueprint
 ```
 
-⚠️ **This does not work yet.** All sixteen repositories exist on GitHub and every one of them is empty —
-nothing has ever been pushed, so every SHA `.gitmodules` pins exists on no remote and
-`--recurse-submodules` fails on the first one. Until the first push, the workspace has to be handed to
-you as a directory. The recipe below is what makes an existing checkout usable.
+Then make the checkout usable:
 
 ```bash
 ./scripts/bootstrap.sh

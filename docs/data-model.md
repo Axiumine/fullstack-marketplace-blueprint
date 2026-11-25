@@ -355,6 +355,7 @@ limiter were found, live and documented nowhere, on the day the audit script fir
 | `<prefix>dual-read-hits` | an integer, and nothing else | the fallback read | **gone since 2026-08-14**; never non-zero, the cutover was never deployed |
 | `<prefix>rl:<bucket>:<sha256(identity)>` | a rate-limit counter | `assertUnderRateLimit` | live |
 | `<prefix>used:<sha256(token)>` | `{ familyId }` — the reuse tombstone | rotation | live |
+| `<prefix>claim:<sha256('refresh:'+token)>` | an integer counting the callers that tried to rotate one refresh token; only the first may, and it expires after `GRACE_SECONDS` | `resolveAuthorizationSession` | live |
 | `<prefix>family:<familyId>` | a set of that family's session keys | rotation | live |
 | `<prefix>idx:<tier>:<accountId>` | one field per live session — field name `sha256('refresh:'+token)`, value `{ tier, mintedAt }`, each field `HEXPIRE`d at its own session's cap | login, rotation | live |
 | `<prefix>grace-hits` | an integer — how often a refresh lost a race and was told to retry | the grace-window branch of rotation | live; the count backed the multi-tab measurement that shaped the grace window |

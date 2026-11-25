@@ -20,7 +20,7 @@ This directory is the parent workspace of all Marketplace repos (polyrepo, seven
 <https://github.com/Axiumine/fullstack-marketplace-blueprint>. Since ADR-031 it tracks the sixteen
 sub-repos as submodules with relative URLs, so `git clone --recurse-submodules` rebuilds the whole
 workspace over whichever transport you clone with — see [`docs/workflow.md`](./docs/workflow.md) §Cloning the workspace, which
-also covers the detached-HEAD trap that follows every `git submodule update`, and what is not yet pushed.
+also covers the detached-HEAD trap that follows every `git submodule update`.
 **Running it for the first time: [`SETUP.md`](./SETUP.md)** — prerequisites, the database cluster, the
 CSFLE key, the shared secrets, migrations and demo data, the nine services, the three frontends, nginx.
 
