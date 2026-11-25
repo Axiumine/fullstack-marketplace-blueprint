@@ -49,9 +49,9 @@ and does not argue a motive beyond the owner's instruction.
   ruled that the parent's `.scorecard-floor` drops from `Fuzzing=10` to `Fuzzing=0`, the one exception to
   [ADR-054](./ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md)'s never-lower rule made here: the control moved, and the new repository's floor
   holds it at 10.
-- The new repository's `.scorecard-floor` records its first measurement, 2026-11-25, when `main` held only the extracted history: `Dependency-Update-Tool`,
-  `SAST` and `Security-Policy` read 0 and `Dangerous-Workflow`, `Pinned-Dependencies` and `Token-Permissions` read -1. Raise them once the branch that
-  adds the workflows, `SECURITY.md` and the Dependabot config is merged into `main`.
+- The new repository's `.scorecard-floor` first recorded 2026-11-25's measurement of a `main` that held only the extracted history, aggregate 3.8. It was
+  raised the same day, to aggregate 7.4, after the merge that brought the workflows, `SECURITY.md` and the Dependabot config to `main`. `Maintained`
+  stays 0 until the repository is 90 days old.
 
 ## Compliance
 
