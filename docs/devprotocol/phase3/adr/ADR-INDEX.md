@@ -2,10 +2,14 @@
 # Marketplace
 
 **Status:** baselined
-**Version:** 1.43
-**Date:** 2026-11-25
+**Version:** 1.44
+**Date:** 2026-11-28
 **Author:** adr-agent
 **Changelog:**
+v1.44 - 2026-11-28: **[ADR-061](./ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md) added, `accepted`: every workflow job runs on the organisation's self-hosted runners.** The platform owner's
+decision: no GitHub-hosted job and no runner created for this platform. It supersedes ADR-054 in part (publishing the score and its badge) and
+ADR-055 in part (the rule against a self-hosted runner); both gain a dated note. The `.scorecard-floor` gate and every threshold are unchanged.
+
 v1.43 - 2026-11-25: **[ADR-060](./ADR-060-services-status-is-a-sub-repo.md) added, `accepted`: `marketplace-services-status` is a repository of its own, tracked as the sixteenth
 submodule.** It supersedes [`ADR-025`](./ADR-025-services-status-gated-by-parent-hooks.md) whole; the gates move with the code, none dropped, and the parent ships no
 package. One row in §2 and ADR-025's marked superseded, a number in §3's **Build and quality gates** line, §4 and §5 restated, and §1's count — now **nine** supersessions.
@@ -430,7 +434,9 @@ dated the same day, supersedes nothing: it is a new route, and ADR-054 gains a h
 clause that the package manager hard-gates `engines` — while ADR-017's `core.hooksPath` wiring and Qodana in both hooks, and ADR-026's caret and single
 spelling, stand (its value moved to `^26.13.1` the same day, a dated note); ADR-055 gains a dated note and is not superseded. ⚠️ **A ninth is dated
 2026-11-25 and reverses a decision whole**: ADR-060 supersedes **ADR-025** — `marketplace-services-status` is a repository of its own, tracked as
-the sixteenth submodule, and its gates moved with it, none dropped. Every other
+the sixteenth submodule, and its gates moved with it, none dropped. ⚠️ **A tenth is dated 2026-11-28 and is the owner's ruling**: ADR-061
+supersedes **ADR-054 and ADR-055, each in part** — the first on publishing the score and its badge, the second on the rule against a
+self-hosted runner — while the score floor and every gate stand. Every other
 decision stands as written, and none contradicts another. Where two ADRs touch the same subject they divide it
 rather than overlap: ADR-001 decides that the platform is seventeen independent histories, ADR-031 decides what
 the parent workspace records about the sixteen it contains.
@@ -513,13 +519,14 @@ required in this repo's ADRs — there is no `agents.config.yaml`, so `complianc
 | ADR-051 | A session exit is a page load | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-052 | A session entrance is a page load too | accepted | 2026-08-30 | — | — | Frontend |
 | ADR-053 | The shared half of the environment is one file at the workspace root, loaded by direnv | accepted, with a dated note of 2026-10-18 on systemd units (SETUP.md §7c) | 2026-08-31 | — | — | Infrastructure and delivery |
-| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and three dated notes that supersede nothing (the last, 2026-10-18: `CI-Tests` is not floored) — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058) | 2026-09-20 | — | ADR-056, in part | Build and quality gates |
-| ADR-055 | The gates run on GitHub too, and `main` requires them | accepted, with a dated note of 2026-11-16 that supersedes nothing — §Decision 5's install is `yarn install --immutable` under Yarn 4 (ADR-059) | 2026-09-20 | — | — | Build and quality gates |
+| ADR-054 | The supply-chain score is published by a workflow and floored in `pre-push` | accepted, **amended in part 2026-10-17** — two clauses of §Compliance: the one calling `License` 9→10 a relicensing (superseded by ADR-056) and the one listing `Fuzzing` among the owner's decisions (replaced by a dated outcome); and three dated notes that supersede nothing (the last, 2026-10-18: `CI-Tests` is not floored) — the documented exception route for an unpatched, dev-only advisory (ADR-057) and the lapse of the YAML tab exception (ADR-058); **superseded in part 2026-11-28** — publishing the score and its badge (ADR-061) | 2026-09-20 | — | ADR-056, ADR-061, both in part | Build and quality gates |
+| ADR-055 | The gates run on GitHub too, and `main` requires them | accepted, with a dated note of 2026-11-16 that supersedes nothing — §Decision 5's install is `yarn install --immutable` under Yarn 4 (ADR-059); **superseded in part 2026-11-28** — the rule against a self-hosted runner (ADR-061) | 2026-09-20 | — | ADR-061, in part | Build and quality gates |
 | ADR-056 | The `LICENSE` file is the pristine GPL-3.0 text, and the copyright notice lives in the README | accepted — 2026-10-17, by the owner's merge to `main` | 2026-10-17 | ADR-015 and ADR-054, each in part | — | Build and quality gates |
 | ADR-057 | An unpatched, dev-only advisory is accepted in a dated `osv-scanner.toml`, not skipped and not hidden | accepted | 2026-10-17 | — | — | Build and quality gates |
 | ADR-058 | Indentation is two spaces, and the tabs clause of ADR-024 is withdrawn | accepted | 2026-10-17 | ADR-024, in part | — | Build and quality gates |
 | ADR-059 | The package manager is Yarn 4.18.1 with the `node-modules` linker, and `.yarnrc.yml` is committed and refused by content | accepted | 2026-11-16 | ADR-017 and ADR-026, each in part | — | Build and quality gates |
 | ADR-060 | `marketplace-services-status` is a repo of its own, tracked as the sixteenth submodule | accepted | 2026-11-25 | ADR-025 | — | Build and quality gates |
+| ADR-061 | Every workflow job runs on the organisation's self-hosted runners | accepted | 2026-11-28 | ADR-054 and ADR-055, each in part | — | Build and quality gates |
 
 ## 3. By area
 
@@ -534,7 +541,8 @@ ADR-050
 **Frontend** — ADR-018, ADR-019, ADR-020, ADR-021, ADR-027, ADR-049, ADR-051, ADR-052
 
 **Build and quality gates** — ADR-015, ADR-016, ADR-017, ADR-023, ADR-024, ADR-025, ADR-026, ADR-030,
-ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058, ADR-059, ADR-060
+ADR-037, ADR-047, ADR-054, ADR-055, ADR-056, ADR-057, ADR-058, ADR-059, ADR-060,
+ADR-061
 
 **Infrastructure and delivery** — ADR-001, ADR-022, ADR-028, ADR-031, ADR-032, ADR-039, ADR-053
 

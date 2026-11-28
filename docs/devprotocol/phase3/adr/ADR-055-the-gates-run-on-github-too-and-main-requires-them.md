@@ -6,7 +6,7 @@
 **Deciders:** platform owner, in the instruction *"do 1+2+3"* given the same day ADR-054 landed, whose third
 item was *"close R63"* — the hole ADR-054 opened deliberately and recorded in its own §Risks.
 **Supersedes:** — (it reverses one option ADR-054 rejected; see §Context)
-**Superseded by:** —
+**Superseded by:** [ADR-061](./ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md) in part, 2026-11-28: the §Compliance rule against a self-hosted runner
 
 ---
 
@@ -287,7 +287,8 @@ from ADR-054: force pushes and deletions blocked, `enforce_admins` false, no req
   decisions with a stated reason, and both look like obvious improvements from a distance.
 - ⚠️ **Do not move this workflow to a self-hosted runner on this workstation.** A `pull_request` trigger
   plus a self-hosted runner plus a public repository is arbitrary code execution from any fork, and it is
-  the reason the faithful reproduction — Qodana included — was refused.
+  the reason the faithful reproduction — Qodana included — was refused. *(Superseded in part 2026-11-28 by [ADR-061](./ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md): the workflow runs on the
+  organisation's self-hosted runners, behind fork approval. The development workstation is still not one of them.)*
 - YAML forbids tabs, so this workflow is indented with spaces — like everything else the formatter reaches since
   [`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md), which retired the exception to ADR-024 that ADR-054
   had recorded for `scorecard.yml`.
