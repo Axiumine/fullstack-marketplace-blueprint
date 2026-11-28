@@ -466,7 +466,7 @@ of which gates** — state the difference plainly rather than letting any of it 
 
 What exists, per [`ADR-054`](./adr/ADR-054-the-supply-chain-score-is-a-gate-with-a-floor.md): every one of
 the 17 repos carries `.github/workflows/scorecard.yml` (OpenSSF Scorecard on push to `main` and weekly,
-`publish_results: true`, SARIF uploaded to code scanning), and the 16 that ship JavaScript also carry
+SARIF uploaded to code scanning; not published since 2026-11-28), and the 16 that ship JavaScript also carry
 `.github/workflows/codeql.yml`. Both **measure** and block nothing.
 
 What exists as a gate, per [`ADR-055`](./adr/ADR-055-the-gates-run-on-github-too-and-main-requires-them.md)
@@ -481,6 +481,9 @@ will not hold; **the Scorecard floor** has its own workflow and grades the repo 
 the **nine services** the coverage run is replaced by `yarn test:unit`, because its `integration` project
 needs the MongoDB replica set, the provisioned `MONGO_TEST_*` users, the Redis ACL namespace and the sibling
 `marketplace-db-setup` checkout its migrations are replayed from — none of which exists on a runner.
+
+Every job of the three workflows runs on the organisation's self-hosted runners since 2026-11-28
+([ADR-061](./adr/ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md)).
 
 So the position is: a pull request can no longer be merged in the browser past the gates, and nothing here
 builds, releases or deploys anything. No GitLab CI and no Jenkins config exists anywhere. The claim that

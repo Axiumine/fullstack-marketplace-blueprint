@@ -1,6 +1,5 @@
 # Marketplace — workspace root
 
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Axiumine/fullstack-marketplace-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/Axiumine/fullstack-marketplace-blueprint)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15609/badge)](https://www.bestpractices.dev/projects/15609)
 
 > [!WARNING]

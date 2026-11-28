@@ -14,6 +14,8 @@ is *"Action + local gate"*, the scope is *"wire + full remediation"*, the GitHub
 **Supersedes:** —
 **Superseded by:** [`ADR-056`](./ADR-056-the-license-file-is-the-pristine-gpl-text.md), **in part, 2026-10-17** — one clause of §Compliance: `License` is no
 owner decision, because the licence was always GPL-3.0 and only the `LICENSE` file's shape kept GitHub from recognising it. The `Fuzzing` clause is not ADR-056's: it was changed by the same piece of work as a dated outcome in §Compliance, and merging that change is the owner's acceptance of it. Everything else here stands.
+[ADR-061](./ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md),
+**in part, 2026-11-28** — §Decision 1's publishing of the score and its badge; the floor stays.
 [`ADR-057`](./ADR-057-an-unpatched-dev-only-advisory-is-accepted-in-a-dated-osv-scanner-toml.md) and
 [`ADR-058`](./ADR-058-indentation-is-two-spaces-not-tabs.md) supersede nothing here: each is a dated note in §Compliance, and the ratchet is
 untouched.
@@ -84,7 +86,8 @@ are `push` on `main` and a weekly `schedule`, which is the whole supported trigg
 `id-token: write` on the job, because `publish_results` refuses a workflow-level write. Every `uses:` is
 pinned to a full commit SHA with the tag in a trailing comment: Scorecard's own Pinned-Dependencies check
 reads this file. `publish_results: true` mints the public badge and the `api.scorecard.dev` entry through
-OIDC.
+OIDC. *(Superseded 2026-11-28 by [ADR-061](./ADR-061-every-workflow-job-runs-on-the-organisations-self-hosted-runners.md): the job runs on self-hosted runners, publishing is off, and `id-token: write`
+and the badge are gone.)*
 
 **2. The score is floored in `pre-push`, in all sixteen repositories.** The floor lives in a committed
 `.scorecard-floor`: one `aggregate=` line and one `Name=value` line per check. Per-check lines and not
